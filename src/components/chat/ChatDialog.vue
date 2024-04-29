@@ -29,8 +29,8 @@
               :avatar="message.avatar"
               :name="message.name"
               :sent="message.sent"
-              :text="message.text"
-              stamp="7 minutes ago"
+              :text="[message.text]"
+              :stamp="'7 minutes ago'"
               :bg-color="message.comment ? 'blue-3' : '#e0e0e0'"
               :text-color="message.comment ? 'white' : 'black'"
             />
@@ -38,22 +38,30 @@
         </div>
         <q-page-sticky expand position="bottom">
           <q-toolbar>
+            <q-btn
+              type="file"
+              @change="onFileChanged($event)"
+              icon="attach_file"
+              class="no-padding"
+              flat
+            />
+<!--        @click="uploadFile()"-->
             <textarea
-              :placeholder="toggleValue ? 'Текст комментария' : 'Текст сообщения'"
+              :placeholder="toggleIsComment ? 'Текст комментария' : 'Текст сообщения'"
               style="width: 200%; height: 70px;"
               class="shadow-2 rounded-borders"
-              :class="this.toggleValue ? 'bg-blue-3' : 'bg-white'"
+              :class="this.toggleIsComment ? 'bg-blue-3' : 'bg-white'"
               ref="textInput"
               :value="this.inputField"
               id="textarea"
               @keydown.tab.prevent="handleTab"
               @keydown="this.handleKeyPress"
               @change="this.textChanged"
-              :style="'color: ' + this.toggleValue ? 'white' : 'black'"
+              :style="'color: ' + this.toggleIsComment ? 'white' : 'black'"
             />
             <div>
               <q-toggle
-                v-model="this.toggleValue"
+                v-model="this.toggleIsComment"
                 color="primary"
                 icon="comment"
               />
@@ -76,7 +84,7 @@ export default {
   props: ['messages', 'inputField', 'templates'],
 
   data: () => ({
-    toggleValue: false,
+    toggleIsComment: false,
     text: '',
     taskWatchingNow: []
   }),
@@ -95,11 +103,11 @@ export default {
       const textarea = document.getElementById('textarea')
       if (textarea.value) {
         this.$emit('sendMessage', {
-          id: 3,
-          name: 'test test',
-          text: [textarea.value],
+          id: null,
+          text: textarea.value,
+          date: new Date(),
           sent: true,
-          comment: this.toggleValue
+          comment: this.toggleIsComment
         })
       }
       this.scrollToBottom()
@@ -123,6 +131,14 @@ export default {
 
     textChanged () {
       this.$emit('keyPressed', this.$refs.textInput.value)
+    },
+
+    onFileChanged (event) {
+      console.log(event)
+      const target = event.target
+      if (target && target.files) {
+        this.file.value = target.files[0]
+      }
     }
   }
 }

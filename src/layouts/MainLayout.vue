@@ -18,7 +18,8 @@
           flat
           round
           dense
-          icon="whatshot"
+          icon="logout"
+          @click="this.logout"
         />
       </q-toolbar>
     </q-header>
@@ -46,23 +47,54 @@
 <script>
 import { defineComponent, ref } from 'vue'
 import EssentialLink from 'components/EssentialLink.vue'
+import { useRoute } from 'vue-router'
+import axios from 'axios'
 
 const linksList = [
   {
-    title: 'Чаты',
-    icon: 'forum'
+    title: 'Мои заявки',
+    icon: 'task_alt',
+    link: '/my-tasks'
   },
   {
-    title: 'Задачи',
-    icon: 'task'
+    title: 'Чаты',
+    icon: 'forum',
+    link: '/chats'
+  },
+  {
+    title: 'Заявки',
+    icon: 'task',
+    link: '/tasks'
   },
   {
     title: 'Поиск',
-    icon: 'search'
+    icon: 'search',
+    link: '/search'
   },
   {
     title: 'История',
-    icon: 'history'
+    icon: 'history',
+    link: '/history'
+  },
+  {
+    title: 'Аналитика',
+    icon: 'data_usage',
+    link: '/analytics'
+  },
+  {
+    title: 'АТС',
+    icon: 'phone',
+    link: '/phone'
+  },
+  {
+    title: 'Настройки',
+    icon: 'settings',
+    link: '/settings'
+  },
+  {
+    title: 'Пользователи онлайн',
+    icon: 'group',
+    link: '/users'
   }
 ]
 
@@ -73,12 +105,20 @@ export default defineComponent({
     EssentialLink
   },
 
+  methods: {
+    logout () {
+      axios.get('/logout').then(() => location.reload())
+    }
+  },
+
   setup () {
     const leftDrawerOpen = ref(false)
 
+    const router = useRoute()
     return {
       linksList,
       leftDrawerOpen,
+      router,
       toggleLeftDrawer () {
         leftDrawerOpen.value = !leftDrawerOpen.value
       }

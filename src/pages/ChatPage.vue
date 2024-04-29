@@ -1,204 +1,167 @@
 <template>
   <q-layout view="hHh lpR fFf">
     <q-page-container>
-      <div
-        class="sticky-tabs"
-        v-if="this.$q.screen.width < 1023"
-      >
-        <q-tabs
-          v-model="tab"
-          dense
-          align="justify"
-          class="bg-primary text-white shadow-2"
-          :breakpoint="0"
+      <q-page>
+        <div
+          class="sticky-tabs"
+          v-if="this.$q.screen.width < 1023"
         >
-          <q-tab name="tab1" icon="forum"/>
-          <q-tab name="tab2" icon="database"/>
-          <q-tab name="tab3" icon="info"/>
-        </q-tabs>
-      </div>
-      <q-page padding>
-        <div class="q-gutter-md row">
-
-          <div class="col" v-if="this.$q.screen.width > 1023 || this.tab === 'tab1'">
-            <q-layout view="lHh Lpr lFf" container style="height: 85vh" class="shadow-2 rounded-borders">
-              <q-page-container>
-                <q-page padding style="padding-bottom: 66px">
-                  <div class="q-pa-md row justify-center">
-                    <div style="width: 100%;">
-                      <div v-for="message in this.messages" :key="message.id">
-                        <q-chat-message
-                          :avatar="message.avatar"
-                          :name="message.name"
-                          :sent="message.sent"
-                          :text="message.text"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <q-page-sticky expand position="bottom">
-                    <q-toolbar>
-                      <textarea placeholder="Placeholder" style="width: 100%;" class="shadow-2 rounded-borders"/>
-                      <q-btn icon="send"/>
-                    </q-toolbar>
-                  </q-page-sticky>
-                </q-page>
-              </q-page-container>
-            </q-layout>
-          </div>
-
-          <div class="col" v-if="this.$q.screen.width > 1023 || this.tab === 'tab2'">
-            <q-card class="my-card q-layout-padding">
-              <q-card-section>
-                <div class="text-h6">Макросы</div>
-                <div class="text-h6">Автоввод</div>
-                <div class="text-h6">Шаблоны</div>
-              </q-card-section>
-            </q-card>
-          </div>
-
-          <div
-            class="col"
-            v-if="this.$q.screen.width > 1023 || this.tab === 'tab3'"
-            style="height: 100%;"
+          <q-tabs
+            v-model="tab"
+            dense
+            align="justify"
+            class="bg-primary text-white shadow-2"
+            :breakpoint="0"
           >
-            <q-card class="my-card q-layout-padding">
-              <q-card-section>
-                <div class="text-h6">Фамилия Имя</div>
-                <div class="text-subtitle2">организация</div>
-                <div class="text-subtitle2">доп инфа</div>
-                <div class="text-subtitle2">rPCSMT</div>
-                <div class="text-subtitle2">check-admin-pc</div>
-              </q-card-section>
-            </q-card>
-            <q-card class="my-card" style="min-height: 500px">
-              <div class="text-h6">Список задач</div>
-              <div class="text-grey-7">Создать новую задачу</div>
-              <q-layout view="lHh Lpr lFf" container style="height: 85vh" class="shadow-2 rounded-borders">
-                <q-page-container>
-                  <q-page padding>
-                    <div class="q-pa-md row justify-center">
-                      <div style="width: 100%;">
-                        <q-card-section>
-                          <q-card class="my-card">
-                            <q-card-section v-for="n in 10" :key="n">
-                              <div class="text-subtitle2">задача {{ n }}</div>
-                              <div class="text-subtitle2">тег 1, тег 2, тег 3, тег 4</div>
-                              <div class="text-subtitle2">Приоритет</div>
-                              <div class="text-subtitle2">Создана</div>
-                              <div class="text-subtitle2">Статус</div>
-                              <div class="text-subtitle2">Дедлайн</div>
-                              <div class="text-subtitle2">Исполнитель</div>
-                            </q-card-section>
-                          </q-card>
-                        </q-card-section>
-                      </div>
-                    </div>
-                  </q-page>
-                </q-page-container>
-              </q-layout>
-            </q-card>
-          </div>
-
+            <q-tab name="tab1" icon="forum"/>
+            <q-tab name="tab2" icon="database"/>
+            <q-tab name="tab3" icon="info"/>
+          </q-tabs>
         </div>
+        <q-page padding>
+          <div class="q-gutter-md row">
+            <div
+              class="col"
+              v-if="this.$q.screen.width > 1023 || this.tab === 'tab1'"
+              style="height: 100%;"
+            >
+              <chat-dialog
+                :messages="this.getClient.messages"
+                :inputField="this.inputField"
+                :templates="this.templates"
+                @sendMessage="this.sendMessage"
+                @keyPressed="this.keyPressed"
+              />
+            </div>
+
+            <div
+              class="col"
+              v-if="this.$q.screen.width > 1023 || this.tab === 'tab2'"
+              style="height: 100%;"
+            >
+              <chat-helper
+                :templates="this.templates"
+                :macros="this.macros"
+                :knowledgeBase="this.knowledgeBase"
+                @onTemplateClick="onTemplateClick"
+              />
+            </div>
+
+            <div
+              class="col"
+              v-if="this.$q.screen.width > 1023 || this.tab === 'tab3'"
+              style="height: 100%;"
+            >
+              <chat-info
+                style="z-index: 1"
+                :client="this.getClient"
+              />
+              <chat-tasks
+                :tasks="this.getClient.tasks"
+                :isNotificationEnabled="isNotificationEnabled"
+                @newTask="this.newTask"
+                @updateTask="this.updateTask"
+              />
+            </div>
+          </div>
+        </q-page>
       </q-page>
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
-const messages = [
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 1,
-    name: 'sex sex',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 2,
-    name: 'test test',
-    text: ['test test'],
-    sent: false
-  },
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 2,
-    name: 'test test',
-    text: ['test test'],
-    sent: false
-  },
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 2,
-    name: 'test test',
-    text: ['test test'],
-    sent: false
-  },
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  },
-  {
-    id: 2,
-    name: 'test test',
-    text: ['test test'],
-    sent: false
-  },
-  {
-    id: 1,
-    name: 'test test',
-    text: ['test test', 'test2', 'test3'],
-    sent: true
-  }
-]
+import ChatDialog from 'components/chat/ChatDialog.vue'
+import ChatHelper from 'components/chat/ChatHelper.vue'
+import ChatInfo from 'components/chat/ChatInfo.vue'
+import ChatTasks from 'components/chat/ChatTasks.vue'
+import { useStore } from 'stores/store'
+import { useRoute } from 'vue-router'
+import axios from 'axios'
 
 export default {
+  components: { ChatTasks, ChatInfo, ChatHelper, ChatDialog },
   data: () => {
     return {
       tab: 'tab1',
-      messages
+      templates: [
+        { text: 'Добрый день!', shortCut: 'дд' },
+        { text: 'Мы вас не обслуживаем', shortCut: 'необслуж' },
+        { text: 'Василий где деньги', shortCut: 'деньги' },
+        { text: 'Используйте другой принтер', shortCut: 'дрпринтер' },
+        { text: 'Какой код от энидеска', shortCut: 'энидеск' },
+        { text: 'КОЛЛЕГИ!!!', shortCut: 'колги' },
+        { text: 'Примите подкюлчение', shortCut: 'подключ' },
+        { text: 'Послезавтра сделаем', shortCut: '' },
+        { text: 'Сотрудник в пути', shortCut: '' },
+        { text: 'Уже решаем', shortCut: '' },
+        { text: 'Не наша зона ответственности', shortCut: '' },
+        { text: 'Давайте сами винду активируете', shortCut: '' }
+      ],
+      macros: [],
+      knowledgeBase: [
+        { title: 'Доменны', texts: ['*.jopa.ru', '*.zalupa.ru', '*.penis.ru', '*.her.ru'], tags: [] },
+        { title: 'Админки', texts: ['admin.jopa.ru'], tags: [] },
+        { title: 'Почты', texts: ['mail.jopa.ru'], tags: [] },
+        { title: 'Адреса удаленок', texts: ['rdp.jopa.ru'], tags: [] }
+      ],
+      inputField: '',
+      isComment: false,
+      isNotificationEnabled: true
     }
+  },
+
+  mounted () {
+  },
+
+  methods: {
+    onTemplateClick (text) {
+      this.inputField += ' ' + text
+    },
+
+    sendMessage (message) {
+      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/new-message`, message)
+        .then(() => {
+          this.getClient.messages.push(message)
+          this.inputField = ''
+        })
+    },
+
+    keyPressed (text) {
+      this.inputField = text
+    },
+
+    newTask (newTask) {
+      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/new-task`, newTask)
+        .then(task => {
+          this.getClient.tasks.push(task.data)
+        })
+    },
+
+    updateTask (task) {
+      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/update-task`, task)
+        .then(task => {
+          this.getClient.tasks[this.getClient.tasks.indexOf(task)] = task.data
+        })
+    }
+  },
+
+  computed: {
+    getClient () {
+      const clientId = Number(this.router.params.clientId)
+      return this.store.clients.filter(client => client.id === clientId)[0]
+    }
+  },
+
+  setup () {
+    const store = useStore()
+    const router = useRoute()
+    return { store, router }
   }
 }
 </script>
 
-<style>
+<style scoped>
 .sticky-tabs {
   position: sticky;
   top: 0;

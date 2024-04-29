@@ -1,5 +1,5 @@
 import { route } from 'quasar/wrappers'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import routes from './routes'
 
 export default route(function () {
@@ -9,6 +9,6 @@ export default route(function () {
       top: 0
     }),
     routes,
-    history: createWebHistory(process.env.VUE_ROUTER_BASE)
+    history: createWebHashHistory()
   })
 })

@@ -45,7 +45,7 @@
                 clickable
                 @click="showModal(item)"
               >
-                {{ item.title }}
+                {{ item.title }} {{ item.tags }}
               </q-item>
             </q-scroll-area>
           </q-expansion-item>

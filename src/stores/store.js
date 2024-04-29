@@ -1,12 +1,37 @@
 import { defineStore } from 'pinia'
+import axios from 'axios'
 
-export const useCounterStore = defineStore('counter', {
+export const useStore = defineStore('store', {
   state: () => ({
-    data: []
+    selectedClient: {},
+    clients: [
+      {
+        id: 1,
+        firstName: '',
+        lastName: '',
+        organization: '',
+        lastMessageTime: '',
+        moreInfo: '',
+        tasks: [],
+        messages: []
+      }
+    ]
   }),
+
   getters: {
-    doubleCount: (state) => state.counter * 2
+    getTasks: state => state.clients.map(client => {
+      client.tasks.forEach(task => { task.client = client })
+      return client.tasks
+    }).flat()
   },
+
   actions: {
+    fetchData () {
+      axios.get('http://localhost:8080/api/v1/clients')
+        .then(response => {
+          this.clients = response.data
+        })
+        .catch(e => console.error(e))
+    }
   }
 })

@@ -3,9 +3,15 @@
 </template>
 
 <script>
-import { defineComponent } from 'vue'
+import { useStore } from 'stores/store'
 
-export default defineComponent({
-  name: 'App'
-})
+export default {
+  name: 'App',
+
+  setup () {
+    const store = useStore()
+    store.fetchData()
+    return { store }
+  }
+}
 </script>
