@@ -61,7 +61,7 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Теги: '"/>
-                          <th class="text-body2" v-text="task.tags.join(', ')"/>
+                          <th class="text-body2" v-text="task.tags.map(tag => tag.name).join(', ')"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Приоритет: '"/>
@@ -111,6 +111,7 @@
           label="Название"
         />
         <q-input
+          type="textarea"
           v-model="dialogTaskDescription"
           label="Описание"
         />
@@ -212,7 +213,11 @@ export default {
         description: this.dialogTaskDescription,
         priority: this.dialogTaskPriority,
         executor: this.dialogTaskExecutor,
-        tags: this.dialogTaskTags.split(' '),
+        tags: this.dialogTaskTags.split(' ').map(it => ({
+          id: null,
+          name: it,
+          description: null
+        })),
         isCompleted: false
       })
       this.taskId = null

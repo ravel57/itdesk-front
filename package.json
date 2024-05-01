@@ -13,11 +13,14 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
+    "@stomp/stompjs": "^7.0.0",
+    "@types/sockjs-client": "^1.5.4",
     "app": "^0.1.0",
     "axios": "^1.2.1",
     "core-js": "^3.31.1",
     "pinia": "^2.1.7",
     "quasar": "^2.8.0",
+    "sockjs-client": "^1.6.1",
     "vue": "^3.4.18",
     "vue-router": "^4.0.12"
   },

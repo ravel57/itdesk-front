@@ -79,15 +79,17 @@
                 :label="filter.label"
                 multiple
                 :options="filter.options"
+                use-chips
                 use-input
                 dense
                 filled
+                stack-label
                 v-model="filter.selectedOptions"
                 input-debounce="0"
                 style="width: 250px; height: 100%;"
                 behavior="menu"
               >
-                <!--            @filter="filterFn"-->
+<!--            @filter="filterFn"-->
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
@@ -270,7 +272,7 @@ export default {
         if (slug === 'executor') {
           tasks = tasks.filter(t => el.selectedOptions.includes(t.executor))
         } else if (slug === 'tag') {
-          tasks = tasks.filter(t => el.selectedOptions.includes(t.tag))
+          tasks = tasks.filter(t => el.selectedOptions.includes(t.tag.name))
         } else if (slug === 'priority') {
           tasks = tasks.filter(t => el.selectedOptions.includes(t.priority))
         } else if (slug === 'organization') {
@@ -327,20 +329,20 @@ export default {
 
     tags () {
       const arr = []
-      this.store.getTasks.forEach(e => e.tags.flat().forEach(e => arr.push(e)))
+      this.store.getTasks.forEach(task => task.tags.flat().forEach(e => arr.push(e.name)))
       return Array.from(new Set(arr))
     },
 
     priorities () {
-      return Array.from(new Set(this.store.getTasks.map(e => e.priority)))
+      return Array.from(new Set(this.store.getTasks.map(task => task.priority)))
     },
 
     organizations () {
-      return Array.from(new Set(this.store.getTasks.map(e => e.client.organization)))
+      return Array.from(new Set(this.store.getTasks.map(task => task.client.organization)))
     },
 
     statuses () {
-      return Array.from(new Set(this.store.getTasks.map(e => e.status)))
+      return Array.from(new Set(this.store.getTasks.map(task => task.status)))
     }
   },
 

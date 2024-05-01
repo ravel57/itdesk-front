@@ -74,7 +74,7 @@
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="save"/>
+          @click="dialogSave"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -127,14 +127,19 @@ export default {
 
     showDialog () {
       this.dialogVisible = true
+      this.dialogLastName = this.client.lastName
+      this.dialogFirstName = this.client.firstName
+      this.dialogOrganization = this.client.organization
+      this.dialogAnotherInfo = this.client.moreInfo
     },
 
     closeDialog () {
       this.dialogVisible = false
     },
 
-    save () {
+    dialogSave () {
       this.dialogVisible = false
+      this.$emit('changeClient', this.client)
     }
   }
 }

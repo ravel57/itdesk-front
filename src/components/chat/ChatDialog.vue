@@ -12,7 +12,6 @@
   >
     <q-page-container>
       <q-page
-        padding
         style="padding-bottom: 66px"
         ref="chat"
         id="chat"
@@ -36,7 +35,11 @@
             />
           </div>
         </div>
-        <q-page-sticky expand position="bottom">
+        <q-page-sticky
+          expand
+          position="bottom"
+          class="no-padding"
+        >
           <q-toolbar>
             <q-btn
               type="file"
@@ -45,7 +48,6 @@
               class="no-padding"
               flat
             />
-<!--        @click="uploadFile()"-->
             <textarea
               :placeholder="toggleIsComment ? 'Текст комментария' : 'Текст сообщения'"
               style="width: 200%; height: 70px;"
@@ -78,6 +80,7 @@
 </template>
 
 <script>
+// TODO загрузка порциями
 export default {
   name: 'ChatDialog',
 
@@ -91,12 +94,14 @@ export default {
 
   mounted () {
     this.$refs.textInput.focus()
-    this.scrollToBottom()
+    this.scrollToBottom() // FIXME
   },
 
   methods: {
     scrollToBottom () {
-      document.getElementById('chat').scrollIntoView({ behavior: 'smooth', block: 'end' })
+      try {
+        document.getElementById('chat').scrollIntoView({ behavior: 'smooth', block: 'end' })
+      } catch (e) {}
     },
 
     sendMessage () {

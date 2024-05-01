@@ -55,6 +55,7 @@
               <chat-info
                 style="z-index: 1"
                 :client="this.getClient"
+                @changeClient="this.changeClient"
               />
               <chat-tasks
                 :tasks="this.getClient.tasks"
@@ -81,6 +82,7 @@ import axios from 'axios'
 
 export default {
   components: { ChatTasks, ChatInfo, ChatHelper, ChatDialog },
+
   data: () => {
     return {
       tab: 'tab1',
@@ -143,13 +145,19 @@ export default {
         .then(task => {
           this.getClient.tasks[this.getClient.tasks.indexOf(task)] = task.data
         })
-    }
+    },
+
+    changeClient (client) { }
   },
 
   computed: {
     getClient () {
-      const clientId = Number(this.router.params.clientId)
-      return this.store.clients.filter(client => client.id === clientId)[0]
+      try {
+        const clientId = Number(this.router.params.clientId)
+        return this.store.clients.filter(client => client.id === clientId)[0]
+      } catch (e) {
+        return {}
+      }
     }
   },
 

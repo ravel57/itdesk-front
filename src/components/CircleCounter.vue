@@ -1,24 +1,20 @@
 <template>
-  <router-view/>
+  <q-item-section
+    v-if="counter"
+    side
+    class="circle no-padding"
+  >
+    {{ counter }}
+  </q-item-section>
 </template>
 
 <script>
-import { useStore } from 'stores/store'
-import { connect } from 'src/util/ws'
-
 export default {
-  name: 'App',
-
-  setup () {
-    const store = useStore()
-    store.fetchData()
-    connect()
-    return { store }
-  }
+  props: ['counter']
 }
 </script>
 
-<style>
+<style scoped>
 .circle {
   width: 25px;
   height: 25px;

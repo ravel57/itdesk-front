@@ -6,7 +6,7 @@ export const useStore = defineStore('store', {
     selectedClient: {},
     clients: [
       {
-        id: 1,
+        id: 0,
         firstName: '',
         lastName: '',
         organization: '',

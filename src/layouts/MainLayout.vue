@@ -59,7 +59,8 @@ const linksList = [
   {
     title: 'Чаты',
     icon: 'forum',
-    link: '/chats'
+    link: '/chats',
+    counter: '1'
   },
   {
     title: 'Заявки',
