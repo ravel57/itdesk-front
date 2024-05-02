@@ -30,7 +30,7 @@
                 :inputField="this.inputField"
                 :templates="this.templates"
                 @sendMessage="this.sendMessage"
-                @keyPressed="this.keyPressed"
+                @keyPressed="this.keyPressed($event)"
               />
             </div>
 
@@ -83,37 +83,36 @@ import axios from 'axios'
 export default {
   components: { ChatTasks, ChatInfo, ChatHelper, ChatDialog },
 
-  data: () => {
-    return {
-      tab: 'tab1',
-      templates: [
-        { text: 'Добрый день!', shortCut: 'дд' },
-        { text: 'Мы вас не обслуживаем', shortCut: 'необслуж' },
-        { text: 'Василий где деньги', shortCut: 'деньги' },
-        { text: 'Используйте другой принтер', shortCut: 'дрпринтер' },
-        { text: 'Какой код от энидеска', shortCut: 'энидеск' },
-        { text: 'КОЛЛЕГИ!!!', shortCut: 'колги' },
-        { text: 'Примите подкюлчение', shortCut: 'подключ' },
-        { text: 'Послезавтра сделаем', shortCut: '' },
-        { text: 'Сотрудник в пути', shortCut: '' },
-        { text: 'Уже решаем', shortCut: '' },
-        { text: 'Не наша зона ответственности', shortCut: '' },
-        { text: 'Давайте сами винду активируете', shortCut: '' }
-      ],
-      macros: [],
-      knowledgeBase: [
-        { title: 'Доменны', texts: ['*.jopa.ru', '*.zalupa.ru', '*.penis.ru', '*.her.ru'], tags: [] },
-        { title: 'Админки', texts: ['admin.jopa.ru'], tags: [] },
-        { title: 'Почты', texts: ['mail.jopa.ru'], tags: [] },
-        { title: 'Адреса удаленок', texts: ['rdp.jopa.ru'], tags: [] }
-      ],
-      inputField: '',
-      isComment: false,
-      isNotificationEnabled: true
-    }
-  },
+  data: () => ({
+    tab: 'tab1',
+    templates: [
+      { text: 'Добрый день!', shortCut: 'дд' },
+      { text: 'Мы вас не обслуживаем', shortCut: 'необслуж' },
+      { text: 'Василий где деньги', shortCut: 'деньги' },
+      { text: 'Используйте другой принтер', shortCut: 'дрпринтер' },
+      { text: 'Какой код от энидеска', shortCut: 'энидеск' },
+      { text: 'КОЛЛЕГИ!!!', shortCut: 'колги' },
+      { text: 'Примите подкюлчение', shortCut: 'подключ' },
+      { text: 'Послезавтра сделаем', shortCut: '' },
+      { text: 'Сотрудник в пути', shortCut: '' },
+      { text: 'Уже решаем', shortCut: '' },
+      { text: 'Не наша зона ответственности', shortCut: '' },
+      { text: 'Давайте сами винду активируете', shortCut: '' }
+    ],
+    macros: [],
+    knowledgeBase: [
+      { title: 'Доменны', texts: ['*.jopa.ru', '*.zalupa.ru', '*.penis.ru', '*.her.ru'], tags: [] },
+      { title: 'Админки', texts: ['admin.jopa.ru'], tags: [] },
+      { title: 'Почты', texts: ['mail.jopa.ru'], tags: [] },
+      { title: 'Адреса удаленок', texts: ['rdp.jopa.ru'], tags: [] }
+    ],
+    inputField: '',
+    isComment: false,
+    isNotificationEnabled: true
+  }),
 
   mounted () {
+    this.markMessagesRead()
   },
 
   methods: {
@@ -142,8 +141,15 @@ export default {
 
     updateTask (task) {
       axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/update-task`, task)
-        .then(task => {
-          this.getClient.tasks[this.getClient.tasks.indexOf(task)] = task.data
+        .then(newTask => {
+          this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+        })
+    },
+
+    markMessagesRead () {
+      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/mark-read`)
+        .then(newClient => {
+          this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
         })
     },
 
@@ -152,11 +158,15 @@ export default {
 
   computed: {
     getClient () {
-      try {
-        const clientId = Number(this.router.params.clientId)
-        return this.store.clients.filter(client => client.id === clientId)[0]
-      } catch (e) {
-        return {}
+      const clientId = Number(this.router.params.clientId)
+      const client = this.store.clients.filter(client => client.id === clientId)[0]
+      if (client !== undefined) {
+        return client
+      } else {
+        return {
+          messages: [],
+          tasks: []
+        }
       }
     }
   },

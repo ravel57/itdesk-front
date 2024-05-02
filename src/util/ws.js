@@ -7,10 +7,13 @@ export function connect () {
   const stompClient = Stomp.over(socket)
   stompClient.debug = function () {}
   stompClient.connect({}, () => {
-    stompClient.subscribe('/topic/clients/', message => ordersCallback(message))
+    stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
   })
 }
 
-function ordersCallback (clients) {
+function clientsCallback (clients) {
   useStore().clients = JSON.parse(clients.body)
+  useStore().clients.forEach(it => it.messages.forEach(message => {
+    message.date = new Date(message.date)
+  }))
 }

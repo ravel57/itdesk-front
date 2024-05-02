@@ -3,15 +3,9 @@ import axios from 'axios'
 
 export const useStore = defineStore('store', {
   state: () => ({
-    selectedClient: {},
     clients: [
       {
         id: 0,
-        firstName: '',
-        lastName: '',
-        organization: '',
-        lastMessageTime: '',
-        moreInfo: '',
         tasks: [],
         messages: []
       }
@@ -30,6 +24,9 @@ export const useStore = defineStore('store', {
       axios.get('http://localhost:8080/api/v1/clients')
         .then(response => {
           this.clients = response.data
+          this.clients.forEach(it => it.messages.forEach(message => {
+            message.date = new Date(message.date)
+          }))
         })
         .catch(e => console.error(e))
     }

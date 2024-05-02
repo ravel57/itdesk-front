@@ -18,13 +18,12 @@
               :to="`/chats/${client.id}`"
               style="text-decoration: none; display: flex"
               class="text-primary"
-              @click="onClientSelected(client)"
             >
               <q-item-section>
                 <q-item-label>{{ client.firstName }} {{ client.lastName}}</q-item-label>
                 <q-item-label caption>{{ client.organization }}</q-item-label>
                 <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
-                <q-item-label caption>Заявок: {{ getActualTasks.length }}</q-item-label>
+                <q-item-label caption>Заявок: {{ getActualTasks(client).length }}</q-item-label>
               </q-item-section>
               <q-item-section side>
                 <circle-counter :counter="client.unreadMessagesCount"/>
@@ -57,12 +56,8 @@ export default {
   }),
 
   methods: {
-    onClientSelected (client) {
-      this.store.selectedClient = client
-    },
-
-    getActualTasks () {
-      this.client.tasks.filter(task => !task.completed)
+    getActualTasks (client) {
+      return client.tasks.filter(task => !task.completed)
     },
 
     search () { }
@@ -70,10 +65,17 @@ export default {
 
   computed: {
     clients () {
-      this.store.clients.forEach(client => {
+      const clients = this.store.clients
+      clients.forEach(client => {
         client.unreadMessagesCount = client.messages.filter(e => !e.read).length
+        client.lastMessageTime = new Date(client.lastMessageTime = Math.max(...client.messages.map(e => e.date)))
+          .toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       })
-      return this.store.clients
+      return clients.sort((b, a) => {
+        const maxB = Math.max(...b.messages.map(e => e.date))
+        const maxA = Math.max(...a.messages.map(e => e.date))
+        return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
+      })
     },
 
     searchResults () {

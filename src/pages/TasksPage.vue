@@ -316,7 +316,10 @@ export default {
     },
 
     getTableRows () {
-      return this.getFilteredTasks
+      return this.getFilteredTasks.map(it => {
+        it.tags = it.tags.map(it => it.name)
+        return it
+      })
     },
 
     // showMode () {

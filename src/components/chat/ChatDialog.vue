@@ -23,13 +23,13 @@
               label="Sunday, 19th"
             />
             <q-chat-message
-              v-for="(message) in this.messages"
+              v-for="message in this.messages"
               :key="message.id"
               :avatar="message.avatar"
               :name="message.name"
               :sent="message.sent"
               :text="[message.text]"
-              :stamp="'7 minutes ago'"
+              :stamp="this.getStamp(message)"
               :bg-color="message.comment ? 'blue-3' : '#e0e0e0'"
               :text-color="message.comment ? 'white' : 'black'"
             />
@@ -49,17 +49,16 @@
               flat
             />
             <textarea
-              :placeholder="toggleIsComment ? 'Текст комментария' : 'Текст сообщения'"
-              style="width: 200%; height: 70px;"
-              class="shadow-2 rounded-borders"
-              :class="this.toggleIsComment ? 'bg-blue-3' : 'bg-white'"
               ref="textInput"
-              :value="this.inputField"
               id="textarea"
+              class="shadow-2 rounded-borders"
+              :value="this.inputField"
+              :placeholder="toggleIsComment ? 'Текст комментария' : 'Текст сообщения'"
+              :style="'color: ' + this.toggleIsComment ? 'white' : 'black'"
+              :class="this.toggleIsComment ? 'bg-blue-3' : 'bg-white'"
               @keydown.tab.prevent="handleTab"
               @keydown="this.handleKeyPress"
-              @change="this.textChanged"
-              :style="'color: ' + this.toggleIsComment ? 'white' : 'black'"
+              @input="this.textChanged"
             />
             <div>
               <q-toggle
@@ -112,20 +111,22 @@ export default {
           text: textarea.value,
           date: new Date(),
           sent: true,
-          comment: this.toggleIsComment
+          comment: this.toggleIsComment,
+          read: true
         })
       }
       this.scrollToBottom()
     },
 
     handleTab (event) {
-      const matches = this.$refs.textInput.value.match(/:([^\\x00-\\x7F]*)/)
+      const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
       const value = matches[0].trim()
-      if (event.keyCode === 9 && value.startsWith(':')) {
+      if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
         event.preventDefault()
-        this.$refs.textInput.value = this.$refs.textInput.value.replace(value, '')
-        this.$refs.textInput.value += this.templates.filter(e => e.shortCut === value.replace(':', ''))[0].text
+        const replaceValue = this.templates.filter(e => e.shortCut === value.replace(':', ''))[0].text
+        this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
       }
+      this.textChanged()
     },
 
     handleKeyPress (event) {
@@ -144,7 +145,19 @@ export default {
       if (target && target.files) {
         this.file.value = target.files[0]
       }
+    },
+
+    getStamp (message) {
+      return message.date.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })
     }
   }
 }
 </script>
+
+<style scoped>
+textarea {
+  width: 200%;
+  height: 70px;
+  resize: none;
+}
+</style>
