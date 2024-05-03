@@ -70,15 +70,15 @@ export default {
   computed: {
     getSortedAndFilteredClients () {
       let clients = this.store.clients
-      // if (this.searchQuery === '') {
-      //   clients = clients.filter(client => {
-      //     return this.getActualTasks(client).length > 0
-      //   })
-      // } else {
-      //   clients = clients.filter(client => {
-      //     return (client.firstname.toLowerCase() + ' ' + client.lastname.toLowerCase()).includes(this.searchQuery.toLowerCase())
-      //   })
-      // }
+      if (this.searchQuery !== '') {
+        clients = clients.filter(client => {
+          return (client.firstname.toLowerCase() + ' ' + client.lastname.toLowerCase()).includes(this.searchQuery.toLowerCase())
+        })
+      } else {
+        // clients = clients.filter(client => {
+        //   return this.getActualTasks(client).length > 0
+        // })
+      }
       clients = clients.sort((b, a) => {
         const maxB = Math.max(...b.messages.map(e => e.date))
         const maxA = Math.max(...a.messages.map(e => e.date))

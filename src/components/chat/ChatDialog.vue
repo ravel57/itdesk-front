@@ -167,13 +167,13 @@ export default {
     },
 
     isDateChanged (message) {
-      const date = this.getDate(message) // message.date.toISOString().slice(0, 10) // .setHours(0, 0, 0, 0)
-      if (this.previousMessageDate !== date) {
-        this.previousMessageDate = date
-        return true
-      } else {
-        return false
-      }
+      // const date = message.date.toISOString().slice(0, 10) // this.getDate(message) // .setHours(0, 0, 0, 0)
+      // if (this.previousMessageDate !== date) {
+      //   this.previousMessageDate = date
+      //   return true
+      // } else {
+      return false
+      // }
     }
 
   }
