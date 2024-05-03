@@ -8,7 +8,7 @@
           class="text-h6"
           @mouseover="showButton(this.editShow, this.editShowTimer)"
           @mouseleave="hideButton(this.editShow, this.editShowTimer)"
-          v-text="`${this.client.firstName} ${this.client.lastName}`"
+          v-text="`${this.client.firstname} ${this.client.lastname}`"
         />
         <q-btn
           v-if="this.editShow.value"
@@ -88,17 +88,13 @@ export default {
 
   data: () => ({
     editShow: { value: false },
-
     editShowTimer: { value: null },
 
     dialogVisible: false,
 
     dialogLastName: '',
-
     dialogFirstName: '',
-
     dialogOrganization: '',
-
     dialogAnotherInfo: '',
 
     options: [
@@ -127,8 +123,8 @@ export default {
 
     showDialog () {
       this.dialogVisible = true
-      this.dialogLastName = this.client.lastName
-      this.dialogFirstName = this.client.firstName
+      this.dialogLastName = this.client.lastname
+      this.dialogFirstName = this.client.firstname
       this.dialogOrganization = this.client.organization
       this.dialogAnotherInfo = this.client.moreInfo
     },
@@ -138,8 +134,13 @@ export default {
     },
 
     dialogSave () {
+      this.$emit('changeClient', {
+        lastname: this.dialogLastName,
+        firstname: this.dialogFirstName,
+        organization: this.dialogOrganization,
+        moreInfo: this.dialogAnotherInfo
+      })
       this.dialogVisible = false
-      this.$emit('changeClient', this.client)
     }
   }
 }

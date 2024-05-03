@@ -18,13 +18,16 @@
         scroll
       >
         <div class="q-pa-md row justify-center q-gutter-md">
-          <div style="width: 100%;">
+          <div
+            style="width: 100%; margin-top: 0"
+            v-for="message in this.messages"
+            :key="message.id"
+          >
             <q-chat-message
-              label="Sunday, 19th"
+              v-if="this.isDateChanged(message)"
+              :label="this.getDate(message)"
             />
             <q-chat-message
-              v-for="message in this.messages"
-              :key="message.id"
               :avatar="message.avatar"
               :name="message.name"
               :sent="message.sent"
@@ -88,7 +91,8 @@ export default {
   data: () => ({
     toggleIsComment: false,
     text: '',
-    taskWatchingNow: []
+    taskWatchingNow: [],
+    previousMessageDate: ''
   }),
 
   mounted () {
@@ -140,7 +144,14 @@ export default {
     },
 
     onFileChanged (event) {
-      console.log(event)
+      this.$q.notify({
+        message: 'onFileChanged',
+        type: 'positive',
+        position: 'top-right',
+        actions: [{
+          icon: 'close', color: 'white', dense: true, handler: () => undefined
+        }]
+      })
       const target = event.target
       if (target && target.files) {
         this.file.value = target.files[0]
@@ -149,7 +160,22 @@ export default {
 
     getStamp (message) {
       return message.date.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })
+    },
+
+    getDate (message) {
+      return message.date.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric', month: 'numeric', day: 'numeric' })
+    },
+
+    isDateChanged (message) {
+      const date = this.getDate(message) // message.date.toISOString().slice(0, 10) // .setHours(0, 0, 0, 0)
+      if (this.previousMessageDate !== date) {
+        this.previousMessageDate = date
+        return true
+      } else {
+        return false
+      }
     }
+
   }
 }
 </script>

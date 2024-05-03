@@ -116,9 +116,13 @@ export default {
 
     getUnreadChats (title) {
       if (title === 'Чаты') {
-        return this.store.clients
-          .filter(client => client.messages.filter(message => !message.read).length > 0)
-          .length
+        try {
+          return this.store.clients
+            .filter(client => client.messages.filter(message => !message.read).length > 0)
+            .length
+        } catch (e) {
+          return 0
+        }
       } else {
         return 0
       }

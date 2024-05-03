@@ -28,7 +28,16 @@ export const useStore = defineStore('store', {
             message.date = new Date(message.date)
           }))
         })
-        .catch(e => console.error(e))
+        .catch(e => {
+          this.$q.notify({
+            message: e,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
     }
   }
 })

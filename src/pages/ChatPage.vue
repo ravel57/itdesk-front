@@ -147,13 +147,41 @@ export default {
     },
 
     markMessagesRead () {
-      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/mark-read`)
+      if (this.getClient.id) {
+        axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/mark-read`)
+          .then(newClient => {
+            this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
+          })
+          .catch(e => {
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            })
+          })
+      }
+    },
+
+    changeClient (client) {
+      console.log(client)
+      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/update`, client)
         .then(newClient => {
           this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
         })
-    },
-
-    changeClient (client) { }
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
+    }
   },
 
   computed: {
