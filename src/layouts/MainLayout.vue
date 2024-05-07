@@ -10,17 +10,22 @@
           class="q-mr-sm"
           @click="toggleLeftDrawer"
         />
-        <q-avatar>
-          <img src="https://cdn.quasar.dev/logo-v2/svg/logo-mono-white.svg">
-        </q-avatar>
-        <q-toolbar-title>ITdesk</q-toolbar-title>
-        <q-btn
-          flat
-          round
-          dense
-          icon="logout"
-          @click="this.logout"
-        />
+        <q-item @click="this.$router.push('/')" clickable>
+          <q-avatar>
+            <img src="logo.png" />
+          </q-avatar>
+          <q-toolbar-title>ITdesk</q-toolbar-title>
+        </q-item>
+        <div class="q-ml-auto no-padding">
+          <q-btn
+            flat
+            round
+            dense
+            side
+            icon="logout"
+            @click="this.logout"
+          />
+        </div>
       </q-toolbar>
     </q-header>
 
@@ -30,7 +35,7 @@
       bordered
     >
       <q-list>
-        <EssentialLink
+        <essential-link
           v-for="link in linksList"
           :key="link.title"
           v-bind="link"
@@ -61,11 +66,11 @@ export default {
 
   data: () => ({
     linksList: [
-      {
-        title: 'Мои заявки',
-        icon: 'task_alt',
-        link: '/my-tasks'
-      },
+      // {
+      //   title: 'Мои заявки',
+      //   icon: 'task_alt',
+      //   link: '/my-tasks'
+      // },
       {
         title: 'Чаты',
         icon: 'forum',

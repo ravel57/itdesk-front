@@ -1,74 +1,72 @@
 <template>
-  <q-layout view="hHh lpR fFf">
-    <q-page-container>
-      <q-page>
+  <div>
+    <div
+      class="sticky-tabs"
+      v-if="this.$q.screen.width < 1023"
+    >
+      <q-tabs
+        v-model="tab"
+        dense
+        align="justify"
+        class="bg-primary text-white shadow-2"
+        :breakpoint="0"
+      >
+        <q-tab name="tab1" icon="forum"/>
+        <q-tab name="tab2" icon="database"/>
+        <q-tab name="tab3" icon="info"/>
+      </q-tabs>
+    </div>
+    <q-page padding>
+      <div class="q-gutter-md row">
         <div
-          class="sticky-tabs"
-          v-if="this.$q.screen.width < 1023"
+          class="col"
+          v-if="this.$q.screen.width > 1023 || this.tab === 'tab1'"
+          style="height: 100%;"
         >
-          <q-tabs
-            v-model="tab"
-            dense
-            align="justify"
-            class="bg-primary text-white shadow-2"
-            :breakpoint="0"
-          >
-            <q-tab name="tab1" icon="forum"/>
-            <q-tab name="tab2" icon="database"/>
-            <q-tab name="tab3" icon="info"/>
-          </q-tabs>
+          <chat-dialog
+            :messages="this.getClient.messages"
+            :inputField="this.inputField"
+            :templates="this.templates"
+            @sendMessage="this.sendMessage"
+            @keyPressed="this.keyPressed($event)"
+            @updated="this.markMessagesRead"
+          />
         </div>
-        <q-page padding>
-          <div class="q-gutter-md row">
-            <div
-              class="col"
-              v-if="this.$q.screen.width > 1023 || this.tab === 'tab1'"
-              style="height: 100%;"
-            >
-              <chat-dialog
-                :messages="this.getClient.messages"
-                :inputField="this.inputField"
-                :templates="this.templates"
-                @sendMessage="this.sendMessage"
-                @keyPressed="this.keyPressed($event)"
-              />
-            </div>
 
-            <div
-              class="col"
-              v-if="this.$q.screen.width > 1023 || this.tab === 'tab2'"
-              style="height: 100%;"
-            >
-              <chat-helper
-                :templates="this.templates"
-                :macros="this.macros"
-                :knowledgeBase="this.knowledgeBase"
-                @onTemplateClick="onTemplateClick"
-              />
-            </div>
+        <div
+          class="col"
+          v-if="this.$q.screen.width > 1023 || this.tab === 'tab2'"
+          style="height: 100%;"
+        >
+          <chat-helper
+            :templates="this.templates"
+            :macros="this.macros"
+            :knowledgeBase="this.knowledgeBase"
+            @onTemplateClick="onTemplateClick"
+          />
+        </div>
 
-            <div
-              class="col"
-              v-if="this.$q.screen.width > 1023 || this.tab === 'tab3'"
-              style="height: 100%;"
-            >
-              <chat-info
-                style="z-index: 1"
-                :client="this.getClient"
-                @changeClient="this.changeClient"
-              />
-              <chat-tasks
-                :tasks="this.getClient.tasks"
-                :isNotificationEnabled="isNotificationEnabled"
-                @newTask="this.newTask"
-                @updateTask="this.updateTask"
-              />
-            </div>
-          </div>
-        </q-page>
-      </q-page>
-    </q-page-container>
-  </q-layout>
+        <div
+          class="col"
+          v-if="this.$q.screen.width > 1023 || this.tab === 'tab3'"
+          style="height: 100%;"
+        >
+          <chat-info
+            style="z-index: 1"
+            :client="this.getClient"
+            :organizations="this.store.organizations"
+            @changeClient="this.changeClient"
+          />
+          <chat-tasks
+            :tasks="this.getClient.tasks"
+            :isNotificationEnabled="isNotificationEnabled"
+            :tags="this.store.tags"
+            :users="this.store.users.map(user => user.firstname + ' ' + user.lastname)"
+          />
+        </div>
+      </div>
+    </q-page>
+  </div>
 </template>
 
 <script>
@@ -121,7 +119,7 @@ export default {
     },
 
     sendMessage (message) {
-      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/new-message`, message)
+      axios.post(`/api/v1/client/${this.getClient.id}/new-message`, message) /* http://localhost:8080 */
         .then(() => {
           this.getClient.messages.push(message)
           this.inputField = ''
@@ -132,26 +130,9 @@ export default {
       this.inputField = text
     },
 
-    newTask (newTask) {
-      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/new-task`, newTask)
-        .then(task => {
-          this.getClient.tasks.push(task.data)
-        })
-    },
-
-    updateTask (task) {
-      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/update-task`, task)
-        .then(newTask => {
-          this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
-        })
-    },
-
     markMessagesRead () {
       if (this.getClient.id) {
-        axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/mark-read`)
-          .then(newClient => {
-            this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
-          })
+        axios.post(`/api/v1/client/${this.getClient.id}/mark-read`) /* http://localhost:8080 */
           .catch(e => {
             this.$q.notify({
               message: e.message,
@@ -167,7 +148,7 @@ export default {
 
     changeClient (client) {
       console.log(client)
-      axios.post(`http://localhost:8080/api/v1/client/${this.getClient.id}/update`, client)
+      axios.post(`/api/v1/client/${this.getClient.id}/update`, client) /* http://localhost:8080 */
         .then(newClient => {
           this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
         })

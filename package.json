@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.16.4",
+    "@quasar/icongenie": "^4.0.0",
     "@stomp/stompjs": "^7.0.0",
     "@types/sockjs-client": "^1.5.4",
     "app": "^0.1.0",

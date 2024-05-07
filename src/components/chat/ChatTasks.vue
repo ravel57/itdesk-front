@@ -6,7 +6,7 @@
         <div
           class="text-grey-7 cursor-pointer"
           @click="this.onNewTaskCreate"
-          v-text="'Создать новую задачу'"
+          v-text="'Создать новую заявку'"
         />
       </div>
       <div class="container q-pa-none q-gutter-md q-position-relative">
@@ -102,6 +102,7 @@
   <q-dialog
     v-model="this.isNewTaskDialogShow"
     persistent
+    full-width
     backdrop-filter="blur(4px)"
   >
     <q-card>
@@ -119,13 +120,16 @@
           v-model="dialogTaskPriority"
           label="Приоритет"
         />
-        <q-input
+        <q-select
           v-model="dialogTaskExecutor"
+          :options="this.users"
           label="Исполнитель"
           use-input
         />
-        <q-input
-          v-model="dialogTaskTags"
+        <q-select
+          v-model="this.dialogTaskTags"
+          :options="this.tags.map(t => t.name)"
+          multiple
           label="Теги"
         />
       </q-card-section>
@@ -171,10 +175,12 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'ChatTasks',
 
-  props: ['tasks'],
+  props: ['tasks', 'tags', 'users'],
 
   data: () => ({
     isNotificationEnabled: true,
@@ -185,12 +191,12 @@ export default {
     dialogTaskDescription: '',
     dialogTaskPriority: '',
     dialogTaskExecutor: '',
-    dialogTaskTags: '',
+    dialogTaskTags: [],
 
     isShowCompletedTasks: false,
 
     isNewTask: true,
-    taskId: null,
+    taskId: null, // for update
 
     taskToComplete: null
   }),
@@ -201,25 +207,33 @@ export default {
       this.dialogTaskDescription = ''
       this.dialogTaskPriority = ''
       this.dialogTaskExecutor = ''
-      this.dialogTaskTags = ''
+      this.dialogTaskTags = []
     },
 
     saveNewOrUpdateTask () {
-      this.isNewTaskDialogShow = false
-      this.$emit(this.isNewTask ? 'newTask' : 'updateTask', {
+      const task = {
         id: this.isNewTask ? null : this.taskId,
         status: 'new',
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
         priority: this.dialogTaskPriority,
         executor: this.dialogTaskExecutor,
-        tags: this.dialogTaskTags.split(' ').map(it => ({
-          id: null,
-          name: it,
-          description: null
-        })),
+        tags: this.dialogTaskTags,
         isCompleted: false
-      })
+      }
+      if (this.isNewTask) {
+        axios.post(`/api/v1/client/${this.getClient.id}/new-task`, task) /* http://localhost:8080 */
+          .then(task => {
+            this.isNewTaskDialogShow = false
+            this.getClient.tasks.push(task.data)
+          })
+      } else {
+        axios.post(`/api/v1/client/${this.getClient.id}/update-task`, task) /* http://localhost:8080 */
+          .then(newTask => {
+            this.isNewTaskDialogShow = false
+            this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+          })
+      }
       this.taskId = null
     },
 

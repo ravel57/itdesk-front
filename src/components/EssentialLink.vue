@@ -16,7 +16,7 @@
       <q-item-label caption>{{ caption }}</q-item-label>
     </q-item-section>
 
-    <circle-counter v-if="counter" :counter="counter  "/>
+    <circle-counter v-if="counter" :counter="counter"/>
   </q-item>
 </template>
 

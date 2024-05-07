@@ -2,7 +2,6 @@
   <q-page padding>
     <q-input
       v-model="searchQuery"
-      filled
       dense
       placeholder="Поиск..."
       @input="search"
@@ -91,12 +90,6 @@ export default {
       })
       return clients
     }
-
-    // searchResults () {
-    //   if (!this.searchQuery) return []
-    //   const regex = new RegExp(this.searchQuery.trim(), 'i')
-    //   return this.data.filter(item => regex.test(item))
-    // }
   },
 
   setup () {

@@ -29,7 +29,7 @@
             />
             <q-chat-message
               :avatar="message.avatar"
-              :name="message.name"
+              :name="this.getName(message)"
               :sent="message.sent"
               :text="[message.text]"
               :stamp="this.getStamp(message)"
@@ -95,6 +95,10 @@ export default {
     previousMessageDate: ''
   }),
 
+  updated () {
+    this.$emit('updated')
+  },
+
   mounted () {
     this.$refs.textInput.focus()
     this.scrollToBottom() // FIXME
@@ -159,11 +163,23 @@ export default {
     },
 
     getStamp (message) {
-      return message.date.toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' })
+      return message.date.toLocaleTimeString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     },
 
     getDate (message) {
-      return message.date.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow', year: 'numeric', month: 'numeric', day: 'numeric' })
+      return message.date.toLocaleDateString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric'
+      })
     },
 
     isDateChanged (message) {
@@ -174,9 +190,17 @@ export default {
       // } else {
       return false
       // }
-    }
+    },
 
+    getName (message) {
+      if (message.user) {
+        return message.user.firstname + ' ' + message.user.lastname
+      } else {
+        return ''
+      }
+    }
   }
+
 }
 </script>
 

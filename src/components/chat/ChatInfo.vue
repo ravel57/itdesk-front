@@ -54,7 +54,7 @@
         />
         <q-select
           v-model="dialogOrganization"
-          :options="options"
+          :options="this.organizations.map(o => o.name)"
           label="Организация"
           use-input
         />
@@ -84,7 +84,7 @@
 export default {
   name: 'ChatInfo',
 
-  props: ['client'],
+  props: ['client', 'organizations'],
 
   data: () => ({
     editShow: { value: false },
@@ -95,11 +95,7 @@ export default {
     dialogLastName: '',
     dialogFirstName: '',
     dialogOrganization: '',
-    dialogAnotherInfo: '',
-
-    options: [
-      'Google', 'Facebook', 'Twitter', 'Apple', 'Oracle'
-    ]
+    dialogAnotherInfo: ''
   }),
 
   methods: {

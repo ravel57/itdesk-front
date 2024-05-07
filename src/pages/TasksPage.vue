@@ -12,6 +12,13 @@
             @update:model-value="this.onSavedFilterSelected"
             clearable
           />
+          <q-btn
+            v-if="this.selectedSavedFilter.length > 0"
+            ref="deleteSavedFilterButton"
+            icon="delete"
+            @click="this.deleteSavedFilter"
+            flat
+          />
           <div class="q-pa-md q-loading-bar--right" v-if="!this.isShowListMode">
             <q-btn-dropdown color="primary" :label="this.selectedFilterType.label">
               <q-list>
@@ -49,7 +56,8 @@
                 Сохранить фильтр?
                 <br>
                 <q-input label="название" v-model="this.dialogNewFilterName"/>
-                {{ this.filterArray.map(it => ({label: it.label, selectedOptions: it.selectedOptions})) }}
+                <br>
+                {{ this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions})) }}
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn
@@ -70,7 +78,7 @@
         <div class="q-pa-md" style="display: flex;">
           <div class="scroll-container">
             <div
-              v-for="(filter, index) in this.filterArray"
+              v-for="(filter, index) in this.filterChain"
               :key="index"
               style="display: flex; border-right: 16px; padding-right: 16px"
             >
@@ -124,6 +132,7 @@
             </template>
           </q-select>
           <q-btn
+            ref="saveFilterButton"
             icon="save"
             @click="this.dialogSaveFilterVisible = true"
             flat
@@ -170,6 +179,7 @@
 <script>
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
+import axios from 'axios'
 
 export default {
   data: () => ({
@@ -183,7 +193,7 @@ export default {
 
     selectedFilterType: { label: 'Исполитель', slug: 'executor' },
 
-    filterArray: [],
+    filterChain: [],
 
     addNewFilterSelectorText: '',
 
@@ -233,7 +243,7 @@ export default {
       } else if (slug === 'status') {
         options = this.statuses
       }
-      this.filterArray.push({ label: event, options, selectedOptions: [] })
+      this.filterChain.push({ label: event, options, selectedOptions: [] })
       this.addNewFilterSelectorText = ''
     },
 
@@ -246,28 +256,44 @@ export default {
     },
 
     deleteFilter (index) {
-      this.filterArray.splice(index, 1)
+      this.filterChain.splice(index, 1)
     },
 
     saveFilter () {
       const newFilter = {
+        id: null,
         label: this.dialogNewFilterName,
-        selectedOptions: this.filterArray.map(it => it.selectedOptions)
+        selectedOptions: this.filterChain.map(it => ({
+          label: it.label,
+          selectedOptions: it.selectedOptions
+        }))
       }
-      this.savedFilters.push(newFilter)
-      this.dialogSaveFilterVisible = false
-      this.dialogNewFilterName = ''
+      axios.post('/api/v1/new-filter', newFilter) /* http://localhost:8080 */
+        .then(response => {
+          this.savedFilters.push(newFilter)
+          this.dialogSaveFilterVisible = false
+          this.dialogNewFilterName = ''
+        })
     },
 
     onSavedFilterSelected () {
-      this.filterArray = this.savedFilters.filter(el => this.selectedSavedFilter === el.label)[0].selectedOptions
+      const filterElement = this.savedFilters.filter(el => this.selectedSavedFilter === el.label)[0]
+      if (filterElement !== undefined) {
+        this.filterChain = structuredClone(filterElement.selectedOptions)
+      } else {
+        this.selectedSavedFilter = ''
+        this.filterChain = []
+      }
+    },
+
+    deleteSavedFilter () {
     }
   },
 
   computed: {
     getFilteredTasks () {
       let tasks = this.store.getTasks.filter(task => !task.completed)
-      this.filterArray.forEach(el => {
+      this.filterChain.forEach(el => {
         const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
         if (slug === 'executor') {
           tasks = tasks.filter(t => el.selectedOptions.includes(t.executor))
@@ -316,10 +342,14 @@ export default {
     },
 
     getTableRows () {
-      return this.getFilteredTasks.map(it => {
-        it.tags = it.tags.map(it => it.name)
-        return it
-      })
+      try {
+        return this.getFilteredTasks.map(it => {
+          it.tags = it.tags.map(it => it.name)
+          return it
+        })
+      } catch (e) {
+        return []
+      }
     },
 
     // showMode () {
@@ -327,13 +357,12 @@ export default {
     // },
 
     executors () {
-      return Array.from(new Set(this.store.getTasks.map(e => e.executor)))
+      return this.store.users.filter(user => user.roles !== 'OBSERVER')
+        .map(user => user.firstname + ' ' + user.lastname)
     },
 
     tags () {
-      const arr = []
-      this.store.getTasks.forEach(task => task.tags.flat().forEach(e => arr.push(e.name)))
-      return Array.from(new Set(arr))
+      return this.store.tags.map(tag => tag.name)
     },
 
     priorities () {
@@ -341,12 +370,17 @@ export default {
     },
 
     organizations () {
-      return Array.from(new Set(this.store.getTasks.map(task => task.client.organization)))
+      return this.store.organizations.map(organization => organization.name)
     },
 
     statuses () {
       return Array.from(new Set(this.store.getTasks.map(task => task.status)))
     }
+  },
+
+  mounted () { // FIXME перенести в store
+    axios.get('/api/v1/filters') /* http://localhost:8080 */
+      .then(response => { this.savedFilters = response.data })
   },
 
   setup () {
@@ -396,7 +430,6 @@ export default {
   display: flex;
   overflow-x: auto;
   overflow-y: hidden;
-  //white-space: nowrap;
   width: 100%;
 }
 </style>
