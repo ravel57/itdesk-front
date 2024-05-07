@@ -101,6 +101,15 @@ export default {
           this.store.tags.push(response.data)
           this.closeDialog()
         })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     }
   },
 

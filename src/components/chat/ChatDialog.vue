@@ -69,10 +69,19 @@
                 color="primary"
                 icon="comment"
               />
-              <q-btn
-                icon="send"
-                @click="sendMessage"
-              />
+              <div class="flex">
+                <q-btn
+                  icon="send"
+                  @click="this.sendMessage"
+                />
+                <q-spinner-tail
+                  style="position: fixed; margin-left: 8px"
+                  v-if="this.isSending"
+                  color="primary"
+                  size="2.5em"
+                  :thickness="30"
+                />
+              </div>
             </div>
           </q-toolbar>
         </q-page-sticky>
@@ -86,7 +95,7 @@
 export default {
   name: 'ChatDialog',
 
-  props: ['messages', 'inputField', 'templates'],
+  props: ['messages', 'inputField', 'templates', 'isSending'],
 
   data: () => ({
     toggleIsComment: false,
@@ -114,14 +123,16 @@ export default {
     sendMessage () {
       const textarea = document.getElementById('textarea')
       if (textarea.value) {
-        this.$emit('sendMessage', {
+        this.$emit('isSending', true)
+        const message = {
           id: null,
           text: textarea.value,
           date: new Date(),
           sent: true,
           comment: this.toggleIsComment,
           read: true
-        })
+        }
+        this.$emit('sendMessage', message)
       }
       this.scrollToBottom()
     },

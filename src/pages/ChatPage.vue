@@ -27,9 +27,11 @@
             :messages="this.getClient.messages"
             :inputField="this.inputField"
             :templates="this.templates"
+            :isSending="this.isSending"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
+            @isSending="this.isSending = true"
           />
         </div>
 
@@ -109,7 +111,8 @@ export default {
     ],
     inputField: '',
     isComment: false,
-    isNotificationEnabled: true
+    isNotificationEnabled: true,
+    isSending: false
   }),
 
   mounted () {
@@ -126,7 +129,17 @@ export default {
         .then(() => {
           this.getClient.messages.push(message)
           this.inputField = ''
+          this.isSending = false
         })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     },
 
     keyPressed (text) {

@@ -274,6 +274,15 @@ export default {
           this.dialogSaveFilterVisible = false
           this.dialogNewFilterName = ''
         })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     },
 
     onSavedFilterSelected () {
@@ -381,6 +390,15 @@ export default {
   mounted () { // FIXME перенести в store
     axios.get('/api/v1/filters') /* http://localhost:8080 */
       .then(response => { this.savedFilters = response.data })
+      .catch(e =>
+        this.$q.notify({
+          message: e.message,
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        }))
   },
 
   setup () {

@@ -116,7 +116,17 @@ export default {
 
   methods: {
     logout () {
-      axios.get('/logout').then(() => location.reload())
+      axios.get('/logout')
+        .then(() => location.reload())
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     },
 
     getUnreadChats (title) {
