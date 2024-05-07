@@ -122,7 +122,7 @@
         />
         <q-select
           v-model="dialogTaskExecutor"
-          :options="this.users"
+          :options="this.users.map(user => this.getUserName(user))"
           label="Исполнитель"
           use-input
         />
@@ -180,7 +180,7 @@ import axios from 'axios'
 export default {
   name: 'ChatTasks',
 
-  props: ['tasks', 'tags', 'users'],
+  props: ['tasks', 'tags', 'users', 'client'],
 
   data: () => ({
     isNotificationEnabled: true,
@@ -211,28 +211,51 @@ export default {
     },
 
     saveNewOrUpdateTask () {
+      console.log(this.tags)
+      console.log(this.dialogTaskTags)
+      const tags = []
+      this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
+      console.log(tags)
       const task = {
         id: this.isNewTask ? null : this.taskId,
         status: 'new',
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
         priority: this.dialogTaskPriority,
-        executor: this.dialogTaskExecutor,
-        tags: this.dialogTaskTags,
+        executor: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
+        tags,
         isCompleted: false
       }
       if (this.isNewTask) {
-        axios.post(`/api/v1/client/${this.getClient.id}/new-task`, task) /* http://localhost:8080 */
+        axios.post(`/api/v1/client/${this.client.id}/new-task`, task) /* http://localhost:8080 */
           .then(task => {
             this.isNewTaskDialogShow = false
-            this.getClient.tasks.push(task.data)
+            this.$emit('newTask', task)
           })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
       } else {
-        axios.post(`/api/v1/client/${this.getClient.id}/update-task`, task) /* http://localhost:8080 */
+        axios.post(`/api/v1/client/${this.client.id}/update-task`, task) /* http://localhost:8080 */
           .then(newTask => {
             this.isNewTaskDialogShow = false
-            this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+            this.$emit('updateTask', task, newTask)
           })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
       }
       this.taskId = null
     },
@@ -250,7 +273,7 @@ export default {
 
     setTaskCompleted () {
       this.taskToComplete.completed = true
-      this.$emit('updateTask', this.taskToComplete)
+      this.$emit('updateTask', this.taskToComplete) // FIXME
       this.taskToComplete = null
       this.isCompleteTaskDialogShow = false
     },
@@ -258,6 +281,10 @@ export default {
     setTaskCompletedShowDialog (task) {
       this.taskToComplete = task
       this.isCompleteTaskDialogShow = true
+    },
+
+    getUserName (user) {
+      return user.firstname + ' ' + user.lastname
     }
   },
 

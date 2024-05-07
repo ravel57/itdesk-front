@@ -39,7 +39,6 @@ export const useStore = defineStore('store', {
 
       axios.get('/api/v1/clients') /* http://localhost:8080 */
         .then(response => {
-          console.log(response.data)
           this.clients = response.data
           this.clients.forEach(it => it.messages.forEach(message => {
             message.date = new Date(message.date)

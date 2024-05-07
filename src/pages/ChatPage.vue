@@ -61,7 +61,10 @@
             :tasks="this.getClient.tasks"
             :isNotificationEnabled="isNotificationEnabled"
             :tags="this.store.tags"
-            :users="this.store.users.map(user => user.firstname + ' ' + user.lastname)"
+            :users="this.store.users"
+            :client="this.getClient"
+            @newTask="this.newTask"
+            @updateTask="this.updateTask"
           />
         </div>
       </div>
@@ -162,6 +165,14 @@ export default {
             }]
           })
         })
+    },
+
+    newTask (task) {
+      this.getClient.tasks.push(task.data)
+    },
+
+    updateTask (task, newTask) {
+      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
     }
   },
 
