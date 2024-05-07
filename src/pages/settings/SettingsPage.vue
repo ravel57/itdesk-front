@@ -18,7 +18,6 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
 import EssentialLink from 'components/EssentialLink.vue'
 
 export default {
@@ -39,13 +38,9 @@ export default {
       { title: 'Шаблоны', link: '/settings/templates', slug: 'templates' },
       { title: 'Макросы', link: '/settings/macros', slug: 'macros' },
       { title: 'SLA', link: '/settings/sla', slug: 'sla' },
-      { title: 'Уведомления', link: '/settings/notifications', slug: 'notifications' }
+      { title: 'Уведомления', link: '/settings/notifications', slug: 'notifications' },
+      { title: 'Telegram', link: '/settings/telegram', slug: 'telegram' }
     ]
-  }),
-
-  setup () {
-    const store = useStore()
-    return { store }
-  }
+  })
 }
 </script>

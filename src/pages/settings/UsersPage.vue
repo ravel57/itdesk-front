@@ -15,13 +15,15 @@
         rows-per-page-label="Строк на странице"
       >
         <template v-slot:body-cell-edit="props">
-          <q-btn
-            color="primary"
-            dense
-            flat
-            icon="edit"
-            @click="editRow(props.row)"
-          />
+          <q-td>
+            <q-btn
+              color="primary"
+              dense
+              flat
+              icon="edit"
+              @click="editRow(props.row)"
+            />
+          </q-td>
         </template>
       </q-table>
     </div>

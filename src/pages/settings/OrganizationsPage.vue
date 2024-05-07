@@ -2,26 +2,28 @@
   <div class="q-pa-md">
     <q-btn
       icon="add"
-      label="Добавить тег"
+      label="Добавить организацию"
       @click="this.dialogVisible = true"
     />
     <div class="table-container">
       <q-table
-        :rows="this.store.tags"
-        :columns="columns"
+        :rows="this.store.organizations"
+        :columns="this.columns"
         row-key="id"
         full-width
         :rows-per-page-options="[10, 20, 50]"
         rows-per-page-label="Строк на странице"
       >
         <template v-slot:body-cell-edit="props">
-          <q-btn
-            color="primary"
-            dense
-            flat
-            icon="edit"
-            @click="editRow(props.row)"
-          />
+          <q-td>
+            <q-btn
+              color="primary"
+              dense
+              flat
+              icon="edit"
+              @click="editRow(props.row)"
+            />
+          </q-td>
         </template>
       </q-table>
     </div>
@@ -37,22 +39,18 @@
           v-model="this.dialogName"
           label="Название"
         />
-        <q-input
-          v-model="this.dialogDescription"
-          label="Описание"
-        />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
           color="white"
           label="Закрыть"
           text-color="primary"
-          @click="closeDialog"
+          @click="this.closeDialog"
         />
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="dialogSaveNewTag"/>
+          @click="this.dialogSaveNewOrganization"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -63,18 +61,16 @@ import { useStore } from 'stores/store'
 import axios from 'axios'
 
 export default {
-  name: 'TagsComponent',
+  name: 'OrganizationsComponent',
 
   data: () => ({
     columns: [
-      { name: 'name', label: 'Название', align: 'left', field: 'name' },
-      { name: 'description', label: 'Описание', align: 'left', field: 'description' },
+      { name: 'name', label: 'Название', align: 'center', field: 'name' },
       { name: 'edit', label: '', align: 'center', field: 'edit' }
     ],
 
     dialogVisible: false,
-    dialogName: '',
-    dialogDescription: ''
+    dialogName: ''
   }),
 
   methods: {
@@ -85,18 +81,16 @@ export default {
     closeDialog () {
       this.dialogVisible = false
       this.dialogName = ''
-      this.dialogDescription = ''
     },
 
-    dialogSaveNewTag () {
-      const newTag = {
+    dialogSaveNewOrganization () {
+      const newOrganization = {
         id: null,
-        name: this.dialogName,
-        description: this.dialogDescription
+        name: this.dialogName
       }
-      axios.post('/api/v1/new-tag', newTag) /* http://localhost:8080 */
+      axios.post('/api/v1/new-organization', newOrganization) /* http://localhost:8080 */
         .then(response => {
-          this.store.tags.push(response.data)
+          this.store.organizations.push(response.data)
           this.closeDialog()
         })
     }
@@ -110,12 +104,5 @@ export default {
 </script>
 
 <style scoped>
-.table-container {
-  width: 100%;
-}
 
-.edit-button-container {
-  display: flex;
-  justify-content: center;
-}
 </style>

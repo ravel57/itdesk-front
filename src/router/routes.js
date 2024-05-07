@@ -30,55 +30,59 @@ const routes = [
       },
       {
         path: 'settings',
-        component: () => import('pages/SettingsPage.vue'),
+        component: () => import('pages/settings/SettingsPage.vue'),
         children: [
           {
             path: 'common',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'profile',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'users',
-            component: () => import('components/settings/UsersPage.vue')
+            component: () => import('pages/settings/UsersPage.vue')
           },
           {
             path: 'organizations',
-            component: () => import('components/settings/OrganizationsPage.vue')
+            component: () => import('pages/settings/OrganizationsPage.vue')
           },
           {
             path: 'knowledgeBase',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'tags',
-            component: () => import('components/settings/TagsPage.vue')
+            component: () => import('pages/settings/TagsPage.vue')
           },
           {
             path: 'priorities',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'status',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'templates',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'macros',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'sla',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
           },
           {
             path: 'notifications',
-            component: () => import('pages/SettingsPage.vue')
+            component: () => import('pages/settings/SettingsPage.vue')
+          },
+          {
+            path: 'telegram',
+            component: () => import('pages/settings/TelegramPage.vue')
           }
         ]
       },

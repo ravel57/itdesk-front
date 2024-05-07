@@ -150,7 +150,6 @@ export default {
     },
 
     changeClient (client) {
-      console.log(client)
       axios.post(`/api/v1/client/${this.getClient.id}/update`, client) /* http://localhost:8080 */
         .then(newClient => {
           this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient

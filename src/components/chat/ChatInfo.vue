@@ -6,12 +6,12 @@
       >
         <div
           class="text-h6"
-          @mouseover="showButton(this.editShow, this.editShowTimer)"
-          @mouseleave="hideButton(this.editShow, this.editShowTimer)"
+          @mouseover="showButton(this.editClientInfoButtonShow, this.editShowTimer)"
+          @mouseleave="hideButton(this.editClientInfoButtonShow, this.editShowTimer)"
           v-text="`${this.client.firstname} ${this.client.lastname}`"
         />
         <q-btn
-          v-if="this.editShow.value"
+          v-if="this.editClientInfoButtonShow.value"
           @mouseenter="cancelHide(this.editShowTimer)"
           icon="edit"
           @click="showDialog"
@@ -20,40 +20,59 @@
           round
           size="xs"
         />
+        <q-btn
+          icon="more_vert"
+          flat
+          dense
+          class="q-ml-auto"
+          color="grey"
+        >
+          <q-menu v-model="menuOpened" content-class="menu-content">
+            <q-list>
+              <q-item clickable @click="menuAction('item1')">
+                <q-item-section>rPCSMT</q-item-section>
+              </q-item>
+              <q-item clickable @click="menuAction('item2')">
+                <q-item-section>new user generator</q-item-section>
+              </q-item>
+              <q-item clickable @click="menuAction('item2')">
+                <q-item-section>check-adminpc</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
       <div
         class="text-subtitle2"
-        @mouseover="showButton(this.editShow, this.editShowTimer)"
-        @mouseleave="hideButton(this.editShow, this.editShowTimer)"
+        @mouseover="showButton(this.editClientInfoButtonShow, this.editShowTimer)"
+        @mouseleave="hideButton(this.editClientInfoButtonShow, this.editShowTimer)"
         v-text="this.client.organization"
       />
       <div
         class="text-subtitle2"
-        @mouseover="showButton(this.editShow, this.editShowTimer)"
-        @mouseleave="hideButton(this.editShow, this.editShowTimer)"
+        @mouseover="showButton(this.editClientInfoButtonShow, this.editShowTimer)"
+        @mouseleave="hideButton(this.editClientInfoButtonShow, this.editShowTimer)"
         v-text="this.client.moreInfo"
       ></div>
-      <div class="text-subtitle2">rPCSMT</div>
-      <div class="text-subtitle2">check-admin-pc</div>
     </q-card-section>
   </q-card>
   <q-dialog
-    v-model="dialogVisible"
+    v-model="this.dialogVisible"
     persistent
     backdrop-filter="blur(4px)"
   >
     <q-card>
       <q-card-section>
         <q-input
-          v-model="dialogLastName"
+          v-model="this.dialogLastName"
           label="Фамилия"
         />
         <q-input
-          v-model="dialogFirstName"
+          v-model="this.dialogFirstName"
           label="Имя"
         />
         <q-select
-          v-model="dialogOrganization"
+          v-model="this.dialogOrganization"
           :options="this.organizations.map(o => o.name)"
           label="Организация"
           use-input
@@ -87,7 +106,7 @@ export default {
   props: ['client', 'organizations'],
 
   data: () => ({
-    editShow: { value: false },
+    editClientInfoButtonShow: { value: false },
     editShowTimer: { value: null },
 
     dialogVisible: false,
@@ -95,7 +114,9 @@ export default {
     dialogLastName: '',
     dialogFirstName: '',
     dialogOrganization: '',
-    dialogAnotherInfo: ''
+    dialogAnotherInfo: '',
+
+    menuOpened: false
   }),
 
   methods: {
@@ -137,7 +158,24 @@ export default {
         moreInfo: this.dialogAnotherInfo
       })
       this.dialogVisible = false
+    },
+
+    toggleMenu () {
+      this.menuOpened = !this.menuOpened
+    },
+    menuAction (item) {
+      console.log('Выбран элемент:', item)
     }
   }
 }
 </script>
+
+<style scoped>
+.menu-container {
+  display: flex;
+  align-items: center;
+}
+.menu-content {
+  min-width: 200px; /* Ширина меню */
+}
+</style>
