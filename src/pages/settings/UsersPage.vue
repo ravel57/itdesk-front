@@ -55,7 +55,7 @@
         <q-select
           v-model="dialogRole"
           :options="this.store.roles"
-          label="Роли"
+          label="Роль"
           use-input
         />
       </q-card-section>
@@ -96,7 +96,7 @@ export default {
     dialogPassword: '',
     dialogFirstName: '',
     dialogLastName: '',
-    dialogRole: ''
+    dialogRole: []
   }),
 
   methods: {
@@ -119,7 +119,7 @@ export default {
         password: this.dialogPassword,
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
-        role: this.dialogRole
+        authorities: this.dialogRole
       }
       axios.post('/api/v1/new-user', newUser) /* http://localhost:8080 */
         .then(response => {

@@ -13,8 +13,13 @@ export function connect () {
 
 function clientsCallback (clients) {
   const parsedClients = JSON.parse(clients.body)
-  parsedClients.forEach(it => it.messages.forEach(message => {
-    message.date = new Date(message.date)
-  }))
+  parsedClients.forEach(it => {
+    it.messages.forEach(message => {
+      message.date = new Date(message.date)
+    })
+    it.tasks.forEach(task => {
+      task.createdAt = new Date(task.createdAt)
+    })
+  })
   useStore().clients = parsedClients
 }

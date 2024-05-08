@@ -65,6 +65,7 @@
             :tags="this.store.tags"
             :users="this.store.users"
             :client="this.getClient"
+            :statuses="this.store.statuses"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
           />

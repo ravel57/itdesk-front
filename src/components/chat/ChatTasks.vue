@@ -69,7 +69,7 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Создана: '"/>
-                          <th class="text-body2" v-text="task.createdAt"/>
+                          <th class="text-body2" v-text="this.getStamp(task)"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Статус: '"/>
@@ -77,11 +77,11 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Деадлайн: '"/>
-                          <th class="text-body2" v-text="task.deadline"/>
+                          <th class="text-body2" v-text="this.getStamp(task)"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-                          <th class="text-body2" v-text="task.executor"/>
+                          <th class="text-body2" v-text="task.executor.firstname + ' ' + task.executor.lastname"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'SLA: '"/>
@@ -102,10 +102,9 @@
   <q-dialog
     v-model="this.isNewTaskDialogShow"
     persistent
-    full-width
     backdrop-filter="blur(4px)"
   >
-    <q-card>
+    <q-card style="width: 50vw;">
       <q-card-section>
         <q-input
           v-model="dialogTaskName"
@@ -131,6 +130,21 @@
           :options="this.tags.map(t => t.name)"
           multiple
           label="Теги"
+        />
+        <div class="flex">
+          <q-checkbox
+            v-model="dialogTaskDeadlineCheckbox"
+          />
+          <q-input
+            v-model="dialogTaskDeadline"
+            label="Дедлайн"
+            type="date"
+          />
+        </div>
+        <q-select
+          v-model="this.dialogTaskStatus"
+          :options="this.statuses.map(s => s.name)"
+          label="Статус"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -180,7 +194,7 @@ import axios from 'axios'
 export default {
   name: 'ChatTasks',
 
-  props: ['tasks', 'tags', 'users', 'client'],
+  props: ['tasks', 'tags', 'users', 'client', 'statuses'],
 
   data: () => ({
     isNotificationEnabled: true,
@@ -192,6 +206,9 @@ export default {
     dialogTaskPriority: '',
     dialogTaskExecutor: '',
     dialogTaskTags: [],
+    dialogTaskDeadline: '',
+    dialogTaskDeadlineCheckbox: false,
+    dialogTaskStatus: '',
 
     isShowCompletedTasks: false,
 
@@ -208,23 +225,25 @@ export default {
       this.dialogTaskPriority = ''
       this.dialogTaskExecutor = ''
       this.dialogTaskTags = []
+      this.dialogTaskDeadline = ''
+      this.dialogTaskDeadlineCheckbox = false
+      this.dialogTaskStatus = ''
     },
 
     saveNewOrUpdateTask () {
-      console.log(this.tags)
-      console.log(this.dialogTaskTags)
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
-      console.log(tags)
       const task = {
         id: this.isNewTask ? null : this.taskId,
         status: 'new',
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
         priority: this.dialogTaskPriority,
-        executor: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
-        tags,
-        isCompleted: false
+        executor_id: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor).id,
+        tags_ids: tags.map(it => it.id),
+        deadline: this.dialogTaskDeadlineCheckbox ? this.dialogTaskDeadline : null,
+        isCompleted: false,
+        status_id: this.dialogTaskStatus
       }
       if (this.isNewTask) {
         axios.post(`/api/v1/client/${this.client.id}/new-task`, task) /* http://localhost:8080 */
@@ -267,8 +286,11 @@ export default {
       this.dialogTaskPriority = task.priority
       this.dialogTaskExecutor = task.executor
       this.dialogTaskTags = task.tags
+      this.dialogTaskDeadline = task.deadline
+      this.dialogTaskDeadlineCheckbox = task.deadline != null
       this.taskId = task.id
       this.isNewTask = false
+      this.dialogTaskStatus = task.status
     },
 
     setTaskCompleted () {
@@ -285,6 +307,17 @@ export default {
 
     getUserName (user) {
       return user.firstname + ' ' + user.lastname
+    },
+
+    getStamp (task) {
+      return task.createdAt.toLocaleTimeString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }
   },
 

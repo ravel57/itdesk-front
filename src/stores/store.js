@@ -14,7 +14,8 @@ export const useStore = defineStore('store', {
     tags: [],
     organizations: [],
     users: [],
-    roles: []
+    roles: [],
+    statuses: []
   }),
 
   getters: {
@@ -26,49 +27,43 @@ export const useStore = defineStore('store', {
 
   actions: {
     fetchData () {
-      const onRejected = e => {
-        // this.$q.notify({
-        //   message: e,
-        //   type: 'negative',
-        //   position: 'top-right',
-        //   actions: [{
-        //     icon: 'close', color: 'white', dense: true, handler: () => undefined
-        //   }]
-        // })
-      }
-
       axios.get('/api/v1/clients') /* http://localhost:8080 */
         .then(response => {
           this.clients = response.data
-          this.clients.forEach(it => it.messages.forEach(message => {
-            message.date = new Date(message.date)
-          }))
+          this.clients.forEach(it => {
+            it.messages.forEach(message => {
+              message.date = new Date(message.date)
+            })
+            it.tasks.forEach(task => {
+              task.createdAt = new Date(task.createdAt)
+            })
+          })
         })
-        .catch(onRejected)
 
       axios.get('/api/v1/tags') /* http://localhost:8080 */
         .then(response => {
           this.tags = response.data
         })
-        .catch(onRejected)
 
       axios.get('/api/v1/organizations') /* http://localhost:8080 */
         .then(response => {
           this.organizations = response.data
         })
-        .catch(onRejected)
 
       axios.get('/api/v1/users') /* http://localhost:8080 */
         .then(response => {
           this.users = response.data
         })
-        .catch(onRejected)
 
       axios.get('/api/v1/roles') /* http://localhost:8080 */
         .then(response => {
           this.roles = response.data
         })
-        .catch(onRejected)
+
+      axios.get('/api/v1/statuses') /* http://localhost:8080 */
+        .then(response => {
+          this.statuses = response.data
+        })
     }
   }
 })
