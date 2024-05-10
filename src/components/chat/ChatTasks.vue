@@ -171,7 +171,7 @@
   >
     <q-card>
       <q-card-section>
-        Закрыть заявку? {{ this.taskToComplete.name }}
+        Закрыть заявку {{ this.taskToComplete.name }}?
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
@@ -230,6 +230,7 @@ export default {
       this.dialogTaskDeadline = ''
       this.dialogTaskDeadlineCheckbox = false
       this.dialogTaskStatus = ''
+      this.isNewTask = true
     },
 
     saveNewOrUpdateTask () {
@@ -237,18 +238,18 @@ export default {
       this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
       const task = {
         id: this.isNewTask ? null : this.taskId,
-        status: 'new',
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
+        status: { id: 1, name: 'new' },
         priority: this.dialogTaskPriority,
-        executor_id: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor).id,
-        tags_ids: tags.map(it => it.id),
-        deadline: this.dialogTaskDeadlineCheckbox ? this.dialogTaskDeadline : null,
+        executor: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
+        tags,
         isCompleted: false,
-        status_id: this.dialogTaskStatus
+        createdAt: new Date(),
+        deadline: /* this.dialogTaskDeadlineCheckbox ? this.dialogTaskDeadline : */ null
       }
       if (this.isNewTask) {
-        axios.post(`/api/v1/client/${this.client.id}/new-task`, task) /* http://localhost:8080 */
+        axios.post(`/api/v1/client/${this.client.id}/new-task`, task)
           .then(task => {
             this.isNewTaskDialogShow = false
             this.$emit('newTask', task)
@@ -263,7 +264,7 @@ export default {
               }]
             }))
       } else {
-        axios.post(`/api/v1/client/${this.client.id}/update-task`, task) /* http://localhost:8080 */
+        axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
           .then(newTask => {
             this.isNewTaskDialogShow = false
             this.$emit('updateTask', task, newTask)
@@ -286,7 +287,7 @@ export default {
       this.dialogTaskName = task.name
       this.dialogTaskDescription = task.description
       this.dialogTaskPriority = task.priority
-      this.dialogTaskExecutor = task.executor
+      this.dialogTaskExecutor = this.getUserName(task.executor)
       this.dialogTaskTags = task.tags
       this.dialogTaskDeadline = task.deadline
       this.dialogTaskDeadlineCheckbox = task.deadline != null
@@ -297,7 +298,20 @@ export default {
 
     setTaskCompleted () {
       this.taskToComplete.completed = true
-      this.$emit('updateTask', this.taskToComplete) // FIXME
+      axios.post(`/api/v1/client/${this.client.id}/update-task`, this.taskToComplete)
+        .then(newTask => {
+          this.isNewTaskDialogShow = false
+          this.$emit('updateTask', this.taskToComplete, newTask)
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
       this.taskToComplete = null
       this.isCompleteTaskDialogShow = false
     },

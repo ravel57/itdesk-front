@@ -27,6 +27,7 @@
             :inputField="this.inputField"
             :templates="this.templates"
             :isSending="this.isSending"
+            :clientId="this.getClient.id"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -124,21 +125,9 @@ export default {
     },
 
     sendMessage (message) {
-      axios.post(`/api/v1/client/${this.getClient.id}/new-message`, message) /* http://localhost:8080 */
-        .then(() => {
-          this.getClient.messages.push(message)
-          this.inputField = ''
-          this.isSending = false
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
+      this.inputField = ''
+      this.isSending = false
+      this.getClient.messages.push(message)
     },
 
     keyPressed (text) {
@@ -152,7 +141,7 @@ export default {
     },
 
     changeClient (client) {
-      axios.post(`/api/v1/client/${this.getClient.id}/update`, client) /* http://localhost:8080 */
+      axios.post(`/api/v1/client/${this.getClient.id}/update-client`, client) /* http://localhost:8080 */
         .then(newClient => {
           this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
         })

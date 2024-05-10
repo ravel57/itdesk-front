@@ -42,7 +42,7 @@
           position="bottom"
           class="no-padding"
         >
-          <q-toolbar>
+          <q-toolbar class="no-padding">
             <q-btn
               type="file"
               @change="onFileChanged($event)"
@@ -93,10 +93,12 @@
 
 <script>
 // TODO загрузка порциями
+import axios from 'axios'
+
 export default {
   name: 'ChatDialog',
 
-  props: ['messages', 'inputField', 'templates', 'isSending'],
+  props: ['messages', 'inputField', 'templates', 'isSending', 'clientId'],
 
   data: () => ({
     toggleIsComment: false,
@@ -133,8 +135,20 @@ export default {
           comment: this.toggleIsComment,
           read: true
         }
-        this.$emit('sendMessage', message)
-        this.scrollToBottom()
+        axios.post(`/api/v1/client/${this.clientId}/new-message`, message)
+          .then(() => {
+            this.$emit('sendMessage', message)
+            this.scrollToBottom()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
       }
     },
 
