@@ -16,8 +16,8 @@
         <q-tab name="tab3" icon="info"/>
       </q-tabs>
     </div>
-    <q-page padding>
-      <div class="q-gutter-md row">
+    <q-page style="padding: 8px">
+      <div class="q-gutter-sm row">
         <div
           class="col"
           v-if="this.$q.screen.width > 1023 || this.tab === 'tab1'"
@@ -34,7 +34,6 @@
             @isSending="this.isSending = true"
           />
         </div>
-
         <div
           class="col"
           v-if="this.$q.screen.width > 1023 || this.tab === 'tab2'"
@@ -83,6 +82,7 @@ import ChatTasks from 'components/chat/ChatTasks.vue'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import { markRead } from 'src/util/ws'
 
 export default {
   components: { ChatTasks, ChatInfo, ChatHelper, ChatDialog },
@@ -149,17 +149,7 @@ export default {
 
     markMessagesRead () {
       if (this.getClient.id) {
-        axios.post(`/api/v1/client/${this.getClient.id}/mark-read`) /* http://localhost:8080 */
-          .catch(e => {
-            this.$q.notify({
-              message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
-            })
-          })
+        markRead(this.getClient.id)
       }
     },
 

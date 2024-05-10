@@ -2,12 +2,15 @@ import SockJS from 'sockjs-client/dist/sockjs'
 import { Stomp } from '@stomp/stompjs'
 import { useStore } from 'stores/store'
 
+let stompClient = null
+
 export function connect () {
   const socket = new SockJS('/ws') /* http://localhost:8080 */
-  const stompClient = Stomp.over(() => { return socket })
+  stompClient = Stomp.over(() => { return socket })
   stompClient.debug = () => {}
   stompClient.connect({}, () => {
     stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
+    stompClient.subscribe('/topic/mark-read/', message => console.log(message))
   })
 }
 
@@ -22,4 +25,8 @@ function clientsCallback (clients) {
     })
   })
   useStore().clients = parsedClients
+}
+
+export function markRead (getClientId) {
+  stompClient.send('/app/mark-read', {}, getClientId)
 }
