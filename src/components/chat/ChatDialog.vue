@@ -1,13 +1,12 @@
 <template>
   <div
     v-if="this.taskWatchingNow.length > 0"
-  >
-    Сейчас смотрят: {{ this.taskWatchingNow.join(', ') }}
-  </div>
+    v-text="`Сейчас смотрят: ${this.taskWatchingNow.join(', ')}`"
+  />
   <q-layout
     view="lHh Lpr lFf"
     container
-    style="height: 88vh"
+    style="height: calc(100vh - 75px);"
     class="shadow-2 rounded-borders"
   >
     <q-page-container>
@@ -19,9 +18,9 @@
       >
         <div class="q-pa-md row justify-center q-gutter-md">
           <div
-            style="width: 100%; margin-top: 0"
             v-for="message in this.messages"
             :key="message.id"
+            style="width: 100%; margin-top: 0"
           >
             <q-chat-message
               v-if="this.isDateChanged(message)"
@@ -73,6 +72,8 @@
                 <q-btn
                   icon="send"
                   @click="this.sendMessage"
+                  color="white"
+                  text-color="primary"
                 />
                 <q-spinner-tail
                   style="position: fixed; margin-left: 8px"
@@ -116,7 +117,7 @@ export default {
   methods: {
     scrollToBottom () {
       try {
-        document.getElementById('chat').scrollIntoView({ behavior: 'smooth', block: 'end' })
+        document.getElementById('chat').scrollIntoView({ block: 'end' })
       } catch (e) {}
     },
 
@@ -133,8 +134,8 @@ export default {
           read: true
         }
         this.$emit('sendMessage', message)
+        this.scrollToBottom()
       }
-      this.scrollToBottom()
     },
 
     handleTab (event) {

@@ -1,6 +1,8 @@
 <template>
   <q-card class="my-card">
-    <q-scroll-area style="height: 90vh;">
+    <q-scroll-area
+      style="height: calc(100vh - 75px);"
+    >
       <q-card-section>
         <q-card>
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>

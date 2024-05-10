@@ -1,5 +1,7 @@
 <template>
-  <q-card style="min-height: 50vh; padding: 16px;">
+  <q-card
+    style="height: calc(100vh - 175px); padding: 16px;"
+  >
     <div class="flex">
       <div>
         <div class="text-h6">Список заявок</div>

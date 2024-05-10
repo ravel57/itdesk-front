@@ -2,7 +2,7 @@
   <div>
     <div
       class="sticky-tabs"
-      v-if="this.$q.screen.width < 1023"
+      v-if="this.isMobile"
     >
       <q-tabs
         v-model="tab"
@@ -20,8 +20,7 @@
       <div class="q-gutter-sm row">
         <div
           class="col"
-          v-if="this.$q.screen.width > 1023 || this.tab === 'tab1'"
-          style="height: 100%;"
+          v-if="!this.isMobile || this.tab === 'tab1'"
         >
           <chat-dialog
             :messages="this.getClient.messages"
@@ -36,8 +35,7 @@
         </div>
         <div
           class="col"
-          v-if="this.$q.screen.width > 1023 || this.tab === 'tab2'"
-          style="height: 100%;"
+          v-if="!this.isMobile || this.tab === 'tab2'"
         >
           <chat-helper
             :templates="this.templates"
@@ -49,7 +47,7 @@
 
         <div
           class="col"
-          v-if="this.$q.screen.width > 1023 || this.tab === 'tab3'"
+          v-if="!this.isMobile || this.tab === 'tab3'"
           style="height: 100%;"
         >
           <chat-info
@@ -191,6 +189,10 @@ export default {
           tasks: []
         }
       }
+    },
+
+    isMobile () {
+      return this.$q.screen.width < 1023
     }
   },
 
