@@ -61,8 +61,8 @@ const routes = [
             component: () => import('pages/settings/SettingsPage.vue')
           },
           {
-            path: 'status',
-            component: () => import('pages/settings/SettingsPage.vue')
+            path: 'statuses',
+            component: () => import('pages/settings/StatusesPage.vue')
           },
           {
             path: 'templates',

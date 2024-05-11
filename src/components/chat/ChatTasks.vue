@@ -50,9 +50,11 @@
                     <q-item
                       clickable
                       @click="this.onTaskClick(task)"
-                      :class="task.completed ? 'text-grey-5' : ''"
                     >
                       <table>
+                        <tr v-if="task.completed">
+                          <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
+                        </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Название: '"/>
                           <th class="text-body2" v-text="task.name"/>
@@ -75,7 +77,7 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Статус: '"/>
-                          <th class="text-body2" v-text="task.status"/>
+                          <th class="text-body2" v-text="task.status.name"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Деадлайн: '"/>

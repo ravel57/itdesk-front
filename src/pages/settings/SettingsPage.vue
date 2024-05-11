@@ -34,7 +34,7 @@ export default {
       { title: 'База знаний', link: '/settings/knowledgeBase', slug: 'knowledgeBase' },
       { title: 'Теги', link: '/settings/tags', slug: 'tags' },
       { title: 'Приоритеты', link: '/settings/priorities', slug: 'priorities' },
-      { title: 'Статусы', link: '/settings/status', slug: 'status' },
+      { title: 'Статусы', link: '/settings/statuses', slug: 'statuses' },
       { title: 'Шаблоны', link: '/settings/templates', slug: 'templates' },
       { title: 'Макросы', link: '/settings/macros', slug: 'macros' },
       { title: 'SLA', link: '/settings/sla', slug: 'sla' },

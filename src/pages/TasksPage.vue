@@ -268,7 +268,7 @@ export default {
           selectedOptions: it.selectedOptions
         }))
       }
-      axios.post('/api/v1/new-filter', newFilter) /* http://localhost:8080 */
+      axios.post('/api/v1/new-filter', newFilter)
         .then(response => {
           this.savedFilters.push(newFilter)
           this.dialogSaveFilterVisible = false
@@ -387,8 +387,8 @@ export default {
     }
   },
 
-  mounted () { // FIXME перенести в store
-    axios.get('/api/v1/filters') /* http://localhost:8080 */
+  mounted () {
+    axios.get('/api/v1/filters')
       .then(response => { this.savedFilters = response.data })
       .catch(e =>
         this.$q.notify({

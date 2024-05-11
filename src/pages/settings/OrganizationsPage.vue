@@ -3,7 +3,7 @@
     <q-btn
       icon="add"
       label="Добавить организацию"
-      @click="this.dialogVisible = true"
+      @click="this.dialogNewOrganizationShow"
     />
     <div class="table-container">
       <q-table
@@ -33,7 +33,9 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card>
+    <q-card
+      style="width: 50vw"
+    >
       <q-card-section>
         <q-input
           v-model="this.dialogName"
@@ -42,15 +44,22 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
+          v-if="!this.isNewOrganization"
+          color="white"
+          label="Удалить"
+          text-color="primary"
+          @click="this.dialogDeleteOrganization"
+        />
+        <q-btn
           color="white"
           label="Закрыть"
           text-color="primary"
-          @click="this.closeDialog"
+          @click="this.dialogClose"
         />
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="this.dialogSaveNewOrganization"/>
+          @click="this.dialogSaveNewOrUpdateOrganization"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -70,38 +79,70 @@ export default {
     ],
 
     dialogVisible: false,
-    dialogName: ''
+    dialogName: '',
+    isNewOrganization: true,
+    organizationId: null // for updates
   }),
 
   methods: {
-    editRow (row) {
-      console.log('Editing row:', row)
+    dialogNewOrganizationShow () {
+      this.dialogVisible = true
+      this.isNewOrganization = true
     },
 
-    closeDialog () {
+    editRow (row) {
+      this.isNewOrganization = false
+      this.dialogVisible = true
+      this.dialogName = row.name
+      this.organizationId = row.id
+    },
+
+    dialogClose () {
       this.dialogVisible = false
       this.dialogName = ''
+      this.organizationId = null
     },
 
-    dialogSaveNewOrganization () {
-      const newOrganization = {
-        id: null,
+    dialogSaveNewOrUpdateOrganization () {
+      const organization = {
+        id: this.isNewOrganization ? null : this.organizationId,
         name: this.dialogName
       }
-      axios.post('/api/v1/new-organization', newOrganization) /* http://localhost:8080 */
-        .then(response => {
-          this.store.organizations.push(response.data)
-          this.closeDialog()
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
+      if (this.isNewOrganization) {
+        axios.post('/api/v1/new-organization', organization)
+          .then(response => {
+            this.store.organizations.push(response.data)
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        axios.post('/api/v1/update-organization', organization)
+          .then(response => {
+            const orgs = this.store.organizations
+            this.store.organizations[orgs.indexOf(orgs.find(organization => organization.id === this.organizationId))] = response.data
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      }
+    },
+
+    dialogDeleteOrganization () {
     }
   },
 

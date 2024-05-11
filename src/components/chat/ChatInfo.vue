@@ -14,7 +14,7 @@
           v-if="this.editClientInfoButtonShow.value"
           @mouseenter="cancelHide(this.editShowTimer)"
           icon="edit"
-          @click="showDialog"
+          @click="dialogShow"
           dense
           flat
           round
@@ -88,7 +88,7 @@
           color="white"
           label="Закрыть"
           text-color="primary"
-          @click="closeDialog"
+          @click="dialogClose"
         />
         <q-btn
           color="primary"
@@ -138,7 +138,7 @@ export default {
       timer.value = null
     },
 
-    showDialog () {
+    dialogShow () {
       this.dialogVisible = true
       this.dialogLastName = this.client.lastname
       this.dialogFirstName = this.client.firstname
@@ -146,7 +146,7 @@ export default {
       this.dialogAnotherInfo = this.client.moreInfo
     },
 
-    closeDialog () {
+    dialogClose () {
       this.dialogVisible = false
     },
 

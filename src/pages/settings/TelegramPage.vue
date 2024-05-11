@@ -3,7 +3,7 @@
     <q-btn
       icon="add"
       label="Добавить бота"
-      @click="this.dialogVisible = true"
+      @click="this.dialogNewBotShow"
     />
     <div class="table-container">
       <q-table
@@ -14,8 +14,14 @@
       >
       <template v-slot:body-cell-token="props">
         <q-td :props="props">
-          <span v-if="!props.row.showToken" v-text="'************'"/>
-          <span v-else v-text="props.row.token"/>
+          <span
+            v-if="!props.row.showToken"
+            v-text="'**********************************************'"
+          />
+          <span
+            v-else
+            v-text="props.row.token"
+          />
         </q-td>
       </template>
       <template v-slot:body-cell-show-token="props">
@@ -25,7 +31,7 @@
             dense
             flat
             icon="visibility"
-            @click="toggleToken(props.row)"
+            @click="toggleTokenVisibility(props.row)"
           />
           <q-btn
             color="primary"
@@ -44,7 +50,7 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card>
+    <q-card style="width: 50vw;">
       <q-card-section>
         <q-input
           v-model="this.dialogName"
@@ -57,10 +63,17 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
+          v-if="!this.isNewTelegramBot"
+          color="white"
+          label="Удалить"
+          text-color="primary"
+          @click="dialogDeleteBot"
+        />
+        <q-btn
           color="white"
           label="Закрыть"
           text-color="primary"
-          @click="closeDialog"
+          @click="dialogClose"
         />
         <q-btn
           color="primary"
@@ -86,11 +99,13 @@ export default {
     telegramBots: [],
     dialogVisible: false,
     dialogToken: '',
-    dialogName: ''
+    dialogName: '',
+    isNewTelegramBot: true,
+    telegramBotId: null // for updates
   }),
 
   mounted () {
-    axios.get('/api/v1/telegram-bots') /* http://localhost:8080 */
+    axios.get('/api/v1/telegram-bots')
       .then(response => {
         this.telegramBots = response.data
         this.telegramBots.forEach(it => { it.showToken = false })
@@ -107,30 +122,38 @@ export default {
   },
 
   methods: {
-    toggleToken (row) {
+    toggleTokenVisibility (row) {
       row.showToken = !row.showToken
     },
 
-    updateToken () {
-
+    dialogNewBotShow () {
+      this.dialogVisible = true
+      this.isNewTelegramBot = true
     },
 
-    closeDialog () {
+    updateToken (row) {
+      this.isNewTelegramBot = false
+      this.dialogVisible = true
+      this.dialogName = row.name
+      this.dialogToken = row.token
+      this.telegramBotId = row.id
+    },
+
+    dialogClose () {
       this.dialogVisible = false
       this.dialogName = ''
       this.dialogToken = ''
     },
 
-    dialogSaveNewBot () {
-      const newBot = {
-        id: null,
-        name: this.dialogName,
-        token: this.dialogToken
-      }
-      axios.post('/api/v1/new-telegram-bot', newBot) /* http://localhost:8080 */
+    // FIXME
+    dialogDeleteBot () {
+      const bot = this.telegramBots[this.telegramBots.indexOf(this.telegramBots.find(bot => bot.id === this.telegramBotId))]
+      console.log(bot)
+      axios.post('/api/v1/delete-telegram-bot', bot)
         .then(response => {
-          this.telegramBots.push(response.data)
-          this.closeDialog()
+          const bots = this.telegramBots
+          this.telegramBots[bots.indexOf(bots.find(bot => bot.id === this.telegramBotId))] = response.data
+          this.dialogClose()
         })
         .catch(e =>
           this.$q.notify({
@@ -141,6 +164,46 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
+    },
+
+    dialogSaveNewBot () {
+      const bot = {
+        id: this.isNewTelegramBot ? null : this.telegramBotId,
+        name: this.dialogName,
+        token: this.dialogToken
+      }
+      if (this.isNewTelegramBot) {
+        axios.post('/api/v1/new-telegram-bot', bot)
+          .then(response => {
+            this.telegramBots.push(response.data)
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        axios.post('/api/v1/update-telegram-bot', bot)
+          .then(response => {
+            const bots = this.telegramBots
+            this.telegramBots[bots.indexOf(bots.find(bot => bot.id === this.telegramBotId))] = response.data
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      }
     }
   }
 }

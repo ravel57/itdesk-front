@@ -64,7 +64,7 @@
           color="white"
           label="Закрыть"
           text-color="primary"
-          @click="closeDialog"
+          @click="dialogClose"
         />
         <q-btn
           color="primary"
@@ -104,7 +104,7 @@ export default {
       console.log('Editing row:', row)
     },
 
-    closeDialog () {
+    dialogClose () {
       this.dialogVisible = false
       this.dialogUsername = ''
       this.dialogLastName = ''
@@ -121,10 +121,10 @@ export default {
         firstname: this.dialogFirstName,
         authorities: this.dialogRole
       }
-      axios.post('/api/v1/new-user', newUser) /* http://localhost:8080 */
+      axios.post('/api/v1/new-user', newUser)
         .then(response => {
           this.store.users.push(response.data)
-          this.closeDialog()
+          this.dialogClose()
         })
         .catch(e =>
           this.$q.notify({
