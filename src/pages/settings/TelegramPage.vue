@@ -50,15 +50,17 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card style="width: 50vw;">
+    <q-card style="width: 33vw;">
       <q-card-section>
         <q-input
           v-model="this.dialogName"
           label="Название"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogToken"
           label="ключ API"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -147,7 +149,6 @@ export default {
 
     dialogDeleteBot () {
       const bot = this.telegramBots[this.telegramBots.indexOf(this.telegramBots.find(bot => bot.id === this.telegramBotId))]
-      console.log(bot)
       axios.delete(`/api/v1/telegram-bot${bot.id}`, bot)
         .then(() => {
           this.telegramBots = this.telegramBots.filter(bot => bot.id !== this.telegramBotId)

@@ -33,11 +33,12 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card>
+    <q-card style="width: 33vw;">
       <q-card-section>
         <q-input
           v-model="this.dialogName"
           label="Название"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogDescription"

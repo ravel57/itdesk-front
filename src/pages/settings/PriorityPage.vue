@@ -33,11 +33,12 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card style="width: 50vw;">
+    <q-card style="width: 33vw;">
       <q-card-section>
         <q-input
           v-model="this.dialogName"
           label="Название"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -101,7 +102,6 @@ export default {
       this.dialogName = ''
     },
 
-    // FIXME
     dialogDeletePriority () {
       axios.delete(`/api/v1/priority/${this.priorityId}`)
         .then(() => {

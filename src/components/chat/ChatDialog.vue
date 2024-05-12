@@ -22,17 +22,17 @@
             :key="message.id"
             style="width: 100%; margin-top: 0"
           >
-            <q-chat-message
-              v-if="this.isDateChanged(message)"
-              :label="this.getDate(message)"
-            />
+<!--            <q-chat-message-->
+<!--              v-if="this.isDateChanged(message)"-->
+<!--              :label="this.getDate(message)"-->
+<!--            />-->
             <q-chat-message
               :avatar="message.avatar"
               :name="this.getName(message)"
               :sent="message.sent"
               :text="[message.text]"
               :stamp="this.getStamp(message)"
-              :bg-color="message.comment ? 'blue-3' : '#e0e0e0'"
+              :bg-color="message.comment ? 'blue-3' : message.sent ? '#e0e0e0' : 'indigo-3'"
               :text-color="message.comment ? 'white' : 'black'"
             />
           </div>
@@ -153,14 +153,16 @@ export default {
     },
 
     handleTab (event) {
-      const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
-      const value = matches[0].trim()
-      if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
-        event.preventDefault()
-        const replaceValue = this.templates.filter(e => e.shortCut === value.replace(':', ''))[0].text
-        this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
+      if (this.$refs.textInput.value) {
+        const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
+        const value = matches[0].trim()
+        if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
+          event.preventDefault()
+          const replaceValue = this.templates.filter(e => e.shortCut === value.replace(':', ''))[0].text
+          this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
+        }
+        this.textChanged()
       }
-      this.textChanged()
     },
 
     handleKeyPress (event) {

@@ -228,19 +228,19 @@ export default {
 
   methods: {
     dialogNewTask () {
+      this.isNewTask = true
       this.isNewTaskDialogShow = true
+      this.dialogTaskName = ''
       this.dialogTaskDescription = ''
       this.dialogTaskPriority = ''
       this.dialogTaskExecutor = ''
       this.dialogTaskTags = []
       this.dialogTaskDeadline = ''
       this.dialogTaskDeadlineCheckbox = false
-      this.dialogTaskStatus = this.statuses.find(status => status.id === 1)
-      this.isNewTask = true
+      this.dialogTaskStatus = this.statuses.find(status => status.id === 1).name
     },
 
     saveNewOrUpdateTask () {
-      console.log(this.isNewTask)
       if (!this.dialogTaskName || !this.dialogTaskPriority || !this.dialogTaskStatus) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',

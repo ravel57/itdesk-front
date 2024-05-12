@@ -210,15 +210,76 @@ export default {
     isShowListMode: false,
 
     tableColumns: [
-      { name: 'name', label: 'Название', align: 'left', field: 'name' },
-      { name: 'name', label: 'Название', align: 'left', field: row => row.name },
-      { name: 'tags', label: 'Теги', align: 'left', field: row => row.tags.map(tag => tag.name).join(', ') },
-      { name: 'priority', label: 'Приоритет', align: 'left', field: row => row.priority.name },
-      { name: 'createdAt', label: 'Создана', align: 'left', field: row => row.createdAt },
-      { name: 'status', label: 'Статус', align: 'left', field: row => row.status.name },
-      { name: 'deadline', label: 'Дедлайн', align: 'left', field: row => row.deadline },
-      { name: 'executor', label: 'Исполнитель', align: 'left', field: row => row.executor.firstname + ' ' + row.executor.lastname },
-      { name: 'sla', label: 'SLA', align: 'left', field: row => row.sla }
+      {
+        name: 'name',
+        label: 'Название',
+        align: 'left',
+        field: 'name'
+      },
+      {
+        name: 'name',
+        label: 'Название',
+        align: 'left',
+        field: row => row.name
+      },
+      {
+        name: 'tags',
+        label: 'Теги',
+        align: 'left',
+        field: row => row.tags.map(tag => tag.name).join(', ')
+      },
+      {
+        name: 'priority',
+        label: 'Приоритет',
+        align: 'left',
+        field: row => row.priority.name
+      },
+      {
+        name: 'createdAt',
+        label: 'Создана',
+        align: 'left',
+        field: row => row.createdAt.toLocaleTimeString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      },
+      {
+        name: 'status',
+        label: 'Статус',
+        align: 'left',
+        field: row => row.status.name
+      },
+      {
+        name: 'deadline',
+        label: 'Дедлайн',
+        align: 'left',
+        field: row => row.deadline
+          ? row.deadline.toLocaleTimeString('ru-RU', {
+            timeZone: 'Europe/Moscow',
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+          : ''
+      },
+      {
+        name: 'executor',
+        label: 'Исполнитель',
+        align: 'left',
+        field: row => row.executor.firstname + ' ' + row.executor.lastname
+      },
+      {
+        name: 'sla',
+        label: 'SLA',
+        align: 'left',
+        field: row => row.sla
+      }
     ]
   }),
 
@@ -308,23 +369,25 @@ export default {
         const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
         switch (slug) {
           case 'executor': {
-            tasks = tasks.filter(t => el.selectedOptions.includes(t.executor.name))
+            tasks = tasks.filter(task => el.selectedOptions.includes(task.executor.name))
             break
           }
           case 'tag': {
-            // tasks = tasks.filter(t => true)
+            const tt = new Set()
+            tasks.forEach(task => el.selectedOptions.filter(e => task.tags.map(e => e.name).includes(e)).forEach(e => tt.add(task)))
+            tasks = Array.from(tt)
             break
           }
           case 'priority': {
-            tasks = tasks.filter(t => el.selectedOptions.includes(t.priority))
+            tasks = tasks.filter(task => el.selectedOptions.includes(task.priority))
             break
           }
           case 'organization': {
-            tasks = tasks.filter(t => el.selectedOptions.includes(t.organization.name))
+            tasks = tasks.filter(task => el.selectedOptions.includes(task.organization.name))
             break
           }
           case 'status': {
-            tasks = tasks.filter(t => el.selectedOptions.includes(t.status.name))
+            tasks = tasks.filter(task => el.selectedOptions.includes(task.status.name))
             break
           }
         }

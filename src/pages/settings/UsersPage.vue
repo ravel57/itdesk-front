@@ -33,32 +33,37 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card>
+    <q-card style="width: 33vw;">
       <q-card-section>
         <q-input
           v-model="this.dialogLastName"
           label="Фамилия"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogFirstName"
           label="Имя"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-if="this.isNewUser"
           v-model="this.dialogUsername"
           label="username"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-if="this.isNewUser"
           label="Пароль"
           type="password"
           v-model="this.dialogPassword"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-select
           v-model="dialogRole"
           :options="this.store.roles"
           label="Роль"
           use-input
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
