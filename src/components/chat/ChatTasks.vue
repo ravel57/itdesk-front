@@ -111,17 +111,19 @@
     <q-card style="width: 50vw;">
       <q-card-section>
         <q-input
-          v-model="dialogTaskName"
+          v-model="this.dialogTaskName"
           label="Название"
+          :rules="[val => !!val || 'Обязательное поле']"
         />
         <q-input
           type="textarea"
-          v-model="dialogTaskDescription"
+          v-model="this.dialogTaskDescription"
           label="Описание"
         />
         <q-input
-          v-model="dialogTaskPriority"
+          v-model="this.dialogTaskPriority"
           label="Приоритет"
+          :rules="[val => !!val || 'Обязательное поле']"
         />
         <q-select
           v-model="dialogTaskExecutor"
@@ -149,6 +151,7 @@
           v-model="this.dialogTaskStatus"
           :options="this.statuses.map(s => s.name)"
           label="Статус"
+          :rules="[val => !!val || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -238,6 +241,17 @@ export default {
     saveNewOrUpdateTask () {
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
+      if (!this.dialogTaskName || !this.dialogTaskPriority || this.dialogTaskStatus) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       const task = {
         id: this.isNewTask ? null : this.taskId,
         name: this.dialogTaskName,
