@@ -16,7 +16,8 @@ export const useStore = defineStore('store', {
     users: [],
     roles: [],
     statuses: [],
-    priorities: []
+    priorities: [],
+    templates: []
   }),
 
   getters: {
@@ -69,6 +70,11 @@ export const useStore = defineStore('store', {
       axios.get('/api/v1/priorities')
         .then(response => {
           this.priorities = response.data
+        })
+
+      axios.get('/api/v1/templates')
+        .then(response => {
+          this.templates = response.data
         })
     }
   }

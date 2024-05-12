@@ -11,7 +11,7 @@
   >
     <q-page-container>
       <q-page
-        style="padding-bottom: 66px"
+        style="padding-bottom: 66px; padding-top: 8px;"
         ref="chat"
         id="chat"
         scroll
@@ -45,10 +45,15 @@
           <q-toolbar class="no-padding">
             <q-btn
               type="file"
-              @change="onFileChanged($event)"
+              @click="attachFile"
               icon="attach_file"
               class="no-padding"
               flat
+            />
+            <input
+              type="file"
+              id="fileInput"
+              style="display: none"
             />
             <textarea
               ref="textInput"
@@ -158,7 +163,7 @@ export default {
         const value = matches[0].trim()
         if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
           event.preventDefault()
-          const replaceValue = this.templates.filter(e => e.shortCut === value.replace(':', ''))[0].text
+          const replaceValue = this.templates.filter(e => e.shortcut === value.replace(':', ''))[0].text
           this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
         }
         this.textChanged()
@@ -173,21 +178,6 @@ export default {
 
     textChanged () {
       this.$emit('keyPressed', this.$refs.textInput.value)
-    },
-
-    onFileChanged (event) {
-      this.$q.notify({
-        message: 'onFileChanged',
-        type: 'positive',
-        position: 'top-right',
-        actions: [{
-          icon: 'close', color: 'white', dense: true, handler: () => undefined
-        }]
-      })
-      const target = event.target
-      if (target && target.files) {
-        this.file.value = target.files[0]
-      }
     },
 
     getStamp (message) {
@@ -226,6 +216,22 @@ export default {
       } else {
         return ''
       }
+    },
+
+    attachFile () {
+      const fileInput = document.getElementById('fileInput')
+      fileInput.click()
+      fileInput.addEventListener('change', () => {
+        console.log('Выбранный файл:', fileInput.files[0]) // FIXME
+        this.$q.notify({
+          message: `Загружен файл: ${fileInput.files[0].name}`,
+          type: 'positive',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      })
     }
   }
 

@@ -1,8 +1,8 @@
 <template>
   <div>
     <div
-      class="sticky-tabs"
       v-if="this.isMobile"
+      class="sticky-tabs"
     >
       <q-tabs
         v-model="tab"
@@ -16,8 +16,13 @@
         <q-tab name="tab3" icon="info"/>
       </q-tabs>
     </div>
-    <q-page style="padding: 8px">
-      <div class="q-gutter-sm row">
+    <q-page
+      style="padding: 8px; height: calc(100vh - 98px); min-height: auto"
+    >
+      <div
+        class="q-gutter-sm row"
+        style="height: calc(100vh - 62px)"
+      >
         <div
           class="col"
           v-if="!this.isMobile || this.tab === 'tab1'"
@@ -25,7 +30,7 @@
           <chat-dialog
             :messages="this.getClient.messages"
             :inputField="this.inputField"
-            :templates="this.templates"
+            :templates="this.store.templates"
             :isSending="this.isSending"
             :clientId="this.getClient.id"
             @sendMessage="this.sendMessage"
@@ -39,7 +44,7 @@
           v-if="!this.isMobile || this.tab === 'tab2'"
         >
           <chat-helper
-            :templates="this.templates"
+            :templates="this.store.templates"
             :macros="this.macros"
             :knowledgeBase="this.knowledgeBase"
             @onTemplateClick="onTemplateClick"
@@ -88,20 +93,6 @@ export default {
 
   data: () => ({
     tab: 'tab1',
-    templates: [
-      { text: 'Добрый день!', shortCut: 'дд' },
-      { text: 'Мы вас не обслуживаем', shortCut: 'необслуж' },
-      { text: 'Василий где деньги', shortCut: 'деньги' },
-      { text: 'Используйте другой принтер', shortCut: 'дрпринтер' },
-      { text: 'Какой код от энидеска', shortCut: 'энидеск' },
-      { text: 'КОЛЛЕГИ!!!', shortCut: 'колги' },
-      { text: 'Примите подкюлчение', shortCut: 'подключ' },
-      { text: 'Послезавтра сделаем', shortCut: '' },
-      { text: 'Сотрудник в пути', shortCut: '' },
-      { text: 'Уже решаем', shortCut: '' },
-      { text: 'Не наша зона ответственности', shortCut: '' },
-      { text: 'Давайте сами винду активируете', shortCut: '' }
-    ],
     macros: [],
     knowledgeBase: [
       { title: 'Доменны', texts: ['*.jopa.ru', '*.zalupa.ru', '*.penis.ru', '*.her.ru'], tags: [] },

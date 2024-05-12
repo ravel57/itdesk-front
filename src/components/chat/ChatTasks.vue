@@ -4,25 +4,35 @@
   >
     <div class="flex">
       <div>
-        <div class="text-h6">Список заявок</div>
+        <div class="flex">
+          <span class="text-h6" style="margin-left: 16px; margin-top: 3px">Список заявок</span>
+          <div class="container q-pa-none q-gutter-md q-position-relative">
+            <q-toggle
+              v-model="this.isNotificationEnabled"
+              icon="notifications_active"
+              color="primary"
+              class="element q-position-absolute q-right-0"
+              @mouseover="showTooltipNotifications = true"
+              @mouseup="showTooltipNotifications = false"
+            >
+              <q-tooltip v-if="showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>
+            </q-toggle>
+            <q-toggle
+              v-model="isShowCompletedTasks"
+              icon="add_task"
+              color="primary"
+              class="element q-position-absolute q-right-0"
+              @mouseover="showTooltipClosedTasks = true"
+              @mouseup="showTooltipClosedTasks = false"
+            >
+              <q-tooltip v-if="showTooltipClosedTasks">Показывать закрытые заявки</q-tooltip>
+            </q-toggle>
+          </div>
+        </div>
         <q-btn
           class="text-grey-7 cursor-pointer"
           @click="this.dialogNewTask"
           label="Создать новую заявку"
-        />
-      </div>
-      <div class="container q-pa-none q-gutter-md q-position-relative">
-        <q-toggle
-          v-model="this.isNotificationEnabled"
-          icon="notifications_active"
-          color="primary"
-          class="element q-position-absolute q-right-0"
-        />
-        <q-toggle
-          v-model="isShowCompletedTasks"
-          icon="add_task"
-          color="primary"
-          class="element q-position-absolute q-right-0"
         />
       </div>
     </div>
@@ -208,6 +218,8 @@ export default {
     isNotificationEnabled: true,
     isNewTaskDialogShow: false,
     isCompleteTaskDialogShow: false,
+    showTooltipClosedTasks: false,
+    showTooltipNotifications: false,
 
     dialogTaskName: '',
     dialogTaskDescription: '',

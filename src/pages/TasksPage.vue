@@ -8,7 +8,7 @@
             v-model="this.selectedSavedFilter"
             :options="this.savedFilters.map(it => it.label)"
             label="Сохраненные фильтры"
-            style="width: 100%;"
+            style="width: 100%; align-content: center;"
             @update:model-value="this.onSavedFilterSelected"
             clearable
           />

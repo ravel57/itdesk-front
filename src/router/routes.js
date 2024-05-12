@@ -66,7 +66,7 @@ const routes = [
           },
           {
             path: 'templates',
-            component: () => import('pages/settings/SettingsPage.vue')
+            component: () => import('pages/settings/TemplatesPage.vue')
           },
           {
             path: 'macros',
