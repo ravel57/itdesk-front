@@ -112,8 +112,8 @@
       <q-card-section>
         <q-input
           v-model="this.dialogTaskName"
-          label="Название"
-          :rules="[val => !!val || 'Обязательное поле']"
+          label="Название *"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           type="textarea"
@@ -122,8 +122,8 @@
         />
         <q-input
           v-model="this.dialogTaskPriority"
-          label="Приоритет"
-          :rules="[val => !!val || 'Обязательное поле']"
+          label="Приоритет *"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-select
           v-model="dialogTaskExecutor"
@@ -150,8 +150,8 @@
         <q-select
           v-model="this.dialogTaskStatus"
           :options="this.statuses.map(s => s.name)"
-          label="Статус"
-          :rules="[val => !!val || 'Обязательное поле']"
+          label="Статус *"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -215,7 +215,7 @@ export default {
     dialogTaskTags: [],
     dialogTaskDeadline: '',
     dialogTaskDeadlineCheckbox: false,
-    dialogTaskStatus: '',
+    dialogTaskStatus: { id: 1, name: 'Новая' },
 
     isShowCompletedTasks: false,
 
@@ -234,14 +234,12 @@ export default {
       this.dialogTaskTags = []
       this.dialogTaskDeadline = ''
       this.dialogTaskDeadlineCheckbox = false
-      this.dialogTaskStatus = ''
+      this.dialogTaskStatus = { id: 1, name: 'Новая' }
       this.isNewTask = true
     },
 
     saveNewOrUpdateTask () {
-      const tags = []
-      this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
-      if (!this.dialogTaskName || !this.dialogTaskPriority || this.dialogTaskStatus) {
+      if (!this.dialogTaskName || !this.dialogTaskPriority || !this.dialogTaskStatus) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
           type: 'negative',
@@ -252,6 +250,8 @@ export default {
         })
         return
       }
+      const tags = []
+      this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
       const task = {
         id: this.isNewTask ? null : this.taskId,
         name: this.dialogTaskName,
@@ -262,7 +262,7 @@ export default {
         tags,
         isCompleted: false,
         createdAt: new Date(),
-        deadline: /* this.dialogTaskDeadlineCheckbox ? this.dialogTaskDeadline : */ null
+        deadline: this.dialogTaskDeadlineCheckbox ? this.dialogTaskDeadline : null
       }
       if (this.isNewTask) {
         axios.post(`/api/v1/client/${this.client.id}/new-task`, task)

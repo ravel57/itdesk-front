@@ -15,7 +15,8 @@ export const useStore = defineStore('store', {
     organizations: [],
     users: [],
     roles: [],
-    statuses: []
+    statuses: [],
+    priorities: []
   }),
 
   getters: {
@@ -27,7 +28,7 @@ export const useStore = defineStore('store', {
 
   actions: {
     fetchData () {
-      axios.get('/api/v1/clients') /* http://localhost:8080 */
+      axios.get('/api/v1/clients')
         .then(response => {
           this.clients = response.data
           this.clients.forEach(it => {
@@ -40,29 +41,34 @@ export const useStore = defineStore('store', {
           })
         })
 
-      axios.get('/api/v1/tags') /* http://localhost:8080 */
+      axios.get('/api/v1/tags')
         .then(response => {
           this.tags = response.data
         })
 
-      axios.get('/api/v1/organizations') /* http://localhost:8080 */
+      axios.get('/api/v1/organizations')
         .then(response => {
           this.organizations = response.data
         })
 
-      axios.get('/api/v1/users') /* http://localhost:8080 */
+      axios.get('/api/v1/users')
         .then(response => {
           this.users = response.data
         })
 
-      axios.get('/api/v1/roles') /* http://localhost:8080 */
+      axios.get('/api/v1/roles')
         .then(response => {
           this.roles = response.data
         })
 
-      axios.get('/api/v1/statuses') /* http://localhost:8080 */
+      axios.get('/api/v1/statuses')
         .then(response => {
           this.statuses = response.data
+        })
+
+      axios.get('/api/v1/priorities')
+        .then(response => {
+          this.priorities = response.data
         })
     }
   }

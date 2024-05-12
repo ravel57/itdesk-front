@@ -305,16 +305,27 @@ export default {
       let tasks = this.store.getTasks.filter(task => !task.completed)
       this.filterChain.forEach(el => {
         const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
-        if (slug === 'executor') {
-          tasks = tasks.filter(t => el.selectedOptions.includes(t.executor))
-        } else if (slug === 'tag') {
-          tasks = tasks.filter(t => el.selectedOptions.includes(t.tag))
-        } else if (slug === 'priority') {
-          tasks = tasks.filter(t => el.selectedOptions.includes(t.priority))
-        } else if (slug === 'organization') {
-          tasks = tasks.filter(t => el.selectedOptions.includes(t.organization))
-        } else if (slug === 'status') {
-          tasks = tasks.filter(t => el.selectedOptions.includes(t.status))
+        switch (slug) {
+          case 'executor': {
+            tasks = tasks.filter(t => el.selectedOptions.includes(t.executor.name))
+            break
+          }
+          case 'tag': {
+            tasks = tasks.filter(t => true)
+            break
+          }
+          case 'priority': {
+            tasks = tasks.filter(t => el.selectedOptions.includes(t.priority))
+            break
+          }
+          case 'organization': {
+            tasks = tasks.filter(t => el.selectedOptions.includes(t.organization.name))
+            break
+          }
+          case 'status': {
+            tasks = tasks.filter(t => el.selectedOptions.includes(t.status.name))
+            break
+          }
         }
       })
       return tasks
@@ -339,7 +350,7 @@ export default {
         }
         case 'priority': {
           source = this.priorities
-          options = Object.groupBy(tasks, ({ priority }) => priority /* .name */)
+          options = Object.groupBy(tasks, ({ priority }) => priority.name)
           break
         }
         case 'organization': {
@@ -404,7 +415,7 @@ export default {
     },
 
     priorities () {
-      return Array.from(new Set(this.store.getTasks.map(task => task.priority)))
+      return this.store.priorities.map(priority => priority.name)
     },
 
     organizations () {

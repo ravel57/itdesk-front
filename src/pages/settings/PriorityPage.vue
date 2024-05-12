@@ -2,26 +2,26 @@
   <div class="q-pa-md">
     <q-btn
       icon="add"
-      label="Добавить организацию"
-      @click="this.dialogNewOrganizationShow"
+      label="Добавить приоритет"
+      @click="this.dialogNewPriorityShow"
     />
     <div class="table-container">
       <q-table
-        :rows="this.store.organizations"
-        :columns="this.columns"
+        :rows="this.store.priorities"
+        :columns="columns"
         row-key="id"
         full-width
         :rows-per-page-options="[10, 20, 50]"
         rows-per-page-label="Строк на странице"
       >
         <template v-slot:body-cell-edit="props">
-          <q-td>
+          <q-td :props="props">
             <q-btn
               color="primary"
               dense
               flat
               icon="edit"
-              @click="editRow(props.row)"
+              @click="updatePriority(props.row)"
             />
           </q-td>
         </template>
@@ -33,9 +33,7 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card
-      style="width: 50vw"
-    >
+    <q-card style="width: 50vw;">
       <q-card-section>
         <q-input
           v-model="this.dialogName"
@@ -44,22 +42,22 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
-          v-if="!this.isNewOrganization"
+          v-if="!this.isNewPriority"
           color="white"
           label="Удалить"
           text-color="primary"
-          @click="this.dialogDeleteOrganization"
+          @click="dialogDeletePriority"
         />
         <q-btn
           color="white"
           label="Закрыть"
           text-color="primary"
-          @click="this.dialogClose"
+          @click="dialogClose"
         />
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="this.dialogSaveNewOrUpdateOrganization"/>
+          @click="dialogSaveNewOrUpdatePriority"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -70,48 +68,66 @@ import { useStore } from 'stores/store'
 import axios from 'axios'
 
 export default {
-  name: 'OrganizationsComponent',
+  name: 'PriorityPage',
 
   data: () => ({
     columns: [
-      { name: 'name', label: 'Название', align: 'center', field: 'name' },
+      { name: 'name', label: 'Название', align: 'left', field: 'name' },
       { name: 'edit', label: '', align: 'center', field: 'edit' }
     ],
 
     dialogVisible: false,
     dialogName: '',
-    isNewOrganization: true,
-    organizationId: null // for updates
+
+    isNewPriority: true,
+    priorityId: null // for updates
   }),
 
   methods: {
-    dialogNewOrganizationShow () {
+    dialogNewPriorityShow () {
       this.dialogVisible = true
-      this.isNewOrganization = true
+      this.isNewPriority = true
     },
 
-    editRow (row) {
-      this.isNewOrganization = false
+    updatePriority (row) {
+      this.isNewPriority = false
       this.dialogVisible = true
       this.dialogName = row.name
-      this.organizationId = row.id
+      this.priorityId = row.id
     },
 
     dialogClose () {
       this.dialogVisible = false
       this.dialogName = ''
-      this.organizationId = null
     },
 
-    dialogSaveNewOrUpdateOrganization () {
-      const organization = {
-        id: this.isNewOrganization ? null : this.organizationId,
+    // FIXME
+    dialogDeletePriority () {
+      axios.delete(`/api/v1/priority/${this.priorityId}`)
+        .then(() => {
+          this.store.priorities = this.store.priorities.filter(priority => priority.id !== this.priorityId)
+          this.dialogClose()
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+    },
+
+    dialogSaveNewOrUpdatePriority () {
+      const priority = {
+        id: this.isNewPriority ? null : this.priorityId,
         name: this.dialogName
       }
-      if (this.isNewOrganization) {
-        axios.post('/api/v1/new-organization', organization)
+      if (this.isNewPriority) {
+        axios.post('/api/v1/new-priority', priority)
           .then(response => {
-            this.store.organizations.push(response.data)
+            this.store.priorities.push(response.data)
             this.dialogClose()
           })
           .catch(e =>
@@ -124,10 +140,10 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-organization', organization)
+        axios.post('/api/v1/update-priority', priority)
           .then(response => {
-            const orgs = this.store.organizations
-            this.store.organizations[orgs.indexOf(orgs.find(organization => organization.id === this.organizationId))] = response.data
+            const priorities = this.store.priorities
+            this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data
             this.dialogClose()
           })
           .catch(e =>
@@ -140,23 +156,6 @@ export default {
               }]
             }))
       }
-    },
-
-    dialogDeleteOrganization () {
-      axios.delete(`/api/v1/organization/${this.organizationId}`)
-        .then(() => {
-          this.store.organizations = this.store.organizations.filter(organization => organization.id !== this.organizationId)
-          this.dialogClose()
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
     }
   },
 
@@ -168,5 +167,7 @@ export default {
 </script>
 
 <style scoped>
-
+.table-container {
+  width: 100%;
+}
 </style>

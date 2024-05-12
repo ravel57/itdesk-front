@@ -3,7 +3,7 @@
     <q-btn
       icon="add"
       label="Добавить тег"
-      @click="this.dialogVisible = true"
+      @click="this.dialogNewTag"
     />
     <div class="table-container">
       <q-table
@@ -46,6 +46,13 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
+          v-if="!this.isNewTag"
+          color="white"
+          label="Удалить"
+          text-color="primary"
+          @click="dialogDeleteTag"
+        />
+        <q-btn
           color="white"
           label="Закрыть"
           text-color="primary"
@@ -54,7 +61,7 @@
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="dialogSaveNewTag"/>
+          @click="dialogSaveNewOrUpdateTag"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -76,12 +83,24 @@ export default {
 
     dialogVisible: false,
     dialogName: '',
-    dialogDescription: ''
+    dialogDescription: '',
+
+    isNewTag: true,
+    tagId: null // for updates
   }),
 
   methods: {
     editRow (row) {
-      console.log('Editing row:', row)
+      this.isNewTag = false
+      this.dialogVisible = true
+      this.dialogName = row.name
+      this.dialogDescription = row.description
+      this.tagId = row.id
+    },
+
+    dialogNewTag () {
+      this.dialogVisible = true
+      this.isNewTag = true
     },
 
     dialogClose () {
@@ -90,7 +109,7 @@ export default {
       this.dialogDescription = ''
     },
 
-    dialogSaveNewTag () {
+    dialogSaveNewOrUpdateTag () {
       const newTag = {
         id: null,
         name: this.dialogName,
@@ -99,6 +118,26 @@ export default {
       axios.post('/api/v1/new-tag', newTag)
         .then(response => {
           this.store.tags.push(response.data)
+          this.dialogClose()
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+    },
+
+    dialogDeleteTag () {
+      const bot = this.telegramBots[this.telegramBots.indexOf(this.telegramBots.find(bot => bot.id === this.telegramBotId))]
+      console.log(bot)
+      axios.post('/api/v1/delete-tag', bot)
+        .then(response => {
+          const bots = this.telegramBots
+          this.telegramBots[bots.indexOf(bots.find(bot => bot.id === this.telegramBotId))] = response.data
           this.dialogClose()
         })
         .catch(e =>

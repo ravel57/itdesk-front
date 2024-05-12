@@ -58,7 +58,7 @@ const routes = [
           },
           {
             path: 'priorities',
-            component: () => import('pages/settings/SettingsPage.vue')
+            component: () => import('pages/settings/PriorityPage.vue')
           },
           {
             path: 'statuses',
