@@ -110,34 +110,48 @@ export default {
     },
 
     dialogSaveNewOrUpdateTag () {
-      const newTag = {
-        id: null,
+      const tag = {
+        id: this.isNewTag ? null : this.tagId,
         name: this.dialogName,
         description: this.dialogDescription
       }
-      axios.post('/api/v1/new-tag', newTag)
-        .then(response => {
-          this.store.tags.push(response.data)
-          this.dialogClose()
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
+      if (this.isNewTag) {
+        axios.post('/api/v1/new-tag', tag)
+          .then(response => {
+            this.store.tags.push(response.data)
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        axios.post('/api/v1/update-tag', tag)
+          .then(response => {
+            this.store.tags[this.store.tags.indexOf(this.store.tags.find(tag => tag.id === this.tagId))] = response.data
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      }
     },
 
     dialogDeleteTag () {
-      const bot = this.telegramBots[this.telegramBots.indexOf(this.telegramBots.find(bot => bot.id === this.telegramBotId))]
-      console.log(bot)
-      axios.post('/api/v1/delete-tag', bot)
-        .then(response => {
-          const bots = this.telegramBots
-          this.telegramBots[bots.indexOf(bots.find(bot => bot.id === this.telegramBotId))] = response.data
+      axios.delete(`/api/v1/tag/${this.tagId}`)
+        .then(() => {
+          this.store.tags = this.store.tags.filter(tag => tag.id !== this.tagId)
           this.dialogClose()
         })
         .catch(e =>

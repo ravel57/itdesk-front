@@ -64,6 +64,7 @@
             :users="this.store.users"
             :client="this.getClient"
             :statuses="this.store.statuses"
+            :priorities="this.store.priorities"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
           />

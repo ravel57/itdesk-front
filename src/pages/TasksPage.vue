@@ -340,7 +340,13 @@ export default {
       switch (slug) {
         case 'executor': {
           source = this.executors
-          options = Object.groupBy(tasks, ({ executor }) => executor.firstname + ' ' + executor.lastname)
+          options = Object.groupBy(tasks, ({ executor }) => {
+            if (executor) {
+              return executor.firstname + ' ' + executor.lastname
+            } else {
+              return ''
+            }
+          })
           break
         }
         case 'tag': {
@@ -355,7 +361,13 @@ export default {
         }
         case 'organization': {
           source = this.organizations
-          options = Object.groupBy(tasks, ({ organization }) => organization.name)
+          options = Object.groupBy(tasks, ({ organization }) => {
+            if (organization) {
+              return organization.name
+            } else {
+              return ''
+            }
+          })
           break
         }
         case 'status': {
@@ -379,6 +391,18 @@ export default {
             }
           }
         }
+      } else if (slug === 'organization') {
+        options[''].forEach(task => {
+          const existingCard = groupedCards.find(card => card.title === task.client.organization.name)
+          if (existingCard) {
+            existingCard.taskCards.push(task)
+          } else {
+            groupedCards.push({
+              title: task.client.organization.name,
+              taskCards: [task]
+            })
+          }
+        })
       } else {
         source.forEach(el => {
           groupedCards.push({

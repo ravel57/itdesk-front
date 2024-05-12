@@ -7,7 +7,7 @@
         <div class="text-h6">Список заявок</div>
         <div
           class="text-grey-7 cursor-pointer"
-          @click="this.onNewTaskCreate"
+          @click="this.dialogNewTask"
           v-text="'Создать новую заявку'"
         />
       </div>
@@ -69,7 +69,7 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Приоритет: '"/>
-                          <th class="text-body2" v-text="task.priority"/>
+                          <th class="text-body2" v-text="task.priority.name"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Создана: '"/>
@@ -120,8 +120,9 @@
           v-model="this.dialogTaskDescription"
           label="Описание"
         />
-        <q-input
+        <q-select
           v-model="this.dialogTaskPriority"
+          :options="this.priorities.map(priority => priority.name)"
           label="Приоритет *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
@@ -201,7 +202,7 @@ import axios from 'axios'
 export default {
   name: 'ChatTasks',
 
-  props: ['tasks', 'tags', 'users', 'client', 'statuses'],
+  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities'],
 
   data: () => ({
     isNotificationEnabled: true,
@@ -215,7 +216,7 @@ export default {
     dialogTaskTags: [],
     dialogTaskDeadline: '',
     dialogTaskDeadlineCheckbox: false,
-    dialogTaskStatus: { id: 1, name: 'Новая' },
+    dialogTaskStatus: '',
 
     isShowCompletedTasks: false,
 
@@ -226,7 +227,7 @@ export default {
   }),
 
   methods: {
-    onNewTaskCreate () {
+    dialogNewTask () {
       this.isNewTaskDialogShow = true
       this.dialogTaskDescription = ''
       this.dialogTaskPriority = ''
@@ -234,11 +235,12 @@ export default {
       this.dialogTaskTags = []
       this.dialogTaskDeadline = ''
       this.dialogTaskDeadlineCheckbox = false
-      this.dialogTaskStatus = { id: 1, name: 'Новая' }
+      this.dialogTaskStatus = this.statuses.find(status => status.id === 1)
       this.isNewTask = true
     },
 
     saveNewOrUpdateTask () {
+      console.log(this.isNewTask)
       if (!this.dialogTaskName || !this.dialogTaskPriority || !this.dialogTaskStatus) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
@@ -257,7 +259,7 @@ export default {
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
         status: this.statuses.find(status => status.name === this.dialogTaskStatus),
-        priority: this.dialogTaskPriority,
+        priority: this.priorities.find(priority => priority.name === this.dialogTaskPriority),
         executor: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
         isCompleted: false,
@@ -299,16 +301,16 @@ export default {
     },
 
     onTaskClick (task) {
+      this.isNewTask = false
       this.isNewTaskDialogShow = true
       this.dialogTaskName = task.name
       this.dialogTaskDescription = task.description
-      this.dialogTaskPriority = task.priority
+      this.dialogTaskPriority = task.priority.name
       this.dialogTaskExecutor = this.getUserName(task.executor)
       this.dialogTaskTags = task.tags.map(tag => tag.name)
       this.dialogTaskDeadline = task.deadline
       this.dialogTaskDeadlineCheckbox = task.deadline != null
       this.taskId = task.id
-      this.isNewTask = false
       this.dialogTaskStatus = task.status.name
     },
 
@@ -338,7 +340,11 @@ export default {
     },
 
     getUserName (user) {
-      return user.firstname + ' ' + user.lastname
+      if (user) {
+        return user.firstname + ' ' + user.lastname
+      } else {
+        return ''
+      }
     },
 
     getStamp (task) {

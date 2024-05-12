@@ -145,14 +145,12 @@ export default {
       this.dialogToken = ''
     },
 
-    // FIXME
     dialogDeleteBot () {
       const bot = this.telegramBots[this.telegramBots.indexOf(this.telegramBots.find(bot => bot.id === this.telegramBotId))]
       console.log(bot)
-      axios.post('/api/v1/delete-telegram-bot', bot)
-        .then(response => {
-          const bots = this.telegramBots
-          this.telegramBots[bots.indexOf(bots.find(bot => bot.id === this.telegramBotId))] = response.data
+      axios.delete(`/api/v1/telegram-bot${bot.id}`, bot)
+        .then(() => {
+          this.telegramBots = this.telegramBots.filter(bot => bot.id !== this.telegramBotId)
           this.dialogClose()
         })
         .catch(e =>
