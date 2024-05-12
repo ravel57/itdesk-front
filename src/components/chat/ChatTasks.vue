@@ -242,7 +242,7 @@ export default {
         id: this.isNewTask ? null : this.taskId,
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
-        status: { id: 1, name: 'new' },
+        status: this.statuses.find(status => status.name === this.dialogTaskStatus),
         priority: this.dialogTaskPriority,
         executor: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
@@ -290,12 +290,12 @@ export default {
       this.dialogTaskDescription = task.description
       this.dialogTaskPriority = task.priority
       this.dialogTaskExecutor = this.getUserName(task.executor)
-      this.dialogTaskTags = task.tags
+      this.dialogTaskTags = task.tags.map(tag => tag.name)
       this.dialogTaskDeadline = task.deadline
       this.dialogTaskDeadlineCheckbox = task.deadline != null
       this.taskId = task.id
       this.isNewTask = false
-      this.dialogTaskStatus = task.status
+      this.dialogTaskStatus = task.status.name
     },
 
     setTaskCompleted () {
@@ -328,14 +328,18 @@ export default {
     },
 
     getStamp (task) {
-      return task.createdAt.toLocaleTimeString('ru-RU', {
-        timeZone: 'Europe/Moscow',
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      if (task.createdAt) {
+        return task.createdAt.toLocaleTimeString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } else {
+        return ''
+      }
     }
   },
 

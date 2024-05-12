@@ -81,26 +81,26 @@ export default {
         icon: 'task',
         link: '/tasks'
       },
-      {
-        title: 'Поиск',
-        icon: 'search',
-        link: '/search'
-      },
-      {
-        title: 'История',
-        icon: 'history',
-        link: '/history'
-      },
-      {
-        title: 'Аналитика',
-        icon: 'data_usage',
-        link: '/analytics'
-      },
-      {
-        title: 'АТС',
-        icon: 'phone',
-        link: '/phone'
-      },
+      // {
+      //   title: 'Поиск',
+      //   icon: 'search',
+      //   link: '/search'
+      // },
+      // {
+      //   title: 'История',
+      //   icon: 'history',
+      //   link: '/history'
+      // },
+      // {
+      //   title: 'Аналитика',
+      //   icon: 'data_usage',
+      //   link: '/analytics'
+      // },
+      // {
+      //   title: 'АТС',
+      //   icon: 'phone',
+      //   link: '/phone'
+      // },
       {
         title: 'Настройки',
         icon: 'settings',

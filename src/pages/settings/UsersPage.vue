@@ -3,7 +3,7 @@
     <q-btn
       icon="add"
       label="Добавить пользователя"
-      @click="this.dialogVisible = true"
+      @click="this.dialogNewUser"
     />
     <div class="table-container">
       <q-table
@@ -21,7 +21,7 @@
               dense
               flat
               icon="edit"
-              @click="editRow(props.row)"
+              @click="editUser(props.row)"
             />
           </q-td>
         </template>
@@ -44,10 +44,12 @@
           label="Имя"
         />
         <q-input
+          v-if="this.isNewUser"
           v-model="this.dialogUsername"
           label="username"
         />
         <q-input
+          v-if="this.isNewUser"
           label="Пароль"
           type="password"
           v-model="this.dialogPassword"
@@ -69,7 +71,7 @@
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="dialogSaveNewUser"/>
+          @click="dialogSaveNewOrUpdateUser"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -96,12 +98,26 @@ export default {
     dialogPassword: '',
     dialogFirstName: '',
     dialogLastName: '',
-    dialogRole: []
+    dialogRole: '',
+
+    isNewUser: true,
+    userId: null // for updates
   }),
 
   methods: {
-    editRow (row) {
-      console.log('Editing row:', row)
+    dialogNewUser () {
+      this.dialogVisible = true
+      this.isNewUser = true
+    },
+
+    editUser (row) {
+      this.dialogVisible = true
+      this.isNewUser = false
+      this.userId = row.id
+      this.dialogUsername = row.username
+      this.dialogLastName = row.lastname
+      this.dialogFirstName = row.firstname
+      this.dialogRole = row.authorities[0]
     },
 
     dialogClose () {
@@ -110,31 +126,50 @@ export default {
       this.dialogLastName = ''
       this.dialogFirstName = ''
       this.dialogPassword = ''
-      this.dialogRole = []
+      this.dialogRole = ''
     },
 
-    dialogSaveNewUser () {
-      const newUser = {
-        username: this.dialogUsername,
-        password: this.dialogPassword,
+    dialogSaveNewOrUpdateUser () {
+      const user = {
+        id: this.isNewUser ? null : this.userId,
+        username: this.isNewUser ? this.dialogUsername : null,
+        password: this.isNewUser ? this.dialogPassword : null,
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
         authorities: this.dialogRole
       }
-      axios.post('/api/v1/new-user', newUser)
-        .then(response => {
-          this.store.users.push(response.data)
-          this.dialogClose()
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
+      if (this.isNewUser) {
+        axios.post('/api/v1/new-user', user)
+          .then(response => {
+            this.store.users.push(response.data)
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        axios.post('/api/v1/update-user', user)
+          .then(response => {
+            const users = this.store.users
+            this.store.users[users.indexOf(users.find(user => user.id === this.userId))] = response.data
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      }
     }
   },
 

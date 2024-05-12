@@ -20,14 +20,14 @@
             flat
           />
           <div class="q-pa-md q-loading-bar--right" v-if="!this.isShowListMode">
-            <q-btn-dropdown color="primary" :label="this.selectedFilterType.label">
+            <q-btn-dropdown color="primary" :label="this.selectedGroupType.label">
               <q-list>
                 <q-item
                   v-for="(filter, index) in this.filterType"
                   :key="index"
                   clickable
                   v-close-popup
-                  @click="this.selectedFilterType = filter"
+                  @click="this.selectedGroupType = filter"
                 >
                   <q-item-section>
                     <q-item-label>{{ filter.label }}</q-item-label>
@@ -153,11 +153,11 @@
           style="height: 75vh"
         >
           <div
-            class="list"
             v-for="(taskList, index) in this.getTasks"
             :key="index"
+            class="list"
           >
-            <div class="list-header sticky-tabs">{{ taskList.title }}</div>
+            <div class="list-header sticky-tabs" v-text="taskList.title"/>
             <div class="list-cards">
               <q-item
                 v-for="(task, index) in taskList.taskCards"
@@ -166,7 +166,7 @@
                 clickable
                 @click="this.onCardClick(task)"
               >
-                {{ task.name }}
+                {{ task.name }}: {{ task.client.firstname + ' ' + task.client.lastname }}
               </q-item>
             </div>
           </div>
@@ -184,14 +184,14 @@ import axios from 'axios'
 export default {
   data: () => ({
     filterType: [
-      { label: 'Исполитель', slug: 'executor' },
+      { label: 'Исполнитель', slug: 'executor' },
       { label: 'Тег', slug: 'tag' },
       { label: 'Организация', slug: 'organization' },
       { label: 'Приоритет', slug: 'priority' },
       { label: 'Статус', slug: 'status' }
     ],
 
-    selectedFilterType: { label: 'Исполитель', slug: 'executor' },
+    selectedGroupType: { label: 'Исполитель', slug: 'executor' },
 
     filterChain: [],
 
@@ -225,12 +225,13 @@ export default {
     filterFn (val, update) {
       update(() => {
         const needle = val.toLowerCase()
-        return this.executors.filter(option => option.label.toLowerCase().indexOf(needle) !== -1)
+        return this.executors.map(user => user.firstname + ' ' + user.lastname)
+          .filter(option => option.label.toLowerCase().indexOf(needle) !== -1)
       })
     },
 
-    handleNewFilterSelection (event) {
-      const slug = this.filterType.filter(el => el.label === event)[0].slug
+    handleNewFilterSelection (label) {
+      const slug = this.filterType.filter(el => el.label === label)[0].slug
       let options
       if (slug === 'executor') {
         options = this.executors
@@ -243,7 +244,7 @@ export default {
       } else if (slug === 'status') {
         options = this.statuses
       }
-      this.filterChain.push({ label: event, options, selectedOptions: [] })
+      this.filterChain.push({ label, options, selectedOptions: [] })
       this.addNewFilterSelectorText = ''
     },
 
@@ -269,7 +270,7 @@ export default {
         }))
       }
       axios.post('/api/v1/new-filter', newFilter)
-        .then(response => {
+        .then(() => {
           this.savedFilters.push(newFilter)
           this.dialogSaveFilterVisible = false
           this.dialogNewFilterName = ''
@@ -307,7 +308,7 @@ export default {
         if (slug === 'executor') {
           tasks = tasks.filter(t => el.selectedOptions.includes(t.executor))
         } else if (slug === 'tag') {
-          tasks = tasks.filter(t => el.selectedOptions.includes(t.tag.name))
+          tasks = tasks.filter(t => el.selectedOptions.includes(t.tag))
         } else if (slug === 'priority') {
           tasks = tasks.filter(t => el.selectedOptions.includes(t.priority))
         } else if (slug === 'organization') {
@@ -323,31 +324,59 @@ export default {
       let options
       let source
       const tasks = this.getFilteredTasks
-      const slug = this.selectedFilterType.slug
-      const sortedCards = []
-      if (slug === 'executor') {
-        source = this.executors
-        options = Object.groupBy(tasks, ({ executor }) => executor)
-      } else if (slug === 'tag') {
-        source = this.tags
-        options = Object.groupBy(tasks, ({ tags }) => tags)
-      } else if (slug === 'priority') {
-        source = this.priorities
-        options = Object.groupBy(tasks, ({ priority }) => priority)
-      } else if (slug === 'organization') {
-        source = this.organizations
-        options = Object.groupBy(tasks, ({ organization }) => organization)
-      } else if (slug === 'status') {
-        source = this.statuses
-        options = Object.groupBy(tasks, ({ status }) => status)
+      const slug = this.selectedGroupType.slug
+      const groupedCards = []
+      switch (slug) {
+        case 'executor': {
+          source = this.executors
+          options = Object.groupBy(tasks, ({ executor }) => executor.firstname + ' ' + executor.lastname)
+          break
+        }
+        case 'tag': {
+          source = this.tags
+          options = Object.groupBy(tasks, ({ tags }) => tags.map(tag => tag.name).join(','))
+          break
+        }
+        case 'priority': {
+          source = this.priorities
+          options = Object.groupBy(tasks, ({ priority }) => priority /* .name */)
+          break
+        }
+        case 'organization': {
+          source = this.organizations
+          options = Object.groupBy(tasks, ({ organization }) => organization.name)
+          break
+        }
+        case 'status': {
+          source = this.statuses
+          options = Object.groupBy(tasks, ({ status }) => status.name)
+          break
+        }
       }
-      source.forEach(el => {
-        sortedCards.push({
-          title: el,
-          taskCards: options[el]
+
+      if (slug === 'tag') {
+        for (const [keys, value] of Object.entries(options)) {
+          for (const key of keys.split(',')) {
+            const existingCard = groupedCards.find(card => card.title === key)
+            if (existingCard) {
+              existingCard.taskCards.push(value[0])
+            } else {
+              groupedCards.push({
+                title: key,
+                taskCards: [value[0]]
+              })
+            }
+          }
+        }
+      } else {
+        source.forEach(el => {
+          groupedCards.push({
+            title: el,
+            taskCards: options[el]
+          })
         })
-      })
-      return sortedCards
+      }
+      return groupedCards
     },
 
     getTableRows () {
@@ -383,7 +412,7 @@ export default {
     },
 
     statuses () {
-      return Array.from(new Set(this.store.getTasks.map(task => task.status)))
+      return this.store.statuses.map(status => status.name)
     }
   },
 

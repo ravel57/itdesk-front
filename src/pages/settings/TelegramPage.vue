@@ -78,7 +78,7 @@
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="dialogSaveNewBot"/>
+          @click="dialogSaveNewOrUpdateBot"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -166,7 +166,7 @@ export default {
           }))
     },
 
-    dialogSaveNewBot () {
+    dialogSaveNewOrUpdateBot () {
       const bot = {
         id: this.isNewTelegramBot ? null : this.telegramBotId,
         name: this.dialogName,

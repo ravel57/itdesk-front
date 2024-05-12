@@ -24,7 +24,7 @@
             >
               <q-item-section>
                 <q-item-label>{{ client.firstname }} {{ client.lastname}}</q-item-label>
-                <q-item-label caption>{{ client.organization }}</q-item-label>
+                <q-item-label caption>{{ getOrganization(client) }}</q-item-label>
                 <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
                 <q-item-label caption>Заявок: {{ getActualTasks(client).length }}</q-item-label>
               </q-item-section>
@@ -60,10 +60,22 @@ export default {
 
   methods: {
     getActualTasks (client) {
-      return client.tasks.filter(task => !task.completed)
+      if (client.tasks) {
+        return client.tasks.filter(task => !task.completed)
+      } else {
+        return []
+      }
     },
 
-    search () { }
+    search () { },
+
+    getOrganization (client) {
+      if (client.organization) {
+        return client.organization.name
+      } else {
+        return ''
+      }
+    }
   },
 
   computed: {

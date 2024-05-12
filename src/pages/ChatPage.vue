@@ -80,7 +80,6 @@ import ChatInfo from 'components/chat/ChatInfo.vue'
 import ChatTasks from 'components/chat/ChatTasks.vue'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
 import { markRead } from 'src/util/ws'
 
 export default {
@@ -140,21 +139,8 @@ export default {
       }
     },
 
-    changeClient (client) {
-      axios.post(`/api/v1/client/${this.getClient.id}/update-client`, client)
-        .then(newClient => {
-          this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
-        })
-        .catch(e => {
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          })
-        })
+    changeClient (newClient) {
+      this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
     },
 
     newTask (task) {

@@ -6,13 +6,13 @@
       >
         <div
           class="text-h6"
-          @mouseover="showButton(this.editClientInfoButtonShow, this.editShowTimer)"
-          @mouseleave="hideButton(this.editClientInfoButtonShow, this.editShowTimer)"
+          @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+          @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
           v-text="`${this.client.firstname} ${this.client.lastname}`"
         />
         <q-btn
           v-if="this.editClientInfoButtonShow.value"
-          @mouseenter="cancelHide(this.editShowTimer)"
+          @mouseenter="editButtonCancelHide(this.editShowTimer)"
           icon="edit"
           @click="dialogShow"
           dense
@@ -44,14 +44,14 @@
       </div>
       <div
         class="text-subtitle2"
-        @mouseover="showButton(this.editClientInfoButtonShow, this.editShowTimer)"
-        @mouseleave="hideButton(this.editClientInfoButtonShow, this.editShowTimer)"
-        v-text="this.client.organization"
+        @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+        @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
+        v-text="this.getOrganization"
       />
       <div
         class="text-subtitle2"
-        @mouseover="showButton(this.editClientInfoButtonShow, this.editShowTimer)"
-        @mouseleave="hideButton(this.editClientInfoButtonShow, this.editShowTimer)"
+        @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+        @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
         v-text="this.client.moreInfo"
       ></div>
     </q-card-section>
@@ -73,7 +73,7 @@
         />
         <q-select
           v-model="this.dialogOrganization"
-          :options="this.organizations.map(o => o.name)"
+          :options="getOrganizations"
           label="Организация"
           use-input
         />
@@ -100,6 +100,8 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'ChatInfo',
 
@@ -120,20 +122,20 @@ export default {
   }),
 
   methods: {
-    showButton (show, timer) {
+    editButtonShow (show, timer) {
       show.value = true
       timer.value = setTimeout(() => {
         show.value = false
       }, 750)
     },
 
-    hideButton (show, timer) {
+    editButtonHide (show, timer) {
       if (!timer.value) {
         show.value = false
       }
     },
 
-    cancelHide (timer) {
+    editButtonCancelHide (timer) {
       clearTimeout(timer.value)
       timer.value = null
     },
@@ -142,7 +144,7 @@ export default {
       this.dialogVisible = true
       this.dialogLastName = this.client.lastname
       this.dialogFirstName = this.client.firstname
-      this.dialogOrganization = this.client.organization
+      this.dialogOrganization = this.client.organization.name
       this.dialogAnotherInfo = this.client.moreInfo
     },
 
@@ -151,12 +153,27 @@ export default {
     },
 
     dialogSave () {
-      this.$emit('changeClient', {
+      const client = {
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
         organization: this.dialogOrganization,
         moreInfo: this.dialogAnotherInfo
-      })
+      }
+
+      axios.post(`/api/v1/client/${this.getClient.id}/update-client`, client)
+        .then(newClient => {
+          this.$emit('changeClient', newClient)
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
       this.dialogVisible = false
     },
 
@@ -165,6 +182,24 @@ export default {
     },
     menuAction (item) {
       console.log('Выбран элемент:', item)
+    }
+  },
+
+  computed: {
+    getOrganizations () {
+      if (this.organizations) {
+        return this.organizations.map(o => o.name)
+      } else {
+        return []
+      }
+    },
+
+    getOrganization () {
+      if (this.client && this.client.organization) {
+        return this.client.organization.name
+      } else {
+        return ''
+      }
     }
   }
 }
@@ -176,6 +211,6 @@ export default {
   align-items: center;
 }
 .menu-content {
-  min-width: 200px; /* Ширина меню */
+  min-width: 200px;
 }
 </style>
