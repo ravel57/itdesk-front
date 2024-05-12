@@ -141,7 +141,7 @@
         <q-table
           v-if="this.isShowListMode"
           :rows="this.getTableRows"
-          :columns="tableColumns"
+          :columns="this.tableColumns"
           :rows-per-page-options="[10, 20, 50]"
           rows-per-page-label="Строк на странице"
           @row-click="onRowClick"
@@ -210,14 +210,15 @@ export default {
     isShowListMode: false,
 
     tableColumns: [
-      { name: 'name', label: 'Name', align: 'left', field: 'name' },
-      { name: 'tags', label: 'Tags', align: 'left', field: 'tags', format: (val) => val.join(', ') },
-      { name: 'priority', label: 'Priority', align: 'left', field: 'priority' },
-      { name: 'createdAt', label: 'Created At', align: 'left', field: 'createdAt' },
-      { name: 'status', label: 'Status', align: 'left', field: 'status' },
-      { name: 'deadline', label: 'Deadline', align: 'left', field: 'deadline' },
-      { name: 'executor', label: 'Executor', align: 'left', field: 'executor' },
-      { name: 'sla', label: 'SLA', align: 'left', field: 'sla' }
+      { name: 'name', label: 'Название', align: 'left', field: 'name' },
+      { name: 'name', label: 'Название', align: 'left', field: row => row.name },
+      { name: 'tags', label: 'Теги', align: 'left', field: row => row.tags.map(tag => tag.name).join(', ') },
+      { name: 'priority', label: 'Приоритет', align: 'left', field: row => row.priority.name },
+      { name: 'createdAt', label: 'Создана', align: 'left', field: row => row.createdAt },
+      { name: 'status', label: 'Статус', align: 'left', field: row => row.status.name },
+      { name: 'deadline', label: 'Дедлайн', align: 'left', field: row => row.deadline },
+      { name: 'executor', label: 'Исполнитель', align: 'left', field: row => row.executor.firstname + ' ' + row.executor.lastname },
+      { name: 'sla', label: 'SLA', align: 'left', field: row => row.sla }
     ]
   }),
 
@@ -311,7 +312,7 @@ export default {
             break
           }
           case 'tag': {
-            tasks = tasks.filter(t => true)
+            // tasks = tasks.filter(t => true)
             break
           }
           case 'priority': {
@@ -416,10 +417,7 @@ export default {
 
     getTableRows () {
       try {
-        return this.getFilteredTasks.map(it => {
-          it.tags = it.tags.map(it => it.name)
-          return it
-        })
+        return this.getFilteredTasks
       } catch (e) {
         return []
       }

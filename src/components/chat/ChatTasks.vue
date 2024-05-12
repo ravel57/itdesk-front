@@ -5,10 +5,10 @@
     <div class="flex">
       <div>
         <div class="text-h6">Список заявок</div>
-        <div
+        <q-btn
           class="text-grey-7 cursor-pointer"
           @click="this.dialogNewTask"
-          v-text="'Создать новую заявку'"
+          label="Создать новую заявку"
         />
       </div>
       <div class="container q-pa-none q-gutter-md q-position-relative">

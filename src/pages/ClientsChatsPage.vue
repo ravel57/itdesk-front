@@ -83,6 +83,8 @@ export default {
       let clients = this.store.clients
       if (this.searchQuery !== '') {
         clients = clients.filter(client => {
+          if (!client.firstname) client.firstname = ''
+          if (!client.lastname) client.lastname = ''
           return (client.firstname.toLowerCase() + ' ' + client.lastname.toLowerCase()).includes(this.searchQuery.toLowerCase())
         })
       } else {
