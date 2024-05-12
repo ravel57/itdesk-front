@@ -85,7 +85,7 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-                          <th class="text-body2" v-text="task.executor.firstname + ' ' + task.executor.lastname"/>
+                          <th class="text-body2" v-text="getName(task.executor)"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'SLA: '"/>
@@ -351,6 +351,14 @@ export default {
           hour: '2-digit',
           minute: '2-digit'
         })
+      } else {
+        return ''
+      }
+    },
+
+    getName (executor) {
+      if (executor) {
+        return executor.firstname + ' ' + executor.lastname
       } else {
         return ''
       }

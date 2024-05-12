@@ -160,7 +160,7 @@ export default {
         moreInfo: this.dialogAnotherInfo
       }
 
-      axios.post(`/api/v1/client/${this.getClient.id}/update-client`, client)
+      axios.post(`/api/v1/client/${this.client.id}/update-client`, client)
         .then(newClient => {
           this.$emit('changeClient', newClient)
         })
