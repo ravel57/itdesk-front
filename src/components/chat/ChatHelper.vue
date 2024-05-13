@@ -60,7 +60,10 @@
     backdrop-filter="blur(4px)"
   >
     <q-card class="dialog">
-      <q-card-section>
+      <q-toolbar class="justify-end">
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-toolbar>
+      <q-card-section style="padding-top: 0">
         <h6 v-text="this.modalTitle"/>
         <p
           v-for="(text, index) in this.modalText"

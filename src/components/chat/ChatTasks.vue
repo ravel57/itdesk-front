@@ -119,7 +119,10 @@
     backdrop-filter="blur(4px)"
   >
     <q-card style="width: 50vw;">
-      <q-card-section>
+      <q-toolbar class="justify-end">
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-toolbar>
+      <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogTaskName"
           label="Название *"
@@ -186,7 +189,10 @@
     backdrop-filter="blur(4px)"
   >
     <q-card>
-      <q-card-section>
+      <q-toolbar class="justify-end">
+        <q-btn flat round dense icon="close" v-close-popup />
+      </q-toolbar>
+      <q-card-section style="padding-top: 0">
         Закрыть заявку {{ this.taskToComplete.name }}?
       </q-card-section>
       <q-card-actions align="right">
