@@ -19,32 +19,41 @@
             @click="this.deleteSavedFilter"
             flat
           />
-          <div class="q-pa-md q-loading-bar--right" v-if="!this.isShowListMode">
-            <q-btn-dropdown color="primary" :label="this.selectedGroupType.label">
-              <q-list>
-                <q-item
-                  v-for="(filter, index) in this.filterType"
-                  :key="index"
-                  clickable
-                  v-close-popup
-                  @click="this.selectedGroupType = filter"
-                >
-                  <q-item-section>
-                    <q-item-label>{{ filter.label }}</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-btn-dropdown>
-          </div>
+          <q-btn-dropdown
+            v-if="!this.isShowListMode"
+            color="primary"
+            :label="this.selectedGroupType.label"
+            style="align-content: center; margin-left: 8px;"
+          >
+            <q-list>
+              <q-item
+                v-for="(filter, index) in this.filterType"
+                :key="index"
+                clickable
+                v-close-popup
+                @click="this.selectedGroupType = filter"
+              >
+                <q-item-section>
+                  <q-item-label>{{ filter.label }}</q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
+          <q-btn
+            icon="filter_alt"
+            flat
+            @click="this.changeFilterSelection"
+            :color="this.isFilterSelected ? 'primary' : 'dark'"
+          />
           <q-toggle
             v-model="this.isShowListMode"
             color="grey"
             left-label
-            label="Режим отображения"
             checked-icon="list"
             unchecked-icon="dashboard"
             size="50px"
             keep-color
+            style="margin-left: 8px;"
           />
           <q-dialog
             v-model="dialogSaveFilterVisible"
@@ -75,7 +84,10 @@
             </q-card>
           </q-dialog>
         </div>
-        <div class="q-pa-md" style="display: flex;">
+        <div
+          v-if="this.isFilterSelected"
+          class="q-pa-md" style="display: flex;"
+        >
           <div class="scroll-container">
             <div
               v-for="(filter, index) in this.filterChain"
@@ -150,10 +162,10 @@
           v-else
           class="board"
           horizontal
-          style="height: 75vh"
+          style="height: 75vh; margin-top: 8px"
         >
           <div
-            v-for="(taskList, index) in this.getTasks"
+            v-for="(taskList, index) in this.getGroupedTasks"
             :key="index"
             class="list"
           >
@@ -208,6 +220,8 @@ export default {
     dialogSaveFilterVisible: false,
 
     isShowListMode: false,
+
+    isFilterSelected: false,
 
     tableColumns: [
       {
@@ -355,6 +369,10 @@ export default {
     },
 
     deleteSavedFilter () {
+    },
+
+    changeFilterSelection () {
+      this.isFilterSelected = !this.isFilterSelected
     }
   },
 
@@ -391,7 +409,7 @@ export default {
       return tasks
     },
 
-    getTasks () {
+    getGroupedTasks () {
       let options
       let source
       const tasks = this.getFilteredTasks
@@ -451,6 +469,7 @@ export default {
             }
           }
         }
+        groupedCards.forEach(it => { it.title = `${it.title} (${it.taskCards.length})` })
       } else if (slug === 'organization') {
         options[''].forEach(task => {
           const existingCard = groupedCards.find(card => card.title === task.client.organization.name)
@@ -463,10 +482,11 @@ export default {
             })
           }
         })
+        groupedCards.forEach(it => { it.title = `${it.title} (${it.taskCards.length})` })
       } else {
         source.forEach(el => {
           groupedCards.push({
-            title: el,
+            title: options[el] ? `${el} (${options[el].length})` : el,
             taskCards: options[el]
           })
         })

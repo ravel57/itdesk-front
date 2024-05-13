@@ -33,7 +33,7 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card style="width: 33vw;">
+    <q-card class="dialog-width">
       <q-card-section>
         <q-input
           v-model="this.dialogLastName"
