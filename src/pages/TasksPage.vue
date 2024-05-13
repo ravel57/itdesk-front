@@ -214,12 +214,6 @@ export default {
         name: 'name',
         label: 'Название',
         align: 'left',
-        field: 'name'
-      },
-      {
-        name: 'name',
-        label: 'Название',
-        align: 'left',
         field: row => row.name
       },
       {
@@ -272,7 +266,9 @@ export default {
         name: 'executor',
         label: 'Исполнитель',
         align: 'left',
-        field: row => row.executor.firstname + ' ' + row.executor.lastname
+        field: row => row.executor
+          ? row.executor.firstname + ' ' + row.executor.lastname
+          : ''
       },
       {
         name: 'sla',
