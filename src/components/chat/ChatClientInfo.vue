@@ -20,6 +20,16 @@
           round
           size="xs"
         />
+        <q-toggle
+          v-model="this.isNotificationEnabled"
+          icon="notifications_active"
+          color="primary"
+          class="element q-position-absolute q-right-0"
+          @mouseover="this.showTooltipNotifications = true"
+          @mouseup="this.showTooltipNotifications = false"
+        >
+          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>
+        </q-toggle>
         <q-btn
           icon="more_vert"
           flat
@@ -27,7 +37,7 @@
           class="q-ml-auto"
           color="grey"
         >
-          <q-menu v-model="menuOpened" content-class="menu-content">
+          <q-menu v-model="this.menuOpened" content-class="menu-content">
             <q-list>
               <q-item clickable @click="menuAction('item1')">
                 <q-item-section>rPCSMT</q-item-section>
@@ -53,7 +63,7 @@
         @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
         @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
         v-text="this.client.moreInfo"
-      ></div>
+      />
     </q-card-section>
   </q-card>
   <q-dialog
@@ -106,11 +116,13 @@
 import axios from 'axios'
 
 export default {
-  name: 'ChatInfo',
+  name: 'ChatClientInfo',
 
   props: ['client', 'organizations'],
 
   data: () => ({
+    isNotificationEnabled: true,
+    showTooltipNotifications: false,
     editClientInfoButtonShow: { value: false },
     editShowTimer: { value: null },
 

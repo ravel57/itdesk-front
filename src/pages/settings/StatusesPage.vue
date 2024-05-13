@@ -24,6 +24,19 @@
               @click="editRow(props.row)"
             />
           </q-td>
+          <q-td :props="props">
+            <q-btn
+              :text-color="props.row.defaultSelection ? 'primary' : 'grey'"
+              dense
+              flat
+              icon="beenhere"
+              @click="setDefaultSelected(props.row)"
+              @mouseover="this.showTooltipSetDefault = true"
+              @mouseup="this.showTooltipSetDefault = false"
+            >
+              <q-tooltip v-if="this.showTooltipSetDefault">Использовать по умолчанию</q-tooltip>
+            </q-btn>
+          </q-td>
         </template>
       </q-table>
     </div>
@@ -70,11 +83,13 @@ export default {
   data: () => ({
     columns: [
       { name: 'name', label: 'Название', align: 'center', field: 'name' },
-      { name: 'edit', label: '', align: 'center', field: 'edit' }
+      { name: 'edit', label: '', align: 'center', field: 'edit' },
+      { name: 'defaultSelection', label: '', align: 'center', field: '' }
     ],
 
     dialogVisible: false,
-    dialogStatusName: ''
+    dialogStatusName: '',
+    showTooltipSetDefault: false
   }),
 
   methods: {
@@ -95,6 +110,26 @@ export default {
       axios.post('/api/v1/new-status', newStatus)
         .then(response => {
           this.store.statuses.push(response.data)
+          this.dialogClose()
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+    },
+
+    setDefaultSelected (row) {
+      this.store.statuses.forEach(status => { status.defaultSelection = false })
+      row.defaultSelection = true
+      axios.post('/api/v1/update-status/set-default', row)
+        .then(response => {
+          const priorities = this.store.priorities
+          this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data
           this.dialogClose()
         })
         .catch(e =>

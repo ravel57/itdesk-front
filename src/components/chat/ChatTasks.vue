@@ -5,18 +5,8 @@
     <div class="flex">
       <div>
         <div class="flex">
-          <span class="text-h6" style="margin-left: 16px; margin-top: 3px">Список заявок</span>
+          <span class="text-h6" style="margin-top: 3px">Список заявок</span>
           <div class="container q-pa-none q-gutter-md q-position-relative">
-            <q-toggle
-              v-model="this.isNotificationEnabled"
-              icon="notifications_active"
-              color="primary"
-              class="element q-position-absolute q-right-0"
-              @mouseover="showTooltipNotifications = true"
-              @mouseup="showTooltipNotifications = false"
-            >
-              <q-tooltip v-if="showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>
-            </q-toggle>
             <q-toggle
               v-model="isShowCompletedTasks"
               icon="add_task"
@@ -221,11 +211,9 @@ export default {
   props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities'],
 
   data: () => ({
-    isNotificationEnabled: true,
     isNewTaskDialogShow: false,
     isCompleteTaskDialogShow: false,
     showTooltipClosedTasks: false,
-    showTooltipNotifications: false,
 
     dialogTaskName: '',
     dialogTaskDescription: '',
@@ -250,12 +238,12 @@ export default {
       this.isNewTaskDialogShow = true
       this.dialogTaskName = ''
       this.dialogTaskDescription = ''
-      this.dialogTaskPriority = ''
+      this.dialogTaskPriority = this.priorities.find(priority => priority.defaultSelection === true).name
       this.dialogTaskExecutor = ''
       this.dialogTaskTags = []
       this.dialogTaskDeadline = ''
       this.dialogTaskDeadlineCheckbox = false
-      this.dialogTaskStatus = this.statuses.find(status => status.id === 1).name
+      this.dialogTaskStatus = this.statuses.find(status => status.defaultSelection === true).name
     },
 
     saveNewOrUpdateTask () {

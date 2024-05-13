@@ -82,14 +82,14 @@
 <script>
 import ChatDialog from 'components/chat/ChatDialog.vue'
 import ChatHelper from 'components/chat/ChatHelper.vue'
-import ChatInfo from 'components/chat/ChatInfo.vue'
+import ChatClientInfo from 'components/chat/ChatClientInfo.vue'
 import ChatTasks from 'components/chat/ChatTasks.vue'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import { markRead } from 'src/util/ws'
 
 export default {
-  components: { ChatTasks, ChatInfo, ChatHelper, ChatDialog },
+  components: { ChatTasks, ChatInfo: ChatClientInfo, ChatHelper, ChatDialog },
 
   data: () => ({
     tab: 'tab1',

@@ -24,6 +24,19 @@
               @click="updatePriority(props.row)"
             />
           </q-td>
+          <q-td :props="props">
+            <q-btn
+              :text-color="props.row.defaultSelection ? 'primary' : 'grey'"
+              dense
+              flat
+              icon="beenhere"
+              @click="setDefaultSelected(props.row)"
+              @mouseover="this.showTooltipSetDefault = true"
+              @mouseup="this.showTooltipSetDefault = false"
+            >
+              <q-tooltip v-if="this.showTooltipSetDefault">Использовать по умолчанию</q-tooltip>
+            </q-btn>
+          </q-td>
         </template>
       </q-table>
     </div>
@@ -76,15 +89,17 @@ export default {
 
   data: () => ({
     columns: [
-      { name: 'name', label: 'Название', align: 'left', field: 'name' },
-      { name: 'edit', label: '', align: 'center', field: 'edit' }
+      { name: 'name', label: 'Название', align: 'center', field: 'name' },
+      { name: 'edit', label: '', align: 'center', field: '' },
+      { name: 'defaultSelection', label: '', align: 'center', field: '' }
     ],
 
     dialogVisible: false,
     dialogName: '',
 
     isNewPriority: true,
-    priorityId: null // for updates
+    priorityId: null, // for updates
+    showTooltipSetDefault: false
   }),
 
   methods: {
@@ -159,6 +174,26 @@ export default {
               }]
             }))
       }
+    },
+
+    setDefaultSelected (row) {
+      this.store.priorities.forEach(priority => { priority.defaultSelection = false })
+      row.defaultSelection = true
+      axios.post('/api/v1/update-priority/set-default', row)
+        .then(response => {
+          const priorities = this.store.priorities
+          this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data
+          this.dialogClose()
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     }
   },
 
