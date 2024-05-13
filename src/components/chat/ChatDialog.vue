@@ -146,6 +146,7 @@ export default {
             this.scrollToBottom()
           })
           .catch(e =>
+            // TODO message not delivered
             this.$q.notify({
               message: e.message,
               type: 'negative',

@@ -23,7 +23,7 @@
             v-if="!this.isShowListMode"
             color="primary"
             :label="this.selectedGroupType.label"
-            style="align-content: center; margin-left: 8px;"
+            style="align-content: center; margin-left: 24px;"
           >
             <q-list>
               <q-item
@@ -158,6 +158,8 @@
           :rows="this.getTableRows"
           :columns="this.tableColumns"
           :rows-per-page-options="[10, 20, 50]"
+          :sortable="true"
+          row-key="id"
           rows-per-page-label="Строк на странице"
           @row-click="onRowClick"
         />
@@ -231,19 +233,22 @@ export default {
         name: 'name',
         label: 'Название',
         align: 'left',
-        field: row => row.name
+        field: row => row.name,
+        sortable: true
       },
       {
         name: 'tags',
         label: 'Теги',
         align: 'left',
-        field: row => row.tags.map(tag => tag.name).join(', ')
+        field: row => row.tags.map(tag => tag.name).join(', '),
+        sortable: true
       },
       {
         name: 'priority',
         label: 'Приоритет',
         align: 'left',
-        field: row => row.priority.name
+        field: row => row.priority.name,
+        sortable: true
       },
       {
         name: 'createdAt',
@@ -256,13 +261,15 @@ export default {
           day: 'numeric',
           hour: '2-digit',
           minute: '2-digit'
-        })
+        }),
+        sortable: true
       },
       {
         name: 'status',
         label: 'Статус',
         align: 'left',
-        field: row => row.status.name
+        field: row => row.status.name,
+        sortable: true
       },
       {
         name: 'deadline',
@@ -277,7 +284,8 @@ export default {
             hour: '2-digit',
             minute: '2-digit'
           })
-          : ''
+          : '',
+        sortable: true
       },
       {
         name: 'executor',
@@ -285,13 +293,15 @@ export default {
         align: 'left',
         field: row => row.executor
           ? row.executor.firstname + ' ' + row.executor.lastname
-          : ''
+          : '',
+        sortable: true
       },
       {
         name: 'sla',
         label: 'SLA',
         align: 'left',
-        field: row => row.sla
+        field: row => row.sla,
+        sortable: true
       }
     ]
   }),
@@ -376,6 +386,16 @@ export default {
 
     changeFilterSelection () {
       this.isFilterSelected = !this.isFilterSelected
+    },
+
+    getOrganizationName (task) {
+      if (task.task) {
+        return task.task.client.organization
+          ? task.client.organization.name
+          : ''
+      } else {
+        return ''
+      }
     }
   },
 
@@ -474,17 +494,19 @@ export default {
         }
         groupedCards.forEach(it => { it.title = `${it.title} (${it.taskCards.length})` })
       } else if (slug === 'organization') {
-        options[''].forEach(task => {
-          const existingCard = groupedCards.find(card => card.title === task.client.organization.name)
-          if (existingCard) {
-            existingCard.taskCards.push(task)
-          } else {
-            groupedCards.push({
-              title: task.client.organization.name,
-              taskCards: [task]
-            })
-          }
-        })
+        if (options['']) {
+          options[''].forEach(task => {
+            const existingCard = groupedCards.find(card => card.title === this.getOrganizationName(task))
+            if (existingCard) {
+              existingCard.taskCards.push(task)
+            } else {
+              groupedCards.push({
+                title: this.getOrganizationName(task),
+                taskCards: [task]
+              })
+            }
+          })
+        }
         groupedCards.forEach(it => { it.title = `${it.title} (${it.taskCards.length})` })
       } else {
         source.forEach(el => {
