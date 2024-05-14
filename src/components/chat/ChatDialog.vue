@@ -22,19 +22,18 @@
             :key="message.id"
             style="width: 100%; margin-top: 0"
           >
-<!--            <q-chat-message-->
-<!--              v-if="this.isDateChanged(message)"-->
-<!--              :label="this.getDate(message)"-->
-<!--            />-->
+            <!--        <q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
               :avatar="message.avatar"
               :name="this.getName(message)"
               :sent="message.sent"
-              :text="[message.text]"
               :stamp="this.getStamp(message)"
               :bg-color="message.comment ? 'blue-3' : message.sent ? '#e0e0e0' : 'indigo-3'"
               :text-color="message.comment ? 'white' : 'black'"
-            />
+              style="white-space: pre-wrap;"
+            >
+              <div v-html="this.findLinks(message.text)"/>
+            </q-chat-message>
           </div>
         </div>
         <q-page-sticky
@@ -233,6 +232,13 @@ export default {
           }]
         })
       })
+    },
+
+    findLinks (message) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g
+      const decodedText = document.createElement('textarea')
+      decodedText.innerHTML = message
+      return decodedText.value.replace(urlRegex, '<a href="$&" target="_blank">$&</a>')
     }
   }
 
