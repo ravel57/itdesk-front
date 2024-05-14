@@ -22,7 +22,7 @@
             :key="message.id"
             style="width: 100%; margin-top: 0"
           >
-            <!--        <q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
+            <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
               :avatar="message.avatar"
               :name="this.getName(message)"
@@ -31,8 +31,27 @@
               :bg-color="message.comment ? 'blue-3' : message.sent ? '#e0e0e0' : 'indigo-3'"
               :text-color="message.comment ? 'white' : 'black'"
               style="white-space: pre-wrap;"
+              left-icon="reply"
             >
+              <div>
               <div v-html="this.findLinks(message.text)"/>
+                <q-menu
+                  touch-position
+                  context-menu
+                >
+                  <q-list dense style="min-width: 100px">
+                    <q-item clickable v-close-popup>
+                      <q-item-section>Ответить</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup>
+                      <q-item-section>Удалить</q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup>
+                      <q-item-section>Скопировать текст</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </div>
             </q-chat-message>
           </div>
         </div>

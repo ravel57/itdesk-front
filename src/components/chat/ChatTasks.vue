@@ -140,6 +140,9 @@
           :options="this.tags.map(t => t.name)"
           multiple
           label="Теги"
+          use-chips
+          use-input
+          dense
         />
         <div class="flex">
           <q-checkbox
