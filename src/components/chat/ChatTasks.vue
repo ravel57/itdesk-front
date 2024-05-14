@@ -108,7 +108,7 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card style="width: 50vw;">
+    <q-card class="dialog-width">
       <q-toolbar class="justify-end">
         <q-btn flat round dense icon="close" v-close-popup />
       </q-toolbar>
@@ -143,6 +143,7 @@
           use-chips
           use-input
           dense
+          style="padding-top: 16px"
         />
         <div class="flex">
           <q-checkbox
@@ -181,7 +182,7 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card>
+    <q-card class="dialog-width">
       <q-toolbar class="justify-end">
         <q-btn flat round dense icon="close" v-close-popup />
       </q-toolbar>

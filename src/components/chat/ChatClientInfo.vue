@@ -71,7 +71,7 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card>
+    <q-card class="dialog-width">
       <q-toolbar class="justify-end">
         <q-btn flat round dense icon="close" v-close-popup />
       </q-toolbar>

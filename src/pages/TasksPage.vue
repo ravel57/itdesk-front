@@ -2,90 +2,95 @@
   <q-layout view="hHh lpR fFf">
     <q-page-container>
       <q-page padding>
-        <div style="display: flex" class="justify-center">
-          <q-select
-            outlined
-            v-model="this.selectedSavedFilter"
-            :options="this.savedFilters.map(it => it.label)"
-            label="Сохраненные фильтры"
-            style="width: 100%; align-content: center;"
-            @update:model-value="this.onSavedFilterSelected"
-            clearable
-          />
-          <q-btn
-            v-if="this.selectedSavedFilter.length > 0"
-            ref="deleteSavedFilterButton"
-            icon="delete"
-            @click="this.deleteSavedFilter"
-            flat
-          />
-          <q-btn-dropdown
-            v-if="!this.isShowListMode"
-            color="primary"
-            :label="this.selectedGroupType.label"
-            style="align-content: center; margin-left: 24px;"
-          >
-            <q-list>
-              <q-item
-                v-for="(filter, index) in this.filterType"
-                :key="index"
-                clickable
-                v-close-popup
-                @click="this.selectedGroupType = filter"
-              >
-                <q-item-section>
-                  <q-item-label>{{ filter.label }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-btn-dropdown>
-          <q-btn
-            icon="filter_alt"
-            flat
-            @click="this.changeFilterSelection"
-            :color="this.isFilterSelected ? 'primary' : 'dark'"
-          />
-          <q-toggle
-            v-model="this.isShowListMode"
-            color="grey"
-            left-label
-            checked-icon="list"
-            unchecked-icon="dashboard"
-            size="50px"
-            keep-color
-            style="margin-left: 8px;"
-          />
-          <q-dialog
-            v-model="dialogSaveFilterVisible"
-            persistent
-            backdrop-filter="blur(4px)"
-          >
-            <q-card>
-              <q-toolbar class="justify-end">
-                <q-btn flat round dense icon="close" v-close-popup />
-              </q-toolbar>
-              <q-card-section style="padding-top: 0">
-                Сохранить фильтр?
-                <br>
-                <q-input label="название" v-model="this.dialogNewFilterName"/>
-                <br>
-                {{ this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions})) }}
-              </q-card-section>
-              <q-card-actions align="right">
-                <q-btn
-                  color="white"
-                  text-color="primary"
-                  label="Закрыть"
-                  @click="this.dialogSaveFilterVisible = false"
-                />
-                <q-btn
-                  color="primary"
-                  label="Сохранить"
-                  @click="saveFilter"
-                />
-              </q-card-actions>
-            </q-card>
-          </q-dialog>
+        <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
+          <div style="display: flex; width: 100%;">
+            <q-select
+              outlined
+              v-model="this.selectedSavedFilter"
+              :options="this.savedFilters.map(it => it.label)"
+              label="Сохраненные фильтры"
+              style="width: 100%; align-content: center; min-width: 300px"
+              @update:model-value="this.onSavedFilterSelected"
+              clearable
+            />
+            <q-btn
+              v-if="this.selectedSavedFilter.length > 0"
+              ref="deleteSavedFilterButton"
+              icon="delete"
+              @click="this.deleteSavedFilter"
+              flat
+            />
+          </div>
+          <div style="display: flex">
+            <q-btn-dropdown
+              v-if="!this.isShowListMode"
+              color="primary"
+              :label="this.selectedGroupType.label"
+              style="align-content: center;"
+            >
+              <q-list>
+                <q-item
+                  v-for="(grouper, index) in this.filterType"
+                  :key="index"
+                  clickable
+                  v-close-popup
+                  @click="this.selectedGroupType = grouper"
+                >
+                  <q-item-section>
+                    <q-item-label>{{ grouper.label }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-btn-dropdown>
+            <q-btn
+              icon="filter_alt"
+              flat
+              @click="this.changeFilterSelection"
+              :color="this.isFilterSelected ? 'primary' : 'dark'"
+            />
+            <!--FIXME-->
+            <q-toggle
+              v-model="this.isShowListMode"
+              color="grey"
+              left-label
+              checked-icon="list"
+              unchecked-icon="dashboard"
+              size="50px"
+              keep-color
+            />
+            <!--FIXME-->
+            <q-dialog
+              v-model="dialogSaveFilterVisible"
+              persistent
+              backdrop-filter="blur(4px)"
+            >
+              <q-card class="dialog-width">
+                <q-toolbar class="justify-end">
+                  <q-btn flat round dense icon="close" v-close-popup/>
+                </q-toolbar>
+                <q-card-section style="padding-top: 0">
+                  Сохранить фильтр?
+                  <br>
+                  <q-input label="название" v-model="this.dialogNewFilterName"/>
+                  <br>
+                  {{ this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions})) }}
+                </q-card-section>
+                <q-card-actions align="right">
+                  <q-btn
+                    color="white"
+                    text-color="primary"
+                    label="Закрыть"
+                    @click="this.dialogSaveFilterVisible = false"
+                  />
+                  <q-btn
+                    color="primary"
+                    label="Сохранить"
+                    @click="saveFilter"
+                  />
+                </q-card-actions>
+              </q-card>
+            </q-dialog>
+          </div>
         </div>
         <div
           v-if="this.isFilterSelected"
@@ -112,7 +117,7 @@
                 style="width: 250px; height: 100%;"
                 behavior="menu"
               >
-<!--            @filter="filterFn"-->
+                <!--@filter="filterFn"-->
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
@@ -207,27 +212,16 @@ export default {
       { label: 'Приоритет', slug: 'priority' },
       { label: 'Статус', slug: 'status' }
     ],
-
-    selectedGroupType: { label: 'Исполитель', slug: 'executor' },
-
+    selectedGroupType: { label: 'Исполнитель', slug: 'executor' },
     filterChain: [],
-
     addNewFilterSelectorText: '',
-
     selectedOptions: [],
-
     savedFilters: [],
-
     selectedSavedFilter: '',
-
     dialogNewFilterName: '',
-
     dialogSaveFilterVisible: false,
-
     isShowListMode: false,
-
     isFilterSelected: false,
-
     tableColumns: [
       {
         name: 'name',
@@ -492,7 +486,9 @@ export default {
             }
           }
         }
-        groupedCards.forEach(it => { it.title = `${it.title} (${it.taskCards.length})` })
+        groupedCards.forEach(it => {
+          it.title = `${it.title} (${it.taskCards.length})`
+        })
       } else if (slug === 'organization') {
         if (options['']) {
           options[''].forEach(task => {
@@ -507,7 +503,9 @@ export default {
             }
           })
         }
-        groupedCards.forEach(it => { it.title = `${it.title} (${it.taskCards.length})` })
+        groupedCards.forEach(it => {
+          it.title = `${it.title} (${it.taskCards.length})`
+        })
       } else {
         source.forEach(el => {
           groupedCards.push({
@@ -550,12 +548,18 @@ export default {
 
     statuses () {
       return this.store.statuses.map(status => status.name)
+    },
+
+    isMobile () {
+      return this.$q.screen.width < 1023
     }
   },
 
   mounted () {
     axios.get('/api/v1/filters')
-      .then(response => { this.savedFilters = response.data })
+      .then(response => {
+        this.savedFilters = response.data
+      })
       .catch(e =>
         this.$q.notify({
           message: e.message,
