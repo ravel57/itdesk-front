@@ -72,21 +72,15 @@
                 color="primary"
                 icon="comment"
               />
-              <div class="flex">
-                <q-btn
-                  icon="send"
-                  @click="this.sendMessage"
-                  color="white"
-                  text-color="primary"
-                />
-                <q-spinner-tail
-                  style="position: fixed; margin-left: 8px"
-                  v-if="this.isSending"
-                  color="primary"
-                  size="2.5em"
-                  :thickness="30"
-                />
-              </div>
+              <q-btn
+                icon="send"
+                @click="this.sendMessage"
+                :loading="this.isSending"
+                color="white"
+                text-color="primary"
+                push
+                :ripple="false"
+              />
             </div>
           </q-toolbar>
         </q-page-sticky>
