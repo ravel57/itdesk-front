@@ -99,6 +99,7 @@
                 text-color="primary"
                 push
                 :ripple="false"
+                style="margin: 0 5px"
               />
             </div>
           </q-toolbar>

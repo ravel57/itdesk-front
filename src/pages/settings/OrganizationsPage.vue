@@ -35,7 +35,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input

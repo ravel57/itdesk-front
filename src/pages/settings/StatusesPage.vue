@@ -5,41 +5,71 @@
       label="Добавить статус"
       @click="this.dialogVisible = true"
     />
-    <div class="table-container">
-      <q-table
-        :rows="this.store.statuses"
-        :columns="this.columns"
-        row-key="id"
-        full-width
-        :rows-per-page-options="[10, 20, 50]"
-        rows-per-page-label="Строк на странице"
+    <q-list
+      bordered
+      class="rounded-borders"
+      separator
+      style="margin-top: 8px"
+    >
+      <q-item-label
+        header
+        class="text-bold"
       >
-        <template v-slot:body-cell-edit="props">
-          <q-td>
-            <q-btn
-              color="primary"
-              dense
-              flat
-              icon="edit"
-              @click="editRow(props.row)"
-            />
-          </q-td>
-          <q-td :props="props">
-            <q-btn
-              :text-color="props.row.defaultSelection ? 'primary' : 'grey'"
-              dense
-              flat
-              icon="beenhere"
-              @click="setDefaultSelected(props.row)"
-              @mouseover="this.showTooltipSetDefault = true"
-              @mouseup="this.showTooltipSetDefault = false"
+        Название
+      </q-item-label>
+      <draggable
+        :list="this.store.statuses"
+        item-key="name"
+        class="list-group"
+        ghost-class="ghost"
+        :move="onMove"
+        @start="dragging = true"
+        @end="dragging = false"
+      >
+        <template #item="{ element }">
+          <q-item
+            class="list-group-item"
+            :class="{ 'not-draggable': true }"
+            style="cursor: grab"
+          >
+            <q-item-section
+              top
+              style="justify-content: center"
             >
-              <q-tooltip v-if="this.showTooltipSetDefault">Использовать по умолчанию</q-tooltip>
-            </q-btn>
-          </q-td>
+              {{ element.name }}
+            </q-item-section>
+            <q-item-section
+              top
+              side
+            >
+              <q-btn
+                color="primary"
+                dense
+                flat
+                icon="edit"
+                @click="editRow(element)"
+              />
+            </q-item-section>
+            <q-item-section
+              top
+              side
+            >
+              <q-btn
+                :text-color="element.defaultSelection ? 'primary' : 'grey'"
+                dense
+                flat
+                icon="beenhere"
+                @click="setDefaultSelected(element)"
+                @mouseover="this.showTooltipSetDefault = true"
+                @mouseup="this.showTooltipSetDefault = false"
+              >
+                <q-tooltip v-if="this.showTooltipSetDefault">Использовать по умолчанию</q-tooltip>
+              </q-btn>
+            </q-item-section>
+          </q-item>
         </template>
-      </q-table>
-    </div>
+      </draggable>
+    </q-list>
   </div>
   <q-dialog
     v-model="this.dialogVisible"
@@ -48,7 +78,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
@@ -76,20 +106,21 @@
 <script>
 import axios from 'axios'
 import { useStore } from 'stores/store'
+import draggable from 'vuedraggable'
+import { watch } from 'vue'
 
 export default {
   name: 'StatusesPage',
 
-  data: () => ({
-    columns: [
-      { name: 'name', label: 'Название', align: 'center', field: 'name' },
-      { name: 'edit', label: '', align: 'center', field: 'edit' },
-      { name: 'defaultSelection', label: '', align: 'center', field: '' }
-    ],
+  components: {
+    draggable
+  },
 
+  data: () => ({
     dialogVisible: false,
     dialogStatusName: '',
-    showTooltipSetDefault: false
+    showTooltipSetDefault: false,
+    dragging: true
   }),
 
   methods: {
@@ -124,7 +155,9 @@ export default {
     },
 
     setDefaultSelected (row) {
-      this.store.statuses.forEach(status => { status.defaultSelection = false })
+      this.store.statuses.forEach(status => {
+        status.defaultSelection = false
+      })
       row.defaultSelection = true
       axios.post('/api/v1/update-status/set-default', row)
         .then(response => {
@@ -146,11 +179,16 @@ export default {
 
   setup () {
     const store = useStore()
+    watch(() => store.statuses, () => {
+      axios.post('/api/v1/update-status/resort', store.statuses)
+    }, { deep: true })
     return { store }
   }
 }
 </script>
 
 <style scoped>
-
+.list-group-item:hover {
+  background-color: #e3e3e3;
+}
 </style>
