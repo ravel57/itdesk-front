@@ -12,37 +12,37 @@
         row-key="id"
         full-width
       >
-      <template v-slot:body-cell-token="props">
-        <q-td :props="props">
+        <template v-slot:body-cell-token="props">
+          <q-td :props="props">
           <span
             v-if="!props.row.showToken"
             v-text="'**********************************************'"
           />
-          <span
-            v-else
-            v-text="props.row.token"
-          />
-        </q-td>
-      </template>
-      <template v-slot:body-cell-show-token="props">
-        <q-td :props="props">
-          <q-btn
-            color="primary"
-            dense
-            flat
-            icon="visibility"
-            @click="toggleTokenVisibility(props.row)"
-          />
-          <q-btn
-            color="primary"
-            dense
-            flat
-            icon="edit"
-            @click="updateToken(props.row)"
-          />
-        </q-td>
-      </template>
-    </q-table>
+            <span
+              v-else
+              v-text="props.row.token"
+            />
+          </q-td>
+        </template>
+        <template v-slot:body-cell-show-token="props">
+          <q-td :props="props">
+            <q-btn
+              color="primary"
+              dense
+              flat
+              icon="visibility"
+              @click="toggleTokenVisibility(props.row)"
+            />
+            <q-btn
+              color="primary"
+              dense
+              flat
+              icon="edit"
+              @click="updateToken(props.row)"
+            />
+          </q-td>
+        </template>
+      </q-table>
     </div>
   </div>
   <q-dialog
@@ -52,7 +52,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
@@ -113,7 +113,9 @@ export default {
     axios.get('/api/v1/telegram-bots')
       .then(response => {
         this.telegramBots = response.data
-        this.telegramBots.forEach(it => { it.showToken = false })
+        this.telegramBots.forEach(it => {
+          it.showToken = false
+        })
       })
       .catch(e =>
         this.$q.notify({

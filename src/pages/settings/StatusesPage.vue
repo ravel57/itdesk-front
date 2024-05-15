@@ -11,18 +11,12 @@
       separator
       style="margin-top: 8px"
     >
-      <q-item-label
-        header
-        class="text-bold"
-      >
-        Название
-      </q-item-label>
+      <q-item-label header class="text-bold">Название</q-item-label>
       <draggable
         :list="this.store.statuses"
-        item-key="name"
+        item-key="id"
         class="list-group"
         ghost-class="ghost"
-        :move="onMove"
         @start="dragging = true"
         @end="dragging = false"
       >

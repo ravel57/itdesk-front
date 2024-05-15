@@ -5,28 +5,62 @@
       label="Добавить шаблон"
       @click="this.dialogNewTemplate"
     />
-    <div class="table-container">
-      <q-table
-        :rows="this.store.templates"
-        :columns="columns"
-        row-key="id"
-        full-width
-        :rows-per-page-options="[10, 20, 50]"
-        rows-per-page-label="Строк на странице"
+    <q-list
+      bordered
+      class="rounded-borders"
+      separator
+      style="margin-top: 8px"
+    >
+      <q-item header class="text-bold">
+        <q-item-section>
+          Название
+        </q-item-section>
+        <q-item-section>
+          Shortcut
+        </q-item-section>
+      </q-item>
+      <draggable
+        :list="this.store.templates"
+        item-key="id"
+        class="list-group"
+        ghost-class="ghost"
+        @start="dragging = true"
+        @end="dragging = false"
       >
-        <template v-slot:body-cell-edit="props">
-          <q-td :props="props">
-            <q-btn
-              color="primary"
-              dense
-              flat
-              icon="edit"
-              @click="editRow(props.row)"
-            />
-          </q-td>
+        <template #item="{ element }">
+          <q-item
+            class="list-group-item"
+            :class="{ 'not-draggable': true }"
+            style="cursor: grab"
+          >
+            <q-item-section
+              top
+              style="justify-content: center"
+            >
+              {{ element.text }}
+            </q-item-section>
+            <q-item-section
+              top
+              style="justify-content: center"
+            >
+              {{ element.shortcut }}
+            </q-item-section>
+            <q-item-section
+              top
+              side
+            >
+              <q-btn
+                color="primary"
+                dense
+                flat
+                icon="edit"
+                @click="editRow(element)"
+              />
+            </q-item-section>
+          </q-item>
         </template>
-      </q-table>
-    </div>
+      </draggable>
+    </q-list>
   </div>
   <q-dialog
     v-model="this.dialogVisible"
@@ -35,7 +69,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
@@ -74,9 +108,12 @@
 <script>
 import { useStore } from 'stores/store'
 import axios from 'axios'
+import draggable from 'vuedraggable'
+import { watch } from 'vue'
 
 export default {
   name: 'TemplatesPage',
+  components: { draggable },
 
   data: () => ({
     columns: [
@@ -90,7 +127,8 @@ export default {
     dialogShortcut: '',
 
     isNewTemplate: true,
-    templateId: null // for updates
+    templateId: null, // for updates
+    dragging: true
   }),
 
   methods: {
@@ -172,6 +210,9 @@ export default {
 
   setup () {
     const store = useStore()
+    watch(() => store.templates, () => {
+      axios.post('/api/v1/update-templates/resort', store.templates)
+    }, { deep: true })
     return { store }
   }
 }
@@ -180,5 +221,9 @@ export default {
 <style scoped>
 .table-container {
   width: 100%;
+}
+
+.list-group-item:hover {
+  background-color: #e3e3e3;
 }
 </style>

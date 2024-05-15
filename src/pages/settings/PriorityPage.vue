@@ -6,39 +6,65 @@
       @click="this.dialogNewPriorityShow"
     />
     <div class="table-container">
-      <q-table
-        :rows="this.store.priorities"
-        :columns="columns"
-        row-key="id"
-        full-width
-        :rows-per-page-options="[10, 20, 50]"
-        rows-per-page-label="Строк на странице"
+      <q-list
+        bordered
+        class="rounded-borders"
+        separator
+        style="margin-top: 8px"
       >
-        <template v-slot:body-cell-edit="props">
-          <q-td :props="props">
-            <q-btn
-              color="primary"
-              dense
-              flat
-              icon="edit"
-              @click="updatePriority(props.row)"
-            />
-          </q-td>
-          <q-td :props="props">
-            <q-btn
-              :text-color="props.row.defaultSelection ? 'primary' : 'grey'"
-              dense
-              flat
-              icon="beenhere"
-              @click="setDefaultSelected(props.row)"
-              @mouseover="this.showTooltipSetDefault = true"
-              @mouseup="this.showTooltipSetDefault = false"
+        <q-item-label header class="text-bold">Название</q-item-label>
+        <draggable
+          :list="this.store.priorities"
+          item-key="id"
+          class="list-group"
+          ghost-class="ghost"
+          @start="dragging = true"
+          @end="dragging = false"
+        >
+          <template #item="{ element }">
+            <q-item
+              class="list-group-item"
+              :class="{ 'not-draggable': true }"
+              style="cursor: grab"
             >
-              <q-tooltip v-if="this.showTooltipSetDefault">Использовать по умолчанию</q-tooltip>
-            </q-btn>
-          </q-td>
-        </template>
-      </q-table>
+              <q-item-section
+                top
+                style="justify-content: center"
+              >
+                {{ element.name }}
+              </q-item-section>
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  color="primary"
+                  dense
+                  flat
+                  icon="edit"
+                  @click="this.updatePriority(element)"
+                />
+              </q-item-section>
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  :text-color="element.defaultSelection ? 'primary' : 'grey'"
+                  dense
+                  flat
+                  icon="beenhere"
+                  @click="setDefaultSelected(element)"
+                  @mouseover="this.showTooltipSetDefault = true"
+                  @mouseup="this.showTooltipSetDefault = false"
+                >
+                  <q-tooltip v-if="this.showTooltipSetDefault">Использовать по умолчанию</q-tooltip>
+                </q-btn>
+              </q-item-section>
+            </q-item>
+          </template>
+        </draggable>
+      </q-list>
     </div>
   </div>
   <q-dialog
@@ -83,9 +109,13 @@
 <script>
 import { useStore } from 'stores/store'
 import axios from 'axios'
+import { watch } from 'vue'
+import draggable from 'vuedraggable'
 
 export default {
   name: 'PriorityPage',
+
+  components: { draggable },
 
   data: () => ({
     columns: [
@@ -99,6 +129,7 @@ export default {
 
     isNewPriority: true,
     priorityId: null, // for updates
+    dragging: true,
     showTooltipSetDefault: false
   }),
 
@@ -199,6 +230,9 @@ export default {
 
   setup () {
     const store = useStore()
+    watch(() => store.priorities, () => {
+      axios.post('/api/v1/update-priorities/resort', store.priorities)
+    }, { deep: true })
     return { store }
   }
 }
@@ -207,5 +241,9 @@ export default {
 <style scoped>
 .table-container {
   width: 100%;
+}
+
+.list-group-item:hover {
+  background-color: #e3e3e3;
 }
 </style>

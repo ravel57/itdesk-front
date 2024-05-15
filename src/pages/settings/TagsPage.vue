@@ -6,26 +6,62 @@
       @click="this.dialogNewTag"
     />
     <div class="table-container">
-      <q-table
-        :rows="this.store.tags"
-        :columns="columns"
-        row-key="id"
-        full-width
-        :rows-per-page-options="[10, 20, 50]"
-        rows-per-page-label="Строк на странице"
+      <q-list
+        bordered
+        class="rounded-borders"
+        separator
+        style="margin-top: 8px"
       >
-        <template v-slot:body-cell-edit="props">
-          <q-td :props="props">
-            <q-btn
-            color="primary"
-            dense
-            flat
-            icon="edit"
-            @click="editRow(props.row)"
-           />
-          </q-td>
-        </template>
-      </q-table>
+        <q-item header class="text-bold">
+          <q-item-section>
+            Название
+          </q-item-section>
+          <q-item-section>
+            Описание
+          </q-item-section>
+        </q-item>
+        <draggable
+          :list="this.store.tags"
+          item-key="id"
+          class="list-group"
+          ghost-class="ghost"
+          @start="dragging = true"
+          @end="dragging = false"
+        >
+          <template #item="{ element }">
+            <q-item
+              class="list-group-item"
+              :class="{ 'not-draggable': true }"
+              style="cursor: grab"
+            >
+              <q-item-section
+                top
+                style="justify-content: center"
+              >
+                {{ element.name }}
+              </q-item-section>
+              <q-item-section
+                top
+                style="justify-content: center"
+              >
+                {{ element.description }}
+              </q-item-section>
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  color="primary"
+                  dense
+                  flat
+                  icon="edit"
+                  @click="editRow(element)"
+                />
+              </q-item-section>
+            </q-item>
+          </template>
+        </draggable>
+      </q-list>
     </div>
   </div>
   <q-dialog
@@ -74,23 +110,22 @@
 <script>
 import { useStore } from 'stores/store'
 import axios from 'axios'
+import { watch } from 'vue'
+import draggable from 'vuedraggable'
 
 export default {
   name: 'TagsComponent',
 
-  data: () => ({
-    columns: [
-      { name: 'name', label: 'Название', align: 'left', field: 'name' },
-      { name: 'description', label: 'Описание', align: 'left', field: 'description' },
-      { name: 'edit', label: '', align: 'center', field: 'edit' }
-    ],
+  components: { draggable },
 
+  data: () => ({
     dialogVisible: false,
     dialogName: '',
     dialogDescription: '',
 
     isNewTag: true,
-    tagId: null // for updates
+    tagId: null, // for updates
+    dragging: true
   }),
 
   methods: {
@@ -172,6 +207,9 @@ export default {
 
   setup () {
     const store = useStore()
+    watch(() => store.tags, () => {
+      axios.post('/api/v1/update-tags/resort', store.tags)
+    }, { deep: true })
     return { store }
   }
 }
@@ -180,6 +218,10 @@ export default {
 <style scoped>
 .table-container {
   width: 100%;
+}
+
+.list-group-item:hover {
+  background-color: #e3e3e3;
 }
 
 .edit-button-container {
