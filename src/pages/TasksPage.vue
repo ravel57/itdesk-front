@@ -80,7 +80,7 @@
                     color="white"
                     text-color="primary"
                     label="Закрыть"
-                    @click="this.dialogSaveFilterVisible = false"
+                    @click="this.dialogSaveFilterClose"
                   />
                   <q-btn
                     color="primary"
@@ -154,7 +154,7 @@
           <q-btn
             ref="saveFilterButton"
             icon="save"
-            @click="this.dialogSaveFilterVisible = true"
+            @click="this.dialogSaveFilter"
             flat
           />
         </div>
@@ -349,10 +349,9 @@ export default {
         }))
       }
       axios.post('/api/v1/new-filter', newFilter)
-        .then(() => {
-          this.savedFilters.push(newFilter)
-          this.dialogSaveFilterVisible = false
-          this.dialogNewFilterName = ''
+        .then(response => {
+          this.savedFilters.push(response.data)
+          this.dialogSaveFilterClose()
         })
         .catch(e =>
           this.$q.notify({
@@ -366,7 +365,7 @@ export default {
     },
 
     onSavedFilterSelected () {
-      const filterElement = this.savedFilters.filter(el => this.selectedSavedFilter === el.label)[0]
+      const filterElement = this.savedFilters.find(el => this.selectedSavedFilter === el.label)
       if (filterElement !== undefined) {
         this.filterChain = structuredClone(filterElement.selectedOptions)
       } else {
@@ -375,7 +374,31 @@ export default {
       }
     },
 
+    dialogSaveFilter () {
+      this.dialogSaveFilterVisible = true
+      this.dialogNewFilterName = ''
+    },
+
+    dialogSaveFilterClose () {
+      this.dialogSaveFilterVisible = false
+    },
+
     deleteSavedFilter () {
+      const filterId = this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).id
+      axios.delete(`/api/v1/filter/${filterId}`)
+        .then(() => {
+          this.savedFilters = this.savedFilters.filter(filter => this.selectedSavedFilter !== filter.label)
+          this.selectedSavedFilter = ''
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     },
 
     changeFilterSelection () {
@@ -404,9 +427,11 @@ export default {
             break
           }
           case 'tag': {
-            const tt = new Set()
-            tasks.forEach(task => el.selectedOptions.filter(e => task.tags.map(e => e.name).includes(e)).forEach(e => tt.add(task)))
-            tasks = Array.from(tt)
+            const set = new Set()
+            tasks.forEach(task => el.selectedOptions
+              .filter(e => task.tags.map(e => e.name).includes(e))
+              .forEach(() => set.add(task)))
+            tasks = Array.from(set)
             break
           }
           case 'priority': {
