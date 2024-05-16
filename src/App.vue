@@ -15,7 +15,7 @@ export default {
       .then(response => {
         this.store.currentUser = response.data
       })
-    window.addEventListener('beforeunload', () => axios.post('/api/v1/user-offline', this.store.currentUser))
+    window.addEventListener('beforeunload', () => axios.post('/api/v1/user-offline'))
   },
 
   setup () {
