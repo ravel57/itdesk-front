@@ -60,6 +60,10 @@
           position="bottom"
           class="no-padding"
         >
+          <div
+            v-if="this.typing.length > 0 && this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+            v-text="this.typing.map(t => t.username).join(', ') + ' печатает...'"
+          />
           <q-toolbar class="no-padding">
             <q-btn
               type="file"
@@ -116,7 +120,7 @@ import axios from 'axios'
 export default {
   name: 'ChatDialog',
 
-  props: ['messages', 'inputField', 'templates', 'isSending', 'clientId'],
+  props: ['messages', 'inputField', 'templates', 'isSending', 'clientId', 'typing', 'currentUser'],
 
   data: () => ({
     toggleIsComment: false,
@@ -131,14 +135,14 @@ export default {
 
   mounted () {
     this.$refs.textInput.focus()
-    this.scrollToBottom() // FIXME
+    this.scrollToBottom()
   },
 
   methods: {
     scrollToBottom () {
-      try {
+      setTimeout(() => {
         document.getElementById('chat').scrollIntoView({ block: 'end' })
-      } catch (e) {}
+      }, 5)
     },
 
     sendMessage () {
