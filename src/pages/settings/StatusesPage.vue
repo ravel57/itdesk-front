@@ -3,7 +3,7 @@
     <q-btn
       icon="add"
       label="Добавить статус"
-      @click="this.dialogVisible = true"
+      @click="this.newStatus"
     />
     <q-list
       bordered
@@ -41,7 +41,7 @@
                 dense
                 flat
                 icon="edit"
-                @click="editRow(element)"
+                @click="editStatus(element)"
               />
             </q-item-section>
             <q-item-section
@@ -83,6 +83,13 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
+          v-if="!this.isNewStatus"
+          color="white"
+          label="Удалить"
+          text-color="primary"
+          @click="this.dialogDeleteStatus"
+        />
+        <q-btn
           color="white"
           label="Закрыть"
           text-color="primary"
@@ -91,7 +98,7 @@
         <q-btn
           color="primary"
           label="Сохранить"
-          @click="this.dialogSaveNewOrganization"/>
+          @click="this.dialogSaveNewOrUpdateStatus"/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -114,27 +121,71 @@ export default {
     dialogVisible: false,
     dialogStatusName: '',
     showTooltipSetDefault: false,
+    isNewStatus: false,
+    statusId: null, // for update
     dragging: true
   }),
 
   methods: {
-    editRow (row) {
-      console.log('Editing row:', row)
+    editStatus (row) {
+      this.isNewStatus = false
+      this.dialogVisible = true
+      this.dialogStatusName = row.name
+      this.statusId = row.id
+    },
+
+    newStatus () {
+      this.dialogVisible = true
+      this.isNewStatus = true
+      this.dialogStatusName = ''
     },
 
     dialogClose () {
       this.dialogVisible = false
-      this.dialogStatusName = ''
     },
 
-    dialogSaveNewOrganization () {
-      const newStatus = {
-        id: null,
+    dialogSaveNewOrUpdateStatus () {
+      const status = {
+        id: this.isNewStatus ? null : this.statusId,
         name: this.dialogStatusName
       }
-      axios.post('/api/v1/new-status', newStatus)
-        .then(response => {
-          this.store.statuses.push(response.data)
+      if (this.isNewStatus) {
+        axios.post('/api/v1/new-status', status)
+          .then(response => {
+            this.store.statuses.push(response.data)
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        axios.post('/api/v1/update-status', status)
+          .then(response => {
+            this.store.statuses[this.store.statuses.indexOf(this.store.statuses.find(status => status.id === this.statusId))] = response.data
+            this.dialogClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      }
+    },
+
+    dialogDeleteStatus () {
+      axios.delete(`/api/v1/status/${this.statusId}`)
+        .then(() => {
+          this.store.statuses = this.store.statuses.filter(status => status.id !== this.statusId)
           this.dialogClose()
         })
         .catch(e =>

@@ -1,5 +1,6 @@
 <template>
   <q-page padding>
+    <div v-if="this.getSortedAndFilteredClients.length > 0">
     <q-input
       v-model="searchQuery"
       dense
@@ -10,7 +11,7 @@
         <q-icon name="close" @click="searchQuery = ''" class="cursor-pointer"/>
       </template>
     </q-input>
-    <q-list v-if="this.getSortedAndFilteredClients.length > 0">
+    <q-list>
       <div
         v-for="client in this.getSortedAndFilteredClients"
         :key="client.id"
@@ -23,7 +24,7 @@
               class="text-primary"
             >
               <q-item-section>
-                <q-item-label>{{ client.firstname }} {{ client.lastname}}</q-item-label>
+                <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
                 <q-item-label caption>{{ getOrganization(client) }}</q-item-label>
                 <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
                 <q-item-label caption>Заявок: {{ getActualTasks(client).length }}</q-item-label>
@@ -37,6 +38,7 @@
         <q-separator/>
       </div>
     </q-list>
+    </div>
     <div
       v-else
       class="text-h3 absolute-center text-primary"
@@ -67,7 +69,8 @@ export default {
       }
     },
 
-    search () { },
+    search () {
+    },
 
     getOrganization (client) {
       if (client.organization) {
@@ -100,7 +103,13 @@ export default {
       clients.forEach(client => {
         client.unreadMessagesCount = client.messages.filter(e => !e.read).length
         client.lastMessageTime = new Date(Math.max(...client.messages.map(e => e.date)))
-          .toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          .toLocaleTimeString('ru-RU', {
+            timeZone: 'Europe/Moscow',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
       })
       return clients
     }

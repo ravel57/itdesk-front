@@ -140,12 +140,12 @@ export default {
     dialogNewTag () {
       this.dialogVisible = true
       this.isNewTag = true
+      this.dialogName = ''
+      this.dialogDescription = ''
     },
 
     dialogClose () {
       this.dialogVisible = false
-      this.dialogName = ''
-      this.dialogDescription = ''
     },
 
     dialogSaveNewOrUpdateTag () {
