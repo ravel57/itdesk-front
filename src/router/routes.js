@@ -87,10 +87,6 @@ const routes = [
         ]
       },
       {
-        path: 'users',
-        component: () => import('pages/UsersPage.vue')
-      },
-      {
         path: 'analytics',
         component: () => import('pages/AnalyticsPage.vue')
       },

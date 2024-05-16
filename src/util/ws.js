@@ -10,6 +10,7 @@ export function connect () {
   stompClient.debug = () => {}
   stompClient.connect({}, () => {
     stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
+    stompClient.subscribe('/topic/authenticated-users/', message => authenticatedUsersCallback(message))
     stompClient.subscribe('/topic/mark-read/', message => console.log(message))
   })
 }
@@ -25,6 +26,10 @@ function clientsCallback (clients) {
     })
   })
   useStore().clients = parsedClients
+}
+
+function authenticatedUsersCallback (usersOnline) {
+  useStore().usersOnline = JSON.parse(usersOnline.body)
 }
 
 export function markRead (getClientId) {

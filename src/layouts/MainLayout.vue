@@ -12,7 +12,7 @@
         />
         <q-item @click="this.$router.push('/')" clickable>
           <q-avatar>
-            <img src="logo.png" />
+            <img src="logo.png"/>
           </q-avatar>
           <q-toolbar-title>ITdesk</q-toolbar-title>
         </q-item>
@@ -41,9 +41,17 @@
           v-bind="link"
           :counter="this.getUnreadChats(link.title)"
         />
+        <q-item>
+          <q-item-section avatar>
+            <q-icon style="align-items: start" name="group"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Пользователи онлайн</q-item-label>
+            <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
+          </q-item-section>
+        </q-item>
       </q-list>
     </q-drawer>
-
     <q-page-container>
       <router-view/>
     </q-page-container>
@@ -105,11 +113,6 @@ export default {
         title: 'Настройки',
         icon: 'settings',
         link: '/settings'
-      },
-      {
-        title: 'Пользователи онлайн',
-        icon: 'group',
-        link: '/users'
       }
     ]
   }),
@@ -117,16 +120,12 @@ export default {
   methods: {
     logout () {
       axios.get('/logout')
-        .then(() => location.reload())
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
+        .then(() => {
+          location.reload()
+        })
+        .catch(() => {
+          location.reload()
+        })
     },
 
     getUnreadChats (title) {
@@ -141,16 +140,17 @@ export default {
       } else {
         return 0
       }
+    },
+
+    getUsersOnline () {
+      return this.store.usersOnline.map(user => user.firstname + ' ' + user.lastname).join('\n')
     }
   },
 
   setup () {
     const leftDrawerOpen = ref(false)
-
     const router = useRoute()
-
     const store = useStore()
-
     return {
       leftDrawerOpen,
       router,

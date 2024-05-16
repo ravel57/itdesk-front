@@ -17,7 +17,8 @@ export const useStore = defineStore('store', {
     roles: [],
     statuses: [],
     priorities: [],
-    templates: []
+    templates: [],
+    usersOnline: []
   }),
 
   getters: {
