@@ -89,6 +89,12 @@ module.exports = configure(function (ctx) {
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-framework
     framework: {
+      breakpoints: {
+        sm: 600,
+        md: 800,
+        lg: 1440,
+        xl: 1920
+      },
       config: {
         dark: false
       },

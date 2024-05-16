@@ -383,8 +383,8 @@ export default {
     },
 
     getOrganizationName (task) {
-      if (task.task) {
-        return task.task.client.organization
+      if (task) {
+        return task.client.organization
           ? task.client.organization.name
           : ''
       } else {
