@@ -6,26 +6,52 @@
       @click="this.dialogNewOrganizationShow"
     />
     <div class="table-container">
-      <q-table
-        :rows="this.store.organizations"
-        :columns="this.columns"
-        row-key="id"
-        full-width
-        :rows-per-page-options="[10, 20, 50]"
-        rows-per-page-label="Строк на странице"
-      >
-        <template v-slot:body-cell-edit="props">
-          <q-td>
-            <q-btn
-              color="primary"
-              dense
-              flat
-              icon="edit"
-              @click="editRow(props.row)"
-            />
-          </q-td>
-        </template>
-      </q-table>
+      <q-list
+        bordered
+        class="rounded-borders"
+        separator
+        style="margin-top: 8px">
+        <q-item header class="text-bold">
+          <q-item-section>
+            Название
+          </q-item-section>
+        </q-item>
+        <draggable
+          :list="this.store.organizations"
+          item-key="id"
+          class="list-users"
+          ghost-class="ghost"
+          @start="dragging = true"
+          @end="dragging = false"
+        >
+          <template #item="{ element }">
+            <q-item
+              class="list-group-item"
+              :class="{ 'not-draggable': true }"
+              style="cursor: grab"
+            >
+              <q-item-section
+                top
+                style="justify-content: center"
+              >
+                {{ element.name }}
+              </q-item-section>
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  color="primary"
+                  dense
+                  flat
+                  icon="edit"
+                  @click="editRow(element)"
+                />
+              </q-item-section>
+            </q-item>
+          </template>
+        </draggable>
+      </q-list>
     </div>
   </div>
   <q-dialog
@@ -70,16 +96,18 @@
 <script>
 import { useStore } from 'stores/store'
 import axios from 'axios'
+import draggable from 'vuedraggable'
 
 export default {
   name: 'OrganizationsComponent',
+  components: { draggable },
 
   data: () => ({
     columns: [
       { name: 'name', label: 'Название', align: 'center', field: 'name' },
       { name: 'edit', label: '', align: 'center', field: 'edit' }
     ],
-
+    dragging: false,
     dialogVisible: false,
     dialogName: '',
     isNewOrganization: true,

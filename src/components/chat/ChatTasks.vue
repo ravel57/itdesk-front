@@ -75,7 +75,7 @@
                           <th class="small-text text-grey" v-text="'Создана: '"/>
                           <th class="text-body2" v-text="this.getStamp(task)"/>
                         </tr>
-                        <tr>
+                        <tr v-if="!task.completed">
                           <th class="small-text text-grey" v-text="'Статус: '"/>
                           <th class="text-body2" v-text="task.status.name"/>
                         </tr>

@@ -56,6 +56,11 @@ export const useStore = defineStore('store', {
       axios.get('/api/v1/users')
         .then(response => {
           this.users = response.data
+          this.users.forEach(user => {
+            if (user.lastname === null) {
+              user.lastname = ''
+            }
+          })
         })
 
       axios.get('/api/v1/roles')
