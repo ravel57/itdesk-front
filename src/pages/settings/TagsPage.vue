@@ -78,6 +78,7 @@
           v-model="this.dialogName"
           label="Название"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          ref="dialogName"
         />
         <q-input
           v-model="this.dialogDescription"
@@ -142,6 +143,7 @@ export default {
       this.isNewTag = true
       this.dialogName = ''
       this.dialogDescription = ''
+      setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
     dialogClose () {

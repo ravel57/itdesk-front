@@ -59,6 +59,7 @@
           v-model="this.dialogName"
           label="Название"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          ref="dialogName"
         />
         <q-input
           v-model="this.dialogToken"
@@ -136,6 +137,9 @@ export default {
     dialogNewBotShow () {
       this.dialogVisible = true
       this.isNewTelegramBot = true
+      this.dialogName = ''
+      this.dialogToken = ''
+      setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
     updateToken (row) {
@@ -148,8 +152,6 @@ export default {
 
     dialogClose () {
       this.dialogVisible = false
-      this.dialogName = ''
-      this.dialogToken = ''
     },
 
     dialogDeleteBot () {

@@ -79,6 +79,7 @@
           v-model="this.dialogStatusName"
           label="Название"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          ref="dialogStatusName"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -138,6 +139,7 @@ export default {
       this.dialogVisible = true
       this.isNewStatus = true
       this.dialogStatusName = ''
+      setTimeout(() => this.$refs.dialogStatusName.focus(), 250)
     },
 
     dialogClose () {

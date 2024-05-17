@@ -76,6 +76,7 @@
           v-model="this.dialogText"
           label="Текст"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          ref="dialogText"
         />
         <q-input
           v-model="this.dialogShortcut"
@@ -143,12 +144,13 @@ export default {
     dialogNewTemplate () {
       this.dialogVisible = true
       this.isNewTemplate = true
+      this.dialogText = ''
+      this.dialogShortcut = ''
+      setTimeout(() => this.$refs.dialogText.focus(), 250)
     },
 
     dialogClose () {
       this.dialogVisible = false
-      this.dialogText = ''
-      this.dialogShortcut = ''
     },
 
     dialogSaveNewOrUpdateTemplate () {

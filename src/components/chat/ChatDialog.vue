@@ -59,6 +59,7 @@
           expand
           position="bottom"
           class="no-padding"
+          bg-color="white"
         >
           <div
             v-if="this.typing.length > 0 && this.typing.filter(t => t.username !== this.currentUser.username).length > 0"

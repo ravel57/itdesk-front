@@ -42,6 +42,7 @@
           v-model="this.dialogLastName"
           label="Фамилия"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          ref="lastname"
         />
         <q-input
           v-model="this.dialogFirstName"
@@ -116,6 +117,12 @@ export default {
     dialogNewUser () {
       this.dialogVisible = true
       this.isNewUser = true
+      this.dialogUsername = ''
+      this.dialogLastName = ''
+      this.dialogFirstName = ''
+      this.dialogPassword = ''
+      this.dialogRole = ''
+      setTimeout(() => this.$refs.lastname.focus(), 250)
     },
 
     editUser (row) {
@@ -130,11 +137,6 @@ export default {
 
     dialogClose () {
       this.dialogVisible = false
-      this.dialogUsername = ''
-      this.dialogLastName = ''
-      this.dialogFirstName = ''
-      this.dialogPassword = ''
-      this.dialogRole = ''
     },
 
     dialogSaveNewOrUpdateUser () {

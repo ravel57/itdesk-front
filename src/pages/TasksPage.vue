@@ -70,9 +70,11 @@
                 </q-toolbar>
                 <q-card-section style="padding-top: 0">
                   Сохранить фильтр?
-                  <br>
-                  <q-input label="название" v-model="this.dialogNewFilterName"/>
-                  <br>
+                  <q-input
+                    label="название"
+                    v-model="this.dialogNewFilterName"
+                    ref="dialogNewFilterName"
+                  />
                   {{ this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions})) }}
                 </q-card-section>
                 <q-card-actions align="right">
@@ -377,6 +379,7 @@ export default {
     dialogSaveFilter () {
       this.dialogSaveFilterVisible = true
       this.dialogNewFilterName = ''
+      setTimeout(() => this.$refs.dialogNewFilterName.focus(), 250)
     },
 
     dialogSaveFilterClose () {
