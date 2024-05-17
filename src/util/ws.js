@@ -48,6 +48,10 @@ function authenticatedUsersCallback (usersOnline) {
   useStore().usersOnline = users
 }
 
-export function markRead (getClientId) {
-  stompClient.send('/app/mark-read', {}, getClientId)
+export function markRead (clientId) {
+  stompClient.send('/app/mark-read', {}, clientId)
+}
+
+export function typing (client, user, text) {
+  stompClient.send('/app/typing', {}, JSON.stringify({ client, user, text }))
 }

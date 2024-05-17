@@ -115,6 +115,7 @@
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogTaskName"
+          ref="taskName"
           label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
@@ -248,6 +249,7 @@ export default {
       this.dialogTaskDeadline = ''
       this.dialogTaskDeadlineCheckbox = false
       this.dialogTaskStatus = this.statuses.find(status => status.defaultSelection === true).name
+      setTimeout(() => this.$refs.taskName.focus(), 250)
     },
 
     saveNewOrUpdateTask () {
@@ -322,6 +324,7 @@ export default {
       this.dialogTaskDeadlineCheckbox = task.deadline != null
       this.taskId = task.id
       this.dialogTaskStatus = task.status.name
+      setTimeout(() => this.$refs.taskName.focus(), 250)
     },
 
     setTaskCompleted () {

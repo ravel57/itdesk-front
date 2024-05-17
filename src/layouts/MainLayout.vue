@@ -46,7 +46,7 @@
             <q-icon style="align-items: start" name="group"/>
           </q-item-section>
           <q-item-section>
-            <q-item-label>Пользователи онлайн</q-item-label>
+            <q-item-label>Пользователи онлайн:</q-item-label>
             <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
           </q-item-section>
         </q-item>

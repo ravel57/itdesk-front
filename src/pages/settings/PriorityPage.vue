@@ -81,6 +81,7 @@
           v-model="this.dialogName"
           label="Название"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          ref="dialogName"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -137,6 +138,8 @@ export default {
     dialogNewPriorityShow () {
       this.dialogVisible = true
       this.isNewPriority = true
+      this.dialogName = ''
+      setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
     updatePriority (row) {
@@ -148,7 +151,6 @@ export default {
 
     dialogClose () {
       this.dialogVisible = false
-      this.dialogName = ''
     },
 
     dialogDeletePriority () {

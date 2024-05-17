@@ -68,6 +68,7 @@
           v-model="this.dialogName"
           label="Название"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          ref="dialogName"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -118,6 +119,8 @@ export default {
     dialogNewOrganizationShow () {
       this.dialogVisible = true
       this.isNewOrganization = true
+      this.dialogName = ''
+      setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
     editRow (row) {

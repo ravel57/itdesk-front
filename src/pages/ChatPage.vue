@@ -33,6 +33,8 @@
             :templates="this.store.templates"
             :isSending="this.isSending"
             :clientId="this.getClient.id"
+            :typing="this.getClient.typingUsers"
+            :currentUser="this.store.currentUser"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -86,7 +88,7 @@ import ChatClientInfo from 'components/chat/ChatClientInfo.vue'
 import ChatTasks from 'components/chat/ChatTasks.vue'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
-import { markRead } from 'src/util/ws'
+import { markRead, typing } from 'src/util/ws'
 
 export default {
   components: { ChatTasks, ChatInfo: ChatClientInfo, ChatHelper, ChatDialog },
@@ -106,10 +108,6 @@ export default {
     isSending: false
   }),
 
-  mounted () {
-    this.markMessagesRead()
-  },
-
   methods: {
     onTemplateClick (text) {
       this.inputField += ' ' + text
@@ -123,6 +121,7 @@ export default {
 
     keyPressed (text) {
       this.inputField = text
+      typing(this.getClient, this.store.currentUser, text)
     },
 
     markMessagesRead () {
@@ -161,6 +160,14 @@ export default {
     isMobile () {
       return this.$q.screen.width < 1023
     }
+  },
+
+  mounted () {
+    this.markMessagesRead()
+  },
+
+  created () {
+    this.inputField = this.store.clients.find(client => client.id === this.getClient.id).typingMessageText[this.store.currentUser.id]
   },
 
   setup () {
