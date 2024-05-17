@@ -4,7 +4,7 @@
 
 <script>
 import { useStore } from 'stores/store'
-import { connect } from 'src/util/ws'
+import { connect, userOnline } from 'src/util/ws'
 import axios from 'axios'
 
 export default {
@@ -15,6 +15,7 @@ export default {
       .then(response => {
         this.store.currentUser = response.data
       })
+    setInterval(() => userOnline(), 1000)
     window.addEventListener('beforeunload', () => axios.post('/api/v1/user-offline'))
   },
 
