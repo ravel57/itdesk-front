@@ -241,7 +241,7 @@ export default {
 
     getName (message) {
       if (message.user) {
-        return message.user.firstname + ' ' + message.user.lastname
+        return message.user.firstname + ' ' + (message.user.lastname !== null ? message.user.lastname : '')
       } else {
         return ''
       }

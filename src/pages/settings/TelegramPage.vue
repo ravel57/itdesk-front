@@ -107,6 +107,7 @@ export default {
     dialogToken: '',
     dialogName: '',
     isNewTelegramBot: true,
+    dragging: false,
     telegramBotId: null // for updates
   }),
 

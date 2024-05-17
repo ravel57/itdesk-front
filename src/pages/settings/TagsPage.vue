@@ -10,6 +10,7 @@
         bordered
         class="rounded-borders"
         separator
+        full-width
         style="margin-top: 8px"
       >
         <q-item header class="text-bold">

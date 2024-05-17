@@ -18,18 +18,34 @@ export function connect () {
 function clientsCallback (clients) {
   const parsedClients = JSON.parse(clients.body)
   parsedClients.forEach(it => {
+    if (it.lastname === null) {
+      it.lastname = ''
+    }
     it.messages.forEach(message => {
       message.date = new Date(message.date)
     })
     it.tasks.forEach(task => {
       task.createdAt = new Date(task.createdAt)
     })
+    if (it.user != null) {
+      it.user.forEach(user => {
+        if (user.lastname === null) {
+          user.lastname = ''
+        }
+      })
+    }
   })
   useStore().clients = parsedClients
 }
 
 function authenticatedUsersCallback (usersOnline) {
-  useStore().usersOnline = JSON.parse(usersOnline.body)
+  const users = JSON.parse(usersOnline.body)
+  users.forEach(user => {
+    if (user.lastname === null) {
+      user.lastname = ''
+    }
+  })
+  useStore().usersOnline = users
 }
 
 export function markRead (clientId) {
