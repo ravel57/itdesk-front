@@ -105,6 +105,7 @@ export default {
         client.lastMessageTime = new Date(Math.max(...client.messages.map(e => e.date)))
           .toLocaleTimeString('ru-RU', {
             timeZone: 'Europe/Moscow',
+            year: 'numeric',
             month: 'numeric',
             day: 'numeric',
             hour: '2-digit',

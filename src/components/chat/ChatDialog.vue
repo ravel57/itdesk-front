@@ -63,7 +63,7 @@
         >
           <div
             v-if="this.typing.length > 0 && this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-            v-text="this.typing.map(t => t.username).join(', ') + ' печатает...'"
+            v-text="this.typing.map(t => `${t.firstname} ${t.lastname}`).join(', ') + ' печатает...'"
           />
           <q-toolbar class="no-padding">
             <q-btn

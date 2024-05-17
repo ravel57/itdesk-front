@@ -121,7 +121,7 @@ export default {
 
     keyPressed (text) {
       this.inputField = text
-      typing(this.getClient, this.store.currentUser)
+      typing(this.getClient, this.store.currentUser, text)
     },
 
     markMessagesRead () {
@@ -164,6 +164,10 @@ export default {
 
   mounted () {
     this.markMessagesRead()
+  },
+
+  created () {
+    this.inputField = this.store.clients.find(client => client.id === this.getClient.id).typingMessageText[this.store.currentUser.id]
   },
 
   setup () {
