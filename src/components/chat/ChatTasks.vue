@@ -39,14 +39,23 @@
                     :key="index"
                     style="padding: 0"
                   >
-                    <q-btn
-                      v-if="!task.completed"
-                      icon="check_circle"
-                      label="Отметить выполненной"
-                      class="text-grey"
-                      flat
-                      @click="this.setTaskCompletedShowDialog(task)"
-                    />
+                    <div class="flex">
+                      <q-btn
+                        v-if="!task.completed"
+                        icon="check_circle"
+                        label="Отметить выполненной"
+                        class="text-grey"
+                        flat
+                        @click="this.setTaskCompletedShowDialog(task)"
+                      />
+                      <q-btn
+                        v-if="!task.completed"
+                        icon="link"
+                        class="text-grey"
+                        flat
+                        dense
+                      />
+                    </div>
                     <q-item
                       clickable
                       @click="this.onTaskClick(task)"

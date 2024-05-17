@@ -66,7 +66,6 @@
           v-model="dialogRole"
           :options="this.store.roles"
           label="Роль"
-          use-input
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>

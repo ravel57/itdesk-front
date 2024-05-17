@@ -123,7 +123,7 @@
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
-                      No results
+                      Нет результатов
                     </q-item-section>
                   </q-item>
                 </template>

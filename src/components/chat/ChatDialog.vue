@@ -47,7 +47,14 @@
                       <q-item-section>Удалить</q-item-section>
                     </q-item>
                     <q-item clickable v-close-popup>
-                      <q-item-section>Скопировать текст</q-item-section>
+                      <q-item-section
+                        @click="copyToClipboard(message.text)"
+                      >
+                        Скопировать текст
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup>
+                      <q-item-section>Связать с заявкой</q-item-section>
                     </q-item>
                   </q-list>
                 </q-menu>
@@ -140,6 +147,9 @@ export default {
   },
 
   methods: {
+    copyToClipboard (text) {
+      navigator.clipboard.writeText(text)
+    },
     scrollToBottom () {
       setTimeout(() => {
         document.getElementById('chat').scrollIntoView({ block: 'end' })
