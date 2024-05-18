@@ -24,6 +24,7 @@
           >
             <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
+              :id="`message_${message.id}`"
               :avatar="message.avatar"
               :name="this.getName(message)"
               :sent="message.sent"
@@ -54,6 +55,13 @@
                       </q-item-section>
                     </q-item>
                     <q-item clickable v-close-popup>
+                      <q-item-section
+                        @click="pastToInputField(message.text)"
+                      >
+                        Вставить в поле ввода
+                      </q-item-section>
+                    </q-item>
+                    <q-item clickable v-close-popup>
                       <q-item-section>Связать с заявкой</q-item-section>
                     </q-item>
                   </q-list>
@@ -69,8 +77,8 @@
           bg-color="white"
         >
           <div
-            v-if="this.typing.length > 0 && this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-            v-text="this.typing.map(t => `${t.firstname} ${t.lastname}`).join(', ') + ' печатает...'"
+            v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+            v-text="this.getTypingUsers"
           />
           <q-toolbar class="no-padding">
             <q-btn
@@ -93,8 +101,8 @@
               :placeholder="toggleIsComment ? 'Текст комментария' : 'Текст сообщения'"
               :style="'color: ' + this.toggleIsComment ? 'white' : 'black'"
               :class="this.toggleIsComment ? 'bg-blue-3' : 'bg-white'"
-              @keydown.tab.prevent="handleTab"
-              @keydown="this.handleKeyPress"
+              @keydown.tab.prevent="handleTabPressed"
+              @keydown="this.handleKeyPressed"
               @input="this.textChanged"
             />
             <div>
@@ -128,7 +136,7 @@ import axios from 'axios'
 export default {
   name: 'ChatDialog',
 
-  props: ['messages', 'inputField', 'templates', 'isSending', 'clientId', 'typing', 'currentUser'],
+  props: ['messages', 'inputField', 'templates', 'isSending', 'clientId', 'typing', 'currentUser', 'linkedMessageId'],
 
   data: () => ({
     toggleIsComment: false,
@@ -150,10 +158,15 @@ export default {
     copyToClipboard (text) {
       navigator.clipboard.writeText(text)
     },
+
+    pastToInputField (text) {
+      this.$emit('pastToInputField', text)
+    },
+
     scrollToBottom () {
       setTimeout(() => {
         document.getElementById('chat').scrollIntoView({ block: 'end' })
-      }, 5)
+      }, 10)
     },
 
     sendMessage () {
@@ -186,7 +199,7 @@ export default {
       }
     },
 
-    handleTab (event) {
+    handleTabPressed (event) {
       if (this.$refs.textInput.value) {
         const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
         const value = matches[0].trim()
@@ -199,7 +212,7 @@ export default {
       }
     },
 
-    handleKeyPress (event) {
+    handleKeyPressed (event) {
       if (event.keyCode === 13 && event.ctrlKey) {
         this.sendMessage()
       }
@@ -268,6 +281,27 @@ export default {
       const decodedText = document.createElement('textarea')
       decodedText.innerHTML = message
       return decodedText.value.replace(urlRegex, '<a href="$&" target="_blank">$&</a>')
+    },
+
+    scrollToElementById (id) {
+      const element = document.getElementById(id)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' })
+      }
+    }
+  },
+
+  computed: {
+    getTypingUsers () {
+      const filter = this.typing.filter(t => t.username !== this.currentUser.username)
+      const s = filter.length > 1 ? ' печатают...' : ' печатает...'
+      return filter.map(t => `${t.firstname} ${t.lastname}`).join(', ') + s
+    }
+  },
+
+  watch: {
+    linkedMessageId () {
+      this.scrollToElementById(`message_${this.linkedMessageId}`)
     }
   }
 

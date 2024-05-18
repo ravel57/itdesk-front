@@ -35,10 +35,12 @@
             :clientId="this.getClient.id"
             :typing="this.getClient.typingUsers"
             :currentUser="this.store.currentUser"
+            :linkedMessageId="this.linkedMessageId"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
             @isSending="this.isSending = true"
+            @pastToInputField="pastToInputField"
           />
         </div>
         <div
@@ -62,7 +64,7 @@
             style="z-index: 1"
             :client="this.getClient"
             :organizations="this.store.organizations"
-            @changeClient="this.changeClient"
+            @updateClient="this.updateClient"
           />
           <chat-tasks
             :tasks="this.getClient.tasks"
@@ -74,6 +76,7 @@
             :priorities="this.store.priorities"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
+            @scrollToElementById="this.linkedMessageId = $event"
           />
         </div>
       </div>
@@ -105,7 +108,8 @@ export default {
     inputField: '',
     isComment: false,
     isNotificationEnabled: true,
-    isSending: false
+    isSending: false,
+    linkedMessageId: null
   }),
 
   methods: {
@@ -130,7 +134,7 @@ export default {
       }
     },
 
-    changeClient (newClient) {
+    updateClient (newClient) {
       this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
     },
 
@@ -140,6 +144,11 @@ export default {
 
     updateTask (task, newTask) {
       this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+    },
+
+    pastToInputField (text) {
+      this.inputField = text
+      typing(this.getClient, this.store.currentUser, text)
     }
   },
 
@@ -167,7 +176,8 @@ export default {
   },
 
   created () {
-    this.inputField = this.store.clients.find(client => client.id === this.getClient.id).typingMessageText[this.store.currentUser.id]
+    this.inputField = this.store.clients.find(client => client.id === this.getClient.id)
+      .typingMessageText[this.store.currentUser.id]
   },
 
   setup () {

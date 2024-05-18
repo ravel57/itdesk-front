@@ -177,7 +177,7 @@ export default {
 
       axios.post(`/api/v1/client/${this.client.id}/update-client`, client)
         .then(newClient => {
-          this.$emit('changeClient', newClient)
+          this.$emit('updateClient', newClient)
         })
         .catch(e => {
           this.$q.notify({

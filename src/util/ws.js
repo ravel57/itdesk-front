@@ -52,8 +52,8 @@ export function markRead (clientId) {
   stompClient.send('/app/mark-read', {}, clientId)
 }
 
-export function userOnline () {
-  stompClient.send('/app/user-online', {})
+export function userOnline (user) {
+  stompClient.send('/app/user-online', {}, JSON.stringify(user))
 }
 
 export function typing (client, user, text) {

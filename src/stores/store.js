@@ -7,7 +7,9 @@ export const useStore = defineStore('store', {
       {
         id: 0,
         tasks: [],
-        messages: []
+        messages: [],
+        typingUsers: [],
+        typingMessageText: []
       }
     ],
 
@@ -18,7 +20,8 @@ export const useStore = defineStore('store', {
     statuses: [],
     priorities: [],
     templates: [],
-    usersOnline: []
+    usersOnline: [],
+    currentUser: {}
   }),
 
   getters: {

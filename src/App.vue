@@ -15,8 +15,8 @@ export default {
       .then(response => {
         this.store.currentUser = response.data
       })
-    setInterval(() => userOnline(), 1000)
-    window.addEventListener('beforeunload', () => axios.post('/api/v1/user-offline'))
+    setInterval(() => userOnline(this.store.currentUser), 1000)
+    window.addEventListener('beforeunload', () => axios.post('/api/v1/user-offline', this.store.currentUser))
   },
 
   setup () {

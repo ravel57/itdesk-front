@@ -49,11 +49,11 @@
                         @click="this.setTaskCompletedShowDialog(task)"
                       />
                       <q-btn
-                        v-if="!task.completed"
                         icon="link"
                         class="text-grey"
                         flat
                         dense
+                        @click="scrollToElementById(task)"
                       />
                     </div>
                     <q-item
@@ -390,6 +390,10 @@ export default {
       } else {
         return ''
       }
+    },
+
+    scrollToElementById (task) {
+      this.$emit('scrollToElementById', task.linkedMessageId)
     }
   },
 

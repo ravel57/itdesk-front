@@ -438,11 +438,11 @@ export default {
             break
           }
           case 'priority': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(task.priority))
+            tasks = tasks.filter(task => el.selectedOptions.includes(task.priority.name))
             break
           }
           case 'organization': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(task.organization.name))
+            tasks = tasks.filter(task => el.selectedOptions.includes(task.client.organization.name))
             break
           }
           case 'status': {
