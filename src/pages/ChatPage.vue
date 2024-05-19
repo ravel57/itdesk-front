@@ -36,11 +36,13 @@
             :typing="this.getClient.typingUsers"
             :currentUser="this.store.currentUser"
             :linkedMessageId="this.linkedMessageId"
+            :tasks="this.getClient.tasks"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
             @isSending="this.isSending = true"
             @pastToInputField="pastToInputField"
+            @linkToTask="this.linkToTask"
           />
         </div>
         <div
@@ -92,6 +94,7 @@ import ChatTasks from 'components/chat/ChatTasks.vue'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import { markRead, typing } from 'src/util/ws'
+import axios from 'axios'
 
 export default {
   components: { ChatTasks, ChatInfo: ChatClientInfo, ChatHelper, ChatDialog },
@@ -149,6 +152,24 @@ export default {
     pastToInputField (text) {
       this.inputField = text
       typing(this.getClient, this.store.currentUser, text)
+    },
+
+    linkToTask (message, task) {
+      const obj = { message, task }
+      console.log(obj)
+      axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, obj)
+        .then(response => {
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
     }
   },
 

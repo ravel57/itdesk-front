@@ -32,37 +32,72 @@
               :bg-color="message.comment ? 'blue-3' : message.sent ? '#e0e0e0' : 'indigo-3'"
               :text-color="message.comment ? 'white' : 'black'"
               style="white-space: pre-wrap;"
-              left-icon="reply"
             >
               <div>
-              <div v-html="this.findLinks(message.text)"/>
+                <div v-html="this.findLinks(message.text)"/>
                 <q-menu
                   touch-position
                   context-menu
                 >
                   <q-list dense style="min-width: 100px">
-                    <q-item clickable v-close-popup>
+                    <q-item
+                      clickable
+                      v-close-popup
+                    >
                       <q-item-section>Ответить</q-item-section>
                     </q-item>
-                    <q-item clickable v-close-popup>
+                    <q-item
+                      clickable
+                      v-close-popup
+                    >
                       <q-item-section>Удалить</q-item-section>
                     </q-item>
-                    <q-item clickable v-close-popup>
+                    <q-item
+                      clickable
+                      v-close-popup
+                    >
                       <q-item-section
                         @click="copyToClipboard(message.text)"
                       >
                         Скопировать текст
                       </q-item-section>
                     </q-item>
-                    <q-item clickable v-close-popup>
+                    <q-item
+                      clickable
+                    >
                       <q-item-section
                         @click="pastToInputField(message.text)"
+                        v-close-popup
                       >
                         Вставить в поле ввода
                       </q-item-section>
                     </q-item>
-                    <q-item clickable v-close-popup>
-                      <q-item-section>Связать с заявкой</q-item-section>
+                    <q-item
+                      v-if="this.tasks.length > 0"
+                      clickable
+                    >
+                      <q-item-section>
+                        Сделать ключевым для заявки
+                      </q-item-section>
+                      <q-item-section side>
+                        <q-icon name="keyboard_arrow_right"/>
+                      </q-item-section>
+                      <q-menu anchor="top end" self="top start">
+                        <q-list>
+                          <q-item
+                            v-for="task in this.tasks"
+                            :key="task"
+                            dense
+                            clickable
+                            @click="this.linkToTask(message, task)"
+                            v-close-popup>
+                            <q-item-section
+                            >
+                              {{ task.name }}
+                            </q-item-section>
+                          </q-item>
+                        </q-list>
+                      </q-menu>
                     </q-item>
                   </q-list>
                 </q-menu>
@@ -136,7 +171,17 @@ import axios from 'axios'
 export default {
   name: 'ChatDialog',
 
-  props: ['messages', 'inputField', 'templates', 'isSending', 'clientId', 'typing', 'currentUser', 'linkedMessageId'],
+  props: [
+    'messages',
+    'inputField',
+    'templates',
+    'isSending',
+    'clientId',
+    'typing',
+    'currentUser',
+    'linkedMessageId',
+    'tasks'
+  ],
 
   data: () => ({
     toggleIsComment: false,
@@ -287,7 +332,16 @@ export default {
       const element = document.getElementById(id)
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' })
+        const clazz = 'bg-primary'
+        element.classList.add(clazz)
+        setTimeout(() => {
+          element.classList.remove(clazz)
+        }, 2500)
       }
+    },
+
+    linkToTask (message, task) {
+      this.$emit('linkToTask', message, task)
     }
   },
 
