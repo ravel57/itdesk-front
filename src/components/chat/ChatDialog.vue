@@ -336,6 +336,7 @@ export default {
         element.classList.add(clazz)
         setTimeout(() => {
           element.classList.remove(clazz)
+          this.$emit('clearLinkedMessageId')
         }, 2500)
       }
     },

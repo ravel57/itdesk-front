@@ -43,6 +43,7 @@
             @isSending="this.isSending = true"
             @pastToInputField="pastToInputField"
             @linkToTask="this.linkToTask"
+            @clearLinkedMessageId="this.clearLinkedMessageId"
           />
         </div>
         <div
@@ -155,9 +156,7 @@ export default {
     },
 
     linkToTask (message, task) {
-      const obj = { message, task }
-      console.log(obj)
-      axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, obj)
+      axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, { message, task })
         .then(response => {
         })
         .catch(e => {
@@ -170,6 +169,10 @@ export default {
             }]
           })
         })
+    },
+
+    clearLinkedMessageId () {
+      this.linkedMessageId = null
     }
   },
 
