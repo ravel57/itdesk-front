@@ -31,6 +31,7 @@
               :stamp="this.getStamp(message)"
               :bg-color="message.comment ? 'blue-3' : message.sent ? '#e0e0e0' : 'indigo-3'"
               :text-color="message.comment ? 'white' : 'black'"
+              :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
             >
               <div>
@@ -50,7 +51,11 @@
                       clickable
                       v-close-popup
                     >
-                      <q-item-section>Удалить</q-item-section>
+                      <q-item-section
+                        @click="this.deleteMessage(message)"
+                      >
+                        Удалить
+                      </q-item-section>
                     </q-item>
                     <q-item
                       clickable
@@ -232,7 +237,6 @@ export default {
             this.scrollToBottom()
           })
           .catch(e =>
-            // TODO message not delivered
             this.$q.notify({
               message: e.message,
               type: 'negative',
@@ -278,25 +282,6 @@ export default {
       })
     },
 
-    getDate (message) {
-      return message.date.toLocaleDateString('ru-RU', {
-        timeZone: 'Europe/Moscow',
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
-      })
-    },
-
-    isDateChanged (message) {
-      // const date = message.date.toISOString().slice(0, 10) // this.getDate(message) // .setHours(0, 0, 0, 0)
-      // if (this.previousMessageDate !== date) {
-      //   this.previousMessageDate = date
-      //   return true
-      // } else {
-      return false
-      // }
-    },
-
     getName (message) {
       if (message.user) {
         return message.user.firstname + ' ' + (message.user.lastname !== null ? message.user.lastname : '')
@@ -322,7 +307,7 @@ export default {
     },
 
     findLinks (message) {
-      const urlRegex = /(https?:\/\/[^\s]+)/g
+      const urlRegex = /(https?:\/\/\S+)/g
       const decodedText = document.createElement('textarea')
       decodedText.innerHTML = message
       return decodedText.value.replace(urlRegex, '<a href="$&" target="_blank">$&</a>')
@@ -343,6 +328,10 @@ export default {
 
     linkToTask (message, task) {
       this.$emit('linkToTask', message, task)
+    },
+
+    deleteMessage (message) {
+      this.$emit('deleteMessage', message)
     }
   },
 
@@ -368,5 +357,8 @@ textarea {
   width: 200%;
   height: 70px;
   resize: none;
+}
+.strikethrough {
+  text-decoration: line-through;
 }
 </style>

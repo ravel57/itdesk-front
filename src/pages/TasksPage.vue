@@ -143,7 +143,7 @@
           </div>
           <q-select
             outlined
-            v-model="addNewFilterSelectorText"
+            v-model="this.addNewFilterSelectorText"
             :options="this.filterType.map(e => e.label)"
             dense
             @update:model-value="handleNewFilterSelection($event)"
@@ -158,6 +158,14 @@
             icon="save"
             @click="this.dialogSaveFilter"
             flat
+            style="height: 40px"
+          />
+          <q-btn
+            v-if="this.filterChain.length > 0"
+            icon="cancel"
+            @click="this.removeFilters"
+            flat
+            style="height: 40px"
           />
         </div>
         <q-table
@@ -446,6 +454,10 @@ export default {
       } else {
         return ''
       }
+    },
+
+    removeFilters () {
+      this.filterChain = []
     }
   },
 

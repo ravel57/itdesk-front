@@ -44,6 +44,7 @@
             @pastToInputField="pastToInputField"
             @linkToTask="this.linkToTask"
             @clearLinkedMessageId="this.clearLinkedMessageId"
+            @deleteMessage="this.deleteMessage"
           />
         </div>
         <div
@@ -173,6 +174,22 @@ export default {
 
     clearLinkedMessageId () {
       this.linkedMessageId = null
+    },
+
+    deleteMessage (message) {
+      axios.delete(`/api/v1/client/${this.getClient.id}/delete-message/${message.id}`)
+        .then(response => {
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
     }
   },
 
