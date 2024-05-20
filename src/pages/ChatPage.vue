@@ -102,12 +102,12 @@ export default {
 
   data: () => ({
     tab: 'tab1',
-    macros: [],
-    knowledgeBase: [
-      { title: 'Доменны', texts: ['*.jopa.ru', '*.zalupa.ru', '*.penis.ru', '*.her.ru'], tags: [] },
-      { title: 'Админки', texts: ['admin.jopa.ru'], tags: [] },
-      { title: 'Почты', texts: ['mail.jopa.ru'], tags: [] },
-      { title: 'Адреса удаленок', texts: ['rdp.jopa.ru'], tags: [] }
+    macros: [], // FIXME
+    knowledgeBase: [ // FIXME
+      { title: 'Доменны', texts: ['*.test1.ru', '*.test2.ru', '*.test3.ru', '*.test4.ru'], tags: [] },
+      { title: 'Админки', texts: ['admin.test1.ru'], tags: [] },
+      { title: 'Почты', texts: ['mail.test1.ru'], tags: [] },
+      { title: 'Адреса удаленок', texts: ['rdp.test1.ru'], tags: [] }
     ],
     inputField: '',
     isComment: false,

@@ -38,7 +38,7 @@ const routes = [
           },
           {
             path: 'profile',
-            component: () => import('pages/settings/SettingsPage.vue')
+            component: () => import('pages/settings/ProfileSettings.vue')
           },
           {
             path: 'users',

@@ -17,7 +17,7 @@
               v-if="this.selectedSavedFilter.length > 0"
               ref="deleteSavedFilterButton"
               icon="delete"
-              @click="this.deleteSavedFilter"
+              @click="isDeleteSavedFilterDialogShow = true"
               flat
             />
           </div>
@@ -196,6 +196,33 @@
           </div>
         </q-scroll-area>
       </q-page>
+      <q-dialog
+        v-model="this.isDeleteSavedFilterDialogShow"
+        persistent
+        backdrop-filter="blur(4px)"
+      >
+        <q-card class="dialog-width">
+          <q-toolbar class="justify-end">
+            <q-btn flat round dense icon="close" v-close-popup />
+          </q-toolbar>
+          <q-card-section style="padding-top: 0">
+            Удалить фильтр {{ this.selectedSavedFilter.name }}?
+          </q-card-section>
+          <q-card-actions align="right">
+            <q-btn
+              color="white"
+              text-color="primary"
+              label="Отмена"
+              @click="this.isDeleteSavedFilterDialogShow = false"
+            />
+            <q-btn
+              color="primary"
+              label="Закрыть"
+              @click="deleteSavedFilter"
+            />
+          </q-card-actions>
+        </q-card>
+      </q-dialog>
     </q-page-container>
   </q-layout>
 </template>
@@ -224,6 +251,7 @@ export default {
     dialogSaveFilterVisible: false,
     isShowListMode: false,
     isFilterSelected: false,
+    isDeleteSavedFilterDialogShow: false,
     tableColumns: [
       {
         name: 'name',
@@ -370,6 +398,7 @@ export default {
       const filterElement = this.savedFilters.find(el => this.selectedSavedFilter === el.label)
       if (filterElement !== undefined) {
         this.filterChain = structuredClone(filterElement.selectedOptions)
+        this.isFilterSelected = true
       } else {
         this.selectedSavedFilter = ''
         this.filterChain = []
@@ -392,6 +421,7 @@ export default {
         .then(() => {
           this.savedFilters = this.savedFilters.filter(filter => this.selectedSavedFilter !== filter.label)
           this.selectedSavedFilter = ''
+          this.isDeleteSavedFilterDialogShow = false
         })
         .catch(e =>
           this.$q.notify({
@@ -426,7 +456,7 @@ export default {
         const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
         switch (slug) {
           case 'executor': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(task.executor.name))
+            tasks = tasks.filter(task => el.selectedOptions.includes(`${task.executor.firstname} ${task.executor.lastname}`))
             break
           }
           case 'tag': {
