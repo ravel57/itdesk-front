@@ -37,8 +37,8 @@
             >
               <div>
                 <img
-                  v-if="message.fileUuid && message.fileType.startsWith('image')"
-                  :src="`/files/jpeg/${message.fileUuid}`"
+                  v-if="message.fileUuid && message.fileType.startsWith('image/')"
+                  :src="`/files/images/${message.fileUuid}`"
                   style="width: 90%"
                   alt=""
                 >
@@ -66,7 +66,7 @@
                 </audio>
                 <a
                   v-else-if="message.fileUuid"
-                  :href="`/documents/${message.fileUuid}`"
+                  :href="`/files/documents/${message.fileUuid}`"
                   target="_blank"
                 >
                   <q-icon name="attach_file"/>
@@ -223,16 +223,16 @@ export default {
     'typing',
     'currentUser',
     'linkedMessageId',
-    'tasks'
+    'tasks',
+    'taskWatchingNow'
   ],
 
   data: () => ({
     toggleIsComment: false,
     text: '',
-    taskWatchingNow: [],
-    previousMessageDate: '',
     isShowCustomContextMenu: true,
-    rightClickCounter: 0
+    rightClickCounter: 0,
+    attachedFile: null
   }),
 
   updated () {
@@ -261,7 +261,7 @@ export default {
 
     sendMessage () {
       const textarea = document.getElementById('textarea')
-      if (textarea.value) {
+      if (textarea.value || this.attachedFile) {
         this.$emit('isSending', true)
         const message = {
           id: null,
@@ -271,20 +271,45 @@ export default {
           comment: this.toggleIsComment,
           read: true
         }
-        axios.post(`/api/v1/client/${this.clientId}/new-message`, message)
-          .then(() => {
-            this.$emit('sendMessage', message)
-            this.scrollToBottom()
-          })
-          .catch(e =>
-            this.$q.notify({
-              message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
-            }))
+        if (this.attachedFile) {
+          const formData = new FormData()
+          formData.append('file', this.attachedFile)
+          axios.post('/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+            .then(response => {
+              message.fileUuid = response.data
+              message.fileName = this.attachedFile.name
+              message.fileType = this.attachedFile.type
+              axios.post(`/api/v1/client/${this.clientId}/new-message`, message)
+                .then(() => {
+                  this.$emit('sendMessage', message)
+                  this.scrollToBottom()
+                })
+            })
+            .catch(e =>
+              this.$q.notify({
+                message: e.message,
+                type: 'negative',
+                position: 'top-right',
+                actions: [{
+                  icon: 'close', color: 'white', dense: true, handler: () => undefined
+                }]
+              }))
+        } else {
+          axios.post(`/api/v1/client/${this.clientId}/new-message`, message)
+            .then(() => {
+              this.$emit('sendMessage', message)
+              this.scrollToBottom()
+            })
+            .catch(e =>
+              this.$q.notify({
+                message: e.message,
+                type: 'negative',
+                position: 'top-right',
+                actions: [{
+                  icon: 'close', color: 'white', dense: true, handler: () => undefined
+                }]
+              }))
+        }
       }
     },
 
@@ -334,7 +359,7 @@ export default {
       const fileInput = document.getElementById('fileInput')
       fileInput.click()
       fileInput.addEventListener('change', () => {
-        console.log('Выбранный файл:', fileInput.files[0]) // FIXME
+        this.attachedFile = fileInput.files[0]
         this.$q.notify({
           message: `Загружен файл: ${fileInput.files[0].name}`,
           type: 'positive',

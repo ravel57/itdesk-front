@@ -37,6 +37,7 @@
             :currentUser="this.store.currentUser"
             :linkedMessageId="this.linkedMessageId"
             :tasks="this.getClient.tasks"
+            :task-watching-now="[]"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
