@@ -383,7 +383,6 @@ export default {
         }, 1000)
       }
       this.rightClickCounter++
-      console.log(this.rightClickCounter, this.isShowCustomContextMenu)
     }
   },
 
