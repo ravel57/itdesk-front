@@ -201,7 +201,16 @@
               />
             </div>
           </q-toolbar>
-          <div style="background: white; width: 100%" v-text="this.attachedFile ? this.attachedFile.name : ''"/>
+          <div
+            v-if="this.attachedFile"
+            style="background: white; width: 100%"
+          >
+            {{this.attachedFile ? this.attachedFile.name : ''}}
+            <q-icon
+              name="close"
+              @click="this.attachedFile = null"
+            />
+          </div>
         </q-page-sticky>
       </q-page>
     </q-page-container>
@@ -284,6 +293,7 @@ export default {
                 .then(() => {
                   this.$emit('sendMessage', message)
                   this.scrollToBottom()
+                  this.attachedFile = null
                 })
             })
             .catch(e =>
