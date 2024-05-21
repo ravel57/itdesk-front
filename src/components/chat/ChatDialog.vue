@@ -33,10 +33,40 @@
               :text-color="message.comment ? 'white' : 'black'"
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
+              @click.right="this.isShowCustomContextMenu = !this.isShowCustomContextMenu"
             >
               <div>
+                <img
+                  v-if="message.fileUuid && message.fileType.startsWith('image')"
+                  :src="`/files/jpeg/${message.fileUuid}`"
+                  style="width: 90%"
+                  alt=""
+                >
+                <video
+                  v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
+                  style="width: 90%"
+                  controls
+                >
+                  <source
+                    :src="`/files/videos/${message.fileUuid}`"
+                    type="video/mp4"
+                  >
+                  Your browser does not support the video tag.
+                </video>
+                <audio
+                  v-else-if="message.fileUuid && message.fileType.startsWith('audio/')"
+                  style="width: 90%"
+                  controls
+                >
+                  <source
+                    :src="`/files/audios/${message.fileUuid}`"
+                    type="audio/ogg"
+                  >
+                  Your browser does not support the video tag.
+                </audio>
                 <div v-html="this.findLinks(message.text)"/>
                 <q-menu
+                  v-if="true"
                   touch-position
                   context-menu
                 >
@@ -192,7 +222,8 @@ export default {
     toggleIsComment: false,
     text: '',
     taskWatchingNow: [],
-    previousMessageDate: ''
+    previousMessageDate: '',
+    isShowCustomContextMenu: true
   }),
 
   updated () {
@@ -358,6 +389,7 @@ textarea {
   height: 70px;
   resize: none;
 }
+
 .strikethrough {
   text-decoration: line-through;
 }
