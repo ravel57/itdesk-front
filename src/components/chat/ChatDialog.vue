@@ -201,6 +201,7 @@
               />
             </div>
           </q-toolbar>
+          <div style="background: white; width: 100%" v-text="this.attachedFile ? this.attachedFile.name : ''"/>
         </q-page-sticky>
       </q-page>
     </q-page-container>
