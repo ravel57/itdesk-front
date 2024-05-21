@@ -33,7 +33,7 @@
               :text-color="message.comment ? 'white' : 'black'"
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
-              @click.right="this.isShowCustomContextMenu = !this.isShowCustomContextMenu"
+              @click.right="this.invertContextMenu"
             >
               <div>
                 <img
@@ -64,9 +64,17 @@
                   >
                   Your browser does not support the video tag.
                 </audio>
+                <a
+                  v-else-if="message.fileUuid"
+                  :href="`/documents/${message.fileUuid}`"
+                  target="_blank"
+                >
+                  <q-icon name="attach_file"/>
+                  {{ message.fileName }}
+                </a>
                 <div v-html="this.findLinks(message.text)"/>
                 <q-menu
-                  v-if="true"
+                  v-if="this.isShowCustomContextMenu"
                   touch-position
                   context-menu
                 >
@@ -223,7 +231,8 @@ export default {
     text: '',
     taskWatchingNow: [],
     previousMessageDate: '',
-    isShowCustomContextMenu: true
+    isShowCustomContextMenu: true,
+    rightClickCounter: 0
   }),
 
   updated () {
@@ -363,6 +372,18 @@ export default {
 
     deleteMessage (message) {
       this.$emit('deleteMessage', message)
+    },
+
+    invertContextMenu () {
+      if (this.rightClickCounter > 0) {
+        this.isShowCustomContextMenu = false
+        setTimeout(() => {
+          this.isShowCustomContextMenu = true
+          this.rightClickCounter = 0
+        }, 1000)
+      }
+      this.rightClickCounter++
+      console.log(this.rightClickCounter, this.isShowCustomContextMenu)
     }
   },
 
