@@ -1,6 +1,6 @@
 <template>
   <q-card
-    style="height: calc(100vh - 175px); padding: 16px;"
+    style="height: calc(100vh - 225px); padding: 16px;"
   >
     <div class="flex">
       <div>

@@ -1,5 +1,7 @@
 <template>
-  <q-card class="my-card" style="border-bottom: 16px; height: 100px">
+  <q-card
+    class="my-card scrollable-div"
+    style="border-bottom: 16px; height: 150px">
     <q-card-section>
       <div
         style="display: flex"
@@ -17,7 +19,6 @@
           @click="dialogShow"
           dense
           flat
-          round
           size="xs"
         />
         <q-toggle
@@ -39,13 +40,13 @@
         >
           <q-menu v-model="this.menuOpened" content-class="menu-content">
             <q-list>
-              <q-item clickable @click="menuAction('item1')">
+              <q-item clickable v-close-popup>
                 <q-item-section>rPCSMT</q-item-section>
               </q-item>
-              <q-item clickable @click="menuAction('item2')">
+              <q-item clickable v-close-popup>
                 <q-item-section>new user generator</q-item-section>
               </q-item>
-              <q-item clickable @click="menuAction('item2')">
+              <q-item clickable v-close-popup>
                 <q-item-section>check-adminpc</q-item-section>
               </q-item>
             </q-list>
@@ -63,6 +64,12 @@
         @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
         @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
         v-text="this.client.moreInfo"
+      />
+      <div
+        class="text-subtitle2"
+        @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+        @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
+        v-text="this.client.sourceChannel"
       />
     </q-card-section>
   </q-card>
@@ -190,13 +197,6 @@ export default {
           })
         })
       this.dialogVisible = false
-    },
-
-    toggleMenu () {
-      this.menuOpened = !this.menuOpened
-    },
-    menuAction (item) {
-      console.log('Выбран элемент:', item)
     }
   },
 
@@ -227,5 +227,8 @@ export default {
 }
 .menu-content {
   min-width: 200px;
+}
+.scrollable-div {
+  overflow: auto;
 }
 </style>
