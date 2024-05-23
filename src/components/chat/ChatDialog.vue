@@ -35,6 +35,10 @@
               style="white-space: pre-wrap;"
               @click.right="this.invertContextMenu"
             >
+              <div class="flex" v-if="this.getReplyMessageText(message)">
+                <q-icon name="reply"/>
+                {{ this.getReplyMessageText(message) }}
+              </div>
               <div>
                 <img
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
@@ -83,7 +87,11 @@
                       clickable
                       v-close-popup
                     >
-                      <q-item-section>Ответить</q-item-section>
+                      <q-item-section
+                        @click="this.replyMessage(message)"
+                      >
+                        Ответить
+                      </q-item-section>
                     </q-item>
                     <q-item
                       clickable
@@ -158,6 +166,12 @@
             v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
             v-text="this.getTypingUsers"
           />
+          <div
+            v-if="this.replyMessageId !== null"
+          >
+            <q-icon name="reply"/>
+            {{ this.messages.find(m=> m.id === this.replyMessageId).text }}
+          </div>
           <q-toolbar class="no-padding">
             <q-btn
               type="file"
@@ -242,7 +256,8 @@ export default {
     text: '',
     isShowCustomContextMenu: true,
     rightClickCounter: 0,
-    attachedFile: null
+    attachedFile: null,
+    replyMessageId: null
   }),
 
   updated () {
@@ -279,7 +294,8 @@ export default {
           date: new Date(),
           sent: true,
           comment: this.toggleIsComment,
-          read: true
+          read: true,
+          replyMessageId: this.replyMessageId
         }
         if (this.attachedFile) {
           const formData = new FormData()
@@ -294,6 +310,7 @@ export default {
                   this.$emit('sendMessage', message)
                   this.scrollToBottom()
                   this.attachedFile = null
+                  this.replyMessageId = null
                 })
             })
             .catch(e =>
@@ -310,6 +327,7 @@ export default {
             .then(() => {
               this.$emit('sendMessage', message)
               this.scrollToBottom()
+              this.replyMessageId = null
             })
             .catch(e =>
               this.$q.notify({
@@ -419,6 +437,19 @@ export default {
         }, 1000)
       }
       this.rightClickCounter++
+    },
+
+    replyMessage (message) {
+      this.replyMessageId = message.id
+    },
+
+    getReplyMessageText (message) {
+      const find = this.messages.find(m => m.id === message.replyMessageId)
+      if (find) {
+        return find.text
+      } else {
+        return ''
+      }
     }
   },
 
