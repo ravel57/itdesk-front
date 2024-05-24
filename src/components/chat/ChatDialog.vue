@@ -11,7 +11,7 @@
   >
     <q-page-container>
       <q-page
-        style="padding-bottom: 66px; padding-top: 8px;"
+        style="padding-bottom: 86px; padding-top: 8px;"
         ref="chat"
         id="chat"
         scroll
@@ -160,7 +160,7 @@
           expand
           position="bottom"
           class="no-padding"
-          bg-color="white"
+          style="background: white"
         >
           <div
             v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
