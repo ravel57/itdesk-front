@@ -10,8 +10,43 @@
     class="shadow-2 rounded-borders"
   >
     <q-page-container>
+      <q-page-sticky
+        expand
+        position="top"
+        class="no-padding"
+        style="background: white; z-index: 3;"
+      >
+        <q-input
+          filled
+          v-model="search"
+          label="Поиск"
+          dense
+          clearable
+          style="width: 100%;"
+        >
+          <template v-slot:append>
+            <q-icon name="search"/>
+          </template>
+        </q-input>
+        <q-list
+          v-if="this.searchResults.length > 0"
+        >
+          <q-item
+            v-for="message in searchResults"
+            :key="message.id"
+            clickable
+          >
+            <q-item-section
+              @click="goToMessage(message.id)"
+              style="width: 100%;"
+            >
+              {{ message.text }}
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-page-sticky>
       <q-page
-        style="padding-bottom: 86px; padding-top: 8px;"
+        style="padding-bottom: 86px; padding-top: 48px;"
         ref="chat"
         id="chat"
         scroll
@@ -170,7 +205,7 @@
             v-if="this.replyMessageId !== null"
           >
             <q-icon name="reply"/>
-            {{ this.messages.find(m=> m.id === this.replyMessageId).text }}
+            {{ this.messages.find(m => m.id === this.replyMessageId).text }}
           </div>
           <q-toolbar class="no-padding">
             <q-btn
@@ -219,7 +254,7 @@
             v-if="this.attachedFile"
             style="background: white; width: 100%"
           >
-            {{this.attachedFile ? this.attachedFile.name : ''}}
+            {{ this.attachedFile ? this.attachedFile.name : '' }}
             <q-icon
               name="close"
               @click="this.attachedFile = null"
@@ -257,7 +292,9 @@ export default {
     isShowCustomContextMenu: true,
     rightClickCounter: 0,
     attachedFile: null,
-    replyMessageId: null
+    replyMessageId: null,
+    search: '',
+    searchResults: []
   }),
 
   updated () {
@@ -450,6 +487,24 @@ export default {
       } else {
         return ''
       }
+    },
+
+    onSearch () {
+      if (this.search) {
+        this.searchResults = this.messages.filter(message => {
+          if (message.text) {
+            return message.text.toLowerCase().includes(this.search.toLowerCase())
+          } else {
+            return false
+          }
+        })
+      } else {
+        this.searchResults = []
+      }
+    },
+
+    goToMessage (messageId) {
+      this.scrollToElementById(`message_${messageId}`)
     }
   },
 
@@ -464,6 +519,9 @@ export default {
   watch: {
     linkedMessageId () {
       this.scrollToElementById(`message_${this.linkedMessageId}`)
+    },
+    search (newVal) {
+      this.onSearch(newVal)
     }
   }
 
@@ -475,9 +533,5 @@ textarea {
   width: 200%;
   height: 70px;
   resize: none;
-}
-
-.strikethrough {
-  text-decoration: line-through;
 }
 </style>

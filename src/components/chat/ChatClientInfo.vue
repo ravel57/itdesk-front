@@ -67,10 +67,10 @@
       />
       <div
         class="text-subtitle2"
-        @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
-        @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
-        v-text="this.client.sourceChannel"
-      />
+      >
+        <q-icon name="smart_toy"/>
+        {{ this.client.sourceChannel }}
+      </div>
     </q-card-section>
   </q-card>
   <q-dialog

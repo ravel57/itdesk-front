@@ -5,7 +5,12 @@
     <div class="flex">
       <div>
         <div class="flex">
-          <span class="text-h6" style="margin-top: 3px">Список заявок</span>
+          <span
+            class="text-h6"
+            style="margin-top: 3px"
+          >
+            Список заявок
+          </span>
           <div class="container q-pa-none q-gutter-md q-position-relative">
             <q-toggle
               v-model="isShowCompletedTasks"
@@ -24,10 +29,69 @@
           @click="this.dialogNewTask"
           label="Создать новую заявку"
         />
+        <q-btn
+          @click="toggleSearch"
+          class="text-grey-7"
+          icon="search"
+        />
+        <q-btn
+          icon="sort"
+          class="text-grey-7"
+        >
+          <q-menu
+            v-model="this.sortMenuOpened"
+            content-class="menu-content"
+          >
+            <q-list>
+              <q-item
+                v-for="sorting in this.sortingTypes"
+                :key="sorting.slug"
+                clickable
+                v-close-popup
+              >
+                <q-item-section>{{ sorting.label }}</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
+        <q-input
+          v-if="showSearch"
+          filled
+          v-model="search"
+          label="Поиск"
+          outlined
+          dense
+          clearable
+        >
+          <template v-slot:append>
+            <q-icon name="search"/>
+          </template>
+        </q-input>
+        <q-list
+          v-if="this.searchResults.length > 0"
+        >
+          <q-item
+            v-for="task in searchResults"
+            :key="task.id"
+            clickable
+          >
+            <q-item-section
+              @click="goToTask(task.id)"
+              style="width: 100%;"
+            >
+              {{ task.name }}
+            </q-item-section>
+          </q-item>
+        </q-list>
       </div>
     </div>
     <q-separator/>
-    <q-layout view="lHh Lpr lFf" container style="height: 65vh" class="shadow-2 rounded-borders">
+    <q-layout
+      view="lHh Lpr lFf"
+      container
+      style="height: 65vh"
+      class="shadow-2 rounded-borders"
+    >
       <q-page-container>
         <q-page>
           <div class="row justify-center">
@@ -35,8 +99,9 @@
               <q-card-section style="padding: 0">
                 <q-card class="my-card">
                   <q-card-section
-                    v-for="(task, index) in this.getActualTasks"
-                    :key="index"
+                    v-for="task in this.getActualTasks"
+                    :key="task.id"
+                    :id="`task_${task.id}`"
                     style="padding: 0"
                   >
                     <div class="flex">
@@ -119,7 +184,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
@@ -194,7 +259,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         Закрыть заявку {{ this.taskToComplete.name }}?
@@ -243,7 +308,18 @@ export default {
     isNewTask: true,
     taskId: null, // for update
 
-    taskToComplete: null
+    taskToComplete: null,
+
+    showSearch: false,
+    search: '',
+    searchResults: [],
+    sortMenuOpened: false,
+    sortingTypes: [
+      { label: 'По дедлайну', slug: 'deadline' },
+      { label: 'По дате создания', slug: 'creating' },
+      { label: 'Приоритету', slug: 'priority' },
+      { label: 'SLA', slug: 'sla' }
+    ]
   }),
 
   methods: {
@@ -394,12 +470,40 @@ export default {
 
     scrollToElementById (task) {
       this.$emit('scrollToElementById', task.linkedMessageId)
+    },
+
+    toggleSearch () {
+      this.showSearch = !this.showSearch
+    },
+
+    onSearch () {
+      if (this.search) {
+        this.searchResults = this.tasks.filter(task => {
+          if (task.name) {
+            return task.name.toLowerCase().includes(this.search.toLowerCase())
+          } else {
+            return false
+          }
+        })
+      } else {
+        this.searchResults = []
+      }
+    },
+
+    goToTask (taskId) {
+      this.scrollToElementById(`task_${taskId}`)
     }
   },
 
   computed: {
     getActualTasks () {
       return this.tasks.filter(task => !task.completed || this.isShowCompletedTasks)
+    }
+  },
+
+  watch: {
+    search (newVal) {
+      this.onSearch(newVal)
     }
   }
 
