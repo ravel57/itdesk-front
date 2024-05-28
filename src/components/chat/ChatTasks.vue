@@ -114,6 +114,7 @@
                         @click="this.setTaskCompletedShowDialog(task)"
                       />
                       <q-btn
+                        v-if="task.linkedMessageId"
                         icon="link"
                         class="text-grey"
                         flat

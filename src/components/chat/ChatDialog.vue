@@ -23,13 +23,17 @@
           dense
           clearable
           style="width: 100%;"
+          @focus="this.isShowSearchResults = true"
+          @blur="this.onBlur"
         >
           <template v-slot:append>
             <q-icon name="search"/>
           </template>
         </q-input>
         <q-list
-          v-if="this.searchResults.length > 0"
+          v-if="this.isShowSearchResults"
+          class="shadow-2 rounded-borders scrollable-list-container"
+          style="width: 100%; max-height: 350px;"
         >
           <q-item
             v-for="message in searchResults"
@@ -294,7 +298,8 @@ export default {
     attachedFile: null,
     replyMessageId: null,
     search: '',
-    searchResults: []
+    searchResults: [],
+    isShowSearchResults: false
   }),
 
   updated () {
@@ -498,13 +503,21 @@ export default {
             return false
           }
         })
+        this.isShowSearchResults = true
       } else {
         this.searchResults = []
+        this.isShowSearchResults = false
       }
     },
 
     goToMessage (messageId) {
       this.scrollToElementById(`message_${messageId}`)
+    },
+
+    onBlur () {
+      setTimeout(() => {
+        this.isShowSearchResults = false
+      }, 100)
     }
   },
 
@@ -533,5 +546,14 @@ textarea {
   width: 200%;
   height: 70px;
   resize: none;
+}
+
+.strikethrough {
+  text-decoration: line-through;
+}
+
+.scrollable-list-container {
+  max-height: 300px; /* Задайте нужную высоту */
+  overflow-y: auto;
 }
 </style>

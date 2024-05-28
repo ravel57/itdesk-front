@@ -33,7 +33,7 @@
                 clickable
                 @click="showModal(item)"
               >
-                {{ item.title }} {{ item.tags }}
+                {{ item.title }} [{{ item.tags.join(', ') }}]
               </q-item>
             </q-scroll-area>
           </q-expansion-item>
