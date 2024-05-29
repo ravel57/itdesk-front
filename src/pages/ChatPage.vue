@@ -37,7 +37,7 @@
             :currentUser="this.store.currentUser"
             :linkedMessageId="this.linkedMessageId"
             :tasks="this.getClient.tasks"
-            :task-watching-now="[]"
+            :task-watching-now="this.getClient.watchingUsers"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -136,7 +136,7 @@ export default {
 
     markMessagesRead () {
       if (this.getClient.id) {
-        markRead(this.getClient.id)
+        markRead(this.getClient)
       }
     },
 

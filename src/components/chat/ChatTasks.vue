@@ -221,16 +221,72 @@
           dense
           style="padding-top: 16px"
         />
-        <div class="flex">
-          <q-checkbox
-            v-model="dialogTaskDeadlineCheckbox"
-          />
-          <q-input
-            v-model="dialogTaskDeadline"
-            label="Дедлайн"
-            type="date"
-          />
-        </div>
+        <q-input
+          v-model="dialogTaskDeadline"
+          clearable
+        >
+          <template
+            v-slot:prepend
+          >
+            <q-icon
+              name="event"
+              class="cursor-pointer"
+            >
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-date
+                  v-model="dialogTaskDeadline"
+                  mask="DD.MM.YYYY HH:mm"
+                >
+                  <div
+                    class="row items-center justify-end"
+                  >
+                    <q-btn
+                      v-close-popup
+                      label="Закрыть"
+                      color="primary"
+                      flat
+                    />
+                  </div>
+                </q-date>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+          <template
+            v-slot:append
+          >
+            <q-icon
+              name="access_time"
+              class="cursor-pointer"
+            >
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-time
+                  v-model="dialogTaskDeadline"
+                  mask="DD.MM.YYYY HH:mm"
+                  format24h
+                >
+                  <div
+                    class="row items-center justify-end"
+                  >
+                    <q-btn
+                      v-close-popup
+                      label="Закрыть"
+                      color="primary"
+                      flat
+                    />
+                  </div>
+                </q-time>
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-input>
         <q-select
           v-model="this.dialogTaskStatus"
           :options="this.statuses.map(s => s.name)"
@@ -284,6 +340,7 @@
 
 <script>
 import axios from 'axios'
+import moment from 'moment'
 
 export default {
   name: 'ChatTasks',
@@ -300,9 +357,8 @@ export default {
     dialogTaskPriority: '',
     dialogTaskExecutor: '',
     dialogTaskTags: [],
-    dialogTaskDeadline: '',
-    dialogTaskDeadlineCheckbox: false,
     dialogTaskStatus: '',
+    dialogTaskDeadline: '',
 
     taskCreatedAt: '',
 
@@ -334,7 +390,6 @@ export default {
       this.dialogTaskExecutor = ''
       this.dialogTaskTags = []
       this.dialogTaskDeadline = ''
-      this.dialogTaskDeadlineCheckbox = false
       this.dialogTaskStatus = this.statuses.find(status => status.defaultSelection === true).name
       setTimeout(() => this.$refs.taskName.focus(), 250)
     },
@@ -363,7 +418,7 @@ export default {
         tags,
         isCompleted: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
-        deadline: this.isNewTask ? this.dialogTaskDeadlineCheckbox ? new Date(this.dialogTaskDeadline) : null : null
+        deadline: new Date(moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format())
       }
       if (this.isNewTask) {
         axios.post(`/api/v1/client/${this.client.id}/new-task`, task)
@@ -384,7 +439,7 @@ export default {
         axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
           .then(newTask => {
             this.isNewTaskDialogShow = false
-            this.$emit('updateTask', task, newTask)
+            this.$emit('updateTask', task, newTask.data)
           })
           .catch(e =>
             this.$q.notify({
@@ -407,8 +462,7 @@ export default {
       this.dialogTaskPriority = task.priority.name
       this.dialogTaskExecutor = this.getUserName(task.executor)
       this.dialogTaskTags = task.tags.map(tag => tag.name)
-      this.dialogTaskDeadline = task.deadline
-      this.dialogTaskDeadlineCheckbox = task.deadline != null
+      this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm') : ''
       this.taskId = task.id
       this.dialogTaskStatus = task.status.name
       this.taskCreatedAt = task.createdAt
@@ -451,7 +505,7 @@ export default {
     getStamp (date) {
       if (date) {
         return date.toLocaleTimeString('ru-RU', {
-          timeZone: 'Europe/Moscow',
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           year: 'numeric',
           month: 'numeric',
           day: 'numeric',

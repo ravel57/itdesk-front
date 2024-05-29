@@ -26,6 +26,9 @@ function clientsCallback (clients) {
     })
     it.tasks.forEach(task => {
       task.createdAt = new Date(task.createdAt)
+      if (task.deadline) {
+        task.deadline = new Date(task.deadline)
+      }
     })
     if (it.user != null) {
       it.user.forEach(user => {
@@ -48,8 +51,9 @@ function authenticatedUsersCallback (usersOnline) {
   useStore().usersOnline = users
 }
 
-export function markRead (clientId) {
-  stompClient.send('/app/mark-read', {}, clientId)
+export function markRead (client) {
+  const user = useStore().currentUser
+  stompClient.send('/app/mark-read', {}, JSON.stringify({ client, user }))
 }
 
 export function userOnline (user) {

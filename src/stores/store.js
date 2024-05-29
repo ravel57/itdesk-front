@@ -9,7 +9,8 @@ export const useStore = defineStore('store', {
         tasks: [],
         messages: [],
         typingUsers: [],
-        typingMessageText: []
+        typingMessageText: [],
+        watchingUsers: []
       }
     ],
 
@@ -42,6 +43,9 @@ export const useStore = defineStore('store', {
             })
             it.tasks.forEach(task => {
               task.createdAt = new Date(task.createdAt)
+              if (task.deadline) {
+                task.deadline = new Date(task.deadline)
+              }
             })
           })
         })

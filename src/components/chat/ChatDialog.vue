@@ -1,7 +1,7 @@
 <template>
   <div
-    v-if="this.taskWatchingNow.length > 0"
-    v-text="`Сейчас смотрят: ${this.taskWatchingNow.join(', ')}`"
+    v-if="this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).length > 0"
+    v-text="`Сейчас смотрят: ${this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
   />
   <q-layout
     view="lHh Lpr lFf"
