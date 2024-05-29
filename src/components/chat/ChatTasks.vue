@@ -148,7 +148,7 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Создана: '"/>
-                          <th class="text-body2" v-text="this.getStamp(task)"/>
+                          <th class="text-body2" v-text="this.getStamp(task.createdAt)"/>
                         </tr>
                         <tr v-if="!task.completed">
                           <th class="small-text text-grey" v-text="'Статус: '"/>
@@ -156,7 +156,7 @@
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Деадлайн: '"/>
-                          <th class="text-body2" v-text="this.getStamp(task)"/>
+                          <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
                         </tr>
                         <tr>
                           <th class="small-text text-grey" v-text="'Исполнитель: '"/>
@@ -304,17 +304,18 @@ export default {
     dialogTaskDeadlineCheckbox: false,
     dialogTaskStatus: '',
 
-    isShowCompletedTasks: false,
+    taskCreatedAt: '',
 
+    isShowCompletedTasks: false,
     isNewTask: true,
     taskId: null, // for update
-
     taskToComplete: null,
 
     showSearch: false,
     search: '',
     searchResults: [],
     sortMenuOpened: false,
+
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },
       { label: 'По дате создания', slug: 'creating' },
@@ -361,8 +362,8 @@ export default {
         executor: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
         isCompleted: false,
-        createdAt: new Date(),
-        deadline: this.dialogTaskDeadlineCheckbox ? this.dialogTaskDeadline : null
+        createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
+        deadline: this.isNewTask ? this.dialogTaskDeadlineCheckbox ? new Date(this.dialogTaskDeadline) : null : null
       }
       if (this.isNewTask) {
         axios.post(`/api/v1/client/${this.client.id}/new-task`, task)
@@ -410,6 +411,7 @@ export default {
       this.dialogTaskDeadlineCheckbox = task.deadline != null
       this.taskId = task.id
       this.dialogTaskStatus = task.status.name
+      this.taskCreatedAt = task.createdAt
       setTimeout(() => this.$refs.taskName.focus(), 250)
     },
 
@@ -446,9 +448,9 @@ export default {
       }
     },
 
-    getStamp (task) {
-      if (task.createdAt) {
-        return task.createdAt.toLocaleTimeString('ru-RU', {
+    getStamp (date) {
+      if (date) {
+        return date.toLocaleTimeString('ru-RU', {
           timeZone: 'Europe/Moscow',
           year: 'numeric',
           month: 'numeric',
