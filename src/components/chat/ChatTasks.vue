@@ -224,6 +224,7 @@
         <q-input
           v-model="dialogTaskDeadline"
           clearable
+          label="Дедлайн"
         >
           <template
             v-slot:prepend
