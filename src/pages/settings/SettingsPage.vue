@@ -39,7 +39,8 @@ export default {
       { title: 'Макросы', link: '/settings/macros', slug: 'macros' },
       { title: 'SLA', link: '/settings/sla', slug: 'sla' },
       { title: 'Уведомления', link: '/settings/notifications', slug: 'notifications' },
-      { title: 'Telegram', link: '/settings/telegram', slug: 'telegram' }
+      { title: 'Telegram', link: '/settings/telegram', slug: 'telegram' },
+      { title: 'Электронная почта', link: '/settings/email', slug: 'email' }
     ]
   })
 }

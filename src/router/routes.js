@@ -83,6 +83,10 @@ const routes = [
           {
             path: 'telegram',
             component: () => import('pages/settings/TelegramPage.vue')
+          },
+          {
+            path: 'email',
+            component: () => import('pages/settings/EmailPage.vue')
           }
         ]
       },

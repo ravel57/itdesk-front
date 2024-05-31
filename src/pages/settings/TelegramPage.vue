@@ -14,10 +14,10 @@
       >
         <template v-slot:body-cell-token="props">
           <q-td :props="props">
-          <span
-            v-if="!props.row.showToken"
-            v-text="'**********************************************'"
-          />
+            <span
+              v-if="!props.row.showToken"
+              v-text="'**********************************************'"
+            />
             <span
               v-else
               v-text="props.row.token"
@@ -157,7 +157,7 @@ export default {
 
     dialogDeleteBot () {
       const bot = this.telegramBots[this.telegramBots.indexOf(this.telegramBots.find(bot => bot.id === this.telegramBotId))]
-      axios.delete(`/api/v1/telegram-bot${bot.id}`, bot)
+      axios.delete(`/api/v1/telegram-bot/${bot.id}`, bot)
         .then(() => {
           this.telegramBots = this.telegramBots.filter(bot => bot.id !== this.telegramBotId)
           this.dialogClose()
