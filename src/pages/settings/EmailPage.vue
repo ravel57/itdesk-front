@@ -72,16 +72,6 @@
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
-          v-model="this.dialogSmtpServer"
-          label="SMTP Server"
-          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-        />
-        <q-input
-          v-model="this.dialogSmtpPort"
-          label="SMTP Port"
-          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-        />
-        <q-input
           v-model="this.dialogImapServer"
           label="IMAP Server"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
@@ -89,6 +79,16 @@
         <q-input
           v-model="this.dialogImapPort"
           label="IMAP Port"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+        />
+        <q-input
+          v-model="this.dialogSmtpServer"
+          label="SMTP Server"
+          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+        />
+        <q-input
+          v-model="this.dialogSmtpPort"
+          label="SMTP Port"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
@@ -140,9 +140,9 @@ export default {
     dialogEmailFrom: '',
     dialogPassword: '',
     dialogSmtpServer: '',
-    dialogSmtpPort: '',
+    dialogSmtpPort: '465',
     dialogImapServer: '',
-    dialogImapPort: '',
+    dialogImapPort: '993',
     dialogSubject: '',
     isNewEmail: false,
     showPassword: false,
@@ -161,10 +161,10 @@ export default {
       this.dialogEmailFrom = ''
       this.dialogPassword = ''
       this.dialogSmtpServer = ''
-      this.dialogSmtpPort = ''
-      this.dialogImapServer = ''
-      this.dialogImapPort = ''
+      this.dialogImapPort = '993'
       this.dialogSubject = ''
+      this.dialogSmtpPort = '465'
+      this.dialogImapServer = ''
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
