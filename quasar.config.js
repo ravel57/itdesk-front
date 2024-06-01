@@ -50,6 +50,20 @@ module.exports = configure(function (ctx) {
     build: {
       vueRouterMode: 'history', // available values: 'hash', 'history'
       useFilenameHashes: false, // true by default
+      filenameHashing: false,
+      extendWebpack (cfg) {
+        cfg.output = {
+          ...cfg.output,
+          filename: 'js/[name].js',
+          chunkFilename: 'js/[name].js'
+        }
+        cfg.plugins.forEach((plugin) => {
+          if (plugin.constructor.name === 'MiniCssExtractPlugin') {
+            plugin.options.filename = 'css/[name].css'
+            plugin.options.chunkFilename = 'css/[name].css'
+          }
+        })
+      },
 
       // transpile: false,
       // publicPath: '/',
