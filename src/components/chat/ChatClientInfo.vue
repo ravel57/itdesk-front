@@ -68,7 +68,18 @@
       <div
         class="text-subtitle2"
       >
-        <q-icon name="smart_toy"/>
+        <img
+          v-if="client.messageFrom === 'TELEGRAM'"
+          src="/telegram.png"
+          alt="tg"
+          style="width: 16px"
+        >
+        <img
+          v-else-if="client.messageFrom === 'EMAIL'"
+          src="/email.png"
+          alt="email"
+          style="width: 16px"
+        >
         {{ this.client.sourceChannel }}
       </div>
     </q-card-section>
@@ -104,6 +115,12 @@
         />
       </q-card-section>
       <q-card-actions align="right">
+        <q-btn
+          color="white"
+          label="Удалить клиента"
+          text-color="primary"
+          @click="dialogDeleteClient"
+        />
         <q-btn
           color="white"
           label="Закрыть"
@@ -197,6 +214,23 @@ export default {
           })
         })
       this.dialogVisible = false
+    },
+
+    dialogDeleteClient () {
+      axios.delete(`/api/v1/client/${this.client.id}`)
+        .then(() => {
+          this.$emit('deleteClient', this.client)
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
     }
   },
 

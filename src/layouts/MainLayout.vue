@@ -12,7 +12,7 @@
         />
         <q-item @click="this.$router.push('/')" clickable>
           <q-avatar>
-            <img src="/logo.png"/>
+            <img src="/logo.png" alt=""/>
           </q-avatar>
           <q-toolbar-title>ITdesk</q-toolbar-title>
         </q-item>

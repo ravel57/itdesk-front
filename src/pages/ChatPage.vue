@@ -38,6 +38,7 @@
             :linkedMessageId="this.linkedMessageId"
             :tasks="this.getClient.tasks"
             :task-watching-now="this.getClient.watchingUsers"
+            :deleteClient="this.deleteClient"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -191,6 +192,11 @@ export default {
             }]
           })
         })
+    },
+
+    deleteClient () {
+      this.store.clients = this.store.clients.filter(client => client.id !== this.getClient.id)
+      this.router.push('/')
     }
   },
 
