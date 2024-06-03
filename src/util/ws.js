@@ -5,7 +5,7 @@ import { useStore } from 'stores/store'
 let stompClient = null
 
 export function connect () {
-  const socket = new SockJS('/ws') /* http://localhost:8080 */
+  const socket = new SockJS('/ws', null, { transports: ['websocket'] })
   stompClient = Stomp.over(() => { return socket })
   stompClient.debug = () => {}
   stompClient.connect({}, () => {
