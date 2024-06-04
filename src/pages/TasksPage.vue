@@ -468,7 +468,8 @@ export default {
         const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
         switch (slug) {
           case 'executor': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(`${task.executor.firstname} ${task.executor.lastname}`))
+            tasks = tasks.filter(task => task.executor !== null)
+              .filter(task => el.selectedOptions.includes(`${task.executor.firstname} ${task.executor.lastname}`))
             break
           }
           case 'tag': {
@@ -600,7 +601,8 @@ export default {
     // },
 
     executors () {
-      return this.store.users.filter(user => user.roles !== 'OBSERVER')
+      return this.store.users.filter(user => user !== null)
+        .filter(user => user.roles !== 'OBSERVER')
         .map(user => user.firstname + ' ' + user.lastname)
     },
 
