@@ -27,7 +27,7 @@ export default {
 
   data: () => ({
     menuItems: [
-      { title: 'Общие', link: '/settings/common', slug: 'common' },
+      // { title: 'Общие', link: '/settings/common', slug: 'common' },
       { title: 'Профиль', link: '/settings/profile', slug: 'profile' },
       { title: 'Пользователи', link: '/settings/users', slug: 'users' },
       { title: 'Организации', link: '/settings/organizations', slug: 'organizations' },
@@ -38,7 +38,7 @@ export default {
       { title: 'Шаблоны', link: '/settings/templates', slug: 'templates' },
       { title: 'Макросы', link: '/settings/macros', slug: 'macros' },
       // { title: 'SLA', link: '/settings/sla', slug: 'sla' },
-      { title: 'Уведомления', link: '/settings/notifications', slug: 'notifications' },
+      // { title: 'Уведомления', link: '/settings/notifications', slug: 'notifications' },
       { title: 'Telegram', link: '/settings/telegram', slug: 'telegram' },
       { title: 'Электронная почта', link: '/settings/email', slug: 'email' }
     ]
