@@ -162,10 +162,10 @@
                           <th class="small-text text-grey" v-text="'Исполнитель: '"/>
                           <th class="text-body2" v-text="getName(task.executor)"/>
                         </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'SLA: '"/>
-                          <th class="text-body2" v-text="task.sla"/>
-                        </tr>
+<!--                        <tr>-->
+<!--                          <th class="small-text text-grey" v-text="'SLA: '"/>-->
+<!--                          <th class="text-body2" v-text="task.sla"/>-->
+<!--                        </tr>-->
                       </table>
                     </q-item>
                     <q-separator/>
@@ -376,8 +376,8 @@ export default {
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },
       { label: 'По дате создания', slug: 'creating' },
-      { label: 'Приоритету', slug: 'priority' },
-      { label: 'SLA', slug: 'sla' }
+      { label: 'Приоритету', slug: 'priority' }
+      // { label: 'SLA', slug: 'sla' }
     ]
   }),
 

@@ -327,14 +327,14 @@ export default {
           ? row.executor.firstname + ' ' + row.executor.lastname
           : '',
         sortable: true
-      },
-      {
-        name: 'sla',
-        label: 'SLA',
-        align: 'left',
-        field: row => row.sla,
-        sortable: true
       }
+      // {
+      //   name: 'sla',
+      //   label: 'SLA',
+      //   align: 'left',
+      //   field: row => row.sla,
+      //   sortable: true
+      // }
     ]
   }),
 
@@ -485,7 +485,8 @@ export default {
             break
           }
           case 'organization': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(task.client.organization.name))
+            tasks = tasks.filter(task => el.selectedOptions.includes(task.client.organization !== null))
+              .filter(task => el.selectedOptions.includes(task.client.organization.name))
             break
           }
           case 'status': {

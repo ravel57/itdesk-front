@@ -37,7 +37,7 @@ export default {
       { title: 'Статусы', link: '/settings/statuses', slug: 'statuses' },
       { title: 'Шаблоны', link: '/settings/templates', slug: 'templates' },
       { title: 'Макросы', link: '/settings/macros', slug: 'macros' },
-      { title: 'SLA', link: '/settings/sla', slug: 'sla' },
+      // { title: 'SLA', link: '/settings/sla', slug: 'sla' },
       { title: 'Уведомления', link: '/settings/notifications', slug: 'notifications' },
       { title: 'Telegram', link: '/settings/telegram', slug: 'telegram' },
       { title: 'Электронная почта', link: '/settings/email', slug: 'email' }
