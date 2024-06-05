@@ -71,7 +71,7 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
-          v-if="this.store.users.length > 1"
+          v-if="this.store.users.length > 1 && !this.isNewUser"
           color="white"
           label="Удалить пользователя"
           text-color="primary"
