@@ -21,16 +21,16 @@
           flat
           size="xs"
         />
-        <q-toggle
-          v-model="this.isNotificationEnabled"
-          icon="notifications_active"
-          color="primary"
-          class="element q-position-absolute q-right-0"
-          @mouseover="this.showTooltipNotifications = true"
-          @mouseup="this.showTooltipNotifications = false"
-        >
-          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>
-        </q-toggle>
+<!--        <q-toggle-->
+<!--          v-model="this.isNotificationEnabled"-->
+<!--          icon="notifications_active"-->
+<!--          color="primary"-->
+<!--          class="element q-position-absolute q-right-0"-->
+<!--          @mouseover="this.showTooltipNotifications = true"-->
+<!--          @mouseup="this.showTooltipNotifications = false"-->
+<!--        >-->
+<!--          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
+<!--        </q-toggle>-->
         <q-btn
           icon="more_vert"
           flat

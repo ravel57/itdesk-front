@@ -61,6 +61,22 @@
                   <q-tooltip v-if="this.showTooltipSetDefault">Использовать по умолчанию</q-tooltip>
                 </q-btn>
               </q-item-section>
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  :text-color="element.critical ? 'primary' : 'grey'"
+                  dense
+                  flat
+                  icon="priority_high"
+                  @click="setCritical(element)"
+                  @mouseover="this.showTooltipPriorityHigh = true"
+                  @mouseup="this.showTooltipPriorityHigh = false"
+                >
+                  <q-tooltip v-if="this.showTooltipPriorityHigh">Установить критичный приоритет</q-tooltip>
+                </q-btn>
+              </q-item-section>
             </q-item>
           </template>
         </draggable>
@@ -119,19 +135,14 @@ export default {
   components: { draggable },
 
   data: () => ({
-    columns: [
-      { name: 'name', label: 'Название', align: 'center', field: 'name' },
-      { name: 'edit', label: '', align: 'center', field: '' },
-      { name: 'defaultSelection', label: '', align: 'center', field: '' }
-    ],
-
     dialogVisible: false,
     dialogName: '',
 
     isNewPriority: true,
     priorityId: null, // for updates
     dragging: true,
-    showTooltipSetDefault: false
+    showTooltipSetDefault: false,
+    showTooltipPriorityHigh: false
   }),
 
   methods: {
@@ -213,6 +224,26 @@ export default {
       this.store.priorities.forEach(priority => { priority.defaultSelection = false })
       row.defaultSelection = true
       axios.post('/api/v1/update-priority/set-default', row)
+        .then(response => {
+          const priorities = this.store.priorities
+          this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data
+          this.dialogClose()
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+    },
+
+    setCritical (row) {
+      this.store.priorities.forEach(priority => { priority.critical = false })
+      row.critical = true
+      axios.post('/api/v1/update-priority/set-high-priority', row)
         .then(response => {
           const priorities = this.store.priorities
           this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data

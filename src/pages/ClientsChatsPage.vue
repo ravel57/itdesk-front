@@ -27,10 +27,32 @@
                 <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
                 <q-item-label caption>{{ getOrganization(client) }}</q-item-label>
                 <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
-                <q-item-label caption>Заявок: {{ getActualTasks(client).length }}</q-item-label>
+                <div class="flex items-end">
+                  <q-item-label caption>
+                    Заявок: {{ getActualTasks(client).length }}
+                  </q-item-label>
+                  <q-linear-progress
+                    :value="0.95"
+                    reverse
+                    color="green"
+                    class="q-mt-sm"
+                    style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
+                    size="8px"
+                  />
+                </div>
               </q-item-section>
-              <q-item-section side>
-                <circle-counter :counter="client.unreadMessagesCount"/>
+              <q-item-section
+                side
+                style="display: flex; flex-direction: row; align-content: center;"
+              >
+                <q-icon
+                  v-if="client.tasks.filter(task => task.priority.critical).length > 0"
+                  name="priority_high"
+                  class="text-red"
+                />
+                <circle-counter
+                  :counter="client.unreadMessagesCount"
+                />
               </q-item-section>
             </router-link>
           </q-item-section>
