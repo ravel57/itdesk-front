@@ -71,6 +71,13 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
+          v-if="this.store.users.length > 1"
+          color="white"
+          label="Удалить пользователя"
+          text-color="primary"
+          @click="dialogDeleteUser"
+        />
+        <q-btn
           color="white"
           label="Закрыть"
           text-color="primary"
@@ -179,6 +186,23 @@ export default {
               }]
             }))
       }
+    },
+
+    dialogDeleteUser () {
+      axios.delete(`/api/v1/delete-user/${this.userId}`)
+        .then(response => {
+          this.store.users = this.store.users.filter(user => user.id !== this.userId)
+          this.dialogClose()
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     }
   },
 
