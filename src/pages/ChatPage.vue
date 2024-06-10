@@ -12,7 +12,7 @@
         :breakpoint="0"
       >
         <q-tab name="tab1" icon="forum"/>
-        <q-tab name="tab2" icon="database"/>
+        <q-tab name="tab2" icon="database" v-if="this.isShowHelper"/>
         <q-tab name="tab3" icon="info"/>
       </q-tabs>
     </div>
@@ -60,14 +60,15 @@
             :macros="this.macros"
             :knowledgeBase="this.knowledgeBase"
             @onTemplateClick="onTemplateClick"
-            @hideHelper="this.isShowHelper = false"
+            @hideHelper="this.isShowHelper = false; this.tab = 'tab1'"
           />
         </div>
 
         <div
           class="col"
           v-if="!this.isMobile || this.tab === 'tab3'"
-          style="height: 100%; max-width: 33vw;"
+          style="height: 100%;"
+          :style="!this.isMobile ? 'max-width: 33vw' : ''"
         >
           <chat-info
             style="z-index: 1"
