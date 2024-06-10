@@ -25,16 +25,16 @@
             >
               <q-item-section>
                 <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
-                <q-item-label caption>{{ getOrganization(client) }}</q-item-label>
+                <q-item-label caption>{{ this.getOrganization(client) }}</q-item-label>
                 <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
                 <div class="flex items-end">
                   <q-item-label caption>
-                    Заявок: {{ getActualTasks(client).length }}
+                    Заявок: {{ this.getActualTasks(client).length }}
                   </q-item-label>
                   <q-linear-progress
-                    :value="0.95"
+                    :value="this.getSlaPercent(this.getActualTasks(client))"
                     reverse
-                    color="green"
+                    :color="this.getSlaColor(this.getActualTasks(client))"
                     class="q-mt-sm"
                     style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
                     size="8px"
@@ -72,6 +72,7 @@
 <script>
 import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
+import moment from 'moment'
 // import moment from 'moment/moment'
 
 export default {
@@ -101,28 +102,34 @@ export default {
       } else {
         return ''
       }
-    }
+    },
 
-    // getSlaHours (task) {
-    //   const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
-    //   const now = moment()
-    //   const duration = moment.duration(endDateTime.diff(now))
-    //   return duration.days() * 24 + duration.hours()
-    // },
-    //
-    // getSlaPercent (tasks) {
-    //   return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
-    // },
-    //
-    // getSlaColor (tasks) {
-    //   if (this.getSlaPercent(task) > 0.5) {
-    //     return 'green'
-    //   } else if (this.getSlaPercent(task) > 0.25) {
-    //     return 'orange'
-    //   } else {
-    //     return 'red'
-    //   }
-    // }
+    getSlaHours (task) {
+      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const now = moment()
+      const duration = moment.duration(endDateTime.diff(now))
+      return duration.days() * 24 + duration.hours()
+    },
+
+    getSlaPercent (tasks) {
+      const task = tasks.sort((b, a) => {
+        return a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0
+      })[tasks.length - 1]
+      return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
+    },
+
+    getSlaColor (tasks) {
+      const task = tasks.sort((b, a) => {
+        return a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0
+      })[tasks.length - 1]
+      if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.5) {
+        return 'green'
+      } else if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.25) {
+        return 'orange'
+      } else {
+        return 'red'
+      }
+    }
   },
 
   computed: {

@@ -44,12 +44,12 @@ export default {
 
   methods: {
     onCellValueChange (newVal) {
-      newVal.map((item, organizationIndex) => {
-        item.forEach((priorityItem, priorityIndex) => {
+      newVal.map((organization, organizationIndex) => {
+        organization.forEach((priority, priorityIndex) => {
           axios.post('/api/v1/sla', {
             organization: this.store.organizations[organizationIndex],
             priority: this.store.priorities[priorityIndex],
-            duration: priorityItem
+            duration: priority
           })
             .then(response => {})
             .catch(e =>
@@ -62,17 +62,26 @@ export default {
                 }]
               }))
         })
-        return item
+        return organization
       })
     }
   },
 
   mounted () {
+    this.tableData = this.store.organizations.map(() => {
+      return new Array(this.store.priorities.length)
+    })
     axios.get('/api/v1/sla')
       .then(response => {
-        console.log(response.data)
-        for (const dataKey in response.data) {
-          this.tableData.push(dataKey)
+        let counter = 0
+        for (const organization in response.data) {
+          for (const priority in response.data[organization]) {
+            // const find = this.store.priorities.find(it => it.name === priority)
+            // console.log(find)
+            const item = response.data[organization][priority].replace(/\D/g, '')
+            this.tableData[counter].push(item)
+          }
+          counter++
         }
       })
       .catch(e =>
@@ -84,9 +93,6 @@ export default {
             icon: 'close', color: 'white', dense: true, handler: () => undefined
           }]
         }))
-    this.tableData = this.store.organizations.map(() => {
-      return new Array(this.store.priorities.length)
-    })
   },
 
   setup () {

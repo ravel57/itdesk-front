@@ -162,7 +162,7 @@
                           <th class="small-text text-grey" v-text="'Исполнитель: '"/>
                           <th class="text-body2" v-text="getName(task.executor)"/>
                         </tr>
-                        <tr v-if="task.sla">
+                        <tr v-if="task.sla && task.sla.duration > 0">
                           <th class="small-text text-grey" v-text="'SLA: '"/>
                           <th class="text-body2">
                             Осталось: {{ this.getSlaTime(task) }}
