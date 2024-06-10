@@ -16,20 +16,30 @@
         class="no-padding"
         style="background: white; z-index: 3;"
       >
-        <q-input
-          filled
-          v-model="search"
-          label="Поиск"
-          dense
-          clearable
-          style="width: 100%;"
-          @focus="this.isShowSearchResults = true"
-          @blur="this.onBlur"
-        >
-          <template v-slot:append>
-            <q-icon name="search"/>
-          </template>
-        </q-input>
+        <div style="display: flex; width: 100%;">
+          <q-input
+            filled
+            v-model="search"
+            label="Поиск"
+            dense
+            clearable
+            style="width: 100%;"
+            @focus="this.isShowSearchResults = true"
+            @blur="this.onBlur"
+          >
+            <template v-slot:append>
+              <q-icon name="search"/>
+            </template>
+          </q-input>
+          <q-btn
+            v-if="!this.isShowHelper"
+            icon="add"
+            @click="this.showHelper"
+            flat
+            dense
+            class="q-ml-auto"
+          />
+        </div>
         <q-list
           v-if="this.isShowSearchResults"
           class="shadow-2 rounded-borders scrollable-list-container"
@@ -287,7 +297,8 @@ export default {
     'currentUser',
     'linkedMessageId',
     'tasks',
-    'taskWatchingNow'
+    'taskWatchingNow',
+    'isShowHelper'
   ],
 
   data: () => ({
@@ -518,6 +529,10 @@ export default {
       setTimeout(() => {
         this.isShowSearchResults = false
       }, 100)
+    },
+
+    showHelper () {
+      this.$emit('showHelper')
     }
   },
 

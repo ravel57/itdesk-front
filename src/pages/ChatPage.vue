@@ -39,6 +39,7 @@
             :tasks="this.getClient.tasks"
             :task-watching-now="this.getClient.watchingUsers"
             :deleteClient="this.deleteClient"
+            :isShowHelper="this.isShowHelper"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -47,24 +48,26 @@
             @linkToTask="this.linkToTask"
             @clearLinkedMessageId="this.clearLinkedMessageId"
             @deleteMessage="this.deleteMessage"
+            @showHelper="this.isShowHelper = true"
           />
         </div>
         <div
           class="col"
-          v-if="!this.isMobile || this.tab === 'tab2'"
+          v-if="(!this.isMobile || this.tab === 'tab2') && this.isShowHelper"
         >
           <chat-helper
             :templates="this.store.templates"
             :macros="this.macros"
             :knowledgeBase="this.knowledgeBase"
             @onTemplateClick="onTemplateClick"
+            @hideHelper="this.isShowHelper = false"
           />
         </div>
 
         <div
           class="col"
           v-if="!this.isMobile || this.tab === 'tab3'"
-          style="height: 100%;"
+          style="height: 100%; max-width: 33vw;"
         >
           <chat-info
             style="z-index: 1"
@@ -116,7 +119,8 @@ export default {
     isComment: false,
     isNotificationEnabled: true,
     isSending: false,
-    linkedMessageId: null
+    linkedMessageId: null,
+    isShowHelper: true
   }),
 
   methods: {
