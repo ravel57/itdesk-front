@@ -162,10 +162,20 @@
                           <th class="small-text text-grey" v-text="'Исполнитель: '"/>
                           <th class="text-body2" v-text="getName(task.executor)"/>
                         </tr>
-<!--                        <tr>-->
-<!--                          <th class="small-text text-grey" v-text="'SLA: '"/>-->
-<!--                          <th class="text-body2" v-text="task.sla"/>-->
-<!--                        </tr>-->
+                        <tr v-if="task.sla">
+                          <th class="small-text text-grey" v-text="'SLA: '"/>
+                          <th class="text-body2">
+                            Осталось: {{ this.getSlaTime(task) }}
+                            <q-linear-progress
+                              :value="this.getSlaPercent(task)"
+                              reverse
+                              :color="this.getSlaColor(task)"
+                              class="q-mt-sm"
+                              style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
+                              size="8px"
+                            />
+                          </th>
+                        </tr>
                       </table>
                     </q-item>
                     <q-separator/>
@@ -376,8 +386,8 @@ export default {
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },
       { label: 'По дате создания', slug: 'creating' },
-      { label: 'Приоритету', slug: 'priority' }
-      // { label: 'SLA', slug: 'sla' }
+      { label: 'Приоритету', slug: 'priority' },
+      { label: 'SLA', slug: 'sla' }
     ]
   }),
 
@@ -419,7 +429,8 @@ export default {
         tags,
         isCompleted: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
-        deadline: new Date(moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format())
+        deadline: new Date(moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format()),
+        sla: this.isNewTask ? null : this.tasks.find(task => task.id === this.taskId).sla
       }
       if (this.isNewTask) {
         axios.post(`/api/v1/client/${this.client.id}/new-task`, task)
@@ -550,6 +561,34 @@ export default {
 
     goToTask (taskId) {
       this.scrollToElementById(`task_${taskId}`)
+    },
+
+    getSlaHours (task) {
+      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const now = moment()
+      const duration = moment.duration(endDateTime.diff(now))
+      return duration.days() * 24 + duration.hours() + duration.minutes() * 0.017
+    },
+
+    getSlaTime (task) {
+      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const now = moment()
+      const duration = moment.duration(endDateTime.diff(now))
+      return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+    },
+
+    getSlaPercent (task) {
+      return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
+    },
+
+    getSlaColor (task) {
+      if (this.getSlaPercent(task) > 0.5) {
+        return 'green'
+      } else if (this.getSlaPercent(task) > 0.25) {
+        return 'orange'
+      } else {
+        return 'red'
+      }
     }
   },
 

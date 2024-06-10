@@ -46,7 +46,7 @@
                 style="display: flex; flex-direction: row; align-content: center;"
               >
                 <q-icon
-                  v-if="client.tasks.filter(task => task.priority.critical).length > 0"
+                  v-if="client.tasks.filter(task => task.priority.critical && !task.completed).length > 0"
                   name="priority_high"
                   class="text-red"
                 />
@@ -72,6 +72,7 @@
 <script>
 import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
+// import moment from 'moment/moment'
 
 export default {
   name: 'DialogsPage',
@@ -101,6 +102,27 @@ export default {
         return ''
       }
     }
+
+    // getSlaHours (task) {
+    //   const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+    //   const now = moment()
+    //   const duration = moment.duration(endDateTime.diff(now))
+    //   return duration.days() * 24 + duration.hours()
+    // },
+    //
+    // getSlaPercent (tasks) {
+    //   return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
+    // },
+    //
+    // getSlaColor (tasks) {
+    //   if (this.getSlaPercent(task) > 0.5) {
+    //     return 'green'
+    //   } else if (this.getSlaPercent(task) > 0.25) {
+    //     return 'orange'
+    //   } else {
+    //     return 'red'
+    //   }
+    // }
   },
 
   computed: {

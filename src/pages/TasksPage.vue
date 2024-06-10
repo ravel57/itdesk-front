@@ -327,14 +327,14 @@ export default {
           ? row.executor.firstname + ' ' + row.executor.lastname
           : '',
         sortable: true
+      },
+      {
+        name: 'sla',
+        label: 'SLA',
+        align: 'left',
+        field: row => row.sla,
+        sortable: true
       }
-      // {
-      //   name: 'sla',
-      //   label: 'SLA',
-      //   align: 'left',
-      //   field: row => row.sla,
-      //   sortable: true
-      // }
     ]
   }),
 

@@ -69,7 +69,7 @@
               :sent="message.sent"
               :stamp="this.getStamp(message)"
               :bg-color="message.comment ? 'blue-3' : message.sent ? '#e0e0e0' : 'indigo-3'"
-              :text-color="message.comment ? 'white' : 'black'"
+              text-color="black"
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
               @click.right="this.invertContextMenu"
@@ -175,14 +175,14 @@
                       <q-menu anchor="top end" self="top start">
                         <q-list>
                           <q-item
-                            v-for="task in this.tasks"
+                            v-for="task in this.tasks.filter(t => !t.completed)"
                             :key="task"
                             dense
                             clickable
                             @click="this.linkToTask(message, task)"
-                            v-close-popup>
-                            <q-item-section
-                            >
+                            v-close-popup
+                          >
+                            <q-item-section>
                               {{ task.name }}
                             </q-item-section>
                           </q-item>

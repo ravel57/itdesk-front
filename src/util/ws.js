@@ -1,6 +1,7 @@
 import SockJS from 'sockjs-client/dist/sockjs'
 import { Stomp } from '@stomp/stompjs'
 import { useStore } from 'stores/store'
+import moment from 'moment/moment'
 
 let stompClient = null
 
@@ -28,6 +29,10 @@ function clientsCallback (clients) {
       task.createdAt = new Date(task.createdAt)
       if (task.deadline) {
         task.deadline = new Date(task.deadline)
+      }
+      if (task.sla) {
+        task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
+        task.sla.duration = moment.duration(task.sla.duration)
       }
     })
     if (it.user != null) {

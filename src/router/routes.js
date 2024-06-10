@@ -72,10 +72,10 @@ const routes = [
             path: 'macros',
             component: () => import('pages/settings/SettingsPage.vue')
           },
-          // {
-          //   path: 'sla',
-          //   component: () => import('pages/settings/SettingsPage.vue')
-          // },
+          {
+            path: 'sla',
+            component: () => import('pages/settings/SlaPage.vue')
+          },
           {
             path: 'notifications',
             component: () => import('pages/settings/SettingsPage.vue')

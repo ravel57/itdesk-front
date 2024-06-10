@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import moment from 'moment'
 
 export const useStore = defineStore('store', {
   state: () => ({
@@ -45,6 +46,10 @@ export const useStore = defineStore('store', {
               task.createdAt = new Date(task.createdAt)
               if (task.deadline) {
                 task.deadline = new Date(task.deadline)
+              }
+              if (task.sla) {
+                task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
+                task.sla.duration = moment.duration(task.sla.duration)
               }
             })
           })

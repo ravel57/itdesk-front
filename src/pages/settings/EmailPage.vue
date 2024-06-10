@@ -254,7 +254,6 @@ export default {
   mounted () {
     axios.get('/api/v1/emails')
       .then(response => {
-        console.log(response.data)
         this.emails = response.data
         this.emails.forEach(it => {
           it.showPassword = false
