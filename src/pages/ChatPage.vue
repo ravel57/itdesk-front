@@ -48,7 +48,7 @@
             @linkToTask="this.linkToTask"
             @clearLinkedMessageId="this.clearLinkedMessageId"
             @deleteMessage="this.deleteMessage"
-            @showHelper="this.isShowHelper = true"
+            @showHelper="this.showHelper"
           />
         </div>
         <div
@@ -60,7 +60,7 @@
             :macros="this.macros"
             :knowledgeBase="this.knowledgeBase"
             @onTemplateClick="onTemplateClick"
-            @hideHelper="this.isShowHelper = false; this.tab = 'tab1'"
+            @hideHelper="this.hideHelper"
           />
         </div>
 
@@ -202,6 +202,17 @@ export default {
     deleteClient () {
       this.store.clients = this.store.clients.filter(client => client.id !== this.getClient.id)
       this.router.push('/')
+    },
+
+    showHelper () {
+      this.isShowHelper = true
+      localStorage.setItem('isShowHelper', 'true')
+    },
+
+    hideHelper () {
+      this.isShowHelper = false
+      this.tab = 'tab1'
+      localStorage.setItem('isShowHelper', 'false')
     }
   },
 
@@ -229,8 +240,13 @@ export default {
   },
 
   created () {
-    this.inputField = this.store.clients.find(client => client.id === this.getClient.id)
+    const typingMessageTextElement = this.store.clients
+      .find(client => client.id === this.getClient.id)
       .typingMessageText[this.store.currentUser.id]
+    if (typingMessageTextElement) {
+      this.inputField = typingMessageTextElement
+    }
+    this.isShowHelper = localStorage.getItem('isShowHelper') === 'true'
   },
 
   setup () {

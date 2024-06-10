@@ -15,7 +15,7 @@
       <q-card-section>
         <q-card>
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
-            <q-scroll-area style="height: 60vh;">
+            <q-scroll-area style="height: 60vh; padding-top: 0">
               <q-item
                 v-for="(item, index) in this.templates"
                 :key="index"
@@ -47,20 +47,20 @@
             </q-scroll-area>
           </q-expansion-item>
         </q-card>
-        <!--<q-card>-->
-        <!--  <q-expansion-item label="Макросы" class="spoiler">-->
-        <!--    <q-scroll-area style="height: 60vh;">-->
-        <!--      <q-item-->
-        <!--        v-for="(item, index) in this.macros"-->
-        <!--        :key="index"-->
-        <!--        class="hidden-text q-layout-padding"-->
-        <!--        clickable-->
-        <!--      >-->
-        <!--        {{ item.text }}-->
-        <!--      </q-item>-->
-        <!--    </q-scroll-area>-->
-        <!--  </q-expansion-item>-->
-        <!--</q-card>-->
+        <q-card>
+          <q-expansion-item label="Макросы" class="spoiler">
+            <q-scroll-area style="height: 60vh;">
+              <q-item
+                v-for="(item, index) in this.macros"
+                :key="index"
+                class="hidden-text q-layout-padding"
+                clickable
+              >
+                {{ item.text }}
+              </q-item>
+            </q-scroll-area>
+          </q-expansion-item>
+        </q-card>
       </q-card-section>
     </q-scroll-area>
   </q-card>
