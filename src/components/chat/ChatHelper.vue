@@ -16,8 +16,23 @@
         <q-card>
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
             <q-scroll-area style="height: 60vh; padding-top: 0">
+              <q-item>
+                <q-input
+                  filled
+                  v-model="this.templateSearch"
+                  label="Поиск"
+                  dense
+                  clearable
+                  style="width: 100%;"
+                  @clear="this.templateSearch = ''"
+                >
+                  <template v-slot:append>
+                    <q-icon name="search"/>
+                  </template>
+                </q-input>
+              </q-item>
               <q-item
-                v-for="(item, index) in this.templates"
+                v-for="(item, index) in this.filteredTemplates"
                 :key="index"
                 class="hidden-text q-layout-padding"
                 clickable
@@ -27,7 +42,6 @@
                   <q-item-label lines="1">{{ item.text }}</q-item-label>
                   <q-item-label caption lines="1">:{{ item.shortcut }}</q-item-label>
                 </q-item-section>
-
               </q-item>
             </q-scroll-area>
           </q-expansion-item>
@@ -103,7 +117,9 @@ export default {
   data: () => ({
     modalVisible: false,
     modalTitle: '',
-    modalText: ''
+    modalText: '',
+    templateSearch: '',
+    filteredTemplates: []
   }),
 
   methods: {
@@ -138,6 +154,17 @@ export default {
     hideHelper () {
       this.$emit('hideHelper')
     }
+  },
+
+  watch: {
+    templateSearch (newValue) {
+      this.filteredTemplates = this.templates
+        .filter(template => template.text.toLowerCase().includes(newValue.toLowerCase()) || template.shortcut.toLowerCase().includes(newValue.toLowerCase()))
+    }
+  },
+
+  mounted () {
+    this.filteredTemplates = this.templates
   }
 
 }
