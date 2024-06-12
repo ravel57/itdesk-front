@@ -84,8 +84,13 @@
               style="white-space: pre-wrap;"
               @click.right="this.invertContextMenu"
             >
-              <div class="flex" v-if="this.getReplyMessageText(message)">
-                <q-icon name="reply"/>
+              <div
+                v-if="this.getReplyMessageText(message)"
+                class="flex"
+              >
+                <q-icon
+                  name="reply"
+                />
                 {{ this.getReplyMessageText(message) }}
               </div>
               <div>
@@ -236,8 +241,14 @@
           <div
             v-if="this.replyMessageId !== null"
           >
-            <q-icon name="reply"/>
+            <q-icon
+              name="reply"
+            />
             {{ this.messages.find(m => m.id === this.replyMessageId).text }}
+            <q-icon
+              name="close"
+              @click="this.replyMessageId = null"
+            />
           </div>
           <q-toolbar class="no-padding">
             <q-btn
