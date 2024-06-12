@@ -108,7 +108,7 @@
                       <q-btn
                         v-if="!task.completed"
                         icon="check_circle"
-                        label="Отметить выполненной"
+                        label="Закрыть заявку"
                         class="text-grey"
                         flat
                         @click="this.setTaskCompletedShowDialog(task)"
