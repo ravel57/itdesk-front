@@ -31,7 +31,7 @@ export default {
       { title: 'Профиль', link: '/settings/profile', slug: 'profile' },
       { title: 'Пользователи', link: '/settings/users', slug: 'users' },
       { title: 'Организации', link: '/settings/organizations', slug: 'organizations' },
-      // { title: 'База знаний', link: '/settings/knowledgeBase', slug: 'knowledgeBase' },
+      { title: 'База знаний', link: '/settings/knowledgeBase', slug: 'knowledgeBase' },
       { title: 'Теги', link: '/settings/tags', slug: 'tags' },
       { title: 'Приоритеты', link: '/settings/priorities', slug: 'priorities' },
       { title: 'Статусы', link: '/settings/statuses', slug: 'statuses' },

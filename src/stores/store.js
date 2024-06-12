@@ -22,6 +22,7 @@ export const useStore = defineStore('store', {
     statuses: [],
     priorities: [],
     templates: [],
+    knowledgeBase: [],
     usersOnline: [],
     currentUser: {}
   }),
@@ -93,6 +94,11 @@ export const useStore = defineStore('store', {
       axios.get('/api/v1/templates')
         .then(response => {
           this.templates = response.data
+        })
+
+      axios.get('/api/v1/knowledge-base')
+        .then(response => {
+          this.knowledgeBase = response.data
         })
     }
   }

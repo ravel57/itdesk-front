@@ -58,7 +58,7 @@
           <chat-helper
             :templates="this.store.templates"
             :macros="this.macros"
-            :knowledgeBase="this.knowledgeBase"
+            :knowledgeBase="this.store.knowledgeBase"
             @onTemplateClick="onTemplateClick"
             @hideHelper="this.hideHelper"
           />
@@ -110,12 +110,6 @@ export default {
   data: () => ({
     tab: 'tab1',
     macros: [], // FIXME
-    knowledgeBase: [ // FIXME
-      { title: 'Доменны', texts: ['*.test1.ru', '*.test2.ru', '*.test3.ru', '*.test4.ru'], tags: [] },
-      { title: 'Админки', texts: ['admin.test1.ru'], tags: [] },
-      { title: 'Почты', texts: ['mail.test1.ru'], tags: [] },
-      { title: 'Адреса удаленок', texts: ['rdp.test1.ru'], tags: [] }
-    ],
     inputField: '',
     isComment: false,
     isNotificationEnabled: true,

@@ -50,7 +50,7 @@ const routes = [
           },
           {
             path: 'knowledgeBase',
-            component: () => import('pages/settings/SettingsPage.vue')
+            component: () => import('pages/settings/KnowledgeBasePage.vue')
           },
           {
             path: 'tags',

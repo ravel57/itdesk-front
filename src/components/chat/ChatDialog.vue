@@ -173,6 +173,24 @@
                       </q-item-section>
                     </q-item>
                     <q-item
+                      clickable
+                    >
+                      <q-item-section
+                        v-close-popup
+                      >
+                        Создать заявку из сообщения TODO
+                      </q-item-section>
+                    </q-item>
+                    <!-- <q-item-->
+                    <!--   clickable-->
+                    <!-- >-->
+                    <!--   <q-item-section-->
+                    <!--     v-close-popup-->
+                    <!--   >-->
+                    <!--     Найти в базе знаний TODO-->
+                    <!--   </q-item-section>-->
+                    <!-- </q-item>-->
+                    <q-item
                       v-if="this.tasks.length > 0"
                       clickable
                     >
@@ -401,7 +419,7 @@ export default {
         const value = matches[0].trim()
         if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
           event.preventDefault()
-          const replaceValue = this.templates.filter(e => e.shortcut === value.replace(':', ''))[0].text
+          const replaceValue = this.templates.find(e => e.shortcut === value.replace(':', '')).text
           this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
         }
         this.textChanged()
@@ -461,13 +479,13 @@ export default {
     },
 
     scrollToElementById (id) {
-      const element = document.getElementById(id)
+      const element = document.getElementById(id).children[0].children[0].children[1]
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' })
-        const clazz = 'bg-primary'
-        element.classList.add(clazz)
+        const currentColor = element.style.backgroundColor
+        element.style.backgroundColor = 'lightcoral'
         setTimeout(() => {
-          element.classList.remove(clazz)
+          element.style.backgroundColor = currentColor
           this.$emit('clearLinkedMessageId')
         }, 2500)
       }
