@@ -1,65 +1,70 @@
 <template>
   <q-page padding>
-    <div v-if="this.getSortedAndFilteredClients.length > 0">
     <q-input
+      v-if="this.store.clients.length > 0"
       v-model="searchQuery"
       dense
       placeholder="Поиск..."
       @input="search"
+      clearable
+      @clear="searchQuery = ''"
     >
       <template v-slot:append>
-        <q-icon name="close" @click="searchQuery = ''" class="cursor-pointer"/>
+        <q-icon
+          name="search"
+        />
       </template>
     </q-input>
-    <q-list>
-      <div
-        v-for="client in this.getSortedAndFilteredClients"
-        :key="client.id"
-      >
-        <q-item clickable>
-          <q-item-section>
-            <router-link
-              :to="`/chats/${client.id}`"
-              style="text-decoration: none; display: flex"
-              class="text-primary"
-            >
-              <q-item-section>
-                <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
-                <q-item-label caption>{{ this.getOrganization(client) }}</q-item-label>
-                <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
-                <div class="flex items-end">
-                  <q-item-label caption>
-                    Заявок: {{ this.getActualTasks(client).length }}
-                  </q-item-label>
-<!--                  <q-linear-progress-->
-<!--                    :value="this.getSlaPercent(this.getActualTasks(client))"-->
-<!--                    reverse-->
-<!--                    :color="this.getSlaColor(this.getActualTasks(client))"-->
-<!--                    class="q-mt-sm"-->
-<!--                    style="width: 80px; margin-left: 16px; border: solid 1px darkgray"-->
-<!--                    size="8px"-->
-<!--                  />-->
-                </div>
-              </q-item-section>
-              <q-item-section
-                side
-                style="display: flex; flex-direction: row; align-content: center;"
+    <div v-if="this.getSortedAndFilteredClients.length > 0">
+      <q-list>
+        <div
+          v-for="client in this.getSortedAndFilteredClients"
+          :key="client.id"
+        >
+          <q-item clickable>
+            <q-item-section>
+              <router-link
+                :to="`/chats/${client.id}`"
+                style="text-decoration: none; display: flex"
+                class="text-primary"
               >
-                <q-icon
-                  v-if="client.tasks.filter(task => task.priority.critical && !task.completed).length > 0"
-                  name="priority_high"
-                  class="text-red"
-                />
-                <circle-counter
-                  :counter="client.unreadMessagesCount"
-                />
-              </q-item-section>
-            </router-link>
-          </q-item-section>
-        </q-item>
-        <q-separator/>
-      </div>
-    </q-list>
+                <q-item-section>
+                  <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
+                  <q-item-label caption>{{ this.getOrganization(client) }}</q-item-label>
+                  <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
+                  <div class="flex items-end">
+                    <q-item-label caption>
+                      Заявок: {{ this.getActualTasks(client).length }}
+                    </q-item-label>
+                    <!--                  <q-linear-progress-->
+                    <!--                    :value="this.getSlaPercent(this.getActualTasks(client))"-->
+                    <!--                    reverse-->
+                    <!--                    :color="this.getSlaColor(this.getActualTasks(client))"-->
+                    <!--                    class="q-mt-sm"-->
+                    <!--                    style="width: 80px; margin-left: 16px; border: solid 1px darkgray"-->
+                    <!--                    size="8px"-->
+                    <!--                  />-->
+                  </div>
+                </q-item-section>
+                <q-item-section
+                  side
+                  style="display: flex; flex-direction: row; align-content: center;"
+                >
+                  <q-icon
+                    v-if="client.tasks.filter(task => task.priority.critical && !task.completed).length > 0"
+                    name="priority_high"
+                    class="text-red"
+                  />
+                  <circle-counter
+                    :counter="client.unreadMessagesCount"
+                  />
+                </q-item-section>
+              </router-link>
+            </q-item-section>
+          </q-item>
+          <q-separator/>
+        </div>
+      </q-list>
     </div>
     <div
       v-else
