@@ -240,6 +240,7 @@
           />
           <div
             v-if="this.replyMessageId !== null"
+            style="width: 90%;"
           >
             <q-icon
               name="reply"
