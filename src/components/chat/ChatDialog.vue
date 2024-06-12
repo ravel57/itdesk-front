@@ -269,7 +269,7 @@
               id="textarea"
               class="shadow-2 rounded-borders"
               :value="this.inputField"
-              :placeholder="toggleIsComment ? 'Текст комментария' : 'Текст сообщения'"
+              :placeholder="`${toggleIsComment ? 'Текст комментария' : 'Текст сообщения'} (ctrl+enter отправить)\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод`"
               :style="'color: ' + this.toggleIsComment ? 'white' : 'black'"
               :class="this.toggleIsComment ? 'bg-blue-3' : 'bg-white'"
               @keydown.tab.prevent="handleTabPressed"
@@ -291,7 +291,15 @@
                 push
                 :ripple="false"
                 style="margin: 0 5px"
-              />
+                @mouseover="showTooltipSend = true"
+                @mouseup="showTooltipSend = false"
+              >
+                  <q-tooltip
+                    v-if="showTooltipSend"
+                  >
+                    ctrl+enter отправить
+                  </q-tooltip>
+              </q-btn>
             </div>
           </q-toolbar>
           <div
@@ -340,7 +348,8 @@ export default {
     replyMessageId: null,
     search: '',
     searchResults: [],
-    isShowSearchResults: false
+    isShowSearchResults: false,
+    showTooltipSend: false
   }),
 
   updated () {
