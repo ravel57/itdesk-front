@@ -234,7 +234,7 @@ export default {
     if (typingMessageTextElement) {
       this.inputField = typingMessageTextElement
     }
-    this.isShowHelper = localStorage.getItem('isShowHelper') === 'true'
+    this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
   },
 
   setup () {
