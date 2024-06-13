@@ -13,7 +13,7 @@
         />
       </div>
       <q-card-section>
-        <q-card>
+        <q-card style="margin-bottom: 8px">
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
             <q-scroll-area style="height: 60vh; padding-top: 0">
               <q-item>
@@ -55,7 +55,7 @@
             </q-scroll-area>
           </q-expansion-item>
         </q-card>
-        <q-card>
+        <q-card style="margin-bottom: 8px">
           <q-expansion-item label="База знаний" class="spoiler">
             <q-scroll-area style="height: 60vh;">
               <q-item
@@ -70,7 +70,7 @@
             </q-scroll-area>
           </q-expansion-item>
         </q-card>
-        <q-card>
+        <q-card style="margin-bottom: 8px">
           <q-expansion-item label="Макросы" class="spoiler">
             <q-scroll-area style="height: 60vh;">
               <q-item

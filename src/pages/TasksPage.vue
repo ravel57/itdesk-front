@@ -198,7 +198,8 @@
                 clickable
                 @click="this.onCardClick(task)"
               >
-                {{ task.name }}: {{ task.client.firstname + ' ' + task.client.lastname }}
+                {{ this.shortenLine(`${task.name}: ${task.client.lastname} ${task.client.firstname}`) }}
+<!--                {{ task.name }}: {{ task.client.firstname + ' ' + task.client.lastname }}-->
               </q-item>
             </div>
           </div>
@@ -265,7 +266,7 @@ export default {
         name: 'name',
         label: 'Название',
         align: 'left',
-        field: row => row.name,
+        field: row => row.name.length > 31 ? row.name.substring(0, 60) + '...' : row.name,
         sortable: true
       },
       {
@@ -458,6 +459,14 @@ export default {
 
     removeFilters () {
       this.filterChain = []
+    },
+
+    shortenLine (string) {
+      if (string.length > 31) {
+        return string.substring(0, 31) + '...'
+      } else {
+        return string
+      }
     }
   },
 

@@ -67,20 +67,15 @@
         <div
           class="col"
           v-if="!this.isMobile || this.tab === 'tab3'"
-          style="height: 100%;"
+          style="height: 100%; max-height: 100%; min-height: auto"
           :style="!this.isMobile ? 'max-width: 33vw' : ''"
         >
-          <chat-info
-            style="z-index: 1"
-            :client="this.getClient"
-            :organizations="this.store.organizations"
-            @updateClient="this.updateClient"
-          />
           <chat-tasks
             :tasks="this.getClient.tasks"
             :isNotificationEnabled="isNotificationEnabled"
             :tags="this.store.tags"
             :users="this.store.users"
+            :organizations="this.store.organizations"
             :client="this.getClient"
             :statuses="this.store.statuses"
             :priorities="this.store.priorities"
@@ -97,7 +92,6 @@
 <script>
 import ChatDialog from 'components/chat/ChatDialog.vue'
 import ChatHelper from 'components/chat/ChatHelper.vue'
-import ChatClientInfo from 'components/chat/ChatClientInfo.vue'
 import ChatTasks from 'components/chat/ChatTasks.vue'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
@@ -105,7 +99,7 @@ import { markRead, typing } from 'src/util/ws'
 import axios from 'axios'
 
 export default {
-  components: { ChatTasks, ChatInfo: ChatClientInfo, ChatHelper, ChatDialog },
+  components: { ChatTasks, ChatHelper, ChatDialog },
 
   data: () => ({
     tab: 'tab1',

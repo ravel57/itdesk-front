@@ -3,64 +3,67 @@
     v-if="this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).length > 0"
     v-text="`Сейчас смотрят: ${this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
   />
+  <div class="">
+    <div style="display: flex; width: 100%;">
+      <q-input
+        filled
+        v-model="search"
+        label="Поиск"
+        dense
+        clearable
+        style="width: 100%;"
+        @focus="this.isShowSearchResults = true"
+        @blur="this.onBlur"
+      >
+        <template v-slot:append>
+          <q-icon name="search"/>
+        </template>
+      </q-input>
+      <q-btn
+        v-if="!this.isShowHelper"
+        icon="add"
+        @click="this.showHelper"
+        flat
+        dense
+        class="q-ml-auto"
+      />
+    </div>
+    <q-list
+      v-if="this.isShowSearchResults"
+      class="shadow-2 rounded-borders scrollable-list-container"
+      style="width: 100%; max-height: 350px;"
+    >
+      <q-item
+        v-for="message in searchResults"
+        :key="message.id"
+        clickable
+      >
+        <q-item-section
+          @click="goToMessage(message.id)"
+          style="width: 100%;"
+        >
+          {{ message.text }}
+        </q-item-section>
+      </q-item>
+    </q-list>
+  </div>
   <q-layout
     view="lHh Lpr lFf"
     container
-    style="height: calc(100vh - 75px);"
+    style="height: calc(100vh - 115px);"
     class="shadow-2 rounded-borders"
   >
     <q-page-container>
-      <q-page-sticky
-        expand
-        position="top"
-        class="no-padding"
-        style="background: white; z-index: 3;"
-      >
-        <div style="display: flex; width: 100%;">
-          <q-input
-            filled
-            v-model="search"
-            label="Поиск"
-            dense
-            clearable
-            style="width: 100%;"
-            @focus="this.isShowSearchResults = true"
-            @blur="this.onBlur"
-          >
-            <template v-slot:append>
-              <q-icon name="search"/>
-            </template>
-          </q-input>
-          <q-btn
-            v-if="!this.isShowHelper"
-            icon="add"
-            @click="this.showHelper"
-            flat
-            dense
-            class="q-ml-auto"
-          />
-        </div>
-        <q-list
-          v-if="this.isShowSearchResults"
-          class="shadow-2 rounded-borders scrollable-list-container"
-          style="width: 100%; max-height: 350px;"
-        >
-          <q-item
-            v-for="message in searchResults"
-            :key="message.id"
-            clickable
-          >
-            <q-item-section
-              @click="goToMessage(message.id)"
-              style="width: 100%;"
-            >
-              {{ message.text }}
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-page-sticky>
+<!--      <q-page-sticky-->
+<!--        expand-->
+<!--        position="top"-->
+<!--        class="no-padding"-->
+<!--        style="background: white; z-index: 3;"-->
+<!--      >-->
+<!--        -->
+<!--      </q-page-sticky>-->
       <q-page
-        style="padding-bottom: 86px; padding-top: 48px;"
+        style="padding-bottom: 86px;"
         ref="chat"
         id="chat"
         scroll

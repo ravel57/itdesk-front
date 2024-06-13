@@ -1,8 +1,4 @@
 <template>
-  <q-card
-    class="my-card scrollable-div"
-    style="border-bottom: 16px; height: 150px">
-    <q-card-section>
       <div
         style="display: flex"
       >
@@ -10,7 +6,7 @@
           class="text-h6"
           @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
           @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
-          v-text="`${this.client.firstname} ${this.client.lastname}`"
+          v-text="`${this.client.lastname} ${this.client.firstname}`"
         />
         <q-btn
           v-if="this.editClientInfoButtonShow.value"
@@ -82,8 +78,6 @@
         >
         {{ this.client.sourceChannel }}
       </div>
-    </q-card-section>
-  </q-card>
   <q-dialog
     v-model="this.dialogVisible"
     persistent

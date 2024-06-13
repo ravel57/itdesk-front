@@ -1,7 +1,16 @@
 <template>
   <q-card
-    style="height: calc(100vh - 225px); padding: 16px;"
+    style="height: calc(100vh - 75px); max-height: calc(100vh - 75px); padding: 16px;"
   >
+    <div style="margin-bottom: 3px">
+      <chat-info
+        style="z-index: 1"
+        :client="this.client"
+        :organizations="this.organizations"
+        @updateClient="this.updateClient"
+      />
+    </div>
+    <q-separator/>
     <div class="flex">
       <div>
         <div class="flex">
@@ -85,109 +94,106 @@
         </q-list>
       </div>
     </div>
-    <q-separator/>
-    <q-layout
-      view="lHh Lpr lFf"
-      container
-      style="height: 65vh"
-      class="shadow-2 rounded-borders"
-    >
-      <q-page-container>
-        <q-page>
-          <div class="row justify-center">
-            <div style="width: 100%;">
-              <q-card-section style="padding: 0">
-                <q-card class="my-card">
-                  <q-card-section
-                    v-for="task in this.getActualTasks"
-                    :key="task.id"
-                    :id="`task_${task.id}`"
-                    style="padding: 0"
+    <q-separator style="margin-bottom: 3px; margin-top: 3px" />
+    <!--    <q-layout-->
+    <!--      view="lHh Lpr lFf"-->
+    <!--      container-->
+    <!--      class="shadow-2 rounded-borders"-->
+    <!--    >-->
+      <div style="overflow: auto; height: calc(-300px + 97vh)">
+        <div class="row justify-center">
+          <div style="width: 100%;">
+            <q-card-section style="padding: 0">
+              <q-card class="my-card">
+                <q-card-section
+                  v-for="task in this.getActualTasks"
+                  :key="task.id"
+                  :id="`task_${task.id}`"
+                  style="padding: 0"
+                >
+                  <div class="flex">
+                    <q-btn
+                      v-if="!task.completed"
+                      icon="check_circle"
+                      label="Закрыть заявку"
+                      class="text-grey"
+                      flat
+                      @click="this.setTaskCompletedShowDialog(task)"
+                    />
+                    <q-btn
+                      v-if="task.linkedMessageId"
+                      icon="link"
+                      class="text-grey"
+                      flat
+                      dense
+                      @click="scrollToElementById(task)"
+                    />
+                  </div>
+                  <q-item
+                    clickable
+                    @click="this.onTaskClick(task)"
                   >
-                    <div class="flex">
-                      <q-btn
-                        v-if="!task.completed"
-                        icon="check_circle"
-                        label="Закрыть заявку"
-                        class="text-grey"
-                        flat
-                        @click="this.setTaskCompletedShowDialog(task)"
-                      />
-                      <q-btn
-                        v-if="task.linkedMessageId"
-                        icon="link"
-                        class="text-grey"
-                        flat
-                        dense
-                        @click="scrollToElementById(task)"
-                      />
-                    </div>
-                    <q-item
-                      clickable
-                      @click="this.onTaskClick(task)"
-                    >
-                      <table>
-                        <tr v-if="task.completed">
-                          <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
-                        </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'Название: '"/>
-                          <th class="text-body2" v-text="task.name"/>
-                        </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'Описание: '"/>
-                          <th class="text-body2" v-text="task.description"/>
-                        </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'Теги: '"/>
-                          <th class="text-body2" v-text="task.tags.map(tag => tag.name).join(', ')"/>
-                        </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'Приоритет: '"/>
-                          <th class="text-body2" v-text="task.priority.name"/>
-                        </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'Создана: '"/>
-                          <th class="text-body2" v-text="this.getStamp(task.createdAt)"/>
-                        </tr>
-                        <tr v-if="!task.completed">
-                          <th class="small-text text-grey" v-text="'Статус: '"/>
-                          <th class="text-body2" v-text="task.status.name"/>
-                        </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'Деадлайн: '"/>
-                          <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
-                        </tr>
-                        <tr>
-                          <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-                          <th class="text-body2" v-text="getName(task.executor)"/>
-                        </tr>
-                        <tr v-if="task.sla && task.sla.duration > 0">
-                          <th class="small-text text-grey" v-text="'SLA: '"/>
-                          <th class="text-body2">
-                            Осталось: {{ this.getSlaTime(task) }}
-                            <q-linear-progress
-                              :value="this.getSlaPercent(task)"
-                              reverse
-                              :color="this.getSlaColor(task)"
-                              class="q-mt-sm"
-                              style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
-                              size="8px"
-                            />
-                          </th>
-                        </tr>
-                      </table>
-                    </q-item>
-                    <q-separator/>
-                  </q-card-section>
-                </q-card>
-              </q-card-section>
-            </div>
+                    <table>
+                      <tr v-if="task.completed">
+                        <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
+                      </tr>
+                      <tr>
+                        <th class="small-text text-grey" v-text="'Название: '"/>
+                        <th class="text-body2" v-text="task.name"/>
+                      </tr>
+                      <tr>
+                        <th class="small-text text-grey" v-text="'Описание: '"/>
+                        <th class="text-body2" v-text="task.description"/>
+                      </tr>
+                      <tr>
+                        <th class="small-text text-grey" v-text="'Теги: '"/>
+                        <th class="text-body2" v-text="task.tags.map(tag => tag.name).join(', ')"/>
+                      </tr>
+                      <tr>
+                        <th class="small-text text-grey" v-text="'Приоритет: '"/>
+                        <th class="text-body2" v-text="task.priority.name"/>
+                      </tr>
+                      <tr>
+                        <th class="small-text text-grey" v-text="'Создана: '"/>
+                        <th class="text-body2" v-text="this.getStamp(task.createdAt)"/>
+                      </tr>
+                      <tr v-if="!task.completed">
+                        <th class="small-text text-grey" v-text="'Статус: '"/>
+                        <th class="text-body2" v-text="task.status.name"/>
+                      </tr>
+                      <tr>
+                        <th class="small-text text-grey" v-text="'Деадлайн: '"/>
+                        <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
+                      </tr>
+                      <tr>
+                        <th class="small-text text-grey" v-text="'Исполнитель: '"/>
+                        <th class="text-body2" v-text="getName(task.executor)"/>
+                      </tr>
+                      <tr v-if="task.sla && task.sla.duration > 0">
+                        <th class="small-text text-grey" v-text="'SLA: '"/>
+                        <th class="text-body2">
+                          Осталось: {{ this.getSlaTime(task) }}
+                          <q-linear-progress
+                            :value="this.getSlaPercent(task)"
+                            reverse
+                            :color="this.getSlaColor(task)"
+                            class="q-mt-sm"
+                            style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
+                            size="8px"
+                          />
+                        </th>
+                      </tr>
+                    </table>
+                  </q-item>
+                  <q-separator/>
+                </q-card-section>
+              </q-card>
+            </q-card-section>
           </div>
-        </q-page>
-      </q-page-container>
-    </q-layout>
-  </q-card>
+        </div>
+      </div>
+    </q-card>
+    <!--    </q-layout>-->
   <q-dialog
     v-model="this.isNewTaskDialogShow"
     persistent
@@ -352,11 +358,13 @@
 <script>
 import axios from 'axios'
 import moment from 'moment'
+import ChatInfo from 'components/chat/ChatClientInfo.vue'
 
 export default {
   name: 'ChatTasks',
+  components: { ChatInfo },
 
-  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities'],
+  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations'],
 
   data: () => ({
     isNewTaskDialogShow: false,
@@ -392,6 +400,10 @@ export default {
   }),
 
   methods: {
+    updateClient (newClient) {
+      this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
+    },
+
     dialogNewTask () {
       this.isNewTask = true
       this.isNewTaskDialogShow = true
