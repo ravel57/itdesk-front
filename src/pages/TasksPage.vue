@@ -4,21 +4,11 @@
       <q-page padding>
         <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
           <div style="display: flex; width: 100%;">
-            <q-select
+            <q-input
               outlined
-              v-model="this.selectedSavedFilter"
-              :options="this.savedFilters.map(it => it.label)"
-              label="Сохраненные фильтры"
-              style="width: 100%; align-content: center; min-width: 300px"
-              @update:model-value="this.onSavedFilterSelected"
-              clearable
-            />
-            <q-btn
-              v-if="this.selectedSavedFilter.length > 0"
-              ref="deleteSavedFilterButton"
-              icon="delete"
-              @click="isDeleteSavedFilterDialogShow = true"
-              flat
+              v-model="this.searchRequest"
+              label="Поиск"
+              style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
             />
           </div>
           <div style="display: flex">
@@ -43,7 +33,7 @@
               </q-list>
             </q-btn-dropdown>
             <q-btn
-              icon="filter_alt"
+              icon="filter_list"
               flat
               @click="this.changeFilterSelection"
               :color="this.isFilterSelected ? 'primary' : 'dark'"
@@ -96,63 +86,106 @@
         </div>
         <div
           v-if="this.isFilterSelected"
-          class="q-pa-md" style="display: flex;"
-        >
-          <div class="scroll-container">
-            <div
-              v-for="(filter, index) in this.filterChain"
-              :key="index"
-              style="display: flex; border-right: 16px; padding-right: 16px"
-            >
-              <q-select
-                outlined
-                :label="filter.label"
-                multiple
-                :options="filter.options"
-                use-chips
-                use-input
-                dense
-                filled
-                stack-label
-                v-model="filter.selectedOptions"
-                input-debounce="0"
-                style="width: 250px; height: 100%;"
-                behavior="menu"
-              >
-                <!--@filter="filterFn"-->
-                <template v-slot:no-option>
-                  <q-item>
-                    <q-item-section class="text-grey">
-                      Нет результатов
-                    </q-item-section>
-                  </q-item>
-                </template>
-              </q-select>
-              <q-btn
-                icon="cancel"
-                dense
-                flat
-                color="blue-grey"
-                size="xs"
-                icon-top
-                class="vertical-top"
-                style="height: 20px;"
-                @click="deleteFilter(index)"
-              />
-            </div>
-          </div>
+          style="display: flex;margin-top: 8px; margin-bottom: 8px; align-items: center;">
           <q-select
             outlined
-            v-model="this.addNewFilterSelectorText"
-            :options="this.filterType.map(e => e.label)"
-            dense
-            @update:model-value="handleNewFilterSelection($event)"
-            ref="newFilterSelector"
+            v-model="this.selectedSavedFilter"
+            :options="this.savedFilters.map(it => it.label)"
+            label="Сохраненные фильтры"
+            style="width: 25%; align-content: center; min-width: 300px; margin-right: 8px"
+            @update:model-value="this.onSavedFilterSelected"
+            clearable
+          />
+          <q-btn
+            v-if="this.selectedSavedFilter.length > 0"
+            ref="deleteSavedFilterButton"
+            icon="delete"
+            @click="isDeleteSavedFilterDialogShow = true"
+            style="margin-right: 8px"
+            flat
+          />
+          <div
+            v-if="this.isFilterSelected"
+            style="overflow: auto; margin-right: 8px"
           >
-            <template v-slot:prepend>
-              <q-icon name="add_circle"/>
-            </template>
-          </q-select>
+            <div class="scroll-container">
+              <div
+                v-for="(filter, index) in this.filterChain"
+                :key="index"
+                style="display: flex; border-right: 16px; padding-right: 16px"
+              >
+                <q-select
+                  outlined
+                  :label="filter.label"
+                  multiple
+                  :options="filter.options"
+                  use-chips
+                  use-input
+                  dense
+                  filled
+                  stack-label
+                  v-model="filter.selectedOptions"
+                  input-debounce="0"
+                  style="width: 250px; height: 100%;"
+                  behavior="menu"
+                >
+                  <!--@filter="filterFn"-->
+                  <template v-slot:no-option>
+                    <q-item>
+                      <q-item-section class="text-grey">
+                        Нет результатов
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+                <q-btn
+                  icon="cancel"
+                  dense
+                  flat
+                  color="blue-grey"
+                  size="xs"
+                  icon-top
+                  class="vertical-top"
+                  style="height: 20px;"
+                  @click="deleteFilter(index)"
+                />
+              </div>
+            </div>
+          </div>
+          <q-btn
+            flat
+            icon="add_circle"
+            @click="!this.isMenuActive"
+          >
+            <q-menu
+              v-model="this.isMenuActive"
+              anchor="bottom right"
+              self="top right"
+            >
+              <q-list>
+                <q-item
+                  v-for="option in filterType"
+                  :key="option.value"
+                  clickable
+                  @click="handleNewFilterSelection(option.label)"
+                >
+                  <q-item-section>{{ option.label }}</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+<!--          <q-select-->
+<!--            outlined-->
+<!--            v-model="this.addNewFilterSelectorText"-->
+<!--            :options="this.filterType.map(e => e.label)"-->
+<!--            dense-->
+<!--            @update:model-value="handleNewFilterSelection($event)"-->
+<!--            ref="newFilterSelector"-->
+<!--          >-->
+<!--            <template v-slot:prepend>-->
+<!--              <q-icon name="add_circle"/>-->
+<!--            </template>-->
+<!--          </q-select>-->
           <q-btn
             ref="saveFilterButton"
             icon="save"
@@ -259,6 +292,7 @@ export default {
     dialogNewFilterName: '',
     dialogSaveFilterVisible: false,
     isShowListMode: false,
+    isMenuActive: false,
     isFilterSelected: false,
     isDeleteSavedFilterDialogShow: false,
     tableColumns: [
@@ -336,7 +370,8 @@ export default {
         field: row => row.sla,
         sortable: true
       }
-    ]
+    ],
+    searchRequest: ''
   }),
 
   methods: {
@@ -349,6 +384,7 @@ export default {
     },
 
     handleNewFilterSelection (label) {
+      this.isMenuActive = false
       const slug = this.filterType.filter(el => el.label === label)[0].slug
       let options
       if (slug === 'executor') {
