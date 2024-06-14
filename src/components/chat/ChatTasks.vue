@@ -85,7 +85,7 @@
             clickable
           >
             <q-item-section
-              @click="goToTask(task.id)"
+              @click="this.onTaskClick(task)"
               style="width: 100%;"
             >
               {{ task.name }}
@@ -166,15 +166,30 @@
                       </tr>
                       <tr v-if="task.sla && task.sla.duration > 0">
                         <th class="small-text text-grey" v-text="'SLA: '"/>
-                        <th class="text-body2">
+                        <th class="text-body2" style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
                           Осталось: {{ this.getSlaTime(task) }}
                           <q-linear-progress
                             :value="this.getSlaPercent(task)"
                             reverse
                             :color="this.getSlaColor(task)"
-                            class="q-mt-sm"
-                            style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
+                            style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"
                             size="8px"
+                          />
+                          <q-btn
+                            v-if="!this.slaIsPause"
+                            dense
+                            flat
+                            color="grey"
+                            @click.stop="this.slaIsPause = !this.slaIsPause"
+                            icon="pause_circle"
+                          />
+                          <q-btn
+                            v-if="this.slaIsPause"
+                            dense
+                            flat
+                            color="grey"
+                            @click.stop="this.slaIsPause = !this.slaIsPause"
+                            icon="play_circle"
                           />
                         </th>
                       </tr>
@@ -307,6 +322,20 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
+          v-if="!this.dialogTaskComplete"
+          label="Закрыть заявку"
+          color="white"
+          text-color="primary"
+          @click="this.setTaskCompleted(this.getActualTasks.find(task => task.id === this.dialogTaskId))"
+        />
+        <q-btn
+          v-if="this.dialogTaskComplete"
+          label="Вернуть в работу"
+          color="white"
+          text-color="primary"
+          @click="this.setTaskNotCompleted(this.getActualTasks.find(task => task.id === this.dialogTaskId))"
+        />
+        <q-btn
           color="white"
           text-color="primary"
           label="Закрыть"
@@ -337,6 +366,7 @@ export default {
     isNewTaskDialogShow: false,
     showTooltipClosedTasks: false,
 
+    dialogTaskId: '',
     dialogTaskName: '',
     dialogTaskDescription: '',
     dialogTaskPriority: '',
@@ -344,6 +374,7 @@ export default {
     dialogTaskTags: [],
     dialogTaskStatus: '',
     dialogTaskDeadline: '',
+    dialogTaskComplete: false,
 
     taskCreatedAt: '',
 
@@ -354,6 +385,7 @@ export default {
     showSearch: false,
     search: '',
     searchResults: [],
+    isShowSearchResults: false,
     sortMenuOpened: false,
 
     sortingTypes: [
@@ -361,7 +393,8 @@ export default {
       { label: 'По дате создания', slug: 'creating' },
       { label: 'Приоритету', slug: 'priority' },
       { label: 'SLA', slug: 'sla' }
-    ]
+    ],
+    slaIsPause: false
   }),
 
   methods: {
@@ -446,6 +479,7 @@ export default {
     onTaskClick (task) {
       this.isNewTask = false
       this.isNewTaskDialogShow = true
+      this.dialogTaskId = task.id
       this.dialogTaskName = task.name
       this.dialogTaskDescription = task.description
       this.dialogTaskPriority = task.priority.name
@@ -455,6 +489,7 @@ export default {
       this.taskId = task.id
       this.dialogTaskStatus = task.status.name
       this.taskCreatedAt = task.createdAt
+      this.dialogTaskComplete = task.completed
       setTimeout(() => this.$refs.taskName.focus(), 250)
     },
 
@@ -517,6 +552,7 @@ export default {
 
     onSearch () {
       if (this.search) {
+        this.isShowSearchResults = true
         this.searchResults = this.tasks.filter(task => {
           if (task.name) {
             return task.name.toLowerCase().includes(this.search.toLowerCase())
@@ -525,6 +561,7 @@ export default {
           }
         })
       } else {
+        this.isShowSearchResults = false
         this.searchResults = []
       }
     },
@@ -559,12 +596,32 @@ export default {
       } else {
         return 'red'
       }
+    },
+    setTaskNotCompleted (task) {
+      task.completed = false
+      axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
+        .then(newTask => {
+          this.isNewTaskDialogShow = false
+          this.$emit('updateTask', task, newTask)
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     }
   },
 
   computed: {
     getActualTasks () {
       return this.tasks.filter(task => !task.completed || this.isShowCompletedTasks)
+    },
+    isSearchNotEmpty () {
+      return this.searchResults.length > 0
     }
   },
 

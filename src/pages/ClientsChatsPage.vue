@@ -36,14 +36,18 @@
                     <q-item-label caption>
                       Заявок: {{ this.getActualTasks(client).length }}
                     </q-item-label>
-                    <!--<q-linear-progress-->
-                    <!--  :value="this.getSlaPercent(this.getActualTasks(client))"-->
-                    <!--  reverse-->
-                    <!--  :color="this.getSlaColor(this.getActualTasks(client))"-->
-                    <!--  class="q-mt-sm"-->
-                    <!--  style="width: 80px; margin-left: 16px; border: solid 1px darkgray"-->
-                    <!--  size="8px"-->
-                    <!--/>-->
+                    <q-linear-progress
+                      :value="this.getSlaPercent(this.getActualTasks(client))"
+                      reverse
+                      class="q-mt-sm"
+                      style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
+                      size="8px"
+                    >
+                      <q-tooltip anchor="top middle" self="bottom middle" :offset="[10, 10]">
+                        Минимальный SLA среди заявок
+                      </q-tooltip>
+                    </q-linear-progress>
+<!--                    :color="this.getSlaColor(this.getActualTasks(client))"-->
                   </div>
                 </q-item-section>
                 <q-item-section
