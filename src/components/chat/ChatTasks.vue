@@ -94,8 +94,8 @@
         </q-list>
       </div>
     </div>
-    <q-separator style="margin-bottom: 3px; margin-top: 3px" />
-      <div style="overflow: auto; height: calc(-300px + 97vh)">
+    <q-separator style="margin-bottom: 3px; margin-top: 3px"/>
+      <div style="overflow: auto; height: calc(97vh - 300px)">
         <div class="row justify-center">
           <div style="width: 100%;">
             <q-card-section style="padding: 0">
@@ -188,17 +188,22 @@
         </div>
       </div>
     </q-card>
+
   <q-dialog
     v-model="this.isNewTaskDialogShow"
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card class="dialog-width">
+    <q-card class="large-dialog-width">
       <q-toolbar class="justify-end">
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
-        <q-input
+      <q-card-section style="padding: 0 16px">
+        <div class="flex-container">
+          <div class="flex-item">
+            <q-card class="no-border-card">
+              <q-card-section class="no-padding">
+            <q-input
           v-model="this.dialogTaskName"
           ref="taskName"
           label="Название *"
@@ -304,6 +309,18 @@
           label="Статус *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
+              </q-card-section >
+            </q-card>
+          </div>
+
+          <div class="flex-item">
+            <q-card class="no-border-card">
+              <q-card-section class="no-padding">
+                <div>Здесь находится содержимое чата заявки</div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
@@ -584,5 +601,19 @@ export default {
 
 th {
   text-align: left;
+}
+
+.flex-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.flex-item {
+  flex: 0 0 48%;
+}
+
+.no-border-card {
+  border: none;
+  box-shadow: none;
 }
 </style>
