@@ -194,15 +194,57 @@
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card class="large-dialog-width">
-      <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup/>
+    <q-card
+      :class="this.isMobile ? 'dialog-width' : 'large-dialog-width'"
+    >
+      <q-toolbar
+        class="justify-end"
+      >
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          v-close-popup
+        />
       </q-toolbar>
-      <q-card-section style="padding: 0 16px">
-        <div class="flex-container">
-          <div class="flex-item">
-            <q-card class="no-border-card">
-              <q-card-section class="no-padding">
+      <q-card-section
+        style="padding: 0 16px"
+      >
+        <div
+          v-if="this.isMobile"
+          class="sticky-tabs"
+        >
+          <q-tabs
+            v-model="dialogTab"
+            dense
+            align="justify"
+            class="bg-white text-grey no-padding"
+            :breakpoint="0"
+          >
+            <q-tab
+              name="tab1"
+              icon="info"
+            />
+            <q-tab
+              name="tab2"
+              icon="forum"
+            />
+          </q-tabs>
+        </div>
+        <div
+          :class="this.isMobile ? '' : 'flex-container'"
+        >
+          <div
+            v-if="(!this.isMobile || this.dialogTab === 'tab1')"
+            class="flex-item"
+          >
+            <q-card
+              class="no-border-card"
+            >
+              <q-card-section
+                class="no-padding"
+              >
                 <q-input
                   v-model="this.dialogTaskName"
                   ref="taskName"
@@ -312,16 +354,26 @@
               </q-card-section>
             </q-card>
           </div>
-          <div class="flex-item">
-            <q-card class="no-border-card">
-              <q-card-section class="no-padding">
+          <div
+            class="flex-item"
+            v-if="(!this.isMobile || this.dialogTab === 'tab2')"
+            :style="this.isMobile ? 'height: 541px' : ''"
+          >
+            <q-card
+              class="no-border-card"
+            >
+              <q-card-section
+                class="no-padding"
+              >
                 <div>Здесь находится содержимое чата заявки</div>
               </q-card-section>
             </q-card>
           </div>
         </div>
       </q-card-section>
-      <q-card-actions align="right">
+      <q-card-actions
+        align="right"
+      >
         <q-btn
           color="white"
           text-color="primary"
@@ -347,7 +399,7 @@ export default {
   name: 'ChatTasks',
   components: { ChatInfo },
 
-  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations'],
+  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations', 'isMobile'],
 
   data: () => ({
     isNewTaskDialogShow: false,
@@ -371,6 +423,7 @@ export default {
     search: '',
     searchResults: [],
     sortMenuOpened: false,
+    dialogTab: 'tab1',
 
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },

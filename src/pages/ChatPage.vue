@@ -81,6 +81,7 @@
             :client="this.getClient"
             :statuses="this.store.statuses"
             :priorities="this.store.priorities"
+            :is-mobile="this.isMobile"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
             @scrollToElementById="this.linkedMessageId = $event"
@@ -248,9 +249,5 @@ export default {
 </script>
 
 <style scoped>
-.sticky-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
+
 </style>
