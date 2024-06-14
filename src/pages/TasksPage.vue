@@ -666,7 +666,6 @@ export default {
   watch: {
     filterChain: {
       handler (newVal) {
-        console.log(newVal)
         this.updateUrlWithFilterChain(newVal)
       },
       deep: true

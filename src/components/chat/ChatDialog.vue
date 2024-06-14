@@ -20,7 +20,7 @@
         </template>
       </q-input>
       <q-btn
-        v-if="!this.isShowHelper"
+        v-if="!this.isShowHelper & !this.isMobile"
         icon="add"
         @click="this.showHelper"
         flat
@@ -339,7 +339,8 @@ export default {
     'linkedMessageId',
     'tasks',
     'taskWatchingNow',
-    'isShowHelper'
+    'isShowHelper',
+    'isMobile'
   ],
 
   data: () => ({

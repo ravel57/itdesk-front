@@ -5,6 +5,7 @@
     >
       <div style="width: 100%;">
         <q-btn
+          v-if="!this.isMobile"
           icon="remove"
           @click="this.hideHelper"
           flat
@@ -121,7 +122,7 @@
 export default {
   name: 'ChatHelper',
 
-  props: ['templates', 'knowledgeBase', 'macros'],
+  props: ['templates', 'knowledgeBase', 'macros', 'isMobile'],
 
   data: () => ({
     modalVisible: false,

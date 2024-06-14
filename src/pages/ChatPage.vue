@@ -12,7 +12,7 @@
         :breakpoint="0"
       >
         <q-tab name="tab1" icon="forum"/>
-        <q-tab name="tab2" icon="database" v-if="this.isShowHelper"/>
+        <q-tab name="tab2" icon="database" v-if="this.isShowHelper || this.isMobile"/>
         <q-tab name="tab3" icon="info"/>
       </q-tabs>
     </div>
@@ -28,6 +28,7 @@
           v-if="!this.isMobile || this.tab === 'tab1'"
         >
           <chat-dialog
+            :isMobile="this.isMobile"
             :messages="this.getClient.messages"
             :inputField="this.inputField"
             :templates="this.store.templates"
@@ -53,9 +54,10 @@
         </div>
         <div
           class="col"
-          v-if="(!this.isMobile || this.tab === 'tab2') && this.isShowHelper"
+          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile)"
         >
           <chat-helper
+            :isMobile="this.isMobile"
             :templates="this.store.templates"
             :macros="this.macros"
             :knowledgeBase="this.store.knowledgeBase"
