@@ -125,13 +125,17 @@ export default {
       return duration.days() * 24 + duration.hours() + duration.minutes() * 0.017
     },
 
+    getMinimalSlaTask (tasks) {
+      return tasks.sort((b, a) => a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0)[tasks.length - 1]
+    },
+
     getSlaPercent (tasks) {
-      const task = tasks.sort((b, a) => a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0)[tasks.length - 1]
+      const task = this.getMinimalSlaTask(tasks)
       return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
     },
 
     getSlaColor (tasks) {
-      const task = tasks.sort((b, a) => a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0)[tasks.length - 1]
+      const task = this.getMinimalSlaTask(tasks)
       if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.5) {
         return 'green'
       } else if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.25) {
