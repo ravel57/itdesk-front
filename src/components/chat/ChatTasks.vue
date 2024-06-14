@@ -164,7 +164,7 @@
                       <th class="small-text text-grey" v-text="'Исполнитель: '"/>
                       <th class="text-body2" v-text="getName(task.executor)"/>
                     </tr>
-                    <tr v-if="task.sla && task.sla.duration > 0">
+                    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed">
                       <th class="small-text text-grey" v-text="'SLA: '"/>
                       <th class="text-body2"
                           style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
@@ -580,6 +580,14 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
+      this.$q.notify({
+        message: 'Заяка закрыта',
+        type: 'positive',
+        position: 'top-right',
+        actions: [{
+          icon: 'close', color: 'white', dense: true, handler: () => undefined
+        }]
+      })
     },
 
     getUserName (user) {
@@ -701,6 +709,8 @@ export default {
         } catch (e) {
           console.error(e)
         }
+      } else {
+        this.isNewTaskDialogShow = false
       }
     }
   },
@@ -727,7 +737,7 @@ export default {
     }
   },
   mounted () {
-    setTimeout(() => this.initializeTaskFromUrl(), 15)
+    setInterval(() => this.initializeTaskFromUrl(), 500)
   }
 
 }

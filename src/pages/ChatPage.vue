@@ -227,6 +227,9 @@ export default {
   },
 
   mounted () {
+    if (this.isMobile) {
+      this.tab = 'tab3'
+    }
     this.markMessagesRead()
   },
 
