@@ -50,11 +50,19 @@
         </q-btn>
       </div>
       <div
-        class="text-subtitle2"
-        @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
-        @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
-        v-text="this.getOrganization"
-      />
+        class="flex"
+        style="align-items: center"
+      >
+        <q-icon
+          name="store"
+        />
+        <div
+          class="text-subtitle2"
+          @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+          @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
+          v-text="this.getOrganization"
+        />
+      </div>
       <div
         class="text-subtitle2"
         @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
@@ -63,6 +71,7 @@
       />
       <div
         class="text-subtitle2"
+        style="align-items: center"
       >
         <img
           v-if="client.messageFrom === 'TELEGRAM'"
