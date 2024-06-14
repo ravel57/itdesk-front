@@ -719,7 +719,7 @@ export default {
   },
 
   mounted () {
-    setInterval(() => this.initializeFilterChainFromUrl(), 500)
+    setInterval(() => this.initializeFilterChainFromUrl(), 100)
     axios.get('/api/v1/filters')
       .then(response => {
         this.savedFilters = response.data
