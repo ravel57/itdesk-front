@@ -467,6 +467,17 @@ export default {
       } else {
         return string
       }
+    },
+    updateUrlWithFilterChain (filterChain) {
+      const queryParams = new URLSearchParams(window.location.search)
+
+      if (filterChain.length) {
+        queryParams.set('filterChain', JSON.stringify(filterChain))
+      } else {
+        queryParams.delete('filterChain')
+      }
+
+      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     }
   },
 
@@ -651,6 +662,15 @@ export default {
             icon: 'close', color: 'white', dense: true, handler: () => undefined
           }]
         }))
+  },
+  watch: {
+    filterChain: {
+      handler (newVal) {
+        console.log(newVal)
+        this.updateUrlWithFilterChain(newVal)
+      },
+      deep: true
+    }
   },
 
   setup () {
