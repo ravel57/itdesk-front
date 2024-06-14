@@ -34,7 +34,7 @@
                   <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
                   <div class="flex items-end">
                     <q-item-label caption>
-                      Заявок: {{ this.getActualTasks(client).length }}
+                      Заявок: {{ this.getActualTasks(client).length && this.getSlaPercent(this.getActualTasks(client)) }}
                     </q-item-label>
                     <q-linear-progress
                       v-if="getActualTasks(client).length > 0"
@@ -43,6 +43,7 @@
                       class="q-mt-sm"
                       style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
                       size="8px"
+                      :color="this.getSlaColor(this.getActualTasks(client))"
                     >
                       <q-tooltip
                         anchor="top middle"
@@ -52,7 +53,6 @@
                         Минимальный SLA среди заявок
                       </q-tooltip>
                     </q-linear-progress>
-<!--                    :color="this.getSlaColor(this.getActualTasks(client))"-->
                   </div>
                 </q-item-section>
                 <q-item-section
