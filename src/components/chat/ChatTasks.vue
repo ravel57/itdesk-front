@@ -95,11 +95,6 @@
       </div>
     </div>
     <q-separator style="margin-bottom: 3px; margin-top: 3px" />
-    <!--    <q-layout-->
-    <!--      view="lHh Lpr lFf"-->
-    <!--      container-->
-    <!--      class="shadow-2 rounded-borders"-->
-    <!--    >-->
       <div style="overflow: auto; height: calc(-300px + 97vh)">
         <div class="row justify-center">
           <div style="width: 100%;">
@@ -118,7 +113,7 @@
                       label="Закрыть заявку"
                       class="text-grey"
                       flat
-                      @click="this.setTaskCompletedShowDialog(task)"
+                      @click="this.setTaskCompleted(task)"
                     />
                     <q-btn
                       v-if="task.linkedMessageId"
@@ -193,7 +188,6 @@
         </div>
       </div>
     </q-card>
-    <!--    </q-layout>-->
   <q-dialog
     v-model="this.isNewTaskDialogShow"
     persistent
@@ -326,33 +320,6 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <q-dialog
-    v-model="this.isCompleteTaskDialogShow"
-    persistent
-    backdrop-filter="blur(4px)"
-  >
-    <q-card class="dialog-width">
-      <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup/>
-      </q-toolbar>
-      <q-card-section style="padding-top: 0">
-        Закрыть заявку {{ this.taskToComplete.name }}?
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn
-          color="white"
-          text-color="primary"
-          label="Отмена"
-          @click="this.isCompleteTaskDialogShow = false"
-        />
-        <q-btn
-          color="primary"
-          label="Закрыть"
-          @click="setTaskCompleted"
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
 </template>
 
 <script>
@@ -368,7 +335,6 @@ export default {
 
   data: () => ({
     isNewTaskDialogShow: false,
-    isCompleteTaskDialogShow: false,
     showTooltipClosedTasks: false,
 
     dialogTaskName: '',
@@ -384,7 +350,6 @@ export default {
     isShowCompletedTasks: false,
     isNewTask: true,
     taskId: null, // for update
-    taskToComplete: null,
 
     showSearch: false,
     search: '',
@@ -493,12 +458,12 @@ export default {
       setTimeout(() => this.$refs.taskName.focus(), 250)
     },
 
-    setTaskCompleted () {
-      this.taskToComplete.completed = true
-      axios.post(`/api/v1/client/${this.client.id}/update-task`, this.taskToComplete)
+    setTaskCompleted (task) {
+      task.completed = true
+      axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
         .then(newTask => {
           this.isNewTaskDialogShow = false
-          this.$emit('updateTask', this.taskToComplete, newTask)
+          this.$emit('updateTask', task, newTask)
         })
         .catch(e =>
           this.$q.notify({
@@ -509,13 +474,6 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
-      this.taskToComplete = null
-      this.isCompleteTaskDialogShow = false
-    },
-
-    setTaskCompletedShowDialog (task) {
-      this.taskToComplete = task
-      this.isCompleteTaskDialogShow = true
     },
 
     getUserName (user) {
