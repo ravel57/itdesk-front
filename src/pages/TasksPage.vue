@@ -33,7 +33,7 @@
               </q-list>
             </q-btn-dropdown>
             <q-btn
-              icon="filter_list"
+              icon="filter_alt"
               flat
               @click="this.changeFilterSelection"
               :color="this.isFilterSelected ? 'primary' : 'dark'"
@@ -100,6 +100,7 @@
             v-if="this.selectedSavedFilter.length > 0"
             ref="deleteSavedFilterButton"
             icon="delete"
+            color="grey"
             @click="isDeleteSavedFilterDialogShow = true"
             style="margin-right: 8px"
             flat
@@ -154,6 +155,7 @@
           </div>
           <q-btn
             flat
+            color="grey"
             icon="add_circle"
             @click="!this.isMenuActive"
           >
@@ -189,6 +191,7 @@
           <q-btn
             ref="saveFilterButton"
             icon="save"
+            color="grey"
             @click="this.dialogSaveFilter"
             flat
             style="height: 40px"
@@ -196,6 +199,7 @@
           <q-btn
             v-if="this.filterChain.length > 0"
             icon="cancel"
+            color="grey"
             @click="this.removeFilters"
             flat
             style="height: 40px"
@@ -538,6 +542,8 @@ export default {
         } catch (e) {
           console.error(e)
         }
+      } else {
+        this.filterChain = []
       }
     }
   },
@@ -710,7 +716,7 @@ export default {
   },
 
   mounted () {
-    this.initializeFilterChainFromUrl()
+    setInterval(() => this.initializeFilterChainFromUrl(), 500)
     axios.get('/api/v1/filters')
       .then(response => {
         this.savedFilters = response.data
