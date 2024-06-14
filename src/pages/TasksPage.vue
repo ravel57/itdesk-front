@@ -468,16 +468,41 @@ export default {
         return string
       }
     },
+    base64UrlEncode (str) {
+      return btoa(unescape(encodeURIComponent(str)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '')
+    },
+    base64UrlDecode (str) {
+      str = (str + '===').slice(0, str.length + (str.length % 4))
+      return decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))))
+    },
     updateUrlWithFilterChain (filterChain) {
       const queryParams = new URLSearchParams(window.location.search)
 
       if (filterChain.length) {
-        queryParams.set('filterChain', JSON.stringify(filterChain))
+        const encodedFilterChain = this.base64UrlEncode(JSON.stringify(filterChain))
+        queryParams.set('filterChain', encodedFilterChain)
       } else {
         queryParams.delete('filterChain')
       }
 
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+    },
+    initializeFilterChainFromUrl () {
+      const queryParams = new URLSearchParams(window.location.search)
+      const filterChainFromUrl = queryParams.get('filterChain')
+
+      if (filterChainFromUrl) {
+        try {
+          const decodedFilterChain = this.base64UrlDecode(filterChainFromUrl)
+          this.filterChain = JSON.parse(decodedFilterChain)
+          this.isFilterSelected = true
+        } catch (e) {
+          console.error(e)
+        }
+      }
     }
   },
 
@@ -649,6 +674,7 @@ export default {
   },
 
   mounted () {
+    this.initializeFilterChainFromUrl()
     axios.get('/api/v1/filters')
       .then(response => {
         this.savedFilters = response.data
