@@ -101,7 +101,7 @@ export default {
 
   data: () => ({
     columns: [
-      { name: 'username', label: 'username', align: 'left', field: 'username' },
+      { name: 'username', label: 'Username', align: 'left', field: 'username' },
       { name: 'firstname', label: 'Имя', align: 'left', field: 'firstname' },
       { name: 'lastname', label: 'Фамилия', align: 'left', field: 'lastname' },
       { name: 'roles', label: 'Роли', align: 'left', field: 'authorities', format: (arr) => arr.join(', ') },
@@ -153,6 +153,17 @@ export default {
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
         authorities: this.dialogRole
+      }
+      if (user.username.length === 0 || user.password.length === 0 || user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
       }
       if (this.isNewUser) {
         axios.post('/api/v1/new-user', user)

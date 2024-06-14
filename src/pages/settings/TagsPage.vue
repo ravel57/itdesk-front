@@ -157,6 +157,19 @@ export default {
         name: this.dialogName,
         description: this.dialogDescription
       }
+
+      if (tag.name.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
+
       if (this.isNewTag) {
         axios.post('/api/v1/new-tag', tag)
           .then(response => {

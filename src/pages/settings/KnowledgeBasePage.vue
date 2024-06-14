@@ -174,6 +174,17 @@ export default {
         texts: this.dialogTexts.split('\n'),
         tags: [] // this.dialogTags.split('\n')
       }
+      if (knowledge.title.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       if (this.isNewKnowledge) {
         axios.post('/api/v1/knowledge-base', knowledge)
           .then(response => {

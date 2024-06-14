@@ -151,6 +151,17 @@ export default {
         id: this.isNewStatus ? null : this.statusId,
         name: this.dialogStatusName
       }
+      if (status.name.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       if (this.isNewStatus) {
         axios.post('/api/v1/new-status', status)
           .then(response => {

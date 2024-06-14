@@ -186,6 +186,17 @@ export default {
         id: this.isNewPriority ? null : this.priorityId,
         name: this.dialogName
       }
+      if (priority.name.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       if (this.isNewPriority) {
         axios.post('/api/v1/new-priority', priority)
           .then(response => {

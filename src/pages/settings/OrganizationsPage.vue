@@ -141,6 +141,18 @@ export default {
         id: this.isNewOrganization ? null : this.organizationId,
         name: this.dialogName
       }
+
+      if (organization.name.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       if (this.isNewOrganization) {
         axios.post('/api/v1/new-organization', organization)
           .then(response => {

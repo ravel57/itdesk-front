@@ -179,6 +179,17 @@ export default {
         name: this.dialogName,
         token: this.dialogToken
       }
+      if (bot.name.length === 0 || bot.token.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       if (this.isNewTelegramBot) {
         axios.post('/api/v1/new-telegram-bot', bot)
           .then(response => {

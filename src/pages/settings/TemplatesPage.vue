@@ -159,6 +159,17 @@ export default {
         text: this.dialogText,
         shortcut: this.dialogShortcut
       }
+      if (template.text.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       if (this.isNewTemplate) {
         axios.post('/api/v1/new-template', template)
           .then(response => {

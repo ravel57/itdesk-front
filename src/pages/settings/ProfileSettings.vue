@@ -20,12 +20,14 @@
       <q-input
         v-model="this.newPassword"
         label="Новый пароль"
+        :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         type="password"
         style="padding: 16px"
       />
       <q-input
         v-model="this.newPasswordReenter"
         label="Повторите новый пароль"
+        :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         type="password"
         style="padding: 16px"
       />
@@ -61,6 +63,17 @@ export default {
 
   methods: {
     changePassword () {
+      if (this.newPassword.length === 0 || this.newPasswordReenter.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       if (this.newPassword === this.newPasswordReenter) {
         axios.post('/api/v1/user/change-password', { password: this.newPassword })
           .then(() => {

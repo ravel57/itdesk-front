@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <q-btn
       icon="add"
-      label="Добавить бота"
+      label="Добавить почту"
       @click="this.dialogNewEmailShow"
     />
     <div class="table-container">
@@ -215,6 +215,19 @@ export default {
         imapServer: this.dialogImapServer,
         imapPort: this.dialogImapPort,
         subject: this.dialogSubject
+      }
+      if (email.name.length === 0 || email.emailFrom.length === 0 || email.password.length === 0 ||
+        email.smtpPort.length === 0 || email.smtpServer.length === 0 || email.imapServer.length === 0 ||
+        email.imapPort.length === 0 || email.subject.length === 0) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
       }
       if (this.isNewEmail) {
         axios.post('/api/v1/new-email', email)
