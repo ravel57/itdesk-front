@@ -34,10 +34,10 @@
                   <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
                   <div class="flex items-end">
                     <q-item-label caption>
-                      Заявок: {{ this.getActualTasks(client).length && this.getSlaPercent(this.getActualTasks(client)) }}
+                      Заявок: {{ this.getActualTasks(client).length }}
                     </q-item-label>
                     <q-linear-progress
-                      v-if="getActualTasks(client).length > 0"
+                      v-if="getActualTasks(client).length > 0" && this.getSlaPercent(this.getActualTasks(client))
                       :value="this.getSlaPercent(this.getActualTasks(client))"
                       reverse
                       class="q-mt-sm"
