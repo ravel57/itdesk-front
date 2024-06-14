@@ -54,14 +54,6 @@
     class="shadow-2 rounded-borders"
   >
     <q-page-container>
-<!--      <q-page-sticky-->
-<!--        expand-->
-<!--        position="top"-->
-<!--        class="no-padding"-->
-<!--        style="background: white; z-index: 3;"-->
-<!--      >-->
-<!--        -->
-<!--      </q-page-sticky>-->
       <q-page
         style="padding-bottom: 86px; padding-top: 8px"
         ref="chat"

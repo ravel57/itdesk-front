@@ -28,7 +28,7 @@
 <!--          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
 <!--        </q-toggle>-->
         <q-btn
-          icon="more_vert"
+          icon="expand_circle_down"
           flat
           dense
           class="q-ml-auto"
