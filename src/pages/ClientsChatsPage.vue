@@ -37,7 +37,7 @@
                       Заявок: {{ this.getActualTasks(client).length }}
                     </q-item-label>
                     <q-linear-progress
-                      v-if="getActualTasks(client).length > 0" && this.getSlaPercent(this.getActualTasks(client))
+                      v-if="this.getActualTasks(client).length > 0 && this.getSlaPercent(this.getActualTasks(client))"
                       :value="this.getSlaPercent(this.getActualTasks(client))"
                       reverse
                       class="q-mt-sm"
@@ -126,16 +126,12 @@ export default {
     },
 
     getSlaPercent (tasks) {
-      const task = tasks.sort((b, a) => {
-        return a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0
-      })[tasks.length - 1]
+      const task = tasks.sort((b, a) => a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0)[tasks.length - 1]
       return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
     },
 
     getSlaColor (tasks) {
-      const task = tasks.sort((b, a) => {
-        return a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0
-      })[tasks.length - 1]
+      const task = tasks.sort((b, a) => a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0)[tasks.length - 1]
       if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.5) {
         return 'green'
       } else if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.25) {
