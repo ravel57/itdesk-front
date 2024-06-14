@@ -203,122 +203,282 @@
         </div>
       </div>
     </q-card>
+    <q-separator style="margin-bottom: 3px; margin-top: 3px"/>
+    <div style="overflow: auto; height: calc(97vh - 300px)">
+      <div class="row justify-center">
+        <div style="width: 100%;">
+          <q-card-section style="padding: 0">
+            <q-card class="my-card">
+              <q-card-section
+                v-for="task in this.getActualTasks"
+                :key="task.id"
+                :id="`task_${task.id}`"
+                style="padding: 0"
+              >
+                <div class="flex">
+                  <q-btn
+                    v-if="!task.completed"
+                    icon="check_circle"
+                    label="Закрыть заявку"
+                    class="text-grey"
+                    flat
+                    @click="this.setTaskCompleted(task)"
+                  />
+                  <q-btn
+                    v-if="task.linkedMessageId"
+                    icon="link"
+                    class="text-grey"
+                    flat
+                    dense
+                    @click="scrollToElementById(task)"
+                  />
+                </div>
+                <q-item
+                  clickable
+                  @click="this.onTaskClick(task)"
+                >
+                  <table>
+                    <tr v-if="task.completed">
+                      <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
+                    </tr>
+                    <tr>
+                      <th class="small-text text-grey" v-text="'Название: '"/>
+                      <th class="text-body2" v-text="task.name"/>
+                    </tr>
+                    <tr>
+                      <th class="small-text text-grey" v-text="'Описание: '"/>
+                      <th class="text-body2" v-text="task.description"/>
+                    </tr>
+                    <tr>
+                      <th class="small-text text-grey" v-text="'Теги: '"/>
+                      <th class="text-body2" v-text="task.tags.map(tag => tag.name).join(', ')"/>
+                    </tr>
+                    <tr>
+                      <th class="small-text text-grey" v-text="'Приоритет: '"/>
+                      <th class="text-body2" v-text="task.priority.name"/>
+                    </tr>
+                    <tr>
+                      <th class="small-text text-grey" v-text="'Создана: '"/>
+                      <th class="text-body2" v-text="this.getStamp(task.createdAt)"/>
+                    </tr>
+                    <tr v-if="!task.completed">
+                      <th class="small-text text-grey" v-text="'Статус: '"/>
+                      <th class="text-body2" v-text="task.status.name"/>
+                    </tr>
+                    <tr>
+                      <th class="small-text text-grey" v-text="'Деадлайн: '"/>
+                      <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
+                    </tr>
+                    <tr>
+                      <th class="small-text text-grey" v-text="'Исполнитель: '"/>
+                      <th class="text-body2" v-text="getName(task.executor)"/>
+                    </tr>
+                    <tr v-if="task.sla && task.sla.duration > 0">
+                      <th class="small-text text-grey" v-text="'SLA: '"/>
+                      <th class="text-body2">
+                        Осталось: {{ this.getSlaTime(task) }}
+                        <q-linear-progress
+                          :value="this.getSlaPercent(task)"
+                          reverse
+                          :color="this.getSlaColor(task)"
+                          class="q-mt-sm"
+                          style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
+                          size="8px"
+                        />
+                      </th>
+                    </tr>
+                  </table>
+                </q-item>
+                <q-separator/>
+              </q-card-section>
+            </q-card>
+          </q-card-section>
+        </div>
+      </div>
+    </div>
+  </q-card>
+
   <q-dialog
     v-model="this.isNewTaskDialogShow"
     persistent
     backdrop-filter="blur(4px)"
   >
-    <q-card class="dialog-width">
-      <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup/>
-      </q-toolbar>
-      <q-card-section style="padding-top: 0">
-        <q-input
-          v-model="this.dialogTaskName"
-          ref="taskName"
-          label="Название *"
-          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-        />
-        <q-input
-          type="textarea"
-          v-model="this.dialogTaskDescription"
-          label="Описание"
-        />
-        <q-select
-          v-model="this.dialogTaskPriority"
-          :options="this.priorities.map(priority => priority.name)"
-          label="Приоритет *"
-          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-        />
-        <q-select
-          v-model="dialogTaskExecutor"
-          :options="this.users.map(user => this.getUserName(user))"
-          label="Исполнитель"
-          use-input
-        />
-        <q-select
-          v-model="this.dialogTaskTags"
-          :options="this.tags.map(t => t.name)"
-          multiple
-          label="Теги"
-          use-chips
-          use-input
+    <q-card
+      :class="this.isMobile ? 'dialog-width' : 'large-dialog-width'"
+    >
+      <q-toolbar
+        class="justify-end"
+      >
+        <q-btn
+          flat
+          round
           dense
-          style="padding-top: 16px"
+          icon="close"
+          v-close-popup
         />
-        <q-input
-          v-model="dialogTaskDeadline"
-          clearable
-          label="Дедлайн"
+      </q-toolbar>
+      <q-card-section
+        style="padding: 0 16px"
+      >
+        <div
+          v-if="this.isMobile"
+          class="sticky-tabs"
         >
-          <template
-            v-slot:prepend
+          <q-tabs
+            v-model="dialogTab"
+            dense
+            align="justify"
+            class="bg-white text-grey no-padding"
+            :breakpoint="0"
           >
-            <q-icon
-              name="event"
-              class="cursor-pointer"
-            >
-              <q-popup-proxy
-                cover
-                transition-show="scale"
-                transition-hide="scale"
-              >
-                <q-date
-                  v-model="dialogTaskDeadline"
-                  mask="DD.MM.YYYY HH:mm"
-                >
-                  <div
-                    class="row items-center justify-end"
-                  >
-                    <q-btn
-                      v-close-popup
-                      label="Закрыть"
-                      color="primary"
-                      flat
-                    />
-                  </div>
-                </q-date>
-              </q-popup-proxy>
-            </q-icon>
-          </template>
-          <template
-            v-slot:append
+            <q-tab
+              name="tab1"
+              icon="info"
+            />
+            <q-tab
+              name="tab2"
+              icon="forum"
+            />
+          </q-tabs>
+        </div>
+        <div
+          :class="this.isMobile ? '' : 'flex-container'"
+        >
+          <div
+            v-if="(!this.isMobile || this.dialogTab === 'tab1')"
+            class="flex-item"
           >
-            <q-icon
-              name="access_time"
-              class="cursor-pointer"
+            <q-card
+              class="no-border-card"
             >
-              <q-popup-proxy
-                cover
-                transition-show="scale"
-                transition-hide="scale"
+              <q-card-section
+                class="no-padding"
               >
-                <q-time
+                <q-input
+                  v-model="this.dialogTaskName"
+                  ref="taskName"
+                  label="Название *"
+                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                />
+                <q-input
+                  type="textarea"
+                  v-model="this.dialogTaskDescription"
+                  label="Описание"
+                />
+                <q-select
+                  v-model="this.dialogTaskPriority"
+                  :options="this.priorities.map(priority => priority.name)"
+                  label="Приоритет *"
+                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                />
+                <q-select
+                  v-model="dialogTaskExecutor"
+                  :options="this.users.map(user => this.getUserName(user))"
+                  label="Исполнитель"
+                  use-input
+                />
+                <q-select
+                  v-model="this.dialogTaskTags"
+                  :options="this.tags.map(t => t.name)"
+                  multiple
+                  label="Теги"
+                  use-chips
+                  use-input
+                  dense
+                  style="padding-top: 16px"
+                />
+                <q-input
                   v-model="dialogTaskDeadline"
-                  mask="DD.MM.YYYY HH:mm"
-                  format24h
+                  clearable
+                  label="Дедлайн"
                 >
-                  <div
-                    class="row items-center justify-end"
+                  <template
+                    v-slot:prepend
                   >
-                    <q-btn
-                      v-close-popup
-                      label="Закрыть"
-                      color="primary"
-                      flat
-                    />
-                  </div>
-                </q-time>
-              </q-popup-proxy>
-            </q-icon>
-          </template>
-        </q-input>
-        <q-select
-          v-model="this.dialogTaskStatus"
-          :options="this.statuses.map(s => s.name)"
-          label="Статус *"
-          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-        />
+                    <q-icon
+                      name="event"
+                      class="cursor-pointer"
+                    >
+                      <q-popup-proxy
+                        cover
+                        transition-show="scale"
+                        transition-hide="scale"
+                      >
+                        <q-date
+                          v-model="dialogTaskDeadline"
+                          mask="DD.MM.YYYY HH:mm"
+                        >
+                          <div
+                            class="row items-center justify-end"
+                          >
+                            <q-btn
+                              v-close-popup
+                              label="Закрыть"
+                              color="primary"
+                              flat
+                            />
+                          </div>
+                        </q-date>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                  <template
+                    v-slot:append
+                  >
+                    <q-icon
+                      name="access_time"
+                      class="cursor-pointer"
+                    >
+                      <q-popup-proxy
+                        cover
+                        transition-show="scale"
+                        transition-hide="scale"
+                      >
+                        <q-time
+                          v-model="dialogTaskDeadline"
+                          mask="DD.MM.YYYY HH:mm"
+                          format24h
+                        >
+                          <div
+                            class="row items-center justify-end"
+                          >
+                            <q-btn
+                              v-close-popup
+                              label="Закрыть"
+                              color="primary"
+                              flat
+                            />
+                          </div>
+                        </q-time>
+                      </q-popup-proxy>
+                    </q-icon>
+                  </template>
+                </q-input>
+                <q-select
+                  v-model="this.dialogTaskStatus"
+                  :options="this.statuses.map(s => s.name)"
+                  label="Статус *"
+                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                />
+              </q-card-section>
+            </q-card>
+          </div>
+          <div
+            class="flex-item"
+            v-if="(!this.isMobile || this.dialogTab === 'tab2')"
+            :style="this.isMobile ? 'height: 541px' : ''"
+          >
+            <q-card
+              class="no-border-card"
+            >
+              <q-card-section
+                class="no-padding"
+              >
+                <div>Здесь находится содержимое чата заявки</div>
+              </q-card-section>
+            </q-card>
+          </div>
+        </div>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
@@ -335,6 +495,9 @@
           text-color="primary"
           @click="this.setTaskNotCompleted(this.getActualTasks.find(task => task.id === this.dialogTaskId))"
         />
+      <q-card-actions
+        align="right"
+      >
         <q-btn
           color="white"
           text-color="primary"
@@ -360,7 +523,7 @@ export default {
   name: 'ChatTasks',
   components: { ChatInfo },
 
-  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations'],
+  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations', 'isMobile'],
 
   data: () => ({
     isNewTaskDialogShow: false,
@@ -387,6 +550,7 @@ export default {
     searchResults: [],
     isShowSearchResults: false,
     sortMenuOpened: false,
+    dialogTab: 'tab1',
 
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },
@@ -641,5 +805,19 @@ export default {
 
 th {
   text-align: left;
+}
+
+.flex-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.flex-item {
+  flex: 0 0 48%;
+}
+
+.no-border-card {
+  border: none;
+  box-shadow: none;
 }
 </style>
