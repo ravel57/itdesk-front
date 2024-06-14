@@ -94,117 +94,8 @@
         </q-list>
       </div>
     </div>
-    <q-separator style="margin-bottom: 3px; margin-top: 3px" />
-      <div style="overflow: auto; height: calc(-300px + 97vh)">
-        <div class="row justify-center">
-          <div style="width: 100%;">
-            <q-card-section style="padding: 0">
-              <q-card class="my-card">
-                <q-card-section
-                  v-for="task in this.getActualTasks"
-                  :key="task.id"
-                  :id="`task_${task.id}`"
-                  style="padding: 0"
-                >
-                  <div class="flex">
-                    <q-btn
-                      v-if="!task.completed"
-                      icon="check_circle"
-                      label="Закрыть заявку"
-                      class="text-grey"
-                      flat
-                      @click="this.setTaskCompleted(task)"
-                    />
-                    <q-btn
-                      v-if="task.linkedMessageId"
-                      icon="link"
-                      class="text-grey"
-                      flat
-                      dense
-                      @click="scrollToElementById(task)"
-                    />
-                  </div>
-                  <q-item
-                    clickable
-                    @click="this.onTaskClick(task)"
-                  >
-                    <table>
-                      <tr v-if="task.completed">
-                        <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
-                      </tr>
-                      <tr>
-                        <th class="small-text text-grey" v-text="'Название: '"/>
-                        <th class="text-body2" v-text="task.name"/>
-                      </tr>
-                      <tr>
-                        <th class="small-text text-grey" v-text="'Описание: '"/>
-                        <th class="text-body2" v-text="task.description"/>
-                      </tr>
-                      <tr>
-                        <th class="small-text text-grey" v-text="'Теги: '"/>
-                        <th class="text-body2" v-text="task.tags.map(tag => tag.name).join(', ')"/>
-                      </tr>
-                      <tr>
-                        <th class="small-text text-grey" v-text="'Приоритет: '"/>
-                        <th class="text-body2" v-text="task.priority.name"/>
-                      </tr>
-                      <tr>
-                        <th class="small-text text-grey" v-text="'Создана: '"/>
-                        <th class="text-body2" v-text="this.getStamp(task.createdAt)"/>
-                      </tr>
-                      <tr v-if="!task.completed">
-                        <th class="small-text text-grey" v-text="'Статус: '"/>
-                        <th class="text-body2" v-text="task.status.name"/>
-                      </tr>
-                      <tr>
-                        <th class="small-text text-grey" v-text="'Деадлайн: '"/>
-                        <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
-                      </tr>
-                      <tr>
-                        <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-                        <th class="text-body2" v-text="getName(task.executor)"/>
-                      </tr>
-                      <tr v-if="task.sla && task.sla.duration > 0">
-                        <th class="small-text text-grey" v-text="'SLA: '"/>
-                        <th class="text-body2" style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
-                          Осталось: {{ this.getSlaTime(task) }}
-                          <q-linear-progress
-                            :value="this.getSlaPercent(task)"
-                            reverse
-                            :color="this.getSlaColor(task)"
-                            style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"
-                            size="8px"
-                          />
-                          <q-btn
-                            v-if="!this.slaIsPause"
-                            dense
-                            flat
-                            color="grey"
-                            @click.stop="this.slaIsPause = !this.slaIsPause"
-                            icon="pause_circle"
-                          />
-                          <q-btn
-                            v-if="this.slaIsPause"
-                            dense
-                            flat
-                            color="grey"
-                            @click.stop="this.slaIsPause = !this.slaIsPause"
-                            icon="play_circle"
-                          />
-                        </th>
-                      </tr>
-                    </table>
-                  </q-item>
-                  <q-separator/>
-                </q-card-section>
-              </q-card>
-            </q-card-section>
-          </div>
-        </div>
-      </div>
-    </q-card>
     <q-separator style="margin-bottom: 3px; margin-top: 3px"/>
-    <div style="overflow: auto; height: calc(97vh - 300px)">
+    <div style="overflow: auto; height: calc(-300px + 97vh)">
       <div class="row justify-center">
         <div style="width: 100%;">
           <q-card-section style="padding: 0">
@@ -275,15 +166,31 @@
                     </tr>
                     <tr v-if="task.sla && task.sla.duration > 0">
                       <th class="small-text text-grey" v-text="'SLA: '"/>
-                      <th class="text-body2">
+                      <th class="text-body2"
+                          style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
                         Осталось: {{ this.getSlaTime(task) }}
                         <q-linear-progress
                           :value="this.getSlaPercent(task)"
                           reverse
                           :color="this.getSlaColor(task)"
-                          class="q-mt-sm"
-                          style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
+                          style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"
                           size="8px"
+                        />
+                        <q-btn
+                          v-if="!this.slaIsPause"
+                          dense
+                          flat
+                          color="grey"
+                          @click.stop="this.slaIsPause = !this.slaIsPause"
+                          icon="pause_circle"
+                        />
+                        <q-btn
+                          v-if="this.slaIsPause"
+                          dense
+                          flat
+                          color="grey"
+                          @click.stop="this.slaIsPause = !this.slaIsPause"
+                          icon="play_circle"
                         />
                       </th>
                     </tr>
@@ -480,7 +387,9 @@
           </div>
         </div>
       </q-card-section>
-      <q-card-actions align="right">
+      <q-card-actions
+        align="right"
+      >
         <q-btn
           v-if="!this.dialogTaskComplete"
           label="Закрыть заявку"
@@ -495,9 +404,6 @@
           text-color="primary"
           @click="this.setTaskNotCompleted(this.getActualTasks.find(task => task.id === this.dialogTaskId))"
         />
-      <q-card-actions
-        align="right"
-      >
         <q-btn
           color="white"
           text-color="primary"
@@ -641,6 +547,7 @@ export default {
     },
 
     onTaskClick (task) {
+      this.updateUrlWithTask(task.id)
       this.isNewTask = false
       this.isNewTaskDialogShow = true
       this.dialogTaskId = task.id
@@ -777,6 +684,24 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
+    },
+    updateUrlWithTask (openedTaskId) {
+      const queryParams = new URLSearchParams(window.location.search)
+      queryParams.set('task', openedTaskId)
+      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+    },
+    initializeTaskFromUrl () {
+      const queryParams = new URLSearchParams(window.location.search)
+      const taskIdFromUrl = queryParams.get('task')
+
+      if (taskIdFromUrl) {
+        try {
+          const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
+          this.onTaskClick(taskFromUrl)
+        } catch (e) {
+          console.error(e)
+        }
+      }
     }
   },
 
@@ -792,7 +717,17 @@ export default {
   watch: {
     search (newVal) {
       this.onSearch(newVal)
+    },
+    isNewTaskDialogShow (newVal) {
+      if (this.isNewTaskDialogShow === false) {
+        const queryParams = new URLSearchParams(window.location.search)
+        queryParams.delete('task')
+        this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+      }
     }
+  },
+  mounted () {
+    setTimeout(() => this.initializeTaskFromUrl(), 15)
   }
 
 }
