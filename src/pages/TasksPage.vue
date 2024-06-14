@@ -410,8 +410,11 @@ export default {
       this.onCardClick(row)
     },
 
-    onCardClick (card) {
-      this.$router.push({ path: `/chats/${card.client.id}` })
+    onCardClick (taskCard) {
+      this.$router.push({
+        path: `/chats/${taskCard.client.id}`,
+        query: { task: taskCard.id }
+      })
     },
 
     deleteFilter (index) {
