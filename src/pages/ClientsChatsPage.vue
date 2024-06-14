@@ -113,7 +113,7 @@ export default {
       const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
       const now = moment()
       const duration = moment.duration(endDateTime.diff(now))
-      return duration.days() * 24 + duration.hours()
+      return duration.days() * 24 + duration.hours() + duration.minutes() * 0.017
     },
 
     getSlaPercent (tasks) {

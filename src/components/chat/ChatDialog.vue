@@ -63,7 +63,7 @@
 <!--        -->
 <!--      </q-page-sticky>-->
       <q-page
-        style="padding-bottom: 86px;"
+        style="padding-bottom: 86px; padding-top: 8px"
         ref="chat"
         id="chat"
         scroll
