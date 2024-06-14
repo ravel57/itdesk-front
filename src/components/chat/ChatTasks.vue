@@ -482,7 +482,7 @@ export default {
       this.dialogTaskTags = []
       this.dialogTaskDeadline = ''
       this.dialogTaskStatus = this.statuses.find(status => status.defaultSelection === true).name
-      setTimeout(() => this.$refs.taskName.focus(), 250)
+      setTimeout(() => this.$refs.taskName.focus(), 500)
     },
 
     saveNewOrUpdateTask () {
@@ -561,7 +561,7 @@ export default {
       this.dialogTaskStatus = task.status.name
       this.taskCreatedAt = task.createdAt
       this.dialogTaskComplete = task.completed
-      setTimeout(() => this.$refs.taskName.focus(), 250)
+      setTimeout(() => this.$refs.taskName.focus(), 500)
     },
 
     setTaskCompleted (task) {
@@ -705,7 +705,9 @@ export default {
       if (taskIdFromUrl) {
         try {
           const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
-          this.onTaskClick(taskFromUrl)
+          if (!this.isNewTaskDialogShow) {
+            this.onTaskClick(taskFromUrl)
+          }
         } catch (e) {
           console.error(e)
         }
