@@ -37,7 +37,7 @@
                       Заявок: {{ this.getActualTasks(client).length }}
                     </q-item-label>
                     <q-linear-progress
-                      v-if="this.getActualTasks(client).length > 0 && this.getSlaPercent(this.getActualTasks(client))"
+                      v-if="this.getActualTasks(client).length > 0 && this.getActualTasks(client).filter(task => task.sla !== null).length > 0"
                       :value="this.getSlaPercent(this.getActualTasks(client))"
                       reverse
                       class="q-mt-sm"
