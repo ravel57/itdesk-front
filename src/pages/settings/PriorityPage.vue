@@ -213,7 +213,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-priority', priority)
+        axios.patch('/api/v1/priority', priority)
           .then(response => {
             const priorities = this.store.priorities
             this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data

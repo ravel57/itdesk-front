@@ -64,7 +64,7 @@
         />
         <q-select
           v-model="dialogRole"
-          :options="this.store.roles"
+          :options="this.store.roles.map(role => getRoleName(role))"
           label="Роль"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
@@ -154,7 +154,8 @@ export default {
         firstname: this.dialogFirstName,
         authorities: this.dialogRole
       }
-      if (user.username.length === 0 || user.password.length === 0 || user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
+      if ((this.isNewUser && user.username.length === 0) || (this.isNewUser && user.password.length === 0) ||
+        user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
           type: 'negative',
@@ -214,6 +215,15 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
+    },
+
+    getRoleName (role) {
+      switch (role) {
+        case 'ADMIN': return 'Администратор'
+        case 'OPERATOR': return 'Оператор поддержки'
+        case 'OBSERVER': return 'Менеджер организации'
+        case 'CLIENT': return 'Клиент'
+      }
     }
   },
 
