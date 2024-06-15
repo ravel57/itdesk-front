@@ -166,7 +166,7 @@
             >
               <q-list>
                 <q-item
-                  v-for="option in filterType"
+                  v-for="option in filterType.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label))"
                   :key="option.value"
                   clickable
                   @click="handleNewFilterSelection(option.label)"
@@ -511,16 +511,19 @@ export default {
         return string
       }
     },
+
     base64UrlEncode (str) {
       return btoa(unescape(encodeURIComponent(str)))
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '')
     },
+
     base64UrlDecode (str) {
       str = (str + '===').slice(0, str.length + (str.length % 4))
       return decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))))
     },
+
     updateUrlWithFilterChain (filterChain) {
       const queryParams = new URLSearchParams(window.location.search)
 
@@ -533,6 +536,7 @@ export default {
 
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     },
+
     initializeFilterChainFromUrl () {
       const queryParams = new URLSearchParams(window.location.search)
       const filterChainFromUrl = queryParams.get('filterChain')
@@ -718,6 +722,15 @@ export default {
     }
   },
 
+  watch: {
+    filterChain: {
+      handler (newVal) {
+        this.updateUrlWithFilterChain(newVal)
+      },
+      deep: true
+    }
+  },
+
   mounted () {
     setInterval(() => this.initializeFilterChainFromUrl(), 100)
     axios.get('/api/v1/filters')
@@ -733,14 +746,6 @@ export default {
             icon: 'close', color: 'white', dense: true, handler: () => undefined
           }]
         }))
-  },
-  watch: {
-    filterChain: {
-      handler (newVal) {
-        this.updateUrlWithFilterChain(newVal)
-      },
-      deep: true
-    }
   },
 
   setup () {
