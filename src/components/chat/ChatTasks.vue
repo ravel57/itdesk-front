@@ -638,17 +638,9 @@ export default {
 
     onSearch () {
       if (this.search) {
-        this.isShowSearchResults = true
-        this.searchResults = this.tasks.filter(task => {
-          if (task.name) {
-            return task.name.toLowerCase().includes(this.search.toLowerCase())
-          } else {
-            return false
-          }
+        this.actualTasks = this.getActualTasks.filter(task => {
+          return task.name.includes(this.search)
         })
-      } else {
-        this.isShowSearchResults = false
-        this.searchResults = []
       }
     },
 
@@ -728,7 +720,11 @@ export default {
 
   computed: {
     getActualTasks () {
-      return this.tasks.filter(task => !task.completed || this.isShowCompletedTasks)
+      return this.tasks.filter(task => {
+        const showCompleted = !task.completed || this.isShowCompletedTasks
+        const matchSearch = !this.search || task.name.toLowerCase().includes(this.search.toLowerCase())
+        return showCompleted && matchSearch
+      })
     },
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
