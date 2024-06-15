@@ -278,6 +278,7 @@
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import moment from 'moment/moment'
 
 export default {
   data: () => ({
@@ -372,7 +373,21 @@ export default {
         name: 'sla',
         label: 'SLA',
         align: 'left',
-        field: row => row.sla,
+        field: row => {
+          if (!row.sla || !row.sla.startDate || !row.sla.duration) {
+            return '0 ч. 0 м.'
+          }
+
+          const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
+          const now = moment()
+          const duration = moment.duration(endDateTime.diff(now))
+
+          if (duration.asMilliseconds() < 0) {
+            return '0 ч. 0 м.'
+          } else {
+            return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+          }
+        },
         sortable: true
       }
     ],
@@ -513,24 +528,25 @@ export default {
       }
     },
 
-    base64UrlEncode (str) {
-      return btoa(unescape(encodeURIComponent(str)))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '')
+    base64EncodeUnicode (str) {
+      return btoa(
+        encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
+          return String.fromCharCode('0x' + p1)
+        })
+      )
     },
 
-    base64UrlDecode (str) {
-      str = (str + '===').slice(0, str.length + (str.length % 4))
-      return decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))))
+    base64DecodeUnicode (str) {
+      return decodeURIComponent(Array.prototype.map.call(atob(str), function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+      }).join(''))
     },
 
     updateUrlWithFilterChain (filterChain) {
       const queryParams = new URLSearchParams(window.location.search)
 
       if (filterChain.length) {
-        const encodedFilterChain = this.base64UrlEncode(JSON.stringify(filterChain))
-        queryParams.set('filterChain', encodedFilterChain)
+        queryParams.set('filterChain', this.base64EncodeUnicode(JSON.stringify(filterChain)))
       } else {
         queryParams.delete('filterChain')
       }
@@ -544,8 +560,7 @@ export default {
 
       if (filterChainFromUrl) {
         try {
-          const decodedFilterChain = this.base64UrlDecode(filterChainFromUrl)
-          this.filterChain = JSON.parse(decodedFilterChain)
+          this.filterChain = JSON.parse(this.base64DecodeUnicode(filterChainFromUrl))
           this.isFilterSelected = true
         } catch (e) {
           console.error(e)

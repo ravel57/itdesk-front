@@ -221,7 +221,7 @@
           round
           dense
           icon="close"
-          @click="this.closeModalWindow"
+          @click="this.closeDialog"
           v-close-popup
         />
       </q-toolbar>
@@ -321,7 +321,7 @@
                           >
                             <q-btn
                               v-close-popup
-                              @click="this.closeModalWindow"
+                              @click="this.closeDialog"
                               label="Закрыть"
                               color="primary"
                               flat
@@ -353,7 +353,7 @@
                           >
                             <q-btn
                               v-close-popup
-                              @click="this.closeModalWindow"
+                              @click="this.closeDialog"
                               label="Закрыть"
                               color="primary"
                               flat
@@ -411,7 +411,7 @@
           color="white"
           text-color="primary"
           label="Закрыть"
-          @click="this.closeModalWindow"
+          @click="this.closeDialog"
         />
         <q-btn
           color="primary"
@@ -519,7 +519,7 @@ export default {
       if (this.isNewTask) {
         axios.post(`/api/v1/client/${this.client.id}/new-task`, task)
           .then(task => {
-            this.closeModalWindow()
+            this.closeDialog()
             this.$emit('newTask', task)
           })
           .catch(e =>
@@ -534,7 +534,7 @@ export default {
       } else {
         axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
           .then(newTask => {
-            this.closeModalWindow()
+            this.closeDialog()
             this.$emit('updateTask', task, newTask.data)
           })
           .catch(e =>
@@ -572,7 +572,7 @@ export default {
       task.completed = true
       axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
         .then(newTask => {
-          this.closeModalWindow()
+          this.closeDialog()
           this.$emit('updateTask', task, newTask)
         })
         .catch(e =>
@@ -664,7 +664,11 @@ export default {
       const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
       const now = moment()
       const duration = moment.duration(endDateTime.diff(now))
-      return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+      if (duration.asMilliseconds() < 0) {
+        return '0 ч. 0 м.'
+      } else {
+        return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+      }
     },
 
     getSlaPercent (task) {
@@ -684,7 +688,7 @@ export default {
       task.completed = false
       axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
         .then(newTask => {
-          this.closeModalWindow()
+          this.closeDialog()
           this.$emit('updateTask', task, newTask)
         })
         .catch(e =>
@@ -719,7 +723,7 @@ export default {
         this.isNewTaskDialogShow = false
       }
     },
-    closeModalWindow () {
+    closeDialog () {
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
     }
