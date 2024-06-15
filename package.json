@@ -18,6 +18,8 @@
     "@types/sockjs-client": "^1.5.4",
     "app": "^0.1.0",
     "axios": "^1.2.1",
+    "base64-url": "^2.3.3",
+    "base64url": "^3.0.1",
     "core-js": "^3.31.1",
     "moment": "^2.30.1",
     "moment-timezone": "^0.5.45",
@@ -27,7 +29,8 @@
     "sockjs-client": "^1.6.1",
     "vue": "^3.4.18",
     "vue-router": "^4.0.12",
-    "vuedraggable": "^4.1.0"
+    "vuedraggable": "^4.1.0",
+    "yarn": "^1.22.22"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.13.14",
