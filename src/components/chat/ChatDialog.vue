@@ -31,7 +31,7 @@
     <q-list
       v-if="this.isShowSearchResults"
       class="shadow-2 rounded-borders scrollable-list-container"
-      style="width: 100%; max-height: 350px;"
+      style="width: 100%; max-height: 400px;"
     >
       <q-item
         v-for="message in searchResults"
@@ -92,12 +92,12 @@
                 <img
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
-                  style="width: 90%"
+                  style="width: 90%; max-width: 400px"
                   alt=""
                 >
                 <video
                   v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
-                  style="width: 90%"
+                  style="width: 90%; max-width: 400px"
                   controls
                 >
                   <source
@@ -108,7 +108,7 @@
                 </video>
                 <audio
                   v-else-if="message.fileUuid && message.fileType.startsWith('audio/')"
-                  style="width: 90%"
+                  style="width: 90%; max-width: 400px"
                   controls
                 >
                   <source
@@ -125,7 +125,10 @@
                   <q-icon name="attach_file"/>
                   {{ message.fileName }}
                 </a>
-                <div v-html="this.findLinks(message.text)"/>
+                <div
+                  v-html="this.findLinks(message.text)"
+                  style="max-width: 400px;"
+                />
                 <q-menu
                   v-if="this.isShowCustomContextMenu"
                   touch-position
