@@ -551,21 +551,23 @@ export default {
     },
 
     onTaskClick (task) {
-      this.updateUrlWithTask(task.id)
-      this.isNewTask = false
-      this.isNewTaskDialogShow = true
-      this.dialogTaskId = task.id
-      this.dialogTaskName = task.name
-      this.dialogTaskDescription = task.description
-      this.dialogTaskPriority = task.priority.name
-      this.dialogTaskExecutor = this.getUserName(task.executor)
-      this.dialogTaskTags = task.tags.map(tag => tag.name)
-      this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm') : ''
-      this.taskId = task.id
-      this.dialogTaskStatus = task.status.name
-      this.taskCreatedAt = task.createdAt
-      this.dialogTaskComplete = task.completed
-      setTimeout(() => this.$refs.taskName.focus(), 500)
+      if (!this.isNewTaskDialogShow) {
+        this.isNewTask = false
+        this.isNewTaskDialogShow = true
+        this.dialogTaskId = task.id
+        this.dialogTaskName = task.name
+        this.dialogTaskDescription = task.description
+        this.dialogTaskPriority = task.priority.name
+        this.dialogTaskExecutor = this.getUserName(task.executor)
+        this.dialogTaskTags = task.tags.map(tag => tag.name)
+        this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm') : ''
+        this.taskId = task.id
+        this.dialogTaskStatus = task.status.name
+        this.taskCreatedAt = task.createdAt
+        this.dialogTaskComplete = task.completed
+        this.updateUrlWithTask(this.dialogTaskId)
+      }
+      // setTimeout(() => this.$refs.taskName.focus(), 100)
     },
 
     setTaskCompleted (task) {
@@ -711,14 +713,8 @@ export default {
       const taskIdFromUrl = queryParams.get('task')
 
       if (taskIdFromUrl) {
-        try {
-          const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
-          if (!this.isNewTaskDialogShow) {
-            this.onTaskClick(taskFromUrl)
-          }
-        } catch (e) {
-          console.error(e)
-        }
+        const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
+        this.onTaskClick(taskFromUrl)
       } else {
         this.isNewTaskDialogShow = false
       }
