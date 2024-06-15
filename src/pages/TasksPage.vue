@@ -154,6 +154,7 @@
             </div>
           </div>
           <q-btn
+            v-if="filterType.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
             flat
             color="grey"
             icon="add_circle"
