@@ -1,6 +1,7 @@
 <template>
   <q-card
-    style="height: calc(100vh - 75px); max-height: calc(100vh - 75px); padding: 16px;"
+    id="taskColumn"
+    style="height: calc(100vh - 75px); padding: 16px;"
   >
     <div style="margin-bottom: 3px">
       <chat-info
@@ -134,23 +135,23 @@
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Название: '"/>
-                      <th class="text-body2" v-text="task.name"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.name"></th>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Описание: '"/>
-                      <th class="text-body2" v-text="task.description"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.description"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Теги: '"/>
-                      <th class="text-body2" v-text="task.tags.map(tag => tag.name).join(', ')"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.tags.map(tag => tag.name).join(', ')"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Приоритет: '"/>
-                      <th class="text-body2" v-text="task.priority.name"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.priority.name"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Создана: '"/>
-                      <th class="text-body2" v-text="this.getStamp(task.createdAt)"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.getStamp(task.createdAt)"/>
                     </tr>
                     <tr v-if="!task.completed">
                       <th class="small-text text-grey" v-text="'Статус: '"/>
@@ -158,11 +159,11 @@
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Деадлайн: '"/>
-                      <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.getStamp(task.deadline)"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-                      <th class="text-body2" v-text="getName(task.executor)"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="getName(task.executor)"/>
                     </tr>
                     <tr v-if="task.sla && task.sla.duration > 0 && !task.completed">
                       <th class="small-text text-grey" v-text="'SLA: '"/>
@@ -750,6 +751,9 @@ export default {
     }
   },
   mounted () {
+    if (this.isMobile) {
+      document.getElementById('taskColumn').style.height = 'calc(-110px + 100vh);'
+    }
     setInterval(() => this.initializeTaskFromUrl(), 500)
   }
 

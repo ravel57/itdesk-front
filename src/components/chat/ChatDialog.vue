@@ -48,8 +48,8 @@
     </q-list>
   </div>
   <q-layout
-    view="lHh Lpr lFf"
     container
+    id="chatDialog"
     style="height: calc(100vh - 115px);"
     class="shadow-2 rounded-borders"
   >
@@ -179,6 +179,7 @@
                       clickable
                     >
                       <q-item-section
+                        @click="this.createNewTask(message)"
                         v-close-popup
                       >
                         Создать заявку из сообщения TODO
@@ -356,6 +357,10 @@ export default {
   },
 
   mounted () {
+    if (this.isMobile) {
+      document.getElementById('chatDialog').style.height = 'calc(-150px + 100vh)'
+      document.getElementById('taskColumn').style.height = 'calc(-110px + 100vh);'
+    }
     this.$refs.textInput.focus()
     this.scrollToBottom()
   },
@@ -571,6 +576,9 @@ export default {
 
     showHelper () {
       this.$emit('showHelper')
+    },
+    createNewTask (message) {
+      this.$emit('createNewTaskWithLinkedMessage', message)
     }
   },
 
