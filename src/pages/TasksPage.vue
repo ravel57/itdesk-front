@@ -277,6 +277,7 @@
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import moment from 'moment/moment'
 
 export default {
   data: () => ({
@@ -371,7 +372,21 @@ export default {
         name: 'sla',
         label: 'SLA',
         align: 'left',
-        field: row => row.sla,
+        field: row => {
+          if (!row.sla || !row.sla.startDate || !row.sla.duration) {
+            return '0 ч. 0 м.'
+          }
+
+          const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
+          const now = moment()
+          const duration = moment.duration(endDateTime.diff(now))
+
+          if (duration.asMilliseconds() < 0) {
+            return '0 ч. 0 м.'
+          } else {
+            return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+          }
+        },
         sortable: true
       }
     ],
