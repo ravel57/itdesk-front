@@ -1,6 +1,7 @@
 <template>
   <q-card
-    style="height: calc(100vh - 75px); max-height: calc(100vh - 75px); padding: 16px;"
+    id="taskColumn"
+    style="height: calc(100vh - 75px); padding: 16px;"
   >
     <div style="margin-bottom: 3px">
       <chat-info
@@ -134,23 +135,23 @@
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Название: '"/>
-                      <th class="text-body2" v-text="task.name"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.name"></th>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Описание: '"/>
-                      <th class="text-body2" v-text="task.description"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.description"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Теги: '"/>
-                      <th class="text-body2" v-text="task.tags.map(tag => tag.name).join(', ')"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.tags.map(tag => tag.name).join(', ')"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Приоритет: '"/>
-                      <th class="text-body2" v-text="task.priority.name"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.priority.name"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Создана: '"/>
-                      <th class="text-body2" v-text="this.getStamp(task.createdAt)"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.getStamp(task.createdAt)"/>
                     </tr>
                     <tr v-if="!task.completed">
                       <th class="small-text text-grey" v-text="'Статус: '"/>
@@ -162,7 +163,7 @@
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-                      <th class="text-body2" v-text="getName(task.executor)"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="getName(task.executor)"/>
                     </tr>
                     <tr v-if="task.sla && task.sla.duration > 0 && !task.completed">
                       <th class="small-text text-grey" v-text="'SLA: '"/>
@@ -551,21 +552,23 @@ export default {
     },
 
     onTaskClick (task) {
-      this.updateUrlWithTask(task.id)
-      this.isNewTask = false
-      this.isNewTaskDialogShow = true
-      this.dialogTaskId = task.id
-      this.dialogTaskName = task.name
-      this.dialogTaskDescription = task.description
-      this.dialogTaskPriority = task.priority.name
-      this.dialogTaskExecutor = this.getUserName(task.executor)
-      this.dialogTaskTags = task.tags.map(tag => tag.name)
-      this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm') : ''
-      this.taskId = task.id
-      this.dialogTaskStatus = task.status.name
-      this.taskCreatedAt = task.createdAt
-      this.dialogTaskComplete = task.completed
-      setTimeout(() => this.$refs.taskName.focus(), 500)
+      if (!this.isNewTaskDialogShow) {
+        this.isNewTask = false
+        this.isNewTaskDialogShow = true
+        this.dialogTaskId = task.id
+        this.dialogTaskName = task.name
+        this.dialogTaskDescription = task.description
+        this.dialogTaskPriority = task.priority.name
+        this.dialogTaskExecutor = this.getUserName(task.executor)
+        this.dialogTaskTags = task.tags.map(tag => tag.name)
+        this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm') : ''
+        this.taskId = task.id
+        this.dialogTaskStatus = task.status.name
+        this.taskCreatedAt = task.createdAt
+        this.dialogTaskComplete = task.completed
+        this.updateUrlWithTask(this.dialogTaskId)
+        setTimeout(() => this.$refs.taskName.focus(), 100)
+      }
     },
 
     setTaskCompleted (task) {
@@ -635,17 +638,9 @@ export default {
 
     onSearch () {
       if (this.search) {
-        this.isShowSearchResults = true
-        this.searchResults = this.tasks.filter(task => {
-          if (task.name) {
-            return task.name.toLowerCase().includes(this.search.toLowerCase())
-          } else {
-            return false
-          }
+        this.actualTasks = this.getActualTasks.filter(task => {
+          return task.name.includes(this.search)
         })
-      } else {
-        this.isShowSearchResults = false
-        this.searchResults = []
       }
     },
 
@@ -711,14 +706,8 @@ export default {
       const taskIdFromUrl = queryParams.get('task')
 
       if (taskIdFromUrl) {
-        try {
-          const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
-          if (!this.isNewTaskDialogShow) {
-            this.onTaskClick(taskFromUrl)
-          }
-        } catch (e) {
-          console.error(e)
-        }
+        const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
+        this.onTaskClick(taskFromUrl)
       } else {
         this.isNewTaskDialogShow = false
       }
@@ -731,7 +720,11 @@ export default {
 
   computed: {
     getActualTasks () {
-      return this.tasks.filter(task => !task.completed || this.isShowCompletedTasks)
+      return this.tasks.filter(task => {
+        const showCompleted = !task.completed || this.isShowCompletedTasks
+        const matchSearch = !this.search || task.name.toLowerCase().includes(this.search.toLowerCase())
+        return showCompleted && matchSearch
+      })
     },
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
@@ -754,6 +747,9 @@ export default {
     }
   },
   mounted () {
+    if (this.isMobile) {
+      document.getElementById('taskColumn').style.height = 'calc(-110px + 100vh);'
+    }
     setInterval(() => this.initializeTaskFromUrl(), 500)
   }
 

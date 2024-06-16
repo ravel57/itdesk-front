@@ -1,7 +1,7 @@
 <template>
-  <q-layout view="hHh lpR fFf">
+  <q-layout style="min-height: 0">
     <q-page-container>
-      <q-page padding>
+      <q-page padding style="min-height: 0">
         <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
           <div style="display: flex; width: 100%;">
             <q-input

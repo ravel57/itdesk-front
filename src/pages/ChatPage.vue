@@ -24,6 +24,7 @@
         style="height: calc(100vh - 62px)"
       >
         <div
+          id="chatColumn"
           class="col"
           v-if="!this.isMobile || this.tab === 'tab1'"
         >
@@ -41,6 +42,7 @@
             :task-watching-now="this.getClient.watchingUsers"
             :deleteClient="this.deleteClient"
             :isShowHelper="this.isShowHelper"
+            @createNewTaskWithLinkedMessage="this.createNewTaskWithLinkedMessage(message)"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -69,7 +71,6 @@
         <div
           class="col"
           v-if="!this.isMobile || this.tab === 'tab3'"
-          style="height: 100%; max-height: 100%; min-height: auto"
           :style="!this.isMobile ? 'max-width: 33vw' : ''"
         >
           <chat-tasks
@@ -205,6 +206,8 @@ export default {
       this.tab = 'tab1'
       localStorage.setItem('isShowHelper', 'false')
     }
+    // createNewTaskWithLinkedMessage (message) {
+    // }
   },
 
   computed: {
