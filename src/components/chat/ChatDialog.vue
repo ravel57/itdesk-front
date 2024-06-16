@@ -6,7 +6,6 @@
   <div class="">
     <div style="display: flex; width: 100%;">
       <q-input
-        filled
         v-model="search"
         label="Поиск"
         dense

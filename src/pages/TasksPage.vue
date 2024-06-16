@@ -114,6 +114,7 @@
                 v-for="(filter, index) in this.filterChain"
                 :key="index"
                 style="display: flex; border-right: 16px; padding-right: 16px"
+                :id="`filter_${index}`"
               >
                 <q-select
                   outlined
@@ -300,6 +301,7 @@ export default {
     isMenuActive: false,
     isFilterSelected: false,
     isDeleteSavedFilterDialogShow: false,
+    isFilterOpen: true,
     tableColumns: [
       {
         name: 'name',
@@ -419,6 +421,7 @@ export default {
       }
       this.filterChain.push({ label, options, selectedOptions: [] })
       this.addNewFilterSelectorText = ''
+      this.isFilterOpen = false
     },
 
     onRowClick (event, row, index) {
@@ -543,13 +546,11 @@ export default {
 
     updateUrlWithFilterChain (filterChain) {
       const queryParams = new URLSearchParams(window.location.search)
-
       if (filterChain.length) {
         queryParams.set('filterChain', this.base64EncodeUnicode(JSON.stringify(filterChain)))
       } else {
         queryParams.delete('filterChain')
       }
-
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     },
 
@@ -741,7 +742,13 @@ export default {
     filterChain: {
       handler (newVal) {
         this.updateUrlWithFilterChain(newVal)
-        // document.getElementById(`filter_${newVal.length - 1}`).focus()
+        try {
+          if (!this.isFilterOpen) {
+            document.getElementById(`filter_${newVal.length - 1}`).children[0].click()
+            this.isFilterOpen = true
+          }
+        } catch (ignored) {
+        }
       },
       deep: true
     }
