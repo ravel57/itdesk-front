@@ -157,7 +157,7 @@
                       <th class="text-body2" v-text="task.status.name"/>
                     </tr>
                     <tr>
-                      <th class="small-text text-grey" v-text="'Деадлайн: '"/>
+                      <th class="small-text text-grey" v-text="'Дедлайн: '"/>
                       <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
                     </tr>
                     <tr>

@@ -237,7 +237,6 @@
                 @click="this.onCardClick(task)"
               >
                 {{ this.shortenLine(`${task.name}: ${task.client.lastname} ${task.client.firstname}`) }}
-<!--                {{ task.name }}: {{ task.client.firstname + ' ' + task.client.lastname }}-->
               </q-item>
             </div>
           </div>
@@ -742,6 +741,7 @@ export default {
     filterChain: {
       handler (newVal) {
         this.updateUrlWithFilterChain(newVal)
+        // document.getElementById(`filter_${newVal.length - 1}`).focus()
       },
       deep: true
     }
