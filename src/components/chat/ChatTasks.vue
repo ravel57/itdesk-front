@@ -451,6 +451,7 @@ export default {
     dialogTaskStatus: '',
     dialogTaskDeadline: '',
     dialogTaskComplete: false,
+    linkedMessageId: '',
 
     taskCreatedAt: '',
 
@@ -507,6 +508,9 @@ export default {
       }
       const queryParams = new URLSearchParams(window.location.search)
       const messageId = queryParams.get('newTaskFromMessage')
+      if (!this.linkedMessageId) {
+        this.linkedMessageId = messageId
+      }
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
       const task = {
@@ -520,7 +524,7 @@ export default {
         isCompleted: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: new Date(moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format()),
-        linkedMessageId: this.isNewTask && messageId ? messageId : null,
+        linkedMessageId: this.linkedMessageId,
         sla: this.isNewTask ? null : this.tasks.find(task => task.id === this.taskId).sla
       }
       if (this.isNewTask) {
@@ -572,6 +576,7 @@ export default {
         this.dialogTaskStatus = task.status.name
         this.taskCreatedAt = task.createdAt
         this.dialogTaskComplete = task.completed
+        this.linkedMessageId = task.linkedMessageId
         this.updateUrlWithTask(this.dialogTaskId)
         setTimeout(() => this.$refs.taskName.focus(), 100)
       }

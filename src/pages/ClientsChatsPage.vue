@@ -40,9 +40,11 @@
                       v-if="this.getActualTasks(client).filter(task => task.sla !== null).length > 0"
                       :value="this.getSlaPercent(this.getActualTasks(client))"
                       reverse
+                      stripe
+                      rounded
                       class="q-mt-sm"
                       style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
-                      size="8px"
+                      size="12px"
                       :color="this.getSlaColor(this.getActualTasks(client))"
                     >
                       <q-tooltip

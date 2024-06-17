@@ -86,7 +86,7 @@
         </div>
         <div
           v-if="this.isFilterSelected"
-          style="display: flex;margin-top: 8px; margin-bottom: 8px; align-items: center;">
+          style="display: flex;margin-top: 8px; align-items: center;">
           <q-select
             outlined
             v-model="this.selectedSavedFilter"
@@ -214,6 +214,7 @@
           :rows-per-page-options="[10, 20, 50]"
           :sortable="true"
           row-key="id"
+          style="margin-top: 8px"
           rows-per-page-label="Строк на странице"
           @row-click="onRowClick"
         />
