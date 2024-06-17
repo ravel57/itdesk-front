@@ -49,12 +49,12 @@
   <q-layout
     container
     id="chatDialog"
-    style="height: calc(100vh - 115px);"
+    style="height: calc(100vh - 193px); background-color: #F0F0F0"
     class="shadow-2 rounded-borders"
   >
     <q-page-container>
       <q-page
-        style="padding-bottom: 86px; padding-top: 8px"
+        style="padding-top: 8px"
         ref="chat"
         id="chat"
         scroll
@@ -72,12 +72,13 @@
               :name="this.getName(message)"
               :sent="message.sent"
               :stamp="this.getStamp(message)"
-              :bg-color="message.comment ? 'blue-3' : message.sent ? '#e0e0e0' : 'indigo-3'"
+              :bg-color="message.comment ? 'blue-2' : message.sent ? '#e0e0e0' : 'white'"
               text-color="black"
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
               @click.right="this.invertContextMenu"
             >
+<!--              :style="{ 'border-style': message.comment ? 'dashed' : 'unset', 'border-color': '#1976D2' }"-->
               <div
                 v-if="this.getReplyMessageText(message)"
                 class="flex"
@@ -91,12 +92,12 @@
                 <img
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
-                  style="width: 90%; max-width: 400px"
+                  style="width: 100%; max-width: 400px"
                   alt=""
                 >
                 <video
                   v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
-                  style="width: 90%; max-width: 400px"
+                  style="width: 100%; max-width: 400px"
                   controls
                 >
                   <source
@@ -181,7 +182,7 @@
                         @click="this.createNewTask(message)"
                         v-close-popup
                       >
-                        Создать заявку из сообщения TODO
+                        Создать заявку из сообщения
                       </q-item-section>
                     </q-item>
                     <!-- <q-item-->
@@ -226,94 +227,115 @@
             </q-chat-message>
           </div>
         </div>
-        <q-page-sticky
-          expand
-          position="bottom"
-          class="no-padding"
-          style="background: white"
-        >
-          <div
-            v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-            v-text="this.getTypingUsers"
-          />
-          <div
-            v-if="this.replyMessageId !== null"
-            style="width: 90%;"
-          >
-            <q-icon
-              name="reply"
-            />
-            {{ this.messages.find(m => m.id === this.replyMessageId).text }}
-            <q-icon
-              name="close"
-              @click="this.replyMessageId = null"
-            />
-          </div>
-          <q-toolbar class="no-padding">
-            <q-btn
-              type="file"
-              @click="attachFile"
-              icon="attach_file"
-              class="no-padding"
-              flat
-            />
-            <input
-              type="file"
-              id="fileInput"
-              style="display: none"
-            />
-            <textarea
-              ref="textInput"
-              id="textarea"
-              class="shadow-2 rounded-borders"
-              :value="this.inputField"
-              :placeholder="`${toggleIsComment ? 'Текст комментария' : 'Текст сообщения'} (ctrl+enter отправить)\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод`"
-              :style="'color: ' + this.toggleIsComment ? 'white' : 'black'"
-              :class="this.toggleIsComment ? 'bg-blue-3' : 'bg-white'"
-              @keydown.tab.prevent="handleTabPressed"
-              @keydown="this.handleKeyPressed"
-              @input="this.textChanged"
-            />
-            <div>
-              <q-toggle
-                v-model="this.toggleIsComment"
-                color="primary"
-                icon="comment"
-              />
-              <q-btn
-                icon="send"
-                @click="this.sendMessage"
-                :loading="this.isSending"
-                color="white"
-                text-color="primary"
-                push
-                :ripple="false"
-                style="margin: 0 5px"
-                @mouseover="showTooltipSend = true"
-                @mouseup="showTooltipSend = false"
-              >
-                  <q-tooltip
-                    v-if="showTooltipSend"
-                  >
-                    ctrl+enter отправить
-                  </q-tooltip>
-              </q-btn>
-            </div>
-          </q-toolbar>
-          <div
-            v-if="this.attachedFile"
-            style="background: white; width: 100%"
-          >
-            {{ this.attachedFile ? this.attachedFile.name : '' }}
-            <q-icon
-              name="close"
-              @click="this.attachedFile = null"
-            />
-          </div>
-        </q-page-sticky>
       </q-page>
     </q-page-container>
   </q-layout>
+  <div class="inputControl" style="margin-top: 8px">
+    <q-card class="shadow-2" style="position: relative;">
+      <div v-if="this.attachedFile" style="
+      display: block;
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #1976D2;
+      padding: 0 5px;
+      border-radius: 5px;
+      color: white;
+      font-size: 14px;
+      z-index: 1000;
+      margin-bottom: 5px;
+      opacity: .6;
+    ">
+        <div
+          style="display: flex; flex-wrap: nowrap; align-items: center;"
+          class="popupContent"
+        >
+          {{ this.shortenLine(this.attachedFile.name) }}
+          <q-btn
+            dense
+            flat
+            icon="delete"
+            @click="this.attachedFile = null"
+          />
+        </div>
+      </div>
+      <div
+        v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+        v-text="this.getTypingUsers"
+      />
+      <div
+        v-if="this.replyMessageId !== null"
+        style="width: 90%;"
+      >
+        <q-icon
+          name="reply"
+        />
+        {{ this.messages.find(m => m.id === this.replyMessageId).text }}
+        <q-icon
+          name="close"
+          @click="this.replyMessageId = null"
+        />
+      </div>
+      <q-toolbar class="no-padding">
+        <q-btn
+          type="file"
+          @click="attachFile"
+          icon="attach_file"
+          class="no-padding"
+          flat
+        />
+        <input
+          type="file"
+          id="fileInput"
+          style="display: none"
+        />
+        <textarea
+          ref="textInput"
+          id="textarea"
+          style="border-color: #1875D0; border-style: unset"
+          :value="this.inputField"
+          :placeholder="`${isComment ? 'Текст комментария' : 'Текст сообщения'} (ctrl+enter отправить)\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод`"
+          class="bg-white"
+          :style="'border-style: ' + (this.isComment ? 'dashed' : 'unset')"
+          @keydown.tab.prevent="handleTabPressed"
+          @keydown="this.handleKeyPressed"
+          @input="this.textChanged"
+        />
+        <div>
+          <q-btn
+            icon="send"
+            @click="this.sendMessage"
+            :loading="this.isSending"
+            color="white"
+            text-color="primary"
+            dense
+            push
+            flat
+            :ripple="false"
+            style="margin-right: 5px"
+            @mouseover="showTooltipSend = true"
+            @mouseup="showTooltipSend = false"
+          >
+            <q-tooltip
+              v-if="showTooltipSend"
+            >
+              ctrl+enter отправить
+            </q-tooltip>
+          </q-btn>
+        </div>
+        <div class="">
+          <q-btn
+            @click="this.switchToComment"
+            dense
+            flat
+            icon="comment"
+            :color="this.isComment ? 'primary' : 'grey'"
+          />
+        </div>
+      </q-toolbar>
+    </q-card>
+  </div>
 </template>
 
 <script>
@@ -339,7 +361,7 @@ export default {
   ],
 
   data: () => ({
-    toggleIsComment: false,
+    isComment: false,
     text: '',
     isShowCustomContextMenu: true,
     rightClickCounter: 0,
@@ -357,7 +379,7 @@ export default {
 
   mounted () {
     if (this.isMobile) {
-      document.getElementById('chatDialog').style.height = 'calc(-150px + 100vh)'
+      document.getElementById('chatDialog').style.height = 'calc(-220px + 100vh)'
       document.getElementById('taskColumn').style.height = 'calc(-110px + 100vh);'
     }
     this.$refs.textInput.focus()
@@ -388,7 +410,7 @@ export default {
           text: textarea.value,
           date: new Date(),
           sent: true,
-          comment: this.toggleIsComment,
+          comment: this.isComment,
           read: true,
           replyMessageId: this.replyMessageId
         }
@@ -580,6 +602,16 @@ export default {
       const queryParams = new URLSearchParams(window.location.search)
       queryParams.set('newTaskFromMessage', message.id)
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+    },
+    switchToComment () {
+      this.isComment = !this.isComment
+    },
+    shortenLine (string) {
+      if (string.length > 25) {
+        return string.substring(0, 25) + '...'
+      } else {
+        return string
+      }
     }
   },
 
