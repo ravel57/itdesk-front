@@ -171,7 +171,7 @@ export default {
       }
 
       if (this.isNewTag) {
-        axios.post('/api/v1/new-tag', tag)
+        axios.post('/api/v1/tag', tag)
           .then(response => {
             this.store.tags.push(response.data)
             this.dialogClose()
@@ -186,7 +186,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-tag', tag)
+        axios.patch('/api/v1/tag', tag)
           .then(response => {
             this.store.tags[this.store.tags.indexOf(this.store.tags.find(tag => tag.id === this.tagId))] = response.data
             this.dialogClose()
@@ -224,7 +224,7 @@ export default {
   setup () {
     const store = useStore()
     watch(() => store.tags, () => {
-      axios.post('/api/v1/update-tags/resort', store.tags)
+      axios.patch('/api/v1/tags/resort', store.tags)
     }, { deep: true })
     return { store }
   }

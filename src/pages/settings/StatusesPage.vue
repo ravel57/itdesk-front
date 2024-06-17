@@ -163,7 +163,7 @@ export default {
         return
       }
       if (this.isNewStatus) {
-        axios.post('/api/v1/new-status', status)
+        axios.post('/api/v1/status', status)
           .then(response => {
             this.store.statuses.push(response.data)
             this.dialogClose()
@@ -178,7 +178,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-status', status)
+        axios.patch('/api/v1/status', status)
           .then(response => {
             this.store.statuses[this.store.statuses.indexOf(this.store.statuses.find(status => status.id === this.statusId))] = response.data
             this.dialogClose()
@@ -217,7 +217,7 @@ export default {
         status.defaultSelection = false
       })
       row.defaultSelection = true
-      axios.post('/api/v1/update-status/set-default', row)
+      axios.patch('/api/v1/status/set-default', row)
         .then(response => {
           const priorities = this.store.priorities
           this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data
@@ -238,7 +238,7 @@ export default {
   setup () {
     const store = useStore()
     watch(() => store.statuses, () => {
-      axios.post('/api/v1/update-status/resort', store.statuses)
+      axios.patch('/api/v1/status/resort', store.statuses)
     }, { deep: true })
     return { store }
   }

@@ -396,7 +396,7 @@
         align="right"
       >
         <q-btn
-          v-if="!this.isNewTask"
+          v-if="!this.isNewTask && !this.dialogTaskComplete"
           label="Закрыть заявку"
           color="white"
           text-color="primary"
@@ -527,7 +527,7 @@ export default {
         sla: this.isNewTask ? null : this.tasks.find(task => task.id === this.taskId).sla
       }
       if (this.isNewTask) {
-        axios.post(`/api/v1/client/${this.client.id}/new-task`, task)
+        axios.post(`/api/v1/client/${this.client.id}/task`, task)
           .then(task => {
             this.closeDialog()
             this.$emit('newTask', task)
@@ -542,7 +542,7 @@ export default {
               }]
             }))
       } else {
-        axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
+        axios.patch(`/api/v1/client/${this.client.id}/task`, task)
           .then(newTask => {
             this.closeDialog()
             this.$emit('updateTask', task, newTask.data)
@@ -583,7 +583,7 @@ export default {
 
     setTaskCompleted (task) {
       task.completed = true
-      axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
+      axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
           this.$emit('updateTask', task, newTask)
@@ -691,7 +691,7 @@ export default {
     },
     setTaskNotCompleted (task) {
       task.completed = false
-      axios.post(`/api/v1/client/${this.client.id}/update-task`, task)
+      axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
           this.$emit('updateTask', task, newTask)

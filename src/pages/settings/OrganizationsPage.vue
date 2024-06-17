@@ -154,7 +154,7 @@ export default {
         return
       }
       if (this.isNewOrganization) {
-        axios.post('/api/v1/new-organization', organization)
+        axios.post('/api/v1/organization', organization)
           .then(response => {
             this.store.organizations.push(response.data)
             this.dialogClose()
@@ -169,7 +169,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-organization', organization)
+        axios.patch('/api/v1/organization', organization)
           .then(response => {
             const orgs = this.store.organizations
             this.store.organizations[orgs.indexOf(orgs.find(organization => organization.id === this.organizationId))] = response.data

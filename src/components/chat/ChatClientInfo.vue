@@ -202,7 +202,7 @@ export default {
         moreInfo: this.dialogAnotherInfo
       }
 
-      axios.post(`/api/v1/client/${this.client.id}/update-client`, client)
+      axios.patch(`/api/v1/client/${this.client.id}/client`, client)
         .then(newClient => {
           this.$emit('updateClient', newClient)
         })

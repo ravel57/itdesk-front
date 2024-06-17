@@ -230,7 +230,7 @@ export default {
         return
       }
       if (this.isNewEmail) {
-        axios.post('/api/v1/new-email', email)
+        axios.post('/api/v1/email', email)
           .then(response => {
             this.emails.push(response.data)
             this.dialogClose()
@@ -245,7 +245,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-email', email)
+        axios.patch('/api/v1/email', email)
           .then(response => {
             const emails = this.emails
             this.emails[emails.indexOf(emails.find(email => email.id === this.emailId))] = response.data

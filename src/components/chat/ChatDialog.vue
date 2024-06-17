@@ -422,7 +422,7 @@ export default {
               message.fileUuid = response.data
               message.fileName = this.attachedFile.name
               message.fileType = this.attachedFile.type
-              axios.post(`/api/v1/client/${this.clientId}/new-message`, message)
+              axios.post(`/api/v1/client/${this.clientId}/message`, message)
                 .then(() => {
                   this.$emit('sendMessage', message)
                   this.scrollToBottom()
@@ -440,7 +440,7 @@ export default {
                 }]
               }))
         } else {
-          axios.post(`/api/v1/client/${this.clientId}/new-message`, message)
+          axios.post(`/api/v1/client/${this.clientId}/message`, message)
             .then(() => {
               this.$emit('sendMessage', message)
               this.scrollToBottom()

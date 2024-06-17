@@ -167,7 +167,7 @@ export default {
         return
       }
       if (this.isNewUser) {
-        axios.post('/api/v1/new-user', user)
+        axios.post('/api/v1/user', user)
           .then(response => {
             this.store.users.push(response.data)
             this.dialogClose()
@@ -182,7 +182,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-user', user)
+        axios.patch('/api/v1/user', user)
           .then(response => {
             const users = this.store.users
             this.store.users[users.indexOf(users.find(user => user.id === this.userId))] = response.data

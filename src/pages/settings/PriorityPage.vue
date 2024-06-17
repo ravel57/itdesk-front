@@ -198,7 +198,7 @@ export default {
         return
       }
       if (this.isNewPriority) {
-        axios.post('/api/v1/new-priority', priority)
+        axios.post('/api/v1/priority', priority)
           .then(response => {
             this.store.priorities.push(response.data)
             this.dialogClose()
@@ -234,7 +234,7 @@ export default {
     setDefaultSelected (row) {
       this.store.priorities.forEach(priority => { priority.defaultSelection = false })
       row.defaultSelection = true
-      axios.post('/api/v1/update-priority/set-default', row)
+      axios.patch('/api/v1/priority/set-default', row)
         .then(response => {
           const priorities = this.store.priorities
           this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data
@@ -254,7 +254,7 @@ export default {
     setCritical (row) {
       this.store.priorities.forEach(priority => { priority.critical = false })
       row.critical = true
-      axios.post('/api/v1/update-priority/set-high-priority', row)
+      axios.patch('/api/v1/priority/set-high-priority', row)
         .then(response => {
           const priorities = this.store.priorities
           this.store.priorities[priorities.indexOf(priorities.find(priority => priority.id === this.priorityId))] = response.data
@@ -275,7 +275,7 @@ export default {
   setup () {
     const store = useStore()
     watch(() => store.priorities, () => {
-      axios.post('/api/v1/update-priorities/resort', store.priorities)
+      axios.patch('/api/v1/priorities/resort', store.priorities)
     }, { deep: true })
     return { store }
   }
