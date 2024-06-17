@@ -216,8 +216,15 @@
           row-key="id"
           style="margin-top: 8px"
           rows-per-page-label="Строк на странице"
-          @row-click="onRowClick"
-        />
+        >
+          <template v-slot:body-cell-name="props">
+            <q-td :props="props">
+              <router-link :to="{path: `/chats/${props.row.client.id}`, query: { task: props.row.id }}">
+                {{ props.row.name }}
+              </router-link>
+            </q-td>
+          </template>
+        </q-table>
         <q-scroll-area
           v-else
           class="board"
@@ -229,16 +236,25 @@
             :key="index"
             class="list"
           >
-            <div class="list-header sticky-tabs" v-text="taskList.title"/>
-            <div class="list-cards">
+            <div
+              class="list-header sticky-tabs"
+              v-text="taskList.title"
+            />
+            <div
+              class="list-cards"
+            >
               <q-item
                 v-for="(task, index) in taskList.taskCards"
                 :key="index"
-                class="card"
-                clickable
-                @click="this.onCardClick(task)"
+                class="no-padding"
               >
-                {{ this.shortenLine(`${task.name}: ${task.client.lastname} ${task.client.firstname}`) }}
+                <router-link
+                  class="card"
+                  clickable
+                  :to="{path: `/chats/${task.client.id}`,query: { task: task.id }}"
+                >
+                  {{ this.shortenLine(`${task.name}: ${task.client.lastname} ${task.client.firstname}`) }}
+                </router-link>
               </q-item>
             </div>
           </div>
@@ -265,7 +281,7 @@
             />
             <q-btn
               color="primary"
-              label="Закрыть"
+              label="Удалить"
               @click="deleteSavedFilter"
             />
           </q-card-actions>
@@ -423,17 +439,6 @@ export default {
       this.filterChain.push({ label, options, selectedOptions: [] })
       this.addNewFilterSelectorText = ''
       this.isFilterOpen = false
-    },
-
-    onRowClick (event, row, index) {
-      this.onCardClick(row)
-    },
-
-    onCardClick (taskCard) {
-      this.$router.push({
-        path: `/chats/${taskCard.client.id}`,
-        query: { task: taskCard.id }
-      })
     },
 
     deleteFilter (index) {
@@ -814,6 +819,10 @@ export default {
   border: 1px solid #ccc;
   margin-bottom: 10px;
   padding: 10px;
+  width: 300px;
+  display: inline-block;
+  text-decoration: none;
+  color: black;
 }
 
 .sticky-tabs {

@@ -66,7 +66,6 @@
         </q-btn>
         <q-input
           v-if="showSearch"
-          filled
           v-model="search"
           label="Поиск"
           outlined
