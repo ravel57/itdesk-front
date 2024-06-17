@@ -171,11 +171,13 @@
                           style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
                         Осталось: {{ this.getSlaTime(task) }}
                         <q-linear-progress
+                          stripe
+                          rounded
                           :value="this.getSlaPercent(task)"
                           reverse
                           :color="this.getSlaColor(task)"
                           style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"
-                          size="8px"
+                          size="12px"
                         />
                         <q-btn
                           v-if="!this.slaIsPause"
@@ -395,7 +397,7 @@
         align="right"
       >
         <q-btn
-          v-if="!this.dialogTaskComplete && this.isNewTask"
+          v-if="!this.isNewTask"
           label="Закрыть заявку"
           color="white"
           text-color="primary"
