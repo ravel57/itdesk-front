@@ -42,7 +42,6 @@
             :task-watching-now="this.getClient.watchingUsers"
             :deleteClient="this.deleteClient"
             :isShowHelper="this.isShowHelper"
-            @createNewTaskWithLinkedMessage="this.createNewTaskWithLinkedMessage(message)"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -206,8 +205,6 @@ export default {
       this.tab = 'tab1'
       localStorage.setItem('isShowHelper', 'false')
     }
-    // createNewTaskWithLinkedMessage (message) {
-    // }
   },
 
   computed: {

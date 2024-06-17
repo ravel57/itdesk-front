@@ -577,7 +577,9 @@ export default {
       this.$emit('showHelper')
     },
     createNewTask (message) {
-      this.$emit('createNewTaskWithLinkedMessage', message)
+      const queryParams = new URLSearchParams(window.location.search)
+      queryParams.set('newTaskFromMessage', message.id)
+      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     }
   },
 

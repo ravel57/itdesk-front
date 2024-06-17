@@ -395,7 +395,7 @@
         align="right"
       >
         <q-btn
-          v-if="!this.dialogTaskComplete"
+          v-if="!this.dialogTaskComplete && this.isNewTask"
           label="Закрыть заявку"
           color="white"
           text-color="primary"
@@ -454,6 +454,7 @@ export default {
 
     isShowCompletedTasks: false,
     isNewTask: true,
+    isNewLinkedTask: false,
     taskId: null, // for update
 
     showSearch: false,
@@ -502,6 +503,8 @@ export default {
         })
         return
       }
+      const queryParams = new URLSearchParams(window.location.search)
+      const messageId = queryParams.get('newTaskFromMessage')
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
       const task = {
@@ -515,6 +518,7 @@ export default {
         isCompleted: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: new Date(moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format()),
+        linkedMessageId: this.isNewTask && messageId ? messageId : null,
         sla: this.isNewTask ? null : this.tasks.find(task => task.id === this.taskId).sla
       }
       if (this.isNewTask) {
@@ -704,7 +708,14 @@ export default {
     initializeTaskFromUrl () {
       const queryParams = new URLSearchParams(window.location.search)
       const taskIdFromUrl = queryParams.get('task')
-
+      const messageId = queryParams.get('newTaskFromMessage')
+      if (messageId && !taskIdFromUrl && !this.isTaskDialogShow) {
+        this.isNewLinkedTask = true
+        this.dialogNewTask()
+      } else if (!messageId && this.isNewTask && this.isNewLinkedTask) {
+        this.isNewLinkedTask = false
+        this.isTaskDialogShow = false
+      }
       if (taskIdFromUrl) {
         const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
         this.onTaskClick(taskFromUrl)
@@ -713,6 +724,11 @@ export default {
       }
     },
     closeDialog () {
+      const queryParams = new URLSearchParams(window.location.search)
+      if (queryParams.get('newTaskFromMessage')) {
+        queryParams.delete('newTaskFromMessage')
+        this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+      }
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
     }
