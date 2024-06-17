@@ -573,7 +573,14 @@ export default {
 
   computed: {
     getFilteredTasks () {
-      let tasks = this.store.getTasks.filter(task => !task.completed)
+      let tasks = this.store.getTasks.filter(task => {
+        const isNotCompleted = !task.completed
+        let matchesSearchRequest = true
+        if (this.searchRequest) {
+          matchesSearchRequest = task.name.toLowerCase().includes(this.searchRequest.toLowerCase())
+        }
+        return isNotCompleted && matchesSearchRequest
+      })
       this.filterChain.forEach(el => {
         const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
         switch (slug) {
