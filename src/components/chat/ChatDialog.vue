@@ -1,8 +1,30 @@
 <template>
   <div
     v-if="this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).length > 0"
-    v-text="`Сейчас смотрят: ${this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
-  />
+    style="
+      display: block;
+      position: absolute;
+      bottom: 96%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0 5px;
+      font-size: 14px;
+      z-index: 1000;
+      color: white;
+      max-width: 100%;
+      background: #1976D2;
+      border-radius: 5px;
+     "
+    :style="
+    'opacity: ' + (!this.isShowHelper || this.isMobile ? '0.4': '1') +
+    ';left: ' + (this.isMobile ? '50%' : (!this.isShowHelper ? '32%' : '50%')) +
+    ';bottom: ' + (this.isMobile ? '87%' : (this.isShowHelper === false ? '91%' : '95%'))
+    ">
+    <div
+      style="display: flex; flex-wrap: nowrap; flex-direction: row"
+      v-text="`Сейчас смотрят: ${this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
+    />
+  </div>
   <div class="">
     <div style="display: flex; width: 100%;">
       <q-input
@@ -232,41 +254,59 @@
   </q-layout>
   <div class="inputControl" style="margin-top: 8px">
     <q-card class="shadow-2" style="position: relative;">
-      <div v-if="this.attachedFile" style="
+      <div
+        v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+        style="
       display: block;
       position: absolute;
       bottom: 100%;
       left: 50%;
       transform: translateX(-50%);
-      background-color: #1976D2;
       padding: 0 5px;
-      border-radius: 5px;
       color: white;
       font-size: 14px;
       z-index: 1000;
       margin-bottom: 5px;
       opacity: .6;
-    ">
-        <div
-          style="display: flex; flex-wrap: nowrap; align-items: center;"
-          class="popupContent"
-        >
-          {{ this.shortenLine(this.attachedFile.name) }}
-          <q-btn
-            dense
-            flat
-            icon="delete"
-            @click="this.attachedFile = null"
+      max-width: 100%;
+     ">
+        <div style="display: flex; flex-direction: column; flex-wrap: nowrap">
+          <div
+            v-if="this.attachedFile"
+            style="
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            background-color: #1976D2;
+            border-radius: 5px;
+            justify-content: center;
+            padding-left: 10px"
+            class="popupContent"
+          >
+            {{ this.shortenLine(this.attachedFile.name) }}
+            <q-btn
+              dense
+              flat
+              icon="delete"
+              @click="this.attachedFile = null"
+            />
+          </div>
+          <div
+            style="
+            background-color: #1976D2;
+            border-radius: 5px;
+            margin-top: 5px;
+            text-align: center;
+            padding-left: 10px;
+            padding-right: 10px;"
+            v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+            v-text="this.getTypingUsers"
           />
         </div>
       </div>
       <div
-        v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-        v-text="this.getTypingUsers"
-      />
-      <div
         v-if="this.replyMessageId !== null"
-        style="width: 90%;"
+        style="display: flex; justify-content: left; align-items: center; margin-left: 6px"
       >
         <q-icon
           name="reply"
@@ -297,7 +337,7 @@
           :value="this.inputField"
           :placeholder="`${isComment ? 'Текст комментария' : 'Текст сообщения'} (ctrl+enter отправить)\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод`"
           class="bg-white"
-          :style="'border-style: ' + (this.isComment ? 'dashed' : 'unset')"
+          :style="'border-style: ' + (this.isComment ? 'dashed' : 'unset') + ';height: ' + (this.replyMessageId !== null ? '90%' : '')"
           @keydown.tab.prevent="handleTabPressed"
           @keydown="this.handleKeyPressed"
           @input="this.textChanged"
