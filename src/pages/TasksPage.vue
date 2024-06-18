@@ -102,15 +102,6 @@
             @update:model-value="this.onSavedFilterSelected"
             clearable
           />
-          <q-btn
-            v-if="this.selectedSavedFilter.length > 0"
-            ref="deleteSavedFilterButton"
-            icon="delete"
-            color="grey"
-            @click="isDeleteSavedFilterDialogShow = true"
-            style="margin-right: 8px"
-            flat
-          />
           <div
             v-if="this.isFilterSelected"
             style="overflow: auto; margin-right: 8px"
@@ -184,23 +175,21 @@
               </q-list>
             </q-menu>
           </q-btn>
-<!--          <q-select-->
-<!--            outlined-->
-<!--            v-model="this.addNewFilterSelectorText"-->
-<!--            :options="this.filterType.map(e => e.label)"-->
-<!--            dense-->
-<!--            @update:model-value="handleNewFilterSelection($event)"-->
-<!--            ref="newFilterSelector"-->
-<!--          >-->
-<!--            <template v-slot:prepend>-->
-<!--              <q-icon name="add_circle"/>-->
-<!--            </template>-->
-<!--          </q-select>-->
           <q-btn
+            v-if="this.selectedSavedFilter.length === 0 && this.filterChain.length > 0"
             ref="saveFilterButton"
             icon="save"
             color="grey"
             @click="this.dialogSaveFilter"
+            flat
+            style="height: 40px"
+          />
+          <q-btn
+            v-else-if="this.selectedSavedFilter.length > 0"
+            ref="deleteSavedFilterButton"
+            icon="delete"
+            color="grey"
+            @click="isDeleteSavedFilterDialogShow = true"
             flat
             style="height: 40px"
           />
@@ -276,7 +265,7 @@
             <q-btn flat round dense icon="close" v-close-popup />
           </q-toolbar>
           <q-card-section style="padding-top: 0">
-            Удалить фильтр {{ this.selectedSavedFilter.name }}?
+            Удалить фильтр {{ this.selectedSavedFilter }}?
           </q-card-section>
           <q-card-actions align="right">
             <q-btn
@@ -451,28 +440,40 @@ export default {
     },
 
     saveFilter () {
-      const newFilter = {
-        id: null,
-        label: this.dialogNewFilterName,
-        selectedOptions: this.filterChain.map(it => ({
-          label: it.label,
-          selectedOptions: it.selectedOptions
-        }))
-      }
-      axios.post('/api/v1/filter', newFilter)
-        .then(response => {
-          this.savedFilters.push(response.data)
-          this.dialogSaveFilterClose()
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+      if (this.dialogNewFilterName.length > 0) {
+        const newFilter = {
+          id: null,
+          label: this.dialogNewFilterName,
+          selectedOptions: this.filterChain.map(it => ({
+            label: it.label,
+            selectedOptions: it.selectedOptions
           }))
+        }
+        axios.post('/api/v1/filter', newFilter)
+          .then(response => {
+            this.savedFilters.push(response.data)
+            this.dialogSaveFilterClose()
+            this.selectedSavedFilter = response.data
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        this.$q.notify({
+          message: 'Необходимо задать имя фильтра',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      }
     },
 
     onSavedFilterSelected () {
@@ -503,6 +504,7 @@ export default {
           this.savedFilters = this.savedFilters.filter(filter => this.selectedSavedFilter !== filter.label)
           this.selectedSavedFilter = ''
           this.isDeleteSavedFilterDialogShow = false
+          this.filterChain = []
         })
         .catch(e =>
           this.$q.notify({
