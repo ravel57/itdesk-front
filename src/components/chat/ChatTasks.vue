@@ -58,12 +58,20 @@
                 :key="sorting.slug"
                 clickable
                 v-close-popup
+                @click="this.setSortVariable(sorting)"
               >
-                <q-item-section>{{ sorting.label }}</q-item-section>
+                <q-item-section>
+                  {{ sorting.label }}
+                </q-item-section>
               </q-item>
             </q-list>
           </q-menu>
         </q-btn>
+<!--        <q-btn-->
+<!--          v-if="this.selectedSorting"-->
+<!--          @click="!this.ascendingSort"-->
+<!--          :icon="this.ascendingSort ? 'arrow_upward': 'arrow_downward'"-->
+<!--        />-->
         <q-input
           v-if="showSearch"
           v-model="search"
@@ -465,6 +473,8 @@ export default {
     isShowSearchResults: false,
     sortMenuOpened: false,
     dialogTab: 'tab1',
+    selectedSorting: {},
+    ascendingSort: true,
 
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },
@@ -737,16 +747,38 @@ export default {
       }
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
+    },
+    setSortVariable (sort) {
+      this.selectedSorting = sort.slug
     }
   },
 
   computed: {
     getActualTasks () {
-      return this.tasks.filter(task => {
+      const filteredTasks = this.tasks.filter(task => {
         const showCompleted = !task.completed || this.isShowCompletedTasks
         const matchSearch = !this.search || task.name.toLowerCase().includes(this.search.toLowerCase())
         return showCompleted && matchSearch
       })
+      if (this.selectedSorting) {
+        filteredTasks.sort((a, b) => {
+          switch (this.selectedSorting) {
+            case 'deadline':
+              return new Date(a.deadline) - new Date(b.deadline)
+            case 'creating':
+              return new Date(a.createdAt) - new Date(b.createdAt)
+            case 'priority':
+              return b.priority.orderNumber - a.priority.orderNumber
+            case 'sla':
+              return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
+            case 'status':
+              return a.status.orderNumber - b.status.orderNumber
+            default:
+              return 0
+          }
+        })
+      }
+      return filteredTasks
     },
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
