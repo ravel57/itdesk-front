@@ -191,7 +191,7 @@ export default {
         return
       }
       if (this.isNewTelegramBot) {
-        axios.post('/api/v1/new-telegram-bot', bot)
+        axios.post('/api/v1/telegram-bot', bot)
           .then(response => {
             this.telegramBots.push(response.data)
             this.dialogClose()
@@ -206,7 +206,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-telegram-bot', bot)
+        axios.patch('/api/v1/telegram-bot', bot)
           .then(response => {
             const bots = this.telegramBots
             this.telegramBots[bots.indexOf(bots.find(bot => bot.id === this.telegramBotId))] = response.data

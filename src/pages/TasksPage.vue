@@ -459,7 +459,7 @@ export default {
           selectedOptions: it.selectedOptions
         }))
       }
-      axios.post('/api/v1/new-filter', newFilter)
+      axios.post('/api/v1/filter', newFilter)
         .then(response => {
           this.savedFilters.push(response.data)
           this.dialogSaveFilterClose()

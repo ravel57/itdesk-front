@@ -171,7 +171,7 @@ export default {
         return
       }
       if (this.isNewTemplate) {
-        axios.post('/api/v1/new-template', template)
+        axios.post('/api/v1/template', template)
           .then(response => {
             this.store.templates.push(response.data)
             this.dialogClose()
@@ -186,7 +186,7 @@ export default {
               }]
             }))
       } else {
-        axios.post('/api/v1/update-template', template)
+        axios.patch('/api/v1/template', template)
           .then(response => {
             this.store.templates[this.store.templates.indexOf(this.store.templates.find(template => template.id === this.templateId))] = response.data
             this.dialogClose()
@@ -224,7 +224,7 @@ export default {
   setup () {
     const store = useStore()
     watch(() => store.templates, () => {
-      axios.post('/api/v1/update-templates/resort', store.templates)
+      axios.patch('/api/v1/templates/resort', store.templates)
     }, { deep: true })
     return { store }
   }
