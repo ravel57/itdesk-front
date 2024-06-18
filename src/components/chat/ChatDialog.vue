@@ -130,7 +130,7 @@
                 </video>
                 <audio
                   v-else-if="message.fileUuid && message.fileType.startsWith('audio/')"
-                  style="width: 90%; max-width: 400px"
+                  style="min-width: 300px; width: 90%; max-width: 400px"
                   controls
                 >
                   <source
