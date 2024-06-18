@@ -48,6 +48,14 @@
           icon="sort"
           class="text-grey-7"
         >
+          <q-tooltip>
+            <div v-if="this.selectedSorting.label">
+              Сортировка: {{ this.selectedSorting.label }}
+            </div>
+            <div v-else>
+              Сортировка
+            </div>
+          </q-tooltip>
           <q-menu
             v-model="this.sortMenuOpened"
             content-class="menu-content"
@@ -67,11 +75,6 @@
             </q-list>
           </q-menu>
         </q-btn>
-<!--        <q-btn-->
-<!--          v-if="this.selectedSorting"-->
-<!--          @click="!this.ascendingSort"-->
-<!--          :icon="this.ascendingSort ? 'arrow_upward': 'arrow_downward'"-->
-<!--        />-->
         <q-input
           v-if="showSearch"
           v-model="search"
@@ -473,14 +476,15 @@ export default {
     isShowSearchResults: false,
     sortMenuOpened: false,
     dialogTab: 'tab1',
-    selectedSorting: {},
+    selectedSorting: [],
     ascendingSort: true,
 
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },
       { label: 'По дате создания', slug: 'creating' },
       { label: 'Приоритету', slug: 'priority' },
-      { label: 'SLA', slug: 'sla' }
+      { label: 'SLA', slug: 'sla' },
+      { label: 'По статусу', slug: 'status' }
     ],
     slaIsPause: false
   }),
@@ -749,7 +753,7 @@ export default {
       this.isTaskDialogShow = false
     },
     setSortVariable (sort) {
-      this.selectedSorting = sort.slug
+      this.selectedSorting = sort
     }
   },
 
@@ -760,15 +764,15 @@ export default {
         const matchSearch = !this.search || task.name.toLowerCase().includes(this.search.toLowerCase())
         return showCompleted && matchSearch
       })
-      if (this.selectedSorting) {
+      if (this.selectedSorting.slug) {
         filteredTasks.sort((a, b) => {
-          switch (this.selectedSorting) {
+          switch (this.selectedSorting.slug) {
             case 'deadline':
               return new Date(a.deadline) - new Date(b.deadline)
             case 'creating':
               return new Date(a.createdAt) - new Date(b.createdAt)
             case 'priority':
-              return b.priority.orderNumber - a.priority.orderNumber
+              return a.priority.orderNumber - b.priority.orderNumber
             case 'sla':
               return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
             case 'status':
