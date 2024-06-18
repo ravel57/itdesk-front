@@ -9,6 +9,7 @@
               v-model="this.searchRequest"
               label="Поиск"
               style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
+              clearable
             />
           </div>
           <div style="display: flex">
@@ -38,7 +39,6 @@
               @click="this.changeFilterSelection"
               :color="this.isFilterSelected ? 'primary' : 'dark'"
             />
-            <!--FIXME-->
             <q-toggle
               v-model="this.isShowListMode"
               color="grey"
@@ -48,7 +48,13 @@
               size="50px"
               keep-color
             />
-            <!--FIXME-->
+            <q-toggle
+              v-model="this.isShowCompletedTasks"
+              color="primary"
+              left-label
+              icon="add_task"
+              size="50px"
+            />
             <q-dialog
               v-model="dialogSaveFilterVisible"
               persistent
@@ -319,6 +325,8 @@ export default {
     isFilterSelected: false,
     isDeleteSavedFilterDialogShow: false,
     isFilterOpen: true,
+    isShowCompletedTasks: false,
+    searchRequest: '',
     tableColumns: [
       {
         name: 'name',
@@ -395,11 +403,9 @@ export default {
           if (!row.sla || !row.sla.startDate || !row.sla.duration) {
             return '0 ч. 0 м.'
           }
-
           const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
           const now = moment()
           const duration = moment.duration(endDateTime.diff(now))
-
           if (duration.asMilliseconds() < 0) {
             return '0 ч. 0 м.'
           } else {
@@ -408,8 +414,7 @@ export default {
         },
         sortable: true
       }
-    ],
-    searchRequest: ''
+    ]
   }),
 
   methods: {
@@ -580,12 +585,11 @@ export default {
   computed: {
     getFilteredTasks () {
       let tasks = this.store.getTasks.filter(task => {
-        const isNotCompleted = !task.completed
         let matchesSearchRequest = true
         if (this.searchRequest) {
           matchesSearchRequest = task.name.toLowerCase().includes(this.searchRequest.toLowerCase())
         }
-        return isNotCompleted && matchesSearchRequest
+        return (!task.completed || this.isShowCompletedTasks) && matchesSearchRequest
       })
       this.filterChain.forEach(el => {
         const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
@@ -608,7 +612,8 @@ export default {
             break
           }
           case 'organization': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(task.client.organization !== null))
+            tasks = tasks
+              .filter(task => task.client.organization != null)
               .filter(task => el.selectedOptions.includes(task.client.organization.name))
             break
           }

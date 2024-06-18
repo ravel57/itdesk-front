@@ -609,7 +609,7 @@ export default {
 
     getUserName (user) {
       if (user) {
-        return user.firstname + ' ' + user.lastname
+        return user.lastname + ' ' + user.firstname
       } else {
         return ''
       }
@@ -632,7 +632,7 @@ export default {
 
     getName (executor) {
       if (executor) {
-        return executor.firstname + ' ' + executor.lastname
+        return executor.lastname + ' ' + executor.firstname
       } else {
         return ''
       }
