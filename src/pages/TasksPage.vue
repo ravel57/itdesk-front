@@ -67,8 +67,9 @@
                 <q-card-section style="padding-top: 0">
                   Сохранить фильтр?
                   <q-input
-                    label="название"
+                    label="Название"
                     v-model="this.dialogNewFilterName"
+                    :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                     ref="dialogNewFilterName"
                   />
                   {{ this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions})) }}
@@ -451,28 +452,39 @@ export default {
     },
 
     saveFilter () {
-      const newFilter = {
-        id: null,
-        label: this.dialogNewFilterName,
-        selectedOptions: this.filterChain.map(it => ({
-          label: it.label,
-          selectedOptions: it.selectedOptions
-        }))
-      }
-      axios.post('/api/v1/filter', newFilter)
-        .then(response => {
-          this.savedFilters.push(response.data)
-          this.dialogSaveFilterClose()
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+      if (this.dialogNewFilterName.length !== 0) {
+        const newFilter = {
+          id: null,
+          label: this.dialogNewFilterName,
+          selectedOptions: this.filterChain.map(it => ({
+            label: it.label,
+            selectedOptions: it.selectedOptions
           }))
+        }
+        axios.post('/api/v1/filter', newFilter)
+          .then(response => {
+            this.savedFilters.push(response.data)
+            this.dialogSaveFilterClose()
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      }
     },
 
     onSavedFilterSelected () {

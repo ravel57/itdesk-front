@@ -4,7 +4,6 @@
     style="
       display: block;
       position: absolute;
-      bottom: 96%;
       left: 50%;
       transform: translateX(-50%);
       padding: 0 5px;
@@ -18,7 +17,7 @@
     :style="
     'opacity: ' + (!this.isShowHelper || this.isMobile ? '0.4': '1') +
     ';left: ' + (this.isMobile ? '50%' : (!this.isShowHelper ? '32%' : '50%')) +
-    ';bottom: ' + (this.isMobile ? '87%' : (this.isShowHelper === false ? '91%' : '95%'))
+    ';top: ' + (this.isMobile ? '9%' : (this.isShowHelper === false ? '7%' : '2.5%'))
     ">
     <div
       style="display: flex; flex-wrap: nowrap; flex-direction: row"
