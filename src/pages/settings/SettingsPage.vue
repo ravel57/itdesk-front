@@ -7,6 +7,7 @@
             v-for="(item, index) in menuItems"
             :key="index"
             v-bind="item"
+            :user="this.store.currentUser"
           />
         </q-list>
       </div>
@@ -19,6 +20,7 @@
 
 <script>
 import EssentialLink from 'components/EssentialLink.vue'
+import { useStore } from 'stores/store'
 
 export default {
   name: 'SettingsPage',
@@ -28,20 +30,86 @@ export default {
   data: () => ({
     menuItems: [
       // { title: 'Общие', link: '/settings/common', slug: 'common' },
-      { title: 'Профиль', link: '/settings/profile', slug: 'profile' },
-      { title: 'Пользователи', link: '/settings/users', slug: 'users' },
-      { title: 'Организации', link: '/settings/organizations', slug: 'organizations' },
-      { title: 'База знаний', link: '/settings/knowledgeBase', slug: 'knowledgeBase' },
-      { title: 'Теги', link: '/settings/tags', slug: 'tags' },
-      { title: 'Приоритеты', link: '/settings/priorities', slug: 'priorities' },
-      { title: 'Статусы', link: '/settings/statuses', slug: 'statuses' },
-      { title: 'Шаблоны', link: '/settings/templates', slug: 'templates' },
-      // { title: 'Макросы', link: '/settings/macros', slug: 'macros' },
-      { title: 'SLA', link: '/settings/sla', slug: 'sla' },
-      // { title: 'Уведомления', link: '/settings/notifications', slug: 'notifications' },
-      { title: 'Telegram', link: '/settings/telegram', slug: 'telegram' },
-      { title: 'Электронная почта', link: '/settings/email', slug: 'email' }
+      {
+        title: 'Профиль',
+        link: '/settings/profile',
+        slug: 'profile',
+        roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
+      },
+      {
+        title: 'Пользователи',
+        link: '/settings/users',
+        slug: 'users',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'Организации',
+        link: '/settings/organizations',
+        slug: 'organizations',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'База знаний',
+        link: '/settings/knowledgeBase',
+        slug: 'knowledgeBase',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'Теги',
+        link: '/settings/tags',
+        slug: 'tags',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'Приоритеты',
+        link: '/settings/priorities',
+        slug: 'priorities',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'Статусы',
+        link: '/settings/statuses',
+        slug: 'statuses',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'Шаблоны',
+        link: '/settings/templates',
+        slug: 'templates',
+        roles: ['ADMIN']
+      },
+      // { title: 'Макросы',
+      // link: '/settings/macros', s
+      // lug: 'macros'
+      // },
+      {
+        title: 'SLA',
+        link: '/settings/sla',
+        slug: 'sla',
+        roles: ['ADMIN']
+      },
+      // { title: 'Уведомления',
+      // link: '/settings/notifications', s
+      // lug: 'notifications'
+      // },
+      {
+        title: 'Telegram',
+        link: '/settings/telegram',
+        slug: 'telegram',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'Электронная почта',
+        link: '/settings/email',
+        slug: 'email',
+        roles: ['ADMIN']
+      }
     ]
-  })
+  }),
+
+  setup () {
+    const store = useStore()
+    return { store }
+  }
 }
 </script>

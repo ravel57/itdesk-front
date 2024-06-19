@@ -9,6 +9,10 @@ const routes = [
       //   component: () => import('pages/TasksPage.vue')
       // },
       {
+        path: 'chat',
+        component: () => import('pages/ChatPage.vue')
+      },
+      {
         path: 'chats',
         component: () => import('pages/ClientsChatsPage.vue')
       },

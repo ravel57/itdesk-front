@@ -55,7 +55,7 @@
         </div>
         <div
           class="col"
-          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile)"
+          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
         >
           <chat-helper
             :isMobile="this.isMobile"

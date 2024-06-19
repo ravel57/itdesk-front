@@ -294,7 +294,7 @@
                 />
                 <q-select
                   v-model="dialogTaskExecutor"
-                  :options="this.users.map(user => this.getUserName(user))"
+                  :options="this.users.filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0])).map(user => this.getUserName(user))"
                   label="Исполнитель"
                   use-input
                 />

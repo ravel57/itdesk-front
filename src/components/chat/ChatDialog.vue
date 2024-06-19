@@ -100,7 +100,7 @@
               style="white-space: pre-wrap;"
               @click.right="this.invertContextMenu"
             >
-<!--              :style="{ 'border-style': message.comment ? 'dashed' : 'unset', 'border-color': '#1976D2' }"-->
+              <!-- :style="{ 'border-style': message.comment ? 'dashed' : 'unset', 'border-color': '#1976D2' }"-->
               <div
                 v-if="this.getReplyMessageText(message)"
                 class="flex"
@@ -252,24 +252,32 @@
       </q-page>
     </q-page-container>
   </q-layout>
-  <div class="inputControl" style="margin-top: 8px">
-    <q-card class="shadow-2" style="position: relative;">
+  <div
+    v-if="['ADMIN', 'OPERATOR', 'CLIENT'].includes(this.store.currentUser.authorities[0])"
+    class="inputControl"
+    style="margin-top: 8px"
+  >
+    <q-card
+      class="shadow-2"
+      style="position: relative;"
+    >
       <div
         v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
         style="
-      display: block;
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 0 5px;
-      color: white;
-      font-size: 14px;
-      z-index: 1000;
-      margin-bottom: 5px;
-      opacity: .6;
-      max-width: 100%;
-     ">
+          display: block;
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding: 0 5px;
+          color: white;
+          font-size: 14px;
+          z-index: 1000;
+          margin-bottom: 5px;
+          opacity: .6;
+          max-width: 100%;
+       "
+      >
         <div style="display: flex; flex-direction: column; flex-wrap: nowrap">
           <div
             v-if="this.attachedFile"
@@ -381,6 +389,7 @@
 <script>
 // TODO загрузка порциями
 import axios from 'axios'
+import { useStore } from 'stores/store'
 
 export default {
   name: 'ChatDialog',
@@ -670,6 +679,11 @@ export default {
     search (newVal) {
       this.onSearch(newVal)
     }
+  },
+
+  setup () {
+    const store = useStore()
+    return { store }
   }
 
 }

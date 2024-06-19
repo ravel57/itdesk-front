@@ -1,5 +1,6 @@
 <template>
   <q-item
+    v-if="this.roles.includes(this.user.authorities[0])"
     clickable
     tag="router-link"
     :to="link"
@@ -49,6 +50,12 @@ export default defineComponent({
     counter: {
       type: String,
       default: ''
+    },
+    roles: {
+      type: Array
+    },
+    user: {
+      type: Object
     }
   }
 
