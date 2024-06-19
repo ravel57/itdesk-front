@@ -155,27 +155,34 @@ export default {
     },
 
     getTimeLastMessage (dateString) {
-      const pastDate = this.parseDateString(dateString)
-      const currentDate = new Date()
-      const timeDifference = currentDate - pastDate
-      const seconds = Math.floor(timeDifference / 1000)
-      const minutes = Math.floor(seconds / 60)
-      const hours = Math.floor(minutes / 60)
-      const days = Math.floor(hours / 24)
-      const parts = []
-      if (days > 0) parts.push(`${days} дней`)
-      if (hours % 24 > 0) parts.push(`${hours % 24} часов`)
-      parts.push(`${minutes % 60} минут`)
-      const result = parts.join(', ')
-      return `${result} назад (${dateString})`
+      if (dateString !== 'Invalid Date') {
+        console.log(dateString)
+        const pastDate = this.parseDateString(dateString)
+        const currentDate = new Date()
+        const timeDifference = currentDate - pastDate
+        const seconds = Math.floor(timeDifference / 1000)
+        const minutes = Math.floor(seconds / 60)
+        const hours = Math.floor(minutes / 60)
+        const days = Math.floor(hours / 24)
+        const parts = []
+        if (days > 0) parts.push(`${days} дней`)
+        if (hours % 24 > 0) parts.push(`${hours % 24} часов`)
+        parts.push(`${minutes % 60} минут`)
+        const result = parts.join(' ')
+        return `${result} назад (${dateString})`
+      }
     },
 
     getClientLastMessage (client) {
-      const lastMessageText = client.messages.at(-1).text
-      if (lastMessageText) {
-        return `: ${lastMessageText}`
+      if (client.messages.at(-1)) {
+        const lastMessageText = client.messages.at(-1).text
+        if (lastMessageText) {
+          return `: ${lastMessageText}`
+        } else {
+          return ''
+        }
       } else {
-        return ''
+        return null
       }
     }
   },

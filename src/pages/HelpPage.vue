@@ -37,7 +37,7 @@ export default {
 
   methods: {
     sendMessage (event) {
-      axios.post('/api/v1/support/', event.message)
+      axios.post(`/api/v1/user/${this.store.currentUser.id}/support/new-message`, event.message)
         .then(() => {
           this.inputField = ''
           this.isSending = false

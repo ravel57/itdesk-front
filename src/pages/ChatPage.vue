@@ -225,7 +225,7 @@ export default {
 
     deleteClient () {
       this.store.clients = this.store.clients.filter(client => client.id !== this.getClient.id)
-      this.router.push('/')
+      this.$router.push('/')
     },
 
     showHelper () {
