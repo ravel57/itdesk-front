@@ -63,10 +63,18 @@
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-select
-          v-model="dialogRole"
+          v-model="this.dialogRole"
           :options="this.store.roles.map(role => getRoleName(role))"
           label="Роль"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+        />
+        <q-select
+          v-if="this.showDialogOrganizations"
+          v-model="this.dialogOrganization"
+          :multiple="this.dialogRole === 'Оператор поддержки'"
+          :options="this.store.organizations.map(organization => organization.name)"
+          label="Организация"
+          use-input
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -127,6 +135,7 @@ export default {
     dialogFirstName: '',
     dialogLastName: '',
     dialogRole: '',
+    dialogOrganization: [],
 
     isNewUser: true,
     userId: null // for updates
@@ -165,7 +174,8 @@ export default {
         password: this.isNewUser ? this.dialogPassword : null,
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
-        authorities: this.dialogRole
+        authorities: this.dialogRole,
+        availableOrganizations: this.dialogRole === 'Менеджер организации' ? [this.dialogOrganization] : this.dialogOrganization
       }
       if ((this.isNewUser && user.username.length === 0) || (this.isNewUser && user.password.length === 0) ||
         user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
@@ -239,7 +249,11 @@ export default {
       }
     }
   },
-
+  computed: {
+    showDialogOrganizations () {
+      return this.dialogRole === 'Оператор поддержки' || this.dialogRole === 'Менеджер организации'
+    }
+  },
   setup () {
     const store = useStore()
     return { store }
