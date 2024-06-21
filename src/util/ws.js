@@ -10,7 +10,13 @@ export function connect () {
   stompClient = Stomp.over(() => { return socket })
   stompClient.debug = () => {}
   stompClient.connect({}, () => {
-    stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
+    if (useStore().currentUser.authorities[0] === 'ADMIN') {
+      stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
+    } else if (useStore().currentUser.authorities[0] === 'OBSERVER') {
+      stompClient.subscribe('/topic/clients-for-observer/', message => clientsCallback(message))
+    } else if (useStore().currentUser.authorities[0] === 'OBSERVER') {
+      stompClient.subscribe('/topic/clients-for-client/', message => clientsForClientCallback(message))
+    }
     stompClient.subscribe('/topic/authenticated-users/', message => authenticatedUsersCallback(message))
     stompClient.subscribe('/topic/mark-read/', message => console.log(message))
   })
@@ -67,4 +73,8 @@ export function userOnline (user) {
 
 export function typing (client, user, text) {
   stompClient.send('/app/typing', {}, JSON.stringify({ client, user, text }))
+}
+
+function clientsForClientCallback (message) {
+  JSON.parse(message.body)
 }

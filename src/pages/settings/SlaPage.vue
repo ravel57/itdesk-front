@@ -67,20 +67,18 @@ export default {
     }
   },
 
-  mounted () {
+  created () {
     this.tableData = this.store.organizations.map(() => {
-      return new Array(this.store.priorities.length)
+      return new Array(0)
     })
     axios.get('/api/v1/sla')
       .then(response => {
         let counter = 0
         for (const organization in response.data) {
-          for (const priority in response.data[organization]) {
-            // const find = this.store.priorities.find(it => it.name === priority)
-            // console.log(find)
-            const item = response.data[organization][priority].replace(/\D/g, '')
+          this.store.priorities.forEach(priority => {
+            const item = response.data[organization][priority.name].replace(/\D/g, '')
             this.tableData[counter].push(item)
-          }
+          })
           counter++
         }
       })

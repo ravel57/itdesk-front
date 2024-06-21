@@ -150,6 +150,7 @@ export default {
       this.dialogFirstName = ''
       this.dialogPassword = ''
       this.dialogRole = ''
+      this.dialogOrganization = ''
       setTimeout(() => this.$refs.lastname.focus(), 250)
     },
 
@@ -161,6 +162,7 @@ export default {
       this.dialogLastName = row.lastname
       this.dialogFirstName = row.firstname
       this.dialogRole = this.getRoleName(row.authorities[0])
+      this.dialogOrganization = row.availableOrganizations
     },
 
     dialogClose () {
