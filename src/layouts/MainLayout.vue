@@ -40,8 +40,11 @@
           :key="link.title"
           v-bind="link"
           :counter="this.getUnreadChats(link.title)"
+          :user="this.store.currentUser"
         />
-        <q-item>
+        <q-item
+          v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+        >
           <q-item-section avatar>
             <q-icon style="align-items: start" name="group"/>
           </q-item-section>
@@ -82,12 +85,20 @@ export default {
       {
         title: 'Чаты',
         icon: 'forum',
-        link: '/chats'
+        link: '/chats',
+        roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
+      },
+      {
+        title: 'Чат',
+        icon: 'forum',
+        link: '/chats',
+        roles: ['CLIENT']
       },
       {
         title: 'Заявки',
         icon: 'task',
-        link: '/tasks'
+        link: '/tasks',
+        roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
       },
       // {
       //   title: 'Поиск',
@@ -112,7 +123,8 @@ export default {
       {
         title: 'Настройки',
         icon: 'settings',
-        link: '/settings'
+        link: '/settings',
+        roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
       }
     ]
   }),

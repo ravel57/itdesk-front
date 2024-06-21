@@ -104,7 +104,20 @@ export default {
       { name: 'username', label: 'Username', align: 'left', field: 'username' },
       { name: 'firstname', label: 'Имя', align: 'left', field: 'firstname' },
       { name: 'lastname', label: 'Фамилия', align: 'left', field: 'lastname' },
-      { name: 'roles', label: 'Роли', align: 'left', field: 'authorities', format: (arr) => arr.join(', ') },
+      {
+        name: 'roles',
+        label: 'Роли',
+        align: 'left',
+        field: row => {
+          switch (row.authorities[0]) {
+            case 'ADMIN': return 'Администратор'
+            case 'OPERATOR': return 'Оператор поддержки'
+            case 'OBSERVER': return 'Менеджер организации'
+            case 'CLIENT': return 'Клиент'
+            default: return ''
+          }
+        }
+      },
       { name: 'edit', label: '', align: 'center', field: 'edit' }
     ],
 
@@ -138,7 +151,7 @@ export default {
       this.dialogUsername = row.username
       this.dialogLastName = row.lastname
       this.dialogFirstName = row.firstname
-      this.dialogRole = row.authorities[0]
+      this.dialogRole = this.getRoleName(row.authorities[0])
     },
 
     dialogClose () {
