@@ -1,7 +1,8 @@
 <template>
   <q-card
     id="taskColumn"
-    style="height: calc(100vh - 75px); padding: 16px;"
+    style="padding: 16px;"
+    :style="this.isMobile ? 'height: calc(100vh - 110px)' : 'height: calc(100vh - 75px);'"
   >
     <div style="margin-bottom: 3px">
       <chat-info
@@ -805,9 +806,6 @@ export default {
     }
   },
   mounted () {
-    if (this.isMobile) {
-      document.getElementById('taskColumn').style.height = 'calc(-110px + 100vh);'
-    }
     setInterval(() => this.initializeTaskFromUrl(), 500)
   }
 

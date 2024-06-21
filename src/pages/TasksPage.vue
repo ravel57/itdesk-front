@@ -249,7 +249,7 @@
           class="board"
           horizontal
           style="height: 75vh; margin-top: 8px"
-          :style="this.isMobile ? 'height: 55vh; margin-top: 8px' : ''"
+          :style="this.isMobile ? 'height: 40vh; margin-top: 8px' : ''"
         >
           <div
             v-for="(taskList, index) in this.getGroupedTasks"
