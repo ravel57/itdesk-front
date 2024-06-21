@@ -254,6 +254,11 @@ export default {
       return this.dialogRole === 'Оператор поддержки' || this.dialogRole === 'Менеджер организации'
     }
   },
+  watch: {
+    dialogRole (newVal) {
+      this.dialogOrganization = []
+    }
+  },
   setup () {
     const store = useStore()
     return { store }
