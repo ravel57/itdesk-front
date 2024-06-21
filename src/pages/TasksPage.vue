@@ -12,7 +12,10 @@
               clearable
             />
           </div>
-          <div style="display: flex">
+          <div
+            style="display: flex"
+            :style="this.isMobile ? 'margin-top: 8px' : ''"
+          >
             <q-btn-dropdown
               v-if="!this.isShowListMode"
               color="primary"
@@ -33,28 +36,33 @@
                 </q-item>
               </q-list>
             </q-btn-dropdown>
-            <q-btn
-              icon="filter_alt"
-              flat
-              @click="this.changeFilterSelection"
-              :color="this.isFilterSelected ? 'primary' : 'dark'"
-            />
-            <q-toggle
-              v-model="this.isShowListMode"
-              color="grey"
-              left-label
-              checked-icon="list"
-              unchecked-icon="dashboard"
-              size="50px"
-              keep-color
-            />
-            <q-toggle
-              v-model="this.isShowCompletedTasks"
-              color="primary"
-              left-label
-              icon="add_task"
-              size="50px"
-            />
+            <div
+              style="display: flex; flex-direction: row;flex-wrap: nowrap"
+              :style=" this.isMobile && this.isShowListMode ? 'justify-content: center; width: 100%;' : ''"
+            >
+              <q-btn
+                icon="filter_alt"
+                flat
+                @click="this.changeFilterSelection"
+                :color="this.isFilterSelected ? 'primary' : 'dark'"
+              />
+              <q-toggle
+                v-model="this.isShowListMode"
+                color="grey"
+                left-label
+                checked-icon="list"
+                unchecked-icon="dashboard"
+                size="50px"
+                keep-color
+              />
+              <q-toggle
+                v-model="this.isShowCompletedTasks"
+                color="primary"
+                left-label
+                icon="add_task"
+                size="50px"
+              />
+            </div>
             <q-dialog
               v-model="dialogSaveFilterVisible"
               persistent
@@ -93,13 +101,16 @@
         </div>
         <div
           v-if="this.isFilterSelected"
-          style="display: flex;margin-top: 8px; align-items: center;">
+          style="display: flex;margin-top: 8px; align-items: center;"
+          :style="this.isMobile ? 'display:flex; flex-direction:row; flex-wrap: wrap; justify-content:center; width: 100%': ''"
+        >
           <q-select
             outlined
             v-model="this.selectedSavedFilter"
             :options="this.savedFilters.map(it => it.label)"
             label="Сохраненные фильтры"
             style="width: 25%; align-content: center; min-width: 300px; margin-right: 8px"
+            :style="this.isMobile ? 'width: 100%;margin-bottom: 8px': ''"
             @update:model-value="this.onSavedFilterSelected"
             clearable
           />
@@ -115,6 +126,7 @@
           <div
             v-if="this.isFilterSelected"
             style="overflow: auto; margin-right: 8px"
+            :style="isMobile ? 'width: 100%': ''"
           >
             <div class="scroll-container">
               <div
@@ -237,6 +249,7 @@
           class="board"
           horizontal
           style="height: 75vh; margin-top: 8px"
+          :style="this.isMobile ? 'height: 55vh; margin-top: 8px' : ''"
         >
           <div
             v-for="(taskList, index) in this.getGroupedTasks"
@@ -529,6 +542,11 @@ export default {
 
     changeFilterSelection () {
       this.isFilterSelected = !this.isFilterSelected
+      const queryParams = new URLSearchParams(window.location.search)
+      if (queryParams.get('filterChain')) {
+        queryParams.delete('filterChain')
+        this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+      }
     },
 
     getOrganizationName (task) {
