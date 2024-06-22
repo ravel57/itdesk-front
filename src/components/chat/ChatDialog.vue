@@ -324,7 +324,7 @@
           @click="this.replyMessageId = null"
         />
       </div>
-      <q-toolbar class="no-padding">
+      <q-toolbar class="no-padding" style="margin: 0 8px">
         <q-btn
           type="file"
           @click="attachFile"
@@ -340,7 +340,7 @@
         <textarea
           ref="textInput"
           id="textarea"
-          style="border-color: #1875D0; border-style: unset"
+          style="border-color: #1875D0; border-style: unset; margin: 0 8px; width: calc(100% - 120px)"
           :value="this.inputField"
           :placeholder="`${isComment ? 'Текст комментария' : 'Текст сообщения'} (ctrl+enter отправить)\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод`"
           class="bg-white"
