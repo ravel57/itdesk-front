@@ -1,7 +1,7 @@
 <template>
-  <q-layout style="min-height: 0">
-    <q-page-container>
-      <q-page padding style="min-height: 0">
+<!--  <q-layout>-->
+<!--    <q-page-container>-->
+      <q-page padding>
         <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
           <div style="display: flex; width: 100%;">
             <q-input
@@ -116,10 +116,10 @@
           />
           <div
             v-if="this.isFilterSelected"
-            style="overflow: auto; margin-right: 8px"
+            style="overflow: auto; margin-right: 8px;height: 100%"
             :style="isMobile ? 'width: 100%': ''"
           >
-            <div class="scroll-container">
+            <div>
               <div
                 v-for="(filter, index) in this.filterChain"
                 :key="index"
@@ -237,8 +237,7 @@
           v-else
           class="board"
           horizontal
-          style="height: 75vh; margin-top: 8px"
-          :style="this.isMobile ? 'height: 40vh; margin-top: 8px' : ''"
+          :style="this.isMobile ? 'height: 60vh; margin-top: 8px' : 'height: 75vh; margin-top: 8px'"
         >
           <div
             v-for="(taskList, index) in this.getGroupedTasks"
@@ -296,8 +295,8 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-    </q-page-container>
-  </q-layout>
+<!--    </q-page-container>-->
+<!--  </q-layout>-->
 </template>
 
 <script>

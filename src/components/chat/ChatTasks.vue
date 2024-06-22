@@ -76,10 +76,16 @@
             </q-list>
           </q-menu>
         </q-btn>
+        <q-btn
+          v-if="this.selectedSorting.label"
+          @click="this.changeSortingAsc"
+          flat
+          :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"/>
         <q-input
           v-if="showSearch"
           v-model="search"
           label="Поиск"
+          style="margin-top: 5px"
           outlined
           dense
           clearable
@@ -157,28 +163,65 @@
                       <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.tags.map(tag => tag.name).join(', ')"/>
                     </tr>
                     <tr>
-                      <th class="small-text text-grey" v-text="'Приоритет: '"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.priority.name"/>
+                      <th
+                        class="small-text"
+                        :style="this.selectedSorting.slug === 'priority' ? 'color: black;font-weight: 600;': 'color:gray'"
+                        v-text="'Приоритет: '"
+                      />
+                      <th
+                        :class="{'text-body2': true, 'text-grey': task.completed}"
+                        :style="this.selectedSorting.slug === 'priority' ? 'font-weight: 600;': ''"
+                        v-text="task.priority.name"/>
                     </tr>
                     <tr>
-                      <th class="small-text text-grey" v-text="'Создана: '"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.getStamp(task.createdAt)"/>
+                      <th
+                        class="small-text"
+                        :style="this.selectedSorting.slug === 'creating' ? 'color: black;font-weight: 600;': 'color:gray'"
+                        v-text="'Создана: '"
+                      />
+                      <th
+                        :class="{'text-body2': true, 'text-grey': task.completed}"
+                        :style="this.selectedSorting.slug === 'creating' ? 'font-weight: 600;': ''"
+                        v-text="this.getStamp(task.createdAt)"/>
                     </tr>
                     <tr v-if="!task.completed">
-                      <th class="small-text text-grey" v-text="'Статус: '"/>
-                      <th class="text-body2" v-text="task.status.name"/>
+                      <th
+                        class="small-text"
+                        :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"
+                        v-text="'Статус: '"
+                      />
+                      <th
+                        class="text-body2"
+                        :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"
+                        v-text="task.status.name"/>
                     </tr>
                     <tr>
-                      <th class="small-text text-grey" v-text="'Дедлайн: '"/>
-                      <th class="text-body2" v-text="this.getStamp(task.deadline)"/>
+                      <th
+                        class="small-text"
+                        :style="this.selectedSorting.slug === 'deadline' ? 'color: black;': 'color:gray'"
+                        v-text="'Дедлайн: '"
+                      />
+                      <th
+                        class="text-body2"
+                        :style="`
+                          color: ${task.deadline < Date.now() ? 'red' : 'black'};
+                          ${selectedSorting.slug === 'deadline' ? 'font-weight: 600;' : ''}
+                        `"
+                        v-text="this.getStamp(task.deadline)"
+                      />
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Исполнитель: '"/>
                       <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="getName(task.executor)"/>
                     </tr>
                     <tr v-if="task.sla && task.sla.duration > 0 && !task.completed">
-                      <th class="small-text text-grey" v-text="'SLA: '"/>
+                      <th
+                        class="small-text"
+                        :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:gray'"
+                        v-text="'SLA: '"
+                      />
                       <th class="text-body2"
+                          :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"
                           style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
                         Осталось: {{ this.getSlaTime(task) }}
                         <q-linear-progress
@@ -731,6 +774,9 @@ export default {
     },
     setSortVariable (sort) {
       this.selectedSorting = sort
+    },
+    changeSortingAsc () {
+      this.ascendingSort = !this.ascendingSort
     }
   },
 
@@ -742,22 +788,41 @@ export default {
         return showCompleted && matchSearch
       })
       if (this.selectedSorting.slug) {
-        filteredTasks.sort((a, b) => {
-          switch (this.selectedSorting.slug) {
-            case 'deadline':
-              return new Date(a.deadline) - new Date(b.deadline)
-            case 'creating':
-              return new Date(a.createdAt) - new Date(b.createdAt)
-            case 'priority':
-              return a.priority.orderNumber - b.priority.orderNumber
-            case 'sla':
-              return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
-            case 'status':
-              return a.status.orderNumber - b.status.orderNumber
-            default:
-              return 0
-          }
-        })
+        if (this.ascendingSort) {
+          filteredTasks.sort((a, b) => {
+            switch (this.selectedSorting.slug) {
+              case 'deadline':
+                return new Date(a.deadline) - new Date(b.deadline)
+              case 'creating':
+                return new Date(a.createdAt) - new Date(b.createdAt)
+              case 'priority':
+                return b.priority.orderNumber - a.priority.orderNumber
+              case 'sla':
+                return b.sla.startDate.clone().add(b.sla.duration) - a.sla.startDate.clone().add(a.sla.duration)
+              case 'status':
+                return b.status.orderNumber - a.status.orderNumber
+              default:
+                return 0
+            }
+          })
+        } else if (!this.ascendingSort) {
+          filteredTasks.sort((a, b) => {
+            switch (this.selectedSorting.slug) {
+              case 'deadline':
+                return new Date(b.deadline) - new Date(a.deadline)
+              case 'creating':
+                return new Date(b.createdAt) - new Date(a.createdAt)
+              case 'priority':
+                return a.priority.orderNumber - b.priority.orderNumber
+              case 'sla':
+                return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
+              case 'status':
+                return a.status.orderNumber - b.status.orderNumber
+              default:
+                return 0
+            }
+          })
+        }
       }
       return filteredTasks
     },
