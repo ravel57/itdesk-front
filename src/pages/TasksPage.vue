@@ -1,7 +1,7 @@
 <template>
-<!--  <q-layout>-->
-<!--    <q-page-container>-->
-      <q-page padding>
+  <q-layout style="min-height: 10px;">
+    <q-page-container>
+      <q-page padding style="min-height: 10px;padding-bottom: 0;">
         <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
           <div style="display: flex; width: 100%;">
             <q-input
@@ -215,29 +215,36 @@
             style="height: 40px"
           />
         </div>
-        <q-table
+        <q-scroll-area
           v-if="this.isShowListMode"
-          :rows="this.getTableRows"
-          :columns="this.tableColumns"
-          :rows-per-page-options="[10, 20, 50]"
-          :sortable="true"
-          row-key="id"
-          style="margin-top: 8px"
-          rows-per-page-label="Строк на странице"
+          class="board"
+          vertical
+          :style="this.isMobile ? 'height: 75vh; margin-top: 8px' : 'height: 85vh; margin-top: 8px'"
         >
-          <template v-slot:body-cell-name="props">
+          <q-table
+            v-if="this.isShowListMode"
+            :rows="this.getTableRows"
+            :columns="this.tableColumns"
+            :rows-per-page-options="[10, 20, 50]"
+            :sortable="true"
+            row-key="id"
+            style="margin-top: 8px"
+            rows-per-page-label="Строк на странице"
+          >
+            <template v-slot:body-cell-name="props">
             <q-td :props="props">
               <router-link :to="{path: `/chats/${props.row.client.id}`, query: { task: props.row.id }}">
-                {{ props.row.name }}
+                {{ this.shortenLine(props.row.name) }}
               </router-link>
             </q-td>
           </template>
-        </q-table>
+          </q-table>
+        </q-scroll-area>
         <q-scroll-area
           v-else
           class="board"
           horizontal
-          :style="this.isMobile ? 'height: 60vh; margin-top: 8px' : 'height: 75vh; margin-top: 8px'"
+          :style="this.isMobile ? 'height: 75vh; margin-top: 8px' : 'height: 85vh; margin-top: 8px'"
         >
           <div
             v-for="(taskList, index) in this.getGroupedTasks"
@@ -295,8 +302,8 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-<!--    </q-page-container>-->
-<!--  </q-layout>-->
+    </q-page-container>
+  </q-layout>
 </template>
 
 <script>
@@ -864,7 +871,7 @@ export default {
 .scroll-container {
   display: flex;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   width: 100%;
 }
 </style>
