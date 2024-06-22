@@ -92,7 +92,6 @@
               :avatar="message.avatar"
               :name="this.getName(message)"
               :sent="message.sent"
-              :stamp="this.getStamp(message)"
               :bg-color="message.comment ? 'blue-2' : message.sent ? '#e0e0e0' : 'white'"
               text-color="black"
               :class="message.deleted ? 'strikethrough' : ''"
@@ -100,6 +99,16 @@
               @click.right="this.invertContextMenu"
             >
               <!-- :style="{ 'border-style': message.comment ? 'dashed' : 'unset', 'border-color': '#1976D2' }"-->
+              <template v-slot:stamp>
+                <span
+                  v-text="this.getStamp(message)"
+                />
+                <q-icon
+                  v-if="message.linkedTaskId"
+                  style="margin-left: 8px"
+                  name="link"
+                />
+              </template>
               <div
                 v-if="this.getReplyMessageText(message)"
                 class="flex"
