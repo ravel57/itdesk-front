@@ -149,7 +149,9 @@ export default {
     dialogSaveNewOrUpdateStatus () {
       const status = {
         id: this.isNewStatus ? null : this.statusId,
-        name: this.dialogStatusName
+        name: this.dialogStatusName,
+        orderNumber: this.store.statuses.find(status => status.id === this.statusId).orderNumber,
+        defaultSelection: this.store.statuses.find(status => status.id === this.statusId).defaultSelection
       }
       if (status.name.length === 0) {
         this.$q.notify({

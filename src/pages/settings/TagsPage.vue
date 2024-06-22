@@ -155,7 +155,8 @@ export default {
       const tag = {
         id: this.isNewTag ? null : this.tagId,
         name: this.dialogName,
-        description: this.dialogDescription
+        description: this.dialogDescription,
+        orderNumber: this.store.tags.find(tag => tag.id === this.tagId).orderNumber
       }
 
       if (tag.name.length === 0) {

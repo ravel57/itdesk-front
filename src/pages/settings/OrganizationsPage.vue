@@ -139,9 +139,9 @@ export default {
     dialogSaveNewOrUpdateOrganization () {
       const organization = {
         id: this.isNewOrganization ? null : this.organizationId,
-        name: this.dialogName
+        name: this.dialogName,
+        orderNumber: this.store.organizations.find(organization => organization.id === this.organizationId).orderNumber
       }
-
       if (organization.name.length === 0) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
