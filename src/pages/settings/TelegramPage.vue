@@ -195,6 +195,14 @@ export default {
           .then(response => {
             this.telegramBots.push(response.data)
             this.dialogClose()
+            this.$q.notify({
+              message: 'Бот добавлен',
+              type: 'positive',
+              position: 'top-right',
+              actions: [{
+                icon: 'check_circle', color: 'white', dense: true, handler: () => undefined
+              }]
+            })
           })
           .catch(e =>
             this.$q.notify({
