@@ -79,7 +79,7 @@
         <q-btn
           v-if="this.selectedSorting.label"
           @click="this.changeSortingAsc"
-          flat
+          class="text-grey-7"
           :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"/>
         <q-input
           v-if="showSearch"

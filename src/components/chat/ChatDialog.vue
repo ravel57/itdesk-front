@@ -11,7 +11,7 @@
       z-index: 1000;
       color: white;
       max-width: 100%;
-      background: #1976D2;
+      background: #5C35F9;
       border-radius: 5px;
      "
     :style="
@@ -293,7 +293,7 @@
             display: flex;
             flex-wrap: nowrap;
             align-items: center;
-            background-color: #1976D2;
+            background-color: #5C35F9;
             border-radius: 5px;
             justify-content: center;
             padding-left: 10px"
@@ -309,7 +309,7 @@
           </div>
           <div
             style="
-            background-color: #1976D2;
+            background-color: #5C35F9;
             border-radius: 5px;
             margin-top: 5px;
             text-align: center;
