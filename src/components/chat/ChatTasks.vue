@@ -513,7 +513,7 @@ export default {
         tags,
         isCompleted: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
-        deadline: new Date(moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format()),
+        deadline: moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format(),
         linkedMessageId: this.linkedMessageId,
         sla: this.isNewTask ? null : this.tasks.find(task => task.id === this.taskId).sla
       }
@@ -561,7 +561,7 @@ export default {
         this.dialogTaskPriority = task.priority.name
         this.dialogTaskExecutor = this.getUserName(task.executor)
         this.dialogTaskTags = task.tags.map(tag => tag.name)
-        this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm') : ''
+        this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') : ''
         this.taskId = task.id
         this.dialogTaskStatus = task.status.name
         this.taskCreatedAt = task.createdAt
