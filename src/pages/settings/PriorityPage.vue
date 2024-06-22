@@ -185,8 +185,8 @@ export default {
       const priority = {
         id: this.isNewPriority ? null : this.priorityId,
         name: this.dialogName,
-        orderNumber: this.store.priorities.find(priority => priority.id === this.priorityId).orderNumber,
-        defaultSelection: this.store.priorities.find(priority => priority.id === this.priorityId).defaultSelection
+        orderNumber: this.isNewPriority ? null : this.store.priorities.find(priority => priority.id === this.priorityId).orderNumber,
+        defaultSelection: this.isNewPriority ? null : this.store.priorities.find(priority => priority.id === this.priorityId).defaultSelection
       }
       if (priority.name.length === 0) {
         this.$q.notify({

@@ -158,7 +158,7 @@ export default {
         id: this.isNewTemplate ? null : this.templateId,
         text: this.dialogText,
         shortcut: this.dialogShortcut,
-        orderNumber: this.store.templates.find(template => template.id === this.templateId).orderNumber
+        orderNumber: this.isNewTemplate ? null : this.store.templates.find(template => template.id === this.templateId).orderNumber
       }
       if (template.text.length === 0) {
         this.$q.notify({

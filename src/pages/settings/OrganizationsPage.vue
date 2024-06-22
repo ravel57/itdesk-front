@@ -140,7 +140,7 @@ export default {
       const organization = {
         id: this.isNewOrganization ? null : this.organizationId,
         name: this.dialogName,
-        orderNumber: this.store.organizations.find(organization => organization.id === this.organizationId).orderNumber
+        orderNumber: this.isNewOrganization ? null : this.store.organizations.find(organization => organization.id === this.organizationId).orderNumber
       }
       if (organization.name.length === 0) {
         this.$q.notify({
