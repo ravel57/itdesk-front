@@ -105,13 +105,13 @@
           :style="this.isMobile ? 'display:flex; flex-direction:row; flex-wrap: wrap; justify-content:center; width: 100%': ''"
         >
           <q-select
-            outlined
             v-model="this.selectedSavedFilter"
             :options="this.savedFilters.map(it => it.label)"
             label="Сохраненные фильтры"
             style="width: 25%; align-content: center; min-width: 300px; margin-right: 8px"
-            :style="this.isMobile ? 'width: 100%;margin-bottom: 8px': ''"
+            :style="this.isMobile ? 'width: 100%; margin-bottom: 8px' : ''"
             @update:model-value="this.onSavedFilterSelected"
+            outlined
             clearable
           />
           <div
@@ -451,6 +451,7 @@ export default {
 
     deleteFilter (index) {
       this.filterChain.splice(index, 1)
+      this.selectedSavedFilter = ''
     },
 
     saveFilter () {
