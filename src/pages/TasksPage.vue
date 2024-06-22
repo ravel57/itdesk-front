@@ -790,6 +790,10 @@ export default {
         }
       },
       deep: true
+    },
+
+    isShowListMode (newValue) {
+      localStorage.setItem('isShowListMode', newValue ? 'true' : 'false')
     }
   },
 
@@ -808,6 +812,7 @@ export default {
             icon: 'close', color: 'white', dense: true, handler: () => undefined
           }]
         }))
+    this.isShowListMode = localStorage.getItem('isShowListMode') !== 'false'
   },
 
   setup () {
