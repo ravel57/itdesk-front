@@ -10,15 +10,17 @@ export function connect () {
   stompClient = Stomp.over(() => { return socket })
   stompClient.debug = () => {}
   stompClient.connect({}, () => {
-    if (useStore().currentUser.authorities[0] === 'ADMIN') {
+    if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
       stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
-    } else if (useStore().currentUser.authorities[0] === 'OBSERVER') {
-      stompClient.subscribe('/topic/clients-for-observer/', message => clientsCallback(message))
-    } else if (useStore().currentUser.authorities[0] === 'OBSERVER') {
-      stompClient.subscribe('/topic/clients-for-client/', message => clientsForClientCallback(message))
+    } else if (['OBSERVER'].includes(useStore().currentUser.authorities[0])) {
+      stompClient.subscribe('/topic/clients-for-observer/', message => clientsForObserverCallback(message))
     }
-    stompClient.subscribe('/topic/authenticated-users/', message => authenticatedUsersCallback(message))
-    stompClient.subscribe('/topic/mark-read/', message => console.log(message))
+    if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
+      stompClient.subscribe('/topic/authenticated-users/', message => authenticatedUsersCallback(message))
+    }
+    if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
+      stompClient.subscribe('/topic/mark-read/', message => console.log(message))
+    }
   })
 }
 
@@ -75,6 +77,32 @@ export function typing (client, user, text) {
   stompClient.send('/app/typing', {}, JSON.stringify({ client, user, text }))
 }
 
-function clientsForClientCallback (message) {
-  JSON.parse(message.body)
+function clientsForObserverCallback (message) {
+  const parsedClients = JSON.parse(message.body)
+  parsedClients.forEach(it => {
+    if (it.lastname === null) {
+      it.lastname = ''
+    }
+    it.messages.forEach(message => {
+      message.date = new Date(message.date)
+    })
+    it.tasks.forEach(task => {
+      task.createdAt = new Date(task.createdAt)
+      if (task.deadline) {
+        task.deadline = new Date(task.deadline)
+      }
+      if (task.sla) {
+        task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
+        task.sla.duration = moment.duration(task.sla.duration)
+      }
+    })
+    if (it.user != null) {
+      it.user.forEach(user => {
+        if (user.lastname === null) {
+          user.lastname = ''
+        }
+      })
+    }
+  })
+  useStore().clients = parsedClients
 }

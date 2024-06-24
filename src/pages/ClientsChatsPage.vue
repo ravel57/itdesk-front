@@ -89,7 +89,6 @@
 import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import moment from 'moment'
-// import moment from 'moment/moment'
 
 export default {
   name: 'DialogsPage',
