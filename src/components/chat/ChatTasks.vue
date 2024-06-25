@@ -261,209 +261,27 @@
       </div>
     </div>
   </q-card>
-
-  <q-dialog
-    v-model="getPossibilityToOpenDialogTask"
-    persistent
-    backdrop-filter="blur(4px)"
-  >
-    <q-card
-      :class="this.isMobile ? 'dialog-width' : 'large-dialog-width'"
-    >
-      <q-toolbar
-        class="justify-end"
-      >
-        <q-btn
-          flat
-          round
-          dense
-          icon="close"
-          @click="this.closeDialog"
-          v-close-popup
-        />
-      </q-toolbar>
-      <q-card-section
-        style="padding: 0 16px"
-      >
-        <div
-          v-if="this.isMobile"
-          class="sticky-tabs"
-        >
-          <q-tabs
-            v-model="dialogTab"
-            dense
-            align="justify"
-            class="bg-white text-grey no-padding"
-            :breakpoint="0"
-          >
-            <q-tab
-              name="tab1"
-              icon="info"
-            />
-            <q-tab
-              name="tab2"
-              icon="forum"
-            />
-          </q-tabs>
-        </div>
-        <div
-          :class="this.isMobile ? '' : 'flex-container'"
-        >
-          <div
-            v-if="(!this.isMobile || this.dialogTab === 'tab1')"
-            class="flex-item"
-          >
-            <q-card
-              class="no-border-card"
-            >
-              <q-card-section
-                class="no-padding"
-              >
-                <q-input
-                  v-model="this.dialogTaskName"
-                  ref="taskName"
-                  label="Название *"
-                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-                />
-                <q-input
-                  type="textarea"
-                  v-model="this.dialogTaskDescription"
-                  label="Описание"
-                />
-                <q-select
-                  v-model="this.dialogTaskPriority"
-                  :options="this.priorities.map(priority => priority.name)"
-                  label="Приоритет *"
-                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-                />
-                <q-select
-                  v-model="dialogTaskExecutor"
-                  :options="this.users.filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0])).map(user => this.getUserName(user))"
-                  label="Исполнитель"
-                  use-input
-                />
-                <q-select
-                  v-model="this.dialogTaskTags"
-                  :options="this.tags.map(t => t.name)"
-                  multiple
-                  label="Теги"
-                  use-chips
-                  use-input
-                  dense
-                  style="padding-top: 16px"
-                />
-                <q-input
-                  v-model="dialogTaskDeadline"
-                  clearable
-                  label="Дедлайн"
-                >
-                  <template
-                    v-slot:prepend
-                  >
-                    <q-icon
-                      name="event"
-                      class="cursor-pointer"
-                    >
-                      <q-popup-proxy
-                        cover
-                        transition-show="scale"
-                        transition-hide="scale"
-                      >
-                        <q-date
-                          v-model="dialogTaskDeadline"
-                          mask="DD.MM.YYYY HH:mm"
-                        />
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                  <template
-                    v-slot:append
-                  >
-                    <q-icon
-                      name="access_time"
-                      class="cursor-pointer"
-                    >
-                      <q-popup-proxy
-                        cover
-                        transition-show="scale"
-                        transition-hide="scale"
-                      >
-                        <q-time
-                          v-model="dialogTaskDeadline"
-                          mask="DD.MM.YYYY HH:mm"
-                          format24h
-                        />
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                </q-input>
-                <q-select
-                  v-model="this.dialogTaskStatus"
-                  :options="this.statuses.map(s => s.name)"
-                  label="Статус *"
-                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-                />
-              </q-card-section>
-            </q-card>
-          </div>
-          <div
-            class="flex-item"
-            v-if="(!this.isMobile || this.dialogTab === 'tab2')"
-            :style="this.isMobile ? 'height: 541px' : ''"
-          >
-            <q-card
-              class="no-border-card"
-            >
-              <q-card-section
-                class="no-padding"
-              >
-                <div>Здесь находится содержимое чата заявки</div>
-              </q-card-section>
-            </q-card>
-          </div>
-        </div>
-      </q-card-section>
-      <q-card-actions
-        align="right"
-      >
-        <q-btn
-          v-if="!this.isNewTask && !this.dialogTaskComplete"
-          label="Закрыть заявку"
-          color="white"
-          text-color="primary"
-          @click="this.setTaskCompleted(this.getActualTasks.find(task => task.id === this.dialogTaskId))"
-        />
-        <q-btn
-          v-if="this.dialogTaskComplete"
-          label="Вернуть в работу"
-          color="white"
-          text-color="primary"
-          @click="this.setTaskNotCompleted(this.getActualTasks.find(task => task.id === this.dialogTaskId))"
-        />
-        <q-btn
-          color="white"
-          text-color="primary"
-          label="Закрыть"
-          @click="this.closeDialog"
-        />
-        <q-btn
-          color="primary"
-          label="Сохранить"
-          @click="this.saveNewOrUpdateTask"
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+  <TaskDialog
+    v-if="getPossibilityToOpenDialogTask"
+    :client="this.client"
+    :isMobile="this.isMobile"
+    :task="this.selectedTask"
+    :isNewTaskDialogShow="this.isNewTaskDialogShow"
+    :isTaskDialogShow="this.isTaskDialogShow"
+    :isNewTask="this.isNewTask"
+    @closeDialog="this.closeDialog"
+  />
 </template>
 
 <script>
 import axios from 'axios'
 import moment from 'moment'
 import ChatInfo from 'components/chat/ChatClientInfo.vue'
+import TaskDialog from 'components/chat/TaskDialog.vue'
 
 export default {
   name: 'ChatTasks',
-  components: { ChatInfo },
+  components: { TaskDialog, ChatInfo },
 
   props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations', 'isMobile'],
 
@@ -484,6 +302,7 @@ export default {
     linkedMessageId: '',
 
     taskCreatedAt: '',
+    selectedTask: {},
 
     isShowCompletedTasks: false,
     isNewTask: true,
@@ -517,101 +336,15 @@ export default {
     dialogNewTask () {
       this.isNewTask = true
       this.isTaskDialogShow = true
-      this.dialogTaskName = ''
-      this.dialogTaskDescription = ''
-      this.dialogTaskPriority = this.priorities.find(priority => priority.defaultSelection === true).name
-      this.dialogTaskExecutor = ''
-      this.dialogTaskTags = []
-      this.dialogTaskDeadline = ''
-      this.dialogTaskStatus = this.statuses.find(status => status.defaultSelection === true).name
-      setTimeout(() => this.$refs.taskName.focus(), 500)
-    },
-
-    saveNewOrUpdateTask () {
-      if (!this.dialogTaskName || !this.dialogTaskPriority || !this.dialogTaskStatus) {
-        this.$q.notify({
-          message: 'Не заполнены обязательные поля',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
-        })
-        return
-      }
-      const queryParams = new URLSearchParams(window.location.search)
-      const messageId = queryParams.get('newTaskFromMessage')
-      if (!this.linkedMessageId) {
-        this.linkedMessageId = messageId
-      }
-      const tags = []
-      this.dialogTaskTags.forEach(tagName => tags.push(this.tags.find(tag => tag.name === tagName)))
-      const task = {
-        id: this.isNewTask ? null : this.taskId,
-        name: this.dialogTaskName,
-        description: this.dialogTaskDescription,
-        status: this.statuses.find(status => status.name === this.dialogTaskStatus),
-        priority: this.priorities.find(priority => priority.name === this.dialogTaskPriority),
-        executor: this.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
-        tags,
-        isCompleted: false,
-        createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
-        deadline: moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format(),
-        linkedMessageId: this.linkedMessageId,
-        sla: this.isNewTask ? null : this.tasks.find(task => task.id === this.taskId).sla
-      }
-      if (this.isNewTask) {
-        axios.post(`/api/v1/client/${this.client.id}/task`, task)
-          .then(task => {
-            this.closeDialog()
-            this.$emit('newTask', task)
-          })
-          .catch(e =>
-            this.$q.notify({
-              message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
-            }))
-      } else {
-        axios.patch(`/api/v1/client/${this.client.id}/task`, task)
-          .then(newTask => {
-            this.closeDialog()
-            this.$emit('updateTask', task, newTask.data)
-          })
-          .catch(e =>
-            this.$q.notify({
-              message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
-            }))
-      }
-      this.taskId = null
+      // setTimeout(() => this.$refs.taskName.focus(), 500)
     },
 
     onTaskClick (task) {
       if (!this.isNewTaskDialogShow) {
+        this.selectedTask = task
         this.isNewTask = false
         this.isNewTaskDialogShow = true
-        this.dialogTaskId = task.id
-        this.dialogTaskName = task.name
-        this.dialogTaskDescription = task.description
-        this.dialogTaskPriority = task.priority.name
-        this.dialogTaskExecutor = this.getUserName(task.executor)
-        this.dialogTaskTags = task.tags.map(tag => tag.name)
-        this.dialogTaskDeadline = task.deadline ? moment(task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') : ''
-        this.taskId = task.id
-        this.dialogTaskStatus = task.status.name
-        this.taskCreatedAt = task.createdAt
-        this.dialogTaskComplete = task.completed
-        this.linkedMessageId = task.linkedMessageId
-        this.updateUrlWithTask(this.dialogTaskId)
-        setTimeout(() => this.$refs.taskName.focus(), 100)
+        this.updateUrlWithTask(task.id)
       }
     },
 
@@ -639,14 +372,6 @@ export default {
           icon: 'close', color: 'white', dense: true, handler: () => undefined
         }]
       })
-    },
-
-    getUserName (user) {
-      if (user) {
-        return user.lastname + ' ' + user.firstname
-      } else {
-        return ''
-      }
     },
 
     getStamp (date) {
@@ -722,23 +447,6 @@ export default {
       } else {
         return 'red'
       }
-    },
-    setTaskNotCompleted (task) {
-      task.completed = false
-      axios.patch(`/api/v1/client/${this.client.id}/task`, task)
-        .then(newTask => {
-          this.closeDialog()
-          this.$emit('updateTask', task, newTask)
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
     },
     updateUrlWithTask (openedTaskId) {
       const queryParams = new URLSearchParams(window.location.search)
