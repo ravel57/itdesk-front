@@ -19,7 +19,6 @@
             <q-scroll-area style="height: 60vh; padding-top: 0">
               <q-item>
                 <q-input
-                  filled
                   v-model="this.templateSearch"
                   label="Поиск"
                   dense

@@ -709,7 +709,7 @@ textarea {
 }
 
 .scrollable-list-container {
-  max-height: 300px; /* Задайте нужную высоту */
+  max-height: 300px;
   overflow-y: auto;
 }
 </style>
