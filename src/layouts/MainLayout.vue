@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh Lpr lFf">
+  <q-layout>
     <q-header elevated>
       <q-toolbar class="bg-primary text-white">
         <q-btn
@@ -8,6 +8,7 @@
           dense
           icon="menu"
           class="q-mr-sm"
+          aria-label="Menu"
           @click="toggleLeftDrawer"
         />
         <q-item @click="this.$router.push('/')" clickable>
@@ -125,6 +126,12 @@ export default {
         icon: 'settings',
         link: '/settings',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
+      },
+      {
+        title: 'Помощь',
+        icon: 'contact_support',
+        link: '/help',
+        roles: ['ADMIN', 'OPERATOR']
       }
     ]
   }),

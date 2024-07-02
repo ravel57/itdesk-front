@@ -19,9 +19,8 @@
           <span
             class="text-h6"
             style="margin-top: 3px"
-          >
-            Список заявок
-          </span>
+            v-text="`Список заявок (всего: ${this.getActualTasks.length})`"
+          />
           <div class="container q-pa-none q-gutter-md q-position-relative">
             <q-toggle
               v-model="isShowCompletedTasks"
