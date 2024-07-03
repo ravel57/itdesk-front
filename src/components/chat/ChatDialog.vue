@@ -24,7 +24,7 @@
       v-text="`Сейчас смотрят: ${this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
     />
   </div>
-  <div class="">
+  <div style="position: relative">
     <div style="display: flex; width: 100%;">
       <q-input
         v-model="search"
@@ -51,16 +51,18 @@
     <q-list
       v-if="this.isShowSearchResults"
       class="shadow-2 rounded-borders scrollable-list-container"
-      style="width: 100%; max-height: 400px;"
+      style="position: absolute;width: 100%;height: 500px;z-index: 10;background-color: white"
+      bordered
     >
       <q-item
         v-for="message in searchResults"
         :key="message.id"
+        style="background-color: white"
         clickable
       >
         <q-item-section
           @click="goToMessage(message.id)"
-          style="width: 100%;"
+          style="width: 100%; background-color: white"
         >
           {{ message.text }}
         </q-item-section>
@@ -74,7 +76,7 @@
     class="shadow-2 rounded-borders"
   >
     <q-page-container
-      style="margin-bottom: 75px"
+      style="margin-bottom: 10%"
     >
       <q-page
         style="padding-top: 8px"

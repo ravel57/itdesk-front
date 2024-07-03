@@ -54,6 +54,7 @@
         style="align-items: center"
       >
         <q-icon
+          v-if="this.getOrganization"
           name="store"
         />
         <div

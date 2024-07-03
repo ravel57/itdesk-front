@@ -38,15 +38,18 @@
           class="text-grey-7 cursor-pointer"
           @click="this.dialogNewTask"
           label="Создать новую заявку"
+          style="margin-right: 8px;"
         />
         <q-btn
           @click="toggleSearch"
-          class="text-grey-7"
+          :class="showSearch ? 'text-dark' : 'text-grey-7'"
           icon="search"
+          style="margin-right: 8px;"
         />
         <q-btn
           icon="sort"
           class="text-grey-7"
+          style="margin-right: 8px;"
         >
           <q-tooltip>
             <div v-if="this.selectedSorting.label">
@@ -84,7 +87,7 @@
           v-if="showSearch"
           v-model="search"
           label="Поиск"
-          style="margin-top: 5px"
+          style="margin-top: 8px"
           outlined
           dense
           clearable
@@ -111,7 +114,7 @@
         </q-list>
       </div>
     </div>
-    <q-separator style="margin-bottom: 3px; margin-top: 3px"/>
+    <q-separator style="margin-bottom: 8px; margin-top: 8px"/>
     <div style="overflow: auto; height: calc(-300px + 97vh)">
       <div class="row justify-center">
         <div style="width: 100%;">
@@ -122,6 +125,7 @@
                 :key="task.id"
                 :id="`task_${task.id}`"
                 style="padding: 0"
+                class="shadow-2"
               >
                 <div class="flex">
                   <q-btn
