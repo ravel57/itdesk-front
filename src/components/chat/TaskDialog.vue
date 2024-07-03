@@ -134,12 +134,25 @@
                     </q-icon>
                   </template>
                 </q-input>
-                <q-select
-                  v-model="this.dialogTaskStatus"
-                  :options="this.store.statuses.map(s => s.name)"
-                  label="Статус *"
-                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-                />
+                <div
+                  class="flex"
+                  style="height: 56px; flex-wrap: nowrap;"
+                >
+                  <q-select
+                    v-model="this.dialogTaskStatus"
+                    :options="this.store.statuses.map(s => s.name)"
+                    label="Статус *"
+                    :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                    style="width: 100%; margin-right: 8px"
+                  />
+                  <q-btn
+                    v-if="!this.isNewTask && !this.dialogTaskComplete"
+                    label="Закрыть заявку"
+                    color="white"
+                    text-color="primary"
+                    @click="this.setTaskCompleted(this.task)"
+                  />
+                </div>
               </q-card-section>
             </q-card>
           </div>
@@ -163,13 +176,6 @@
       <q-card-actions
         align="right"
       >
-        <q-btn
-          v-if="!this.isNewTask && !this.dialogTaskComplete"
-          label="Закрыть заявку"
-          color="white"
-          text-color="primary"
-          @click="this.setTaskCompleted(this.task)"
-        />
         <q-btn
           v-if="this.dialogTaskComplete"
           label="Вернуть в работу"
@@ -235,8 +241,16 @@ export default {
       this.$emit('closeDialog')
     },
     getTaskField () {
-      if (!this.isNewTask) {
-        console.log(this.task)
+      if (this.isNewTask) {
+        this.dialogTaskName = ''
+        this.dialogTaskDescription = ''
+        this.dialogTaskPriority = this.store.priorities.find(priority => priority.defaultSelection === true).name
+        this.dialogTaskExecutor = ''
+        this.dialogTaskTags = []
+        this.dialogTaskDeadline = ''
+        this.dialogTaskStatus = this.store.statuses.find(status => status.defaultSelection === true).name
+        // setTimeout(() => this.$refs.taskName.focus(), 500)
+      } else {
         this.dialogTaskId = this.task.id
         this.dialogTaskName = this.task.name
         this.dialogTaskDescription = this.task.description
@@ -249,15 +263,6 @@ export default {
         this.taskCreatedAt = this.task.createdAt
         this.dialogTaskComplete = this.task.completed
         this.linkedMessageId = this.task.linkedMessageId
-      } else if (this.isNewTask) {
-        this.dialogTaskName = ''
-        this.dialogTaskDescription = ''
-        this.dialogTaskPriority = this.store.priorities.find(priority => priority.defaultSelection === true).name
-        this.dialogTaskExecutor = ''
-        this.dialogTaskTags = []
-        this.dialogTaskDeadline = ''
-        this.dialogTaskStatus = this.store.statuses.find(status => status.defaultSelection === true).name
-        // setTimeout(() => this.$refs.taskName.focus(), 500)
       }
     },
     saveNewOrUpdateTask () {
