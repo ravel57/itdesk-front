@@ -483,9 +483,11 @@ export default {
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
     },
+
     setSortVariable (sort) {
       this.selectedSorting = sort
     },
+
     changeSortingAsc () {
       this.ascendingSort = !this.ascendingSort
     }
@@ -537,9 +539,11 @@ export default {
       }
       return filteredTasks
     },
+
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     },
+
     isSearchNotEmpty () {
       return this.searchResults.length > 0
     }
@@ -549,6 +553,7 @@ export default {
     search (newVal) {
       this.onSearch(newVal)
     },
+
     isNewTaskDialogShow (newVal) {
       if (this.isNewTaskDialogShow === false) {
         const queryParams = new URLSearchParams(window.location.search)
@@ -557,6 +562,7 @@ export default {
       }
     }
   },
+
   mounted () {
     setInterval(() => this.initializeTaskFromUrl(), 500)
   }

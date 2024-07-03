@@ -233,9 +233,9 @@
           >
             <template v-slot:body-cell-name="props">
             <q-td :props="props">
-              <router-link :to="{path: `/chats/${props.row.client.id}`, query: { task: props.row.id }}">
+              <div @click="this.isTaskDialogShow = true">
                 {{ this.shortenLine(props.row.name) }}
-              </router-link>
+              </div>
             </q-td>
           </template>
           </q-table>
@@ -263,13 +263,13 @@
                 :key="index"
                 class="no-padding"
               >
-                <router-link
+                <q-item
                   class="card"
                   clickable
-                  :to="{path: `/chats/${task.client.id}`,query: { task: task.id }}"
+                  @click="this.onTaskClicked(task)"
                 >
                   {{ this.shortenLine(`${task.name}: ${task.client.lastname} ${task.client.firstname}`) }}
-                </router-link>
+                </q-item>
               </q-item>
             </div>
           </div>
@@ -304,6 +304,16 @@
       </q-dialog>
     </q-page-container>
   </q-layout>
+  <TaskDialog
+    v-if="getPossibilityToOpenDialogTask"
+    :client="this.selectedTask.client"
+    :isMobile="this.isMobile"
+    :task="this.selectedTask"
+    :isNewTaskDialogShow="this.isNewTaskDialogShow"
+    :isTaskDialogShow="this.isTaskDialogShow"
+    :isNewTask="false"
+    @closeDialog="this.closeDialog"
+  />
 </template>
 
 <script>
@@ -311,8 +321,10 @@ import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import moment from 'moment/moment'
+import TaskDialog from 'components/chat/TaskDialog.vue'
 
 export default {
+  components: { TaskDialog },
   data: () => ({
     filterType: [
       { label: 'Исполнитель', slug: 'executor' },
@@ -423,7 +435,10 @@ export default {
         },
         sortable: true
       }
-    ]
+    ],
+    selectedTask: {},
+    isNewTaskDialogShow: false,
+    isTaskDialogShow: false
   }),
 
   methods: {
@@ -607,6 +622,16 @@ export default {
       } else {
         this.filterChain = []
       }
+    },
+
+    onTaskClicked (task) {
+      this.isTaskDialogShow = true
+      this.selectedTask = task
+    },
+
+    closeDialog () {
+      this.isNewTaskDialogShow = false
+      this.isTaskDialogShow = false
     }
   },
 
@@ -781,6 +806,10 @@ export default {
 
     isMobile () {
       return this.$q.screen.width < 1023
+    },
+
+    getPossibilityToOpenDialogTask () {
+      return this.isNewTaskDialogShow || this.isTaskDialogShow
     }
   },
 
