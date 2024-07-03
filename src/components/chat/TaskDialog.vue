@@ -174,7 +174,21 @@
               <q-card-section
                 class="no-padding"
               >
-                <div>Здесь находится содержимое чата заявки</div>
+                <chat-dialog
+                  :is-mobile="this.isMobile"
+                  :messages="[]"
+                  :input-field="this.inputField"
+                  :templates="this.store.templates"
+                  :isSending="this.isSending"
+                  :current-user="this.store.currentUser"
+                  :linkedMessageId="this.linkedMessageId"
+                  :client-id="this.client.id"
+                  :is-show-helper="true"
+                  :taskWatchingNow="[]"
+                  :typing="[]"
+                  @sendMessage="this.sendMessage"
+                  @isSending="false"
+                />
               </q-card-section>
             </q-card>
           </div>
@@ -203,8 +217,12 @@
 import moment from 'moment/moment'
 import axios from 'axios'
 import { useStore } from 'stores/store'
+import ChatDialog from 'components/chat/ChatDialog.vue'
 
 export default {
+
+  components: { ChatDialog },
+
   props: [
     'isMobile',
     'task',
@@ -213,6 +231,7 @@ export default {
     'isNewTask',
     'client'
   ],
+
   data: () => ({
     dialogTab: 'tab1',
 
@@ -228,18 +247,24 @@ export default {
     linkedMessageId: '',
     taskCreatedAt: '',
 
-    taskId: null // for update
+    taskId: null, // for update
+    inputField: '',
+    isSending: false
   }),
+
   // created () {
   //   this.getTaskField()
   // },
+
   mounted () {
     this.getTaskField()
   },
+
   methods: {
     closeDialog () {
       this.$emit('closeDialog')
     },
+
     getTaskField () {
       if (this.isNewTask) {
         this.dialogTaskName = ''
@@ -265,6 +290,7 @@ export default {
         this.linkedMessageId = this.task.linkedMessageId
       }
     },
+
     saveNewOrUpdateTask () {
       if (!this.dialogTaskName || !this.dialogTaskPriority || !this.dialogTaskStatus) {
         this.$q.notify({
@@ -331,6 +357,7 @@ export default {
       }
       this.taskId = null
     },
+
     setTaskCompleted (task) {
       task.completed = true
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
@@ -356,6 +383,7 @@ export default {
         }]
       })
     },
+
     setTaskNotCompleted (task) {
       task.completed = false
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
@@ -373,19 +401,33 @@ export default {
             }]
           }))
     },
+
     getUserName (user) {
       if (user) {
         return user.lastname + ' ' + user.firstname
       } else {
         return ''
       }
+    },
+
+    sendMessage (message) {
+      this.inputField = ''
+      this.isSending = false
+      this.getClient.messages.push(message)
     }
   },
+
   computed: {
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     }
+
+    // getClient () {
+    //   console.log(this.task.client)
+    //   return this.task.client
+    // }
   },
+
   setup () {
     const store = useStore()
     return { store }
