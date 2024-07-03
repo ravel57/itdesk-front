@@ -152,6 +152,13 @@
                     text-color="primary"
                     @click="this.setTaskCompleted(this.task)"
                   />
+                  <q-btn
+                    v-if="this.dialogTaskComplete"
+                    label="Вернуть в работу"
+                    color="white"
+                    text-color="primary"
+                    @click="this.setTaskNotCompleted(this.task)"
+                  />
                 </div>
               </q-card-section>
             </q-card>
@@ -176,13 +183,6 @@
       <q-card-actions
         align="right"
       >
-        <q-btn
-          v-if="this.dialogTaskComplete"
-          label="Вернуть в работу"
-          color="white"
-          text-color="primary"
-          @click="this.setTaskNotCompleted(this.task)"
-        />
         <q-btn
           color="white"
           text-color="primary"
