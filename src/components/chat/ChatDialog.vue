@@ -70,10 +70,12 @@
   <q-layout
     container
     id="chatDialog"
-    style="height: calc(100vh - 193px); background-color: #F0F0F0"
+    style="height: calc(100vh - 115px); background-color: #F0F0F0"
     class="shadow-2 rounded-borders"
   >
-    <q-page-container>
+    <q-page-container
+      style="margin-bottom: 75px"
+    >
       <q-page
         style="padding-top: 8px"
         ref="chat"
@@ -92,10 +94,10 @@
               :avatar="message.avatar"
               :name="this.getName(message)"
               :sent="message.sent"
-              :bg-color="message.comment ? 'blue-2' : message.sent ? '#e0e0e0' : 'white'"
               text-color="black"
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
+              :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
               @click.right="this.invertContextMenu"
             >
               <!-- :style="{ 'border-style': message.comment ? 'dashed' : 'unset', 'border-color': '#1976D2' }"-->
@@ -257,141 +259,155 @@
             </q-chat-message>
           </div>
         </div>
+        <q-page-sticky
+          position="bottom"
+          style="width: 100%; margin-bottom: 8px"
+          expand
+        >
+          <div
+            v-if="['ADMIN', 'OPERATOR', 'CLIENT'].includes(this.store.currentUser.authorities[0])"
+            class="inputControl"
+            style="width: 100%;margin-right: 8px; margin-left: 8px;"
+          >
+            <q-card
+              style="position: relative; display: flex; width: 100%; flex-direction: row; flex-wrap: nowrap; align-items: end"
+              :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
+            >
+              <div
+                v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+                style="
+                  display: block;
+                  position: absolute;
+                  bottom: 100%;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  padding: 0 5px;
+                  color: white;
+                  font-size: 14px;
+                  z-index: 1000;
+                  margin-bottom: 5px;
+                  opacity: .6;
+                  max-width: 100%;
+               "
+              >
+                <div style="display: flex; flex-direction: column; flex-wrap: nowrap">
+                  <div
+                    v-if="this.attachedFile"
+                    style="
+                      display: flex;
+                      flex-wrap: nowrap;
+                      align-items: center;
+                      background-color: #5C35F9;
+                      border-radius: 5px;
+                      justify-content: center;
+                      padding-left: 10px"
+                      class="popupContent"
+                  >
+                    {{ this.shortenLine(this.attachedFile.name) }}
+                    <q-btn
+                      dense
+                      flat
+                      icon="delete"
+                      @click="this.attachedFile = null"
+                    />
+                  </div>
+                  <div
+                    style="
+                      background-color: #5C35F9;
+                      border-radius: 5px;
+                      margin-top: 5px;
+                      text-align: center;
+                      padding-left: 10px;
+                      padding-right: 10px;"
+                    v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+                    v-text="this.getTypingUsers"
+                  />
+                </div>
+              </div>
+              <div
+                v-if="this.replyMessageId !== null"
+                style="display: flex; justify-content: left; align-items: center; margin-left: 6px"
+              >
+                <q-icon
+                  name="reply"
+                />
+                {{ this.messages.find(m => m.id === this.replyMessageId).text }}
+                <q-icon
+                  name="close"
+                  @click="this.replyMessageId = null"
+                />
+              </div>
+<!--              <q-toolbar-->
+<!--                style="padding: 0"-->
+<!--              >-->
+                <q-btn
+                  style="margin-bottom: 6px"
+                  type="file"
+                  @click="attachFile"
+                  icon="attach_file"
+                  class="no-padding"
+                  flat
+                />
+                <input
+                  type="file"
+                  id="fileInput"
+                  style="display: none"
+                />
+                <textarea
+                  ref="textInput"
+                  id="textarea"
+                  style="border-style: unset; margin: 0 8px; width: 100%"
+                  :value="this.inputField"
+                  :placeholder="`${isComment ? 'Текст комментария' : 'Текст сообщения'} ${isMobile ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`"
+                  :style="textareaStyle"
+                  @keydown.tab.prevent="handleTabPressed"
+                  @keydown="this.handleKeyPressed"
+                  @input="this.textChanged"
+                />
+                <div>
+                  <q-btn
+                    v-if="this.inputField.length > 0"
+                    icon="send"
+                    @click="this.sendMessage"
+                    :loading="this.isSending"
+                    color="white"
+                    text-color="primary"
+                    dense
+                    push
+                    flat
+                    :ripple="false"
+                    style="margin-right: 5px; margin-bottom: 6px"
+                    @mouseover="showTooltipSend = true"
+                    @mouseup="showTooltipSend = false"
+                  >
+                    <q-tooltip
+                      v-if="showTooltipSend"
+                    >
+                      ctrl+enter отправить
+                    </q-tooltip>
+                  </q-btn>
+                </div>
+                <div class="">
+                  <q-btn
+                    style="margin-bottom: 6px"
+                    @click="this.switchToComment"
+                    dense
+                    flat
+                    icon="comment"
+                    :color="this.isComment ? 'primary' : 'grey'"
+                  >
+                    <q-tooltip>
+                      Режим комментария
+                    </q-tooltip>
+                  </q-btn>
+                </div>
+<!--              </q-toolbar>-->
+            </q-card>
+          </div>
+        </q-page-sticky>
       </q-page>
     </q-page-container>
   </q-layout>
-  <div
-    v-if="['ADMIN', 'OPERATOR', 'CLIENT'].includes(this.store.currentUser.authorities[0])"
-    class="inputControl"
-    style="margin-top: 8px"
-  >
-    <q-card
-      class="shadow-2"
-      style="position: relative;"
-    >
-      <div
-        v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-        style="
-          display: block;
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          padding: 0 5px;
-          color: white;
-          font-size: 14px;
-          z-index: 1000;
-          margin-bottom: 5px;
-          opacity: .6;
-          max-width: 100%;
-       "
-      >
-        <div style="display: flex; flex-direction: column; flex-wrap: nowrap">
-          <div
-            v-if="this.attachedFile"
-            style="
-            display: flex;
-            flex-wrap: nowrap;
-            align-items: center;
-            background-color: #5C35F9;
-            border-radius: 5px;
-            justify-content: center;
-            padding-left: 10px"
-            class="popupContent"
-          >
-            {{ this.shortenLine(this.attachedFile.name) }}
-            <q-btn
-              dense
-              flat
-              icon="delete"
-              @click="this.attachedFile = null"
-            />
-          </div>
-          <div
-            style="
-            background-color: #5C35F9;
-            border-radius: 5px;
-            margin-top: 5px;
-            text-align: center;
-            padding-left: 10px;
-            padding-right: 10px;"
-            v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-            v-text="this.getTypingUsers"
-          />
-        </div>
-      </div>
-      <div
-        v-if="this.replyMessageId !== null"
-        style="display: flex; justify-content: left; align-items: center; margin-left: 6px"
-      >
-        <q-icon
-          name="reply"
-        />
-        {{ this.messages.find(m => m.id === this.replyMessageId).text }}
-        <q-icon
-          name="close"
-          @click="this.replyMessageId = null"
-        />
-      </div>
-      <q-toolbar class="no-padding" style="margin: 0 8px">
-        <q-btn
-          type="file"
-          @click="attachFile"
-          icon="attach_file"
-          class="no-padding"
-          flat
-        />
-        <input
-          type="file"
-          id="fileInput"
-          style="display: none"
-        />
-        <textarea
-          ref="textInput"
-          id="textarea"
-          style="border-color: #1875D0; border-style: unset; margin: 0 8px; width: calc(100% - 120px)"
-          :value="this.inputField"
-          :placeholder="`${isComment ? 'Текст комментария' : 'Текст сообщения'} (ctrl+enter отправить)\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод`"
-          class="bg-white"
-          :style="'border-style: ' + (this.isComment ? 'dashed' : 'unset') + ';height: ' + (this.replyMessageId !== null ? '90%' : '')"
-          @keydown.tab.prevent="handleTabPressed"
-          @keydown="this.handleKeyPressed"
-          @input="this.textChanged"
-        />
-        <div>
-          <q-btn
-            icon="send"
-            @click="this.sendMessage"
-            :loading="this.isSending"
-            color="white"
-            text-color="primary"
-            dense
-            push
-            flat
-            :ripple="false"
-            style="margin-right: 5px"
-            @mouseover="showTooltipSend = true"
-            @mouseup="showTooltipSend = false"
-          >
-            <q-tooltip
-              v-if="showTooltipSend"
-            >
-              ctrl+enter отправить
-            </q-tooltip>
-          </q-btn>
-        </div>
-        <div class="">
-          <q-btn
-            @click="this.switchToComment"
-            dense
-            flat
-            icon="comment"
-            :color="this.isComment ? 'primary' : 'grey'"
-          />
-        </div>
-      </q-toolbar>
-    </q-card>
-  </div>
 </template>
 
 <script>
@@ -418,6 +434,7 @@ export default {
   ],
 
   data: () => ({
+    textareaHeight: 'auto',
     isComment: false,
     text: '',
     isShowCustomContextMenu: true,
@@ -436,7 +453,7 @@ export default {
 
   mounted () {
     if (this.isMobile) {
-      document.getElementById('chatDialog').style.height = 'calc(-220px + 100vh)'
+      document.getElementById('chatDialog').style.height = 'calc(-150px + 100vh)'
       document.getElementById('taskColumn').style.height = 'calc(-110px + 100vh);'
     }
     this.$refs.textInput.focus()
@@ -537,6 +554,7 @@ export default {
 
     textChanged () {
       this.$emit('keyPressed', this.$refs.textInput.value)
+      this.autoResize()
     },
 
     getStamp (message) {
@@ -669,6 +687,13 @@ export default {
       } else {
         return string
       }
+    },
+    autoResize () {
+      this.$nextTick(() => {
+        const textarea = this.$refs.textInput
+        textarea.style.height = 'auto'
+        textarea.style.height = textarea.scrollHeight + 'px'
+      })
     }
   },
 
@@ -677,6 +702,18 @@ export default {
       const filter = this.typing.filter(t => t.username !== this.currentUser.username)
       const s = filter.length > 1 ? ' печатают...' : ' печатает...'
       return filter.map(t => `${t.firstname} ${t.lastname}`).join(', ') + s
+    },
+    textareaStyle () {
+      return {
+        borderStyle: 'unset',
+        margin: '0 8px',
+        width: '100%',
+        overflow: 'hidden',
+        resize: 'none',
+        height: this.textareaHeight + 'px',
+        transition: 'height 0.2s ease',
+        backgroundColor: this.isComment ? '#d1c4e9' : ''
+      }
     }
   },
 
@@ -700,8 +737,12 @@ export default {
 <style scoped>
 textarea {
   width: 200%;
-  height: 70px;
   resize: none;
+  transition: height 0.2s ease;
+}
+
+textarea:focus {
+  outline: none;
 }
 
 .strikethrough {
@@ -710,6 +751,7 @@ textarea {
 
 .scrollable-list-container {
   max-height: 300px;
+  height: 70px;
   overflow-y: auto;
 }
 </style>
