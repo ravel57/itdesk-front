@@ -51,7 +51,8 @@
     <q-list
       v-if="this.isShowSearchResults"
       class="shadow-2 rounded-borders scrollable-list-container"
-      style="position: absolute;width: 100%;height: 500px;z-index: 10;background-color: white"
+      style="position: absolute;width: 100%;z-index: 10;background-color: white;max-height: 400px; overflow-y: auto;"
+      :style="(this.searchResults.length > 0) ? 'height: auto' : 'height: 0'"
       bordered
     >
       <q-item
@@ -72,11 +73,12 @@
   <q-layout
     container
     id="chatDialog"
-    style="height: calc(100vh - 115px); background-color: #F0F0F0"
+    style="height: 94.8%; background-color: #F0F0F0"
     class="shadow-2 rounded-borders"
   >
+<!--    style="height: calc(100vh - 115px); background-color: #F0F0F0"-->
     <q-page-container
-      style="margin-bottom: 10%"
+      style="padding-bottom: 45px"
     >
       <q-page
         style="padding-top: 8px"
@@ -263,7 +265,7 @@
         </div>
         <q-page-sticky
           position="bottom"
-          style="width: 100%; margin-bottom: 8px"
+          style="width: 100%; margin-bottom: 8px; max-height: 400px"
           expand
         >
           <div
@@ -360,7 +362,7 @@
                   id="textarea"
                   style="border-style: unset; margin: 0 8px; width: 100%"
                   :value="this.inputField"
-                  :placeholder="`${isComment ? 'Текст комментария' : 'Текст сообщения'} ${isMobile ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`"
+                  :placeholder="this.renderShortcutPlaceholder"
                   :style="textareaStyle"
                   @keydown.tab.prevent="handleTabPressed"
                   @keydown="this.handleKeyPressed"
@@ -432,7 +434,8 @@ export default {
     'tasks',
     'taskWatchingNow',
     'isShowHelper',
-    'isMobile'
+    'isMobile',
+    'isDialog'
   ],
 
   data: () => ({
@@ -455,8 +458,7 @@ export default {
 
   mounted () {
     if (this.isMobile) {
-      document.getElementById('chatDialog').style.height = 'calc(-150px + 100vh)'
-      document.getElementById('taskColumn').style.height = 'calc(-110px + 100vh);'
+      document.getElementById('chatDialog').style.height = '93%'
     }
     this.$refs.textInput.focus()
     this.scrollToBottom()
@@ -705,6 +707,9 @@ export default {
       const s = filter.length > 1 ? ' печатают...' : ' печатает...'
       return filter.map(t => `${t.firstname} ${t.lastname}`).join(', ') + s
     },
+    renderShortcutPlaceholder () {
+      return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
+    },
     textareaStyle () {
       return {
         borderStyle: 'unset',
@@ -713,6 +718,7 @@ export default {
         overflow: 'hidden',
         resize: 'none',
         height: this.textareaHeight + 'px',
+        'max-height': this.isDialog ? '300px' : '400px',
         transition: 'height 0.2s ease',
         backgroundColor: this.isComment ? '#d1c4e9' : ''
       }

@@ -136,7 +136,7 @@
                 </q-input>
                 <div
                   class="flex"
-                  style="height: 56px; flex-wrap: nowrap;"
+                  style="height: 56px; flex-wrap: nowrap;margin-top: 8px;"
                 >
                   <q-select
                     v-model="this.dialogTaskStatus"
@@ -166,36 +166,40 @@
           <div
             class="flex-item"
             v-if="(!this.isMobile || this.dialogTab === 'tab2')"
+            style="height: calc(100vh - 424px)"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
-            <q-card
-              class="no-border-card"
-            >
-              <q-card-section
-                class="no-padding"
-              >
-                <chat-dialog
-                  :is-mobile="this.isMobile"
-                  :messages="[]"
-                  :input-field="this.inputField"
-                  :templates="this.store.templates"
-                  :isSending="this.isSending"
-                  :current-user="this.store.currentUser"
-                  :linkedMessageId="this.linkedMessageId"
-                  :client-id="this.client.id"
-                  :is-show-helper="true"
-                  :taskWatchingNow="[]"
-                  :typing="[]"
-                  @sendMessage="this.sendMessage"
-                  @isSending="false"
-                />
-              </q-card-section>
-            </q-card>
+<!--            <q-card-->
+<!--              class="no-border-card"-->
+<!--            >-->
+<!--              <q-card-section-->
+<!--                class="no-padding"-->
+<!--              >-->
+<!--                -->
+<!--              </q-card-section>-->
+<!--            </q-card>-->
+            <chat-dialog
+              :is-mobile="this.isMobile"
+              :messages="[]"
+              :input-field="this.inputField"
+              :templates="this.store.templates"
+              :isSending="this.isSending"
+              :current-user="this.store.currentUser"
+              :linkedMessageId="this.linkedMessageId"
+              :client-id="this.client.id"
+              :is-show-helper="true"
+              :taskWatchingNow="[]"
+              :typing="[]"
+              :isDialog="true"
+              @sendMessage="this.sendMessage"
+              @isSending="false"
+            />
           </div>
         </div>
       </q-card-section>
       <q-card-actions
         align="right"
+        style="margin-right: 7px"
       >
         <q-btn
           color="white"
