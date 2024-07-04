@@ -233,7 +233,7 @@
           >
             <template v-slot:body-cell-name="props">
             <q-td :props="props">
-              <div @click="this.isTaskDialogShow = true">
+              <div @click="this.onTaskClicked(props.row)">
                 {{ this.shortenLine(props.row.name) }}
               </div>
             </q-td>
