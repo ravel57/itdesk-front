@@ -458,7 +458,11 @@ export default {
 
   mounted () {
     if (this.isMobile) {
-      document.getElementById('chatDialog').style.height = '93%'
+      if (this.isDialog) {
+        document.getElementById('chatDialog').style.height = '93%'
+      } else {
+        document.getElementById('chatDialog').style.height = 'calc(-150px + 100vh)'
+      }
     }
     this.$refs.textInput.focus()
     this.scrollToBottom()
@@ -535,6 +539,7 @@ export default {
               }))
         }
       }
+      this.autoResize()
     },
 
     handleTabPressed (event) {
