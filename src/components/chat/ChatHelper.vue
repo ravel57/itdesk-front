@@ -20,7 +20,7 @@
               <q-item>
                 <q-input
                   v-model="this.templateSearch"
-                  label="Поиск"
+                  label="Поиск по шаблонам"
                   dense
                   clearable
                   style="width: 100%;"

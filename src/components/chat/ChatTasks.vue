@@ -37,7 +37,7 @@
         <q-btn
           class="text-grey-7 cursor-pointer"
           @click="this.dialogNewTask"
-          label="Создать новую заявку"
+          label="Создать заявку"
           style="margin-right: 8px;"
         />
         <q-btn
@@ -86,7 +86,7 @@
         <q-input
           v-if="showSearch"
           v-model="search"
-          label="Поиск"
+          label="Поиск по заявкам"
           style="margin-top: 8px"
           outlined
           dense
@@ -154,8 +154,12 @@
                       <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
                     </tr>
                     <tr>
+                      <th class="small-text text-grey" v-text="'ID заявки'"/>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.id"/>
+                    </tr>
+                    <tr>
                       <th class="small-text text-grey" v-text="'Название: '"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.name"></th>
+                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.name"/>
                     </tr>
                     <tr>
                       <th class="small-text text-grey" v-text="'Описание: '"/>
