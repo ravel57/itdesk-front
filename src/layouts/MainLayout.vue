@@ -50,7 +50,7 @@
             <q-icon style="align-items: start" name="group"/>
           </q-item-section>
           <q-item-section>
-            <q-item-label>Пользователи онлайн:</q-item-label>
+            <q-item-label>Операторы онлайн:</q-item-label>
             <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
           </q-item-section>
         </q-item>
@@ -78,11 +78,12 @@ export default {
 
   data: () => ({
     linksList: [
-      // {
-      //   title: 'Мои заявки',
-      //   icon: 'task_alt',
-      //   link: '/my-tasks'
-      // },
+      {
+        title: 'Мои заявки',
+        icon: 'task_alt',
+        link: '/my-tasks',
+        roles: ['ADMIN', 'OPERATOR']
+      },
       {
         title: 'Чаты',
         icon: 'forum',

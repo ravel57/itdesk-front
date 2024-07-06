@@ -95,7 +95,7 @@
                   label="Дедлайн"
                 >
                   <template
-                    v-slot:prepend
+                    v-slot:append
                   >
                     <q-icon
                       name="event"
@@ -109,26 +109,6 @@
                         <q-date
                           v-model="dialogTaskDeadline"
                           mask="DD.MM.YYYY HH:mm"
-                        />
-                      </q-popup-proxy>
-                    </q-icon>
-                  </template>
-                  <template
-                    v-slot:append
-                  >
-                    <q-icon
-                      name="access_time"
-                      class="cursor-pointer"
-                    >
-                      <q-popup-proxy
-                        cover
-                        transition-show="scale"
-                        transition-hide="scale"
-                      >
-                        <q-time
-                          v-model="dialogTaskDeadline"
-                          mask="DD.MM.YYYY HH:mm"
-                          format24h
                         />
                       </q-popup-proxy>
                     </q-icon>

@@ -28,7 +28,7 @@
     <div style="display: flex; width: 100%;">
       <q-input
         v-model="search"
-        label="Поиск"
+        label="Поиск по сообщениям"
         dense
         clearable
         style="width: 100%;"
@@ -401,7 +401,7 @@
                     :color="this.isComment ? 'primary' : 'grey'"
                   >
                     <q-tooltip>
-                      Режим комментария
+                      Режим комментария: Сообщение увидят только операторы
                     </q-tooltip>
                   </q-btn>
                 </div>
