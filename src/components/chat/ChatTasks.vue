@@ -175,12 +175,12 @@
     :isNewTask="this.isNewTask"
     @closeDialog="this.closeDialog"
     @addMessageToTask="this.addMessageToTask($event)"
+    @updateTask="updateTask($event)"
   />
 </template>
 
 <script>
 import axios from 'axios'
-import moment from 'moment'
 import ChatInfo from 'components/chat/ChatClientInfo.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import TaskCard from 'components/TaskCard.vue'
@@ -254,6 +254,10 @@ export default {
       }
     },
 
+    updateTask (task, newTask) {
+      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+    },
+
     setTaskCompleted (task) {
       task.completed = true
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
@@ -295,14 +299,6 @@ export default {
       }
     },
 
-    getName (executor) {
-      if (executor) {
-        return executor.lastname + ' ' + executor.firstname
-      } else {
-        return ''
-      }
-    },
-
     scrollToElementById (task) {
       this.$emit('scrollToElementById', task.linkedMessageId)
     },
@@ -323,42 +319,12 @@ export default {
       this.scrollToElementById(`task_${taskId}`)
     },
 
-    getSlaHours (task) {
-      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
-      const now = moment()
-      const duration = moment.duration(endDateTime.diff(now))
-      return duration.days() * 24 + duration.hours() + duration.minutes() * 0.017
-    },
-
-    getSlaTime (task) {
-      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
-      const now = moment()
-      const duration = moment.duration(endDateTime.diff(now))
-      if (duration.asMilliseconds() < 0) {
-        return '0 ч. 0 м.'
-      } else {
-        return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
-      }
-    },
-
-    getSlaPercent (task) {
-      return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
-    },
-
-    getSlaColor (task) {
-      if (this.getSlaPercent(task) > 0.5) {
-        return 'green'
-      } else if (this.getSlaPercent(task) > 0.25) {
-        return 'orange'
-      } else {
-        return 'red'
-      }
-    },
     updateUrlWithTask (openedTaskId) {
       const queryParams = new URLSearchParams(window.location.search)
       queryParams.set('task', openedTaskId)
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     },
+
     initializeTaskFromUrl () {
       const queryParams = new URLSearchParams(window.location.search)
       const taskIdFromUrl = queryParams.get('task')
@@ -377,6 +343,7 @@ export default {
         this.isNewTaskDialogShow = false
       }
     },
+
     closeDialog () {
       const queryParams = new URLSearchParams(window.location.search)
       if (queryParams.get('newTaskFromMessage')) {

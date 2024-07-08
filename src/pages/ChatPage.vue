@@ -84,7 +84,6 @@
             :priorities="this.store.priorities"
             :is-mobile="this.isMobile"
             @newTask="this.newTask"
-            @updateTask="this.updateTask"
             @scrollToElementById="this.linkedMessageId = $event"
           />
         </div>
@@ -181,10 +180,6 @@ export default {
 
     newTask (task) {
       this.getClient.tasks.push(task.data)
-    },
-
-    updateTask (task, newTask) {
-      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
     },
 
     pastToInputField (text) {

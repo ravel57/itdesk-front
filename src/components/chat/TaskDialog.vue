@@ -328,6 +328,12 @@ export default {
 
     setTaskCompleted (task) {
       task.completed = true
+      task = Object.keys(task).filter(objKey =>
+        objKey !== 'client').reduce((newObj, client) => {
+        newObj[client] = task[client]
+        return newObj
+      }, {}
+      )
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
@@ -354,6 +360,12 @@ export default {
 
     setTaskNotCompleted (task) {
       task.completed = false
+      task = Object.keys(task).filter(objKey =>
+        objKey !== 'client').reduce((newObj, client) => {
+        newObj[client] = task[client]
+        return newObj
+      }, {}
+      )
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
@@ -405,16 +417,7 @@ export default {
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     }
-
-    // getClient () {
-    //   console.log(this.task.client)
-    //   return this.task.client
-    // }
   },
-
-  // created () {
-  //   this.getTaskField()
-  // },
 
   mounted () {
     this.getTaskField()

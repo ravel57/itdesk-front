@@ -220,7 +220,7 @@
             </q-tooltip>
           </q-btn>
           <q-btn
-            v-else-if="this.selectedSavedFilter.length > 0"
+            v-else-if="this.isShowDelFilterPreset"
             ref="deleteSavedFilterButton"
             icon="delete"
             color="grey"
@@ -345,7 +345,7 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-  <TaskDialog
+  <task-dialog
     v-if="getPossibilityToOpenDialogTask"
     :client="this.selectedTask.client"
     :isMobile="this.isMobile"
@@ -354,6 +354,7 @@
     :isTaskDialogShow="this.isTaskDialogShow"
     :isNewTask="false"
     @closeDialog="this.closeDialog"
+    @updateTask="this.updateTask($event)"
   />
 </template>
 
@@ -480,7 +481,8 @@ export default {
     ],
     selectedTask: {},
     isNewTaskDialogShow: false,
-    isTaskDialogShow: false
+    isTaskDialogShow: false,
+    isShowDelFilterPreset: false
   }),
 
   methods: {
@@ -669,34 +671,39 @@ export default {
     onTaskClicked (task) {
       this.isTaskDialogShow = true
       this.selectedTask = task
+      this.updateUrlWithTask(task.id)
     },
 
     closeDialog () {
+      const queryParams = new URLSearchParams(window.location.search)
+      queryParams.delete('task')
+      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
     },
 
-    getStamp (date) {
-      if (date) {
-        return date.toLocaleTimeString('ru-RU', {
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
+    updateUrlWithTask (openedTaskId) {
+      const queryParams = new URLSearchParams(window.location.search)
+      queryParams.set('task', openedTaskId)
+      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+    },
+
+    initializeTaskFromUrl () {
+      const queryParams = new URLSearchParams(window.location.search)
+      const taskIdFromUrl = queryParams.get('task')
+      if (!taskIdFromUrl && this.isTaskDialogShow) {
+        this.closeDialog()
+      }
+      if (taskIdFromUrl) {
+        const taskFromUrl = this.getFilteredTasks.find(task => task.id === Number(taskIdFromUrl))
+        this.onTaskClicked(taskFromUrl)
       } else {
-        return ''
+        this.isNewTaskDialogShow = false
       }
     },
 
-    getName (executor) {
-      if (executor) {
-        return executor.lastname + ' ' + executor.firstname
-      } else {
-        return ''
-      }
+    updateTask (task, newTask) {
+      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
     }
   },
 
@@ -895,10 +902,22 @@ export default {
 
     isShowListMode (newValue) {
       localStorage.setItem('isShowListMode', newValue ? 'true' : 'false')
+    },
+
+    selectedSavedFilter: {
+      handler (newVal) {
+        if (newVal !== '') {
+          this.isShowDelFilterPreset = true
+        } else {
+          this.isShowDelFilterPreset = false
+        }
+      },
+      deep: true
     }
   },
 
   mounted () {
+    setInterval(() => this.initializeTaskFromUrl(), 500)
     setInterval(() => this.initializeFilterChainFromUrl(), 100)
     axios.get('/api/v1/filters')
       .then(response => {
