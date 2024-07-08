@@ -174,7 +174,7 @@
     :isTaskDialogShow="this.isTaskDialogShow"
     :isNewTask="this.isNewTask"
     @closeDialog="this.closeDialog"
-    @addMessageToTask="this.addMessageToTask($event)"
+    @addMessageToTask="this.addMessageToTask"
     @updateTask="updateTask($event)"
   />
 </template>
@@ -186,7 +186,9 @@ import TaskDialog from 'components/chat/TaskDialog.vue'
 import TaskCard from 'components/TaskCard.vue'
 
 export default {
+
   name: 'ChatTasks',
+
   components: { TaskCard, TaskDialog, ChatInfo },
 
   props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations', 'isMobile'],
@@ -275,7 +277,7 @@ export default {
             }]
           }))
       this.$q.notify({
-        message: 'Заяка закрыта',
+        message: 'Заявка закрыта',
         type: 'positive',
         position: 'top-right',
         actions: [{
@@ -363,7 +365,7 @@ export default {
     },
 
     addMessageToTask (event) {
-      this.tasks.find(task => task.id === event.task.id).messages.push(event.message)
+      this.selectedTask.messages.push(event.message)
     }
   },
 
