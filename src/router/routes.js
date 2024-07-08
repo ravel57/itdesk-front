@@ -4,10 +4,10 @@ const routes = [
     redirect: '/chats',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      // {
-      //   path: 'my-tasks',
-      //   component: () => import('pages/TasksPage.vue')
-      // },
+      {
+        path: 'my-tasks',
+        component: () => import('pages/MyTasksPage.vue')
+      },
       {
         path: 'chat',
         component: () => import('pages/ChatPage.vue')
@@ -24,14 +24,14 @@ const routes = [
         path: 'tasks',
         component: () => import('pages/TasksPage.vue')
       },
-      {
-        path: 'history',
-        component: () => import('pages/HistoryPage.vue')
-      },
-      {
-        path: 'search',
-        component: () => import('pages/SearchPage.vue')
-      },
+      // {
+      //   path: 'history',
+      //   component: () => import('pages/HistoryPage.vue')
+      // },
+      // {
+      //   path: 'search',
+      //   component: () => import('pages/SearchPage.vue')
+      // },
       {
         path: 'settings',
         component: () => import('pages/settings/SettingsPage.vue'),
@@ -95,13 +95,17 @@ const routes = [
         ]
       },
       {
-        path: 'analytics',
-        component: () => import('pages/AnalyticsPage.vue')
-      },
-      {
-        path: 'phone',
-        component: () => import('pages/PhonePage.vue')
+        path: 'help',
+        component: () => import('pages/HelpPage.vue')
       }
+      // {
+      //   path: 'analytics',
+      //   component: () => import('pages/AnalyticsPage.vue')
+      // },
+      // {
+      //   path: 'phone',
+      //   component: () => import('pages/PhonePage.vue')
+      // }
     ]
   }, {
     path: '/:catchAll(.*)*',
