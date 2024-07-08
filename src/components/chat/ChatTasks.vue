@@ -158,16 +158,33 @@
                       <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.id"/>
                     </tr>
                     <tr>
-                      <th class="small-text text-grey" v-text="'Название: '"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.name"/>
+                      <th
+                        class="small-text text-grey"
+                        v-text="'Название: '"
+                      />
+                      <th
+                        :class="{'text-body2': true, 'text-grey': task.completed}"
+                        v-text="task.name"
+                      />
                     </tr>
                     <tr>
-                      <th class="small-text text-grey" v-text="'Описание: '"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.description"/>
+                      <th
+                        class="small-text text-grey" v-text="'Описание: '"
+                      />
+                      <th
+                        :class="{'text-body2': true, 'text-grey': task.completed}"
+                        v-text="task.description"
+                      />
                     </tr>
                     <tr>
-                      <th class="small-text text-grey" v-text="'Теги: '"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.tags.map(tag => tag.name).join(', ')"/>
+                      <th
+                        class="small-text text-grey"
+                        v-text="'Теги: '"
+                      />
+                      <th
+                        :class="{'text-body2': true, 'text-grey': task.completed}"
+                        v-text="task.tags.map(tag => tag.name).join(', ')"
+                      />
                     </tr>
                     <tr>
                       <th
@@ -268,7 +285,7 @@
       </div>
     </div>
   </q-card>
-  <TaskDialog
+  <task-dialog
     v-if="getPossibilityToOpenDialogTask"
     :client="this.client"
     :isMobile="this.isMobile"
@@ -277,6 +294,7 @@
     :isTaskDialogShow="this.isTaskDialogShow"
     :isNewTask="this.isNewTask"
     @closeDialog="this.closeDialog"
+    @addMessageToTask="this.addMessageToTask($event)"
   />
 </template>
 
@@ -494,6 +512,10 @@ export default {
 
     changeSortingAsc () {
       this.ascendingSort = !this.ascendingSort
+    },
+
+    addMessageToTask (event) {
+      this.tasks.find(task => task.id === event.task.id).messages.push(event.message)
     }
   },
 
@@ -522,7 +544,7 @@ export default {
                 return 0
             }
           })
-        } else if (!this.ascendingSort) {
+        } else {
           filteredTasks.sort((a, b) => {
             switch (this.selectedSorting.slug) {
               case 'deadline':

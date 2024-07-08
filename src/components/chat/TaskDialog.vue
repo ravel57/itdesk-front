@@ -149,18 +149,9 @@
             style="height: calc(100vh - 424px)"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
-<!--            <q-card-->
-<!--              class="no-border-card"-->
-<!--            >-->
-<!--              <q-card-section-->
-<!--                class="no-padding"-->
-<!--              >-->
-<!--                -->
-<!--              </q-card-section>-->
-<!--            </q-card>-->
             <chat-dialog
               :is-mobile="this.isMobile"
-              :messages="[]"
+              :messages="this.task.messages"
               :input-field="this.inputField"
               :templates="this.store.templates"
               :isSending="this.isSending"
@@ -172,7 +163,8 @@
               :typing="[]"
               :isDialog="true"
               @sendMessage="this.sendMessage"
-              @isSending="false"
+              @isSending="this.isSending = true"
+              @keyPressed="this.keyPressed"
             />
           </div>
         </div>
@@ -235,14 +227,6 @@ export default {
     inputField: '',
     isSending: false
   }),
-
-  // created () {
-  //   this.getTaskField()
-  // },
-
-  mounted () {
-    this.getTaskField()
-  },
 
   methods: {
     closeDialog () {
@@ -394,10 +378,26 @@ export default {
       }
     },
 
-    sendMessage (message) {
-      this.inputField = ''
-      this.isSending = false
-      this.getClient.messages.push(message)
+    sendMessage (event) {
+      axios.post(`/api/v1/client/${event.clientId}/task/${this.task.id}/message`, event.message)
+        .then(() => {
+          this.inputField = ''
+          this.isSending = false
+          this.$emit('addMessageToTask', { task: this.task, message: event.message })
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+    },
+
+    keyPressed (text) {
+      this.inputField = text
     }
   },
 
@@ -410,6 +410,14 @@ export default {
     //   console.log(this.task.client)
     //   return this.task.client
     // }
+  },
+
+  // created () {
+  //   this.getTaskField()
+  // },
+
+  mounted () {
+    this.getTaskField()
   },
 
   setup () {

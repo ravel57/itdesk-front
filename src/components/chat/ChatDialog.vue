@@ -73,6 +73,7 @@
   <q-layout
     container
     id="chatDialog"
+    ref="chatDialog"
     style="height: 94.8%; background-color: #F0F0F0"
     class="shadow-2 rounded-borders"
   >
@@ -370,7 +371,7 @@
                 />
                 <div>
                   <q-btn
-                    v-if="this.inputField.length > 0"
+                    v-if="this.inputField.length > 0 || this.attachedFile"
                     icon="send"
                     @click="this.sendMessage"
                     :loading="this.isSending"
@@ -418,7 +419,6 @@
 
 <script>
 // TODO загрузка порциями
-import axios from 'axios'
 import { useStore } from 'stores/store'
 
 export default {
@@ -486,7 +486,7 @@ export default {
     },
 
     sendMessage () {
-      const textarea = document.getElementById('textarea')
+      const textarea = this.$refs.textInput
       if (textarea.value || this.attachedFile) {
         this.$emit('isSending', true)
         const message = {
@@ -498,48 +498,10 @@ export default {
           read: true,
           replyMessageId: this.replyMessageId
         }
-        if (this.attachedFile) {
-          const formData = new FormData()
-          formData.append('file', this.attachedFile)
-          axios.post('/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-            .then(response => {
-              message.fileUuid = response.data
-              message.fileName = this.attachedFile.name
-              message.fileType = this.attachedFile.type
-              axios.post(`/api/v1/client/${this.clientId}/message`, message)
-                .then(() => {
-                  this.$emit('sendMessage', message)
-                  this.scrollToBottom()
-                  this.attachedFile = null
-                  this.replyMessageId = null
-                })
-            })
-            .catch(e =>
-              this.$q.notify({
-                message: e.message,
-                type: 'negative',
-                position: 'top-right',
-                actions: [{
-                  icon: 'close', color: 'white', dense: true, handler: () => undefined
-                }]
-              }))
-        } else {
-          axios.post(`/api/v1/client/${this.clientId}/message`, message)
-            .then(() => {
-              this.$emit('sendMessage', message)
-              this.scrollToBottom()
-              this.replyMessageId = null
-            })
-            .catch(e =>
-              this.$q.notify({
-                message: e.message,
-                type: 'negative',
-                position: 'top-right',
-                actions: [{
-                  icon: 'close', color: 'white', dense: true, handler: () => undefined
-                }]
-              }))
-        }
+        this.$emit('sendMessage', { message, attachedFile: this.attachedFile, clientId: this.clientId })
+        this.attachedFile = null
+        this.replyMessageId = null
+        this.scrollToBottom()
       }
       this.$nextTick(() => {
         const textarea = this.$refs.textInput
@@ -687,14 +649,17 @@ export default {
     showHelper () {
       this.$emit('showHelper')
     },
+
     createNewTask (message) {
       const queryParams = new URLSearchParams(window.location.search)
       queryParams.set('newTaskFromMessage', message.id)
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     },
+
     switchToComment () {
       this.isComment = !this.isComment
     },
+
     shortenLine (string) {
       if (string.length > 25) {
         return string.substring(0, 25) + '...'
@@ -702,6 +667,7 @@ export default {
         return string
       }
     },
+
     autoResize () {
       this.$nextTick(() => {
         const textarea = this.$refs.textInput

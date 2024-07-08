@@ -56,6 +56,7 @@
         <div
           class="col no-shadow rounded-borders"
           v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+          :style="!this.isMobile ? 'max-width: 23vw' : ''"
         >
           <chat-helper
             :isMobile="this.isMobile"
@@ -70,7 +71,7 @@
         <div
           class="col no-shadow rounded-borders"
           v-if="!this.isMobile || this.tab === 'tab3'"
-          :style="!this.isMobile ? 'max-width: 33vw' : ''"
+          :style="!this.isMobile ? 'max-width: 23vw' : ''"
         >
           <chat-tasks
             :tasks="this.getClient.tasks"
@@ -120,10 +121,47 @@ export default {
       this.inputField += ' ' + text
     },
 
-    sendMessage (message) {
-      this.inputField = ''
-      this.isSending = false
-      this.getClient.messages.push(message)
+    sendMessage (event) {
+      if (event.attachedFile) {
+        const formData = new FormData()
+        formData.append('file', event.attachedFile)
+        axios.post('/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+          .then(response => {
+            event.message.fileUuid = response.data
+            event.message.fileName = event.attachedFile.name
+            event.message.fileType = event.attachedFile.type
+            this.sendTextMessage(event.message)
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        this.sendTextMessage(event.message)
+      }
+    },
+
+    sendTextMessage (message) {
+      axios.post(`/api/v1/client/${this.getClient.id}/message`, message)
+        .then(() => {
+          this.inputField = ''
+          this.isSending = false
+          this.getClient.messages.push(message)
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
     },
 
     keyPressed (text) {
@@ -231,16 +269,22 @@ export default {
       this.tab = 'tab3'
     }
     this.markMessagesRead()
+    this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
+    const typingMessageTextElement = this.store.clients
+      .find(client => client.id === this.getClient.id)
+    if (typingMessageTextElement.typingMessageText[this.store.currentUser.id]) {
+      this.inputField = typingMessageTextElement.typingMessageText[this.store.currentUser.id]
+    }
   },
 
   created () {
+    this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
     const typingMessageTextElement = this.store.clients
       .find(client => client.id === this.getClient.id)
       .typingMessageText[this.store.currentUser.id]
     if (typingMessageTextElement) {
       this.inputField = typingMessageTextElement
     }
-    this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
   },
 
   setup () {
