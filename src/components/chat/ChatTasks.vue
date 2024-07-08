@@ -149,133 +149,13 @@
                   clickable
                   @click="this.onTaskClick(task)"
                 >
-                  <table>
-                    <tr v-if="task.completed">
-                      <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
-                    </tr>
-                    <tr>
-                      <th class="small-text text-grey" v-text="'ID заявки'"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.id"/>
-                    </tr>
-                    <tr>
-                      <th
-                        class="small-text text-grey"
-                        v-text="'Название: '"
-                      />
-                      <th
-                        :class="{'text-body2': true, 'text-grey': task.completed}"
-                        v-text="task.name"
-                      />
-                    </tr>
-                    <tr>
-                      <th
-                        class="small-text text-grey" v-text="'Описание: '"
-                      />
-                      <th
-                        :class="{'text-body2': true, 'text-grey': task.completed}"
-                        v-text="task.description"
-                      />
-                    </tr>
-                    <tr>
-                      <th
-                        class="small-text text-grey"
-                        v-text="'Теги: '"
-                      />
-                      <th
-                        :class="{'text-body2': true, 'text-grey': task.completed}"
-                        v-text="task.tags.map(tag => tag.name).join(', ')"
-                      />
-                    </tr>
-                    <tr>
-                      <th
-                        class="small-text"
-                        :style="this.selectedSorting.slug === 'priority' ? 'color: black;font-weight: 600;': 'color:gray'"
-                        v-text="'Приоритет: '"
-                      />
-                      <th
-                        :class="{'text-body2': true, 'text-grey': task.completed}"
-                        :style="this.selectedSorting.slug === 'priority' ? 'font-weight: 600;': ''"
-                        v-text="task.priority.name"/>
-                    </tr>
-                    <tr>
-                      <th
-                        class="small-text"
-                        :style="this.selectedSorting.slug === 'creating' ? 'color: black;font-weight: 600;': 'color:gray'"
-                        v-text="'Создана: '"
-                      />
-                      <th
-                        :class="{'text-body2': true, 'text-grey': task.completed}"
-                        :style="this.selectedSorting.slug === 'creating' ? 'font-weight: 600;': ''"
-                        v-text="this.getStamp(task.createdAt)"/>
-                    </tr>
-                    <tr v-if="!task.completed">
-                      <th
-                        class="small-text"
-                        :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"
-                        v-text="'Статус: '"
-                      />
-                      <th
-                        class="text-body2"
-                        :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"
-                        v-text="task.status.name"/>
-                    </tr>
-                    <tr>
-                      <th
-                        class="small-text"
-                        :style="this.selectedSorting.slug === 'deadline' ? 'color: black;': 'color:gray'"
-                        v-text="'Дедлайн: '"
-                      />
-                      <th
-                        class="text-body2"
-                        :style="`
-                          color: ${task.deadline < Date.now() ? 'red' : 'black'};
-                          ${selectedSorting.slug === 'deadline' ? 'font-weight: 600;' : ''}
-                        `"
-                        v-text="this.getStamp(task.deadline)"
-                      />
-                    </tr>
-                    <tr>
-                      <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-                      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="getName(task.executor)"/>
-                    </tr>
-                    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed">
-                      <th
-                        class="small-text"
-                        :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:gray'"
-                        v-text="'SLA: '"
-                      />
-                      <th class="text-body2"
-                          :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"
-                          style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
-                        Осталось: {{ this.getSlaTime(task) }}
-                        <q-linear-progress
-                          stripe
-                          rounded
-                          :value="this.getSlaPercent(task)"
-                          reverse
-                          :color="this.getSlaColor(task)"
-                          style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"
-                          size="12px"
-                        />
-                        <q-btn
-                          v-if="!this.slaIsPause"
-                          dense
-                          flat
-                          color="grey"
-                          @click.stop="this.slaIsPause = !this.slaIsPause"
-                          icon="pause_circle"
-                        />
-                        <q-btn
-                          v-if="this.slaIsPause"
-                          dense
-                          flat
-                          color="grey"
-                          @click.stop="this.slaIsPause = !this.slaIsPause"
-                          icon="play_circle"
-                        />
-                      </th>
-                    </tr>
-                  </table>
+                  <task-card
+                    :task="task"
+                    :selectedSorting="this.selectedSorting"
+                    :descriptionRequire="true"
+                    :slaRequire="true"
+                    :taskNameShort="31"
+                  />
                 </q-item>
                 <q-separator/>
               </q-card-section>
@@ -303,10 +183,11 @@ import axios from 'axios'
 import moment from 'moment'
 import ChatInfo from 'components/chat/ChatClientInfo.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
+import TaskCard from 'components/TaskCard.vue'
 
 export default {
   name: 'ChatTasks',
-  components: { TaskDialog, ChatInfo },
+  components: { TaskCard, TaskDialog, ChatInfo },
 
   props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations', 'isMobile'],
 
@@ -537,7 +418,11 @@ export default {
               case 'priority':
                 return b.priority.orderNumber - a.priority.orderNumber
               case 'sla':
-                return b.sla.startDate.clone().add(b.sla.duration) - a.sla.startDate.clone().add(a.sla.duration)
+                if (a.sla && b.sla) {
+                  return b.sla.startDate.clone().add(b.sla.duration) - a.sla.startDate.clone().add(a.sla.duration)
+                } else {
+                  return b
+                }
               case 'status':
                 return b.status.orderNumber - a.status.orderNumber
               default:
@@ -554,7 +439,11 @@ export default {
               case 'priority':
                 return a.priority.orderNumber - b.priority.orderNumber
               case 'sla':
-                return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
+                if (a.sla && b.sla) {
+                  return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
+                } else {
+                  return b
+                }
               case 'status':
                 return a.status.orderNumber - b.status.orderNumber
               default:

@@ -31,7 +31,7 @@
         label="Поиск по сообщениям"
         dense
         clearable
-        style="width: 100%;"
+        style="width: 100%;padding: 0 8px;"
         @focus="this.isShowSearchResults = true"
         @blur="this.onBlur"
       >
@@ -382,12 +382,8 @@
                     flat
                     :ripple="false"
                     style="margin-right: 5px; margin-bottom: 6px"
-                    @mouseover="showTooltipSend = true"
-                    @mouseup="showTooltipSend = false"
                   >
-                    <q-tooltip
-                      v-if="showTooltipSend"
-                    >
+                    <q-tooltip>
                       ctrl+enter отправить
                     </q-tooltip>
                   </q-btn>
@@ -450,8 +446,7 @@ export default {
     replyMessageId: null,
     search: '',
     searchResults: [],
-    isShowSearchResults: false,
-    showTooltipSend: false
+    isShowSearchResults: false
   }),
 
   updated () {

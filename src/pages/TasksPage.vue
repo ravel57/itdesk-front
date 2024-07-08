@@ -20,6 +20,11 @@
               :label="this.selectedGroupType.label"
               style="align-content: center;"
             >
+              <template v-slot:label>
+                <q-tooltip>
+                  Группировка
+                </q-tooltip>
+              </template>
               <q-list>
                 <q-item
                   v-for="(grouper, index) in this.filterType"
@@ -43,7 +48,11 @@
                 flat
                 @click="this.changeFilterSelection"
                 :color="this.isFilterSelected ? 'primary' : 'dark'"
-              />
+              >
+                <q-tooltip>
+                  {{ this.isFilterSelected ? "Деактивировать фильтр" : "Активировать фильтр" }}
+                </q-tooltip>
+              </q-btn>
               <q-toggle
                 v-model="this.isShowListMode"
                 color="grey"
@@ -52,14 +61,22 @@
                 unchecked-icon="dashboard"
                 size="50px"
                 keep-color
-              />
+              >
+                <q-tooltip>
+                  Режим отображения: {{ this.isShowListMode ? "Таблица" : "Карточки" }}
+                </q-tooltip>
+              </q-toggle>
               <q-toggle
                 v-model="this.isShowCompletedTasks"
                 color="primary"
                 left-label
                 icon="add_task"
                 size="50px"
-              />
+              >
+                <q-tooltip>
+                  Закрытые заявки: {{ this.isShowCompletedTasks ? "Показаны" : "Скрыты" }}
+                </q-tooltip>
+              </q-toggle>
             </div>
             <q-dialog
               v-model="dialogSaveFilterVisible"
@@ -169,6 +186,9 @@
             icon="add_circle"
             @click="!this.isMenuActive"
           >
+            <q-tooltip>
+              Добавить фильтр
+            </q-tooltip>
             <q-menu
               v-model="this.isMenuActive"
               anchor="bottom right"
@@ -194,7 +214,11 @@
             @click="this.dialogSaveFilter"
             flat
             style="height: 40px"
-          />
+          >
+            <q-tooltip>
+              Сохранить фильтр
+            </q-tooltip>
+          </q-btn>
           <q-btn
             v-else-if="this.selectedSavedFilter.length > 0"
             ref="deleteSavedFilterButton"
@@ -203,7 +227,11 @@
             @click="isDeleteSavedFilterDialogShow = true"
             flat
             style="height: 40px"
-          />
+          >
+            <q-tooltip>
+              Удалить фильтр
+            </q-tooltip>
+          </q-btn>
           <q-btn
             v-if="this.filterChain.length > 0"
             icon="cancel"
@@ -211,7 +239,11 @@
             @click="this.removeFilters"
             flat
             style="height: 40px"
-          />
+          >
+            <q-tooltip>
+              Сбросить фильтр
+            </q-tooltip>
+          </q-btn>
         </div>
         <div
           v-if="this.isShowListMode"
@@ -273,7 +305,13 @@
                   clickable
                   @click="this.onTaskClicked(task)"
                 >
-                  {{ this.shortenLine(`${task.name}: ${task.client.lastname} ${task.client.firstname}`) }}
+                  <task-card
+                    :task="task"
+                    :selectedSorting="this.selectedGroupType"
+                    :descriptionRequire="false"
+                    :slaRequire="false"
+                    :taskNameShort="14"
+                  />
                 </q-item>
               </q-item>
             </div>
@@ -325,9 +363,10 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import moment from 'moment/moment'
 import TaskDialog from 'components/chat/TaskDialog.vue'
+import TaskCard from 'components/TaskCard.vue'
 
 export default {
-  components: { TaskDialog },
+  components: { TaskCard, TaskDialog },
   data: () => ({
     filterType: [
       { label: 'Исполнитель', slug: 'executor' },
@@ -635,6 +674,29 @@ export default {
     closeDialog () {
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
+    },
+
+    getStamp (date) {
+      if (date) {
+        return date.toLocaleTimeString('ru-RU', {
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } else {
+        return ''
+      }
+    },
+
+    getName (executor) {
+      if (executor) {
+        return executor.lastname + ' ' + executor.firstname
+      } else {
+        return ''
+      }
     }
   },
 
