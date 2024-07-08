@@ -42,6 +42,9 @@ function clientsCallback (clients) {
         task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
         task.sla.duration = moment.duration(task.sla.duration)
       }
+      task.messages.forEach(message => {
+        message.date = new Date(message.date)
+      })
     })
     if (it.user != null) {
       it.user.forEach(user => {
@@ -50,6 +53,7 @@ function clientsCallback (clients) {
         }
       })
     }
+    // it.tasks.forEach(task => { task.client = it })
   })
   useStore().clients = parsedClients
 }

@@ -52,6 +52,9 @@ export const useStore = defineStore('store', {
                 task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
                 task.sla.duration = moment.duration(task.sla.duration)
               }
+              task.messages.forEach(message => {
+                message.date = new Date(message.date)
+              })
             })
           })
         })
