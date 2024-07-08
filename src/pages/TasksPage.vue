@@ -1,7 +1,5 @@
 <template>
-  <q-layout style="min-height: 10px;">
-    <q-page-container>
-      <q-page padding style="min-height: 10px;padding-bottom: 0;">
+      <q-page padding style="padding-bottom: 0;">
         <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
           <div style="display: flex; width: 100%;">
             <q-input
@@ -119,7 +117,7 @@
             style="overflow: auto; margin-right: 8px;height: 100%"
             :style="isMobile ? 'width: 100%': ''"
           >
-            <div>
+            <div style="display: flex;flex-direction: row; flex-wrap: nowrap">
               <div
                 v-for="(filter, index) in this.filterChain"
                 :key="index"
@@ -215,36 +213,43 @@
             style="height: 40px"
           />
         </div>
-        <q-scroll-area
+        <div
           v-if="this.isShowListMode"
-          class="board"
-          vertical
-          :style="this.isMobile ? 'height: 75vh; margin-top: 8px' : 'height: 85vh; margin-top: 8px'"
+          style="overflow: auto"
+          :style="this.isMobile ? 'margin-top: 8px' : 'margin-top: 8px'"
         >
           <q-table
             v-if="this.isShowListMode"
             :rows="this.getTableRows"
             :columns="this.tableColumns"
-            :rows-per-page-options="[10, 20, 50]"
+            :rows-per-page-options="[10, 20, 50, 0]"
             :sortable="true"
             row-key="id"
             style="margin-top: 8px"
+            :style="this.isFilterSelected ? (this.isMobile ? 'max-height: 55vh' : 'max-height: 70vh') : 'max-height: 80vh'"
             rows-per-page-label="Строк на странице"
           >
             <template v-slot:body-cell-name="props">
-            <q-td :props="props">
-              <div @click="this.onTaskClicked(props.row)">
-                {{ this.shortenLine(props.row.name) }}
-              </div>
-            </q-td>
-          </template>
+              <q-td :props="props">
+                <div @click="this.onTaskClicked(props.row)">
+                  {{ this.shortenLine(props.row.name) }}
+                </div>
+              </q-td>
+            </template>
           </q-table>
-        </q-scroll-area>
-        <q-scroll-area
+        </div>
+        <div
           v-else
-          class="board"
-          horizontal
-          :style="this.isMobile ? 'height: 75vh; margin-top: 8px' : 'height: 85vh; margin-top: 8px'"
+          style="
+          margin-top: 8px;
+          overscroll-behavior-x: auto;
+          display: flex;
+          width: 100%;
+          flex-wrap: nowrap;
+          height: 50%;
+          overflow: auto;
+          "
+          :style="this.isFilterSelected ? (this.isMobile ? 'max-height: 50vh' : 'max-height: 70vh') : 'max-height: 80vh'"
         >
           <div
             v-for="(taskList, index) in this.getGroupedTasks"
@@ -273,7 +278,7 @@
               </q-item>
             </div>
           </div>
-        </q-scroll-area>
+        </div>
       </q-page>
       <q-dialog
         v-model="this.isDeleteSavedFilterDialogShow"
@@ -302,8 +307,6 @@
           </q-card-actions>
         </q-card>
       </q-dialog>
-    </q-page-container>
-  </q-layout>
   <TaskDialog
     v-if="getPossibilityToOpenDialogTask"
     :client="this.selectedTask.client"

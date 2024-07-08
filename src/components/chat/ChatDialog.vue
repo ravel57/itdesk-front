@@ -391,7 +391,9 @@
                     </q-tooltip>
                   </q-btn>
                 </div>
-                <div class="">
+                <div
+                  v-if="!this.isDialog"
+                >
                   <q-btn
                     style="margin-bottom: 6px"
                     @click="this.switchToComment"
@@ -539,7 +541,10 @@ export default {
               }))
         }
       }
-      this.autoResize()
+      this.$nextTick(() => {
+        const textarea = this.$refs.textInput
+        textarea.style.height = '46px'
+      })
     },
 
     handleTabPressed (event) {
