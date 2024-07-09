@@ -5,9 +5,12 @@
     :inputField="this.inputField"
     :isSending="this.isSending"
     :currentUser="this.store.currentUser"
+    :taskWatchingNow="[]"
+    :typing="[]"
     @sendMessage="this.sendMessage"
     @keyPressed="this.keyPressed"
     @isSending="this.isSending = true"
+    style="height: 100%; width: 50%"
   />
 </template>
 
