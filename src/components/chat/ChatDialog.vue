@@ -360,7 +360,6 @@
                 />
                 <textarea
                   ref="textInput"
-                  id="textarea"
                   style="border-style: unset; margin: 0 8px; width: 100%"
                   :value="this.inputField"
                   :placeholder="this.renderShortcutPlaceholder"
