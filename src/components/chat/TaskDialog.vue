@@ -146,7 +146,7 @@
           <div
             class="flex-item"
             v-if="(!this.isMobile || this.dialogTab === 'tab2')"
-            style="height: calc(100vh - 424px)"
+            style="margin-bottom: 1.6%"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
             <chat-dialog
@@ -171,7 +171,7 @@
       </q-card-section>
       <q-card-actions
         align="right"
-        style="margin-right: 7px"
+        style="margin-right: 7px; margin-top: 8px;"
       >
         <q-btn
           color="white"

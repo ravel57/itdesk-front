@@ -15,9 +15,9 @@
       border-radius: 5px;
      "
     :style="
-    'opacity: ' + (!this.isShowHelper || this.isMobile ? '0.4': '1') +
-    ';left: ' + (this.isMobile ? '50%' : (!this.isShowHelper ? '32%' : '50%')) +
-    ';top: ' + (this.isMobile ? '9%' : (this.isShowHelper === false ? '7%' : '2.5%'))
+    'opacity: 0.4' +
+    ';left: ' + (this.isMobile ? '50%' : (!this.isShowHelper ? '35%' : '23%')) +
+    ';top: ' + (this.isMobile ? '9%' : '7%')
     ">
     <div
       style="display: flex; flex-wrap: nowrap; flex-direction: row"
@@ -74,7 +74,7 @@
     container
     id="chatDialog"
     ref="chatDialog"
-    style="height: 94.8%; background-color: #F0F0F0"
+    style="height: 94.8%; min-height: 0;background-color: #F0F0F0"
     class="shadow-2 rounded-borders"
   >
 <!--    style="height: calc(100vh - 115px); background-color: #F0F0F0"-->
@@ -82,7 +82,7 @@
       style="padding-bottom: 45px"
     >
       <q-page
-        style="padding-top: 8px"
+        style="padding-top: 8px;min-height: 0"
         ref="chat"
         id="chat"
         scroll
@@ -105,7 +105,6 @@
               :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
               @click.right="this.invertContextMenu"
             >
-              <!-- :style="{ 'border-style': message.comment ? 'dashed' : 'unset', 'border-color': '#1976D2' }"-->
               <template v-slot:stamp>
                 <span
                   v-text="this.getStamp(message)"
@@ -279,7 +278,7 @@
               :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
             >
               <div
-                v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+                v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
                 style="
                   display: block;
                   position: absolute;
@@ -323,28 +322,33 @@
                       margin-top: 5px;
                       text-align: center;
                       padding-left: 10px;
-                      padding-right: 10px;"
+                      padding-right: 10px;
+                    "
                     v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
                     v-text="this.getTypingUsers"
                   />
+                  <div
+                    style="
+                    background-color: #5C35F9;
+                    border-radius: 5px;
+                    margin-top: 5px;
+                    text-align: center;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    font-size: 16px;"
+                    v-if="this.replyMessageId !== null"
+                  >
+                    <q-icon
+                      name="reply"
+                    />
+                    В ответ на: {{ this.shortenLine(this.messages.find(m => m.id === this.replyMessageId).text) }}
+                    <q-icon
+                      name="close"
+                      @click="this.replyMessageId = null"
+                    />
+                  </div>
                 </div>
               </div>
-              <div
-                v-if="this.replyMessageId !== null"
-                style="display: flex; justify-content: left; align-items: center; margin-left: 6px"
-              >
-                <q-icon
-                  name="reply"
-                />
-                {{ this.messages.find(m => m.id === this.replyMessageId).text }}
-                <q-icon
-                  name="close"
-                  @click="this.replyMessageId = null"
-                />
-              </div>
-<!--              <q-toolbar-->
-<!--                style="padding: 0"-->
-<!--              >-->
                 <q-btn
                   style="margin-bottom: 6px"
                   type="file"
@@ -657,10 +661,14 @@ export default {
     },
 
     shortenLine (string) {
-      if (string.length > 25) {
-        return string.substring(0, 25) + '...'
+      if (string) {
+        if (string.length > 25) {
+          return string.substring(0, 25) + '...'
+        } else {
+          return string
+        }
       } else {
-        return string
+        return 'Файл'
       }
     },
 
