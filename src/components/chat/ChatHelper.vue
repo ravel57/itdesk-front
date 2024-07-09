@@ -174,6 +174,12 @@ export default {
 
   mounted () {
     this.filteredTemplates = this.templates
+  },
+
+  updated () {
+    if (this.templates) {
+      this.filteredTemplates = this.templates
+    }
   }
 
 }

@@ -31,7 +31,7 @@
                 <q-item-section>
                   <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
                   <q-item-label caption>{{ this.getOrganization(client) }}</q-item-label>
-                  <q-item-label caption>{{ client.lastMessageTime }}</q-item-label>
+                  <q-item-label caption>{{ this.getTimeLastMessage(client.lastMessageTime) }}</q-item-label>
                   <div class="flex items-end">
                     <q-item-label caption>
                       Заявок: {{ this.getActualTasks(client).length }}
@@ -144,6 +144,30 @@ export default {
       } else {
         return 'red'
       }
+    },
+
+    parseDateString (dateString) {
+      const [datePart, timePart] = dateString.split(', ')
+      const [day, month, year] = datePart.split('.').map(Number)
+      const [hours, minutes] = timePart.split(':').map(Number)
+
+      return new Date(year, month - 1, day, hours, minutes)
+    },
+
+    getTimeLastMessage (dateString) {
+      const pastDate = this.parseDateString(dateString)
+      const currentDate = new Date()
+      const timeDifference = currentDate - pastDate
+      const seconds = Math.floor(timeDifference / 1000)
+      const minutes = Math.floor(seconds / 60)
+      const hours = Math.floor(minutes / 60)
+      const days = Math.floor(hours / 24)
+      const parts = []
+      if (days > 0) parts.push(`${days} дней`)
+      if (hours % 24 > 0) parts.push(`${hours % 24} часов`)
+      parts.push(`${minutes % 60} минут`)
+      const result = parts.join(', ')
+      return `Последнее сообщение было: ${result} (${dateString})`
     }
   },
 
