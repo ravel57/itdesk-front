@@ -391,6 +391,31 @@ export default {
     },
 
     sendMessage (event) {
+      if (event.attachedFile) {
+        const formData = new FormData()
+        formData.append('file', event.attachedFile)
+        axios.post('/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+          .then(response => {
+            event.message.fileUuid = response.data
+            event.message.fileName = event.attachedFile.name
+            event.message.fileType = event.attachedFile.type
+            this.sendTextMessage(event)
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      } else {
+        this.sendTextMessage(event.message)
+      }
+    },
+
+    sendTextMessage (event) {
       axios.post(`/api/v1/client/${event.clientId}/task/${this.task.id}/message`, event.message)
         .then(() => {
           this.inputField = ''
