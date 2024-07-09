@@ -3,6 +3,7 @@
     <q-header elevated>
       <q-toolbar class="bg-primary text-white">
         <q-btn
+          v-if="this.isMobile"
           flat
           round
           dense
@@ -34,6 +35,11 @@
       v-model="leftDrawerOpen"
       show-if-above
       bordered
+      :mini="miniState"
+      @mouseover="miniState = false"
+      @mouseout="miniState = true"
+      :width="300"
+      :breakpoint="500"
     >
       <q-list>
         <essential-link
@@ -134,7 +140,8 @@ export default {
         link: '/help',
         roles: ['ADMIN', 'OPERATOR']
       }
-    ]
+    ],
+    miniState: true
   }),
 
   methods: {
@@ -164,6 +171,10 @@ export default {
 
     getUsersOnline () {
       return this.store.usersOnline.map(user => user.firstname + ' ' + user.lastname).join('\n')
+    },
+
+    isMobile () {
+      return this.$q.screen.width < 1023
     }
   },
 
