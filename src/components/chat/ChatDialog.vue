@@ -177,7 +177,7 @@
                       v-close-popup
                     >
                       <q-item-section
-                        @click="this.replyMessage(message)"
+                        @click="this.setReplyMessage(message)"
                       >
                         Ответить
                       </q-item-section>
@@ -491,7 +491,8 @@ export default {
           sent: true,
           comment: this.isComment,
           read: true,
-          replyMessageId: this.replyMessageId
+          replyMessageId: this.replyMessageId,
+          user: this.currentUser
         }
         this.$emit('sendMessage', { message, attachedFile: this.attachedFile, clientId: this.clientId })
         this.attachedFile = null
@@ -602,16 +603,16 @@ export default {
       this.rightClickCounter++
     },
 
-    replyMessage (message) {
+    setReplyMessage (message) {
       this.replyMessageId = message.id
     },
 
     getReplyMessageText (message) {
-      const find = this.messages.find(m => m.id === message.replyMessageId)
+      const find = this.messages.find(m => message.id !== null && m.id !== null && m.id === message.replyMessageId)
       if (find) {
         return find.text
       } else {
-        return ''
+        return null
       }
     },
 
