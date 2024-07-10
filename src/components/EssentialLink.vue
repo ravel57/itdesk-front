@@ -6,18 +6,32 @@
     :to="link"
   >
     <q-item-section
-      v-if="icon"
+      v-if="icon && (!counter || !this.miniState)"
       avatar
     >
-      <q-icon :name="icon"/>
+      <q-icon
+        :name="icon"
+      />
     </q-item-section>
-
+    <circle-counter
+      v-else-if="this.miniState"
+      :counter="counter"
+    />
     <q-item-section>
-      <q-item-label>{{ title }}</q-item-label>
-      <q-item-label caption>{{ caption }}</q-item-label>
+      <q-item-label>
+        {{ title }}
+      </q-item-label>
+      <q-item-label
+        caption
+      >
+        {{ caption }}
+      </q-item-label>
     </q-item-section>
 
-    <circle-counter v-if="counter" :counter="counter"/>
+    <circle-counter
+      v-if="counter"
+      :counter="counter"
+    />
   </q-item>
 </template>
 
@@ -56,6 +70,9 @@ export default defineComponent({
     },
     user: {
       type: Object
+    },
+    miniState: {
+      type: Boolean
     }
   }
 

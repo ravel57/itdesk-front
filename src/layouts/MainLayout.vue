@@ -46,6 +46,7 @@
           v-bind="link"
           :counter="this.getUnreadChats(link.title)"
           :user="this.store.currentUser"
+          :miniState="this.miniState"
         />
         <q-item
           v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
