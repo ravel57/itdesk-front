@@ -392,9 +392,9 @@ export default {
 
     sendMessage (event) {
       if (event.attachedFile) {
-        const formData = new FormData()
-        formData.append('file', event.attachedFile)
-        axios.post('/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        const data = new FormData()
+        data.append('file', event.attachedFile)
+        axios.post('/files/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } })
           .then(response => {
             event.message.fileUuid = response.data
             event.message.fileName = event.attachedFile.name
@@ -411,7 +411,7 @@ export default {
               }]
             }))
       } else {
-        this.sendTextMessage(event.message)
+        this.sendTextMessage(event)
       }
     },
 
