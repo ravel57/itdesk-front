@@ -36,8 +36,6 @@
       show-if-above
       bordered
       :mini="miniState"
-      @mouseover="miniState = false"
-      @mouseout="miniState = true"
       :width="300"
       :breakpoint="500"
     >
@@ -69,7 +67,6 @@
 </template>
 
 <script>
-import { ref } from 'vue'
 import EssentialLink from 'components/EssentialLink.vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
@@ -141,6 +138,7 @@ export default {
         roles: ['ADMIN', 'OPERATOR']
       }
     ],
+    leftDrawerOpen: false,
     miniState: true
   }),
 
@@ -175,20 +173,23 @@ export default {
 
     isMobile () {
       return this.$q.screen.width < 1023
+    },
+
+    toggleLeftDrawer () {
+      if (this.isMobile()) {
+        this.leftDrawerOpen = !this.leftDrawerOpen
+      } else {
+        this.miniState = !this.miniState
+      }
     }
   },
 
   setup () {
-    const leftDrawerOpen = ref(false)
     const router = useRoute()
     const store = useStore()
     return {
-      leftDrawerOpen,
       router,
-      store,
-      toggleLeftDrawer () {
-        leftDrawerOpen.value = !leftDrawerOpen.value
-      }
+      store
     }
   }
 }
