@@ -74,11 +74,12 @@
     container
     id="chatDialog"
     ref="chatDialog"
-    style="height: 94.8%; min-height: 0;background-color: #F0F0F0"
+    style="height: 95.6%; min-height: 0;background-color: #F0F0F0"
     class="shadow-2 rounded-borders"
   >
-<!--    style="height: calc(100vh - 115px); background-color: #F0F0F0"-->
-    <q-page-container>
+    <q-page-container
+      :style="this.isDialog ? 'padding-bottom: 50px;' : ''"
+    >
       <q-page
         style="padding-top: 8px;min-height: 0"
         ref="chat"
@@ -716,14 +717,10 @@ export default {
 
     onMounted(() => {
       observer = new MutationObserver(() => {
-        const element1 = document.getElementsByClassName('absolute-full')[1]
-        const element2 = document.getElementsByClassName('absolute-full')[4]
+        const element = document.getElementsByClassName('absolute-full')[1]
         const chat = document.getElementById('chat')
-        if (element1) {
-          element1.style.paddingBottom = '50px'
-        }
-        if (element2) {
-          element2.style.paddingBottom = '50px'
+        if (element) {
+          element.style.paddingBottom = '50px'
         }
         if (chat) {
           setTimeout(() => { chat.scrollIntoView({ block: 'end' }) }, 50)
