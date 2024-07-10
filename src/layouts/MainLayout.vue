@@ -136,7 +136,7 @@ export default {
       //   link: '/analytics'
       // },
       // {
-      //   title: 'АТС',
+      //   title: 'Телефония',
       //   icon: 'phone',
       //   link: '/phone'
       // },
