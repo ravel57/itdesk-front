@@ -1,9 +1,13 @@
 <template>
   <q-layout>
-    <q-header elevated>
-      <q-toolbar class="bg-primary text-white">
+    <q-header
+      elevated
+    >
+      <q-toolbar
+        v-if="this.$q.screen.width < 1023"
+        class="bg-primary text-white"
+      >
         <q-btn
-          v-if="this.isMobile"
           flat
           round
           dense
@@ -18,16 +22,6 @@
           </q-avatar>
           <q-toolbar-title>ITdesk</q-toolbar-title>
         </q-item>
-        <div class="q-ml-auto no-padding">
-          <q-btn
-            flat
-            round
-            dense
-            side
-            icon="logout"
-            @click="this.logout"
-          />
-        </div>
       </q-toolbar>
     </q-header>
 
@@ -40,6 +34,15 @@
       :breakpoint="500"
     >
       <q-list>
+        <q-item
+          v-if="this.$q.screen.width > 1023"
+          clickable
+          @click="toggleLeftDrawer"
+        >
+          <q-item-section avatar>
+            <q-icon style="align-items: start" name="menu"/>
+          </q-item-section>
+        </q-item>
         <essential-link
           v-for="link in linksList"
           :key="link.title"
@@ -57,6 +60,17 @@
           <q-item-section>
             <q-item-label>Операторы онлайн:</q-item-label>
             <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
+          </q-item-section>
+        </q-item>
+        <q-item
+          clickable
+          @click="this.logout"
+        >
+          <q-item-section avatar>
+            <q-icon style="align-items: start" name="logout"/>
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Выход</q-item-label>
           </q-item-section>
         </q-item>
       </q-list>

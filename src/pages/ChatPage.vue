@@ -21,7 +21,7 @@
     >
       <div
         class="q-gutter-sm row"
-        :style="this.isMobile ? 'height: calc(100vh - 90px)' : 'height: calc(100vh - 62px)'"
+        :style="this.isMobile ? 'height: calc(100vh - 90px)' : 'height: calc(100vh - 16px)'"
       >
         <div
           v-if="!this.isMobile || this.tab === 'tab1'"

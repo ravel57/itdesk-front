@@ -460,7 +460,7 @@ export default {
       if (this.isDialog) {
         document.getElementById('chatDialog').style.height = '93%'
       } else {
-        document.getElementById('chatDialog').style.height = 'calc(-150px + 100vh)'
+        document.getElementById('chatDialog').style.height = 'calc(100vh - 150px )'
       }
     }
     this.$refs.textInput.focus()

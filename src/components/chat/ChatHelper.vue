@@ -1,7 +1,7 @@
 <template>
   <q-card class="my-card">
     <q-scroll-area
-      style="height: calc(100vh - 75px);"
+      :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"
     >
       <div style="width: 100%;">
         <q-btn

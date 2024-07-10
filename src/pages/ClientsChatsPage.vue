@@ -167,7 +167,7 @@ export default {
       if (hours % 24 > 0) parts.push(`${hours % 24} часов`)
       parts.push(`${minutes % 60} минут`)
       const result = parts.join(', ')
-      return `Последнее сообщение было: ${result} (${dateString})`
+      return `${result} назад (${dateString})`
     }
   },
 
