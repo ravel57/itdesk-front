@@ -78,9 +78,7 @@
     class="shadow-2 rounded-borders"
   >
 <!--    style="height: calc(100vh - 115px); background-color: #F0F0F0"-->
-    <q-page-container
-      style="padding-bottom: 45px"
-    >
+    <q-page-container>
       <q-page
         style="padding-top: 8px;min-height: 0"
         ref="chat"
@@ -419,6 +417,7 @@
 <script>
 // TODO загрузка порциями
 import { useStore } from 'stores/store'
+import { onMounted, onUnmounted } from 'vue'
 
 export default {
   name: 'ChatDialog',
@@ -465,7 +464,6 @@ export default {
       }
     }
     this.$refs.textInput.focus()
-    this.scrollToBottom()
   },
 
   methods: {
@@ -478,9 +476,7 @@ export default {
     },
 
     scrollToBottom () {
-      setTimeout(() => {
-        document.getElementById('chat').scrollIntoView({ block: 'end' })
-      }, 10)
+      document.getElementById('chat').scrollIntoView({ block: 'end' })
     },
 
     sendMessage () {
@@ -715,6 +711,32 @@ export default {
 
   setup () {
     const store = useStore()
+
+    let observer = null
+
+    onMounted(() => {
+      observer = new MutationObserver(() => {
+        const element1 = document.getElementsByClassName('absolute-full')[1]
+        const element2 = document.getElementsByClassName('absolute-full')[4]
+        const chat = document.getElementById('chat')
+        if (element1) {
+          element1.style.paddingBottom = '50px'
+        }
+        if (element2) {
+          element2.style.paddingBottom = '50px'
+        }
+        if (chat) {
+          setTimeout(() => { chat.scrollIntoView({ block: 'end' }) }, 50)
+        }
+      })
+      observer.observe(document.body, { childList: true, subtree: true })
+    })
+
+    onUnmounted(() => {
+      if (observer) {
+        observer.disconnect()
+      }
+    })
     return { store }
   }
 
