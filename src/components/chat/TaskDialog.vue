@@ -130,6 +130,7 @@
                     label="Закрыть заявку"
                     color="white"
                     text-color="primary"
+                    style="font-size: 13px"
                     @click="this.setTaskCompleted(this.task)"
                   />
                   <q-btn
@@ -139,6 +140,14 @@
                     text-color="primary"
                     @click="this.setTaskNotCompleted(this.task)"
                   />
+                  <q-btn
+                    v-if="!this.isNewTask && !this.dialogTaskComplete"
+                    icon="ac_unit"
+                    text-color="primary"
+                    style="margin-left: 8px"
+                  >
+                    <q-tooltip>Заморозить заявку</q-tooltip>
+                  </q-btn>
                 </div>
               </q-card-section>
             </q-card>
