@@ -72,7 +72,7 @@
   </div>
   <q-layout
     container
-    :id="this.isDialog ? 'chatDialogPopUp' : 'chatDialog'"
+    :id="this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog'"
     ref="chatDialog"
     :style="chatStyle"
     class="shadow-2"
@@ -453,8 +453,10 @@ export default {
   },
 
   mounted () {
-    this.scrollToBottom(300)
-    this.$refs.textInput.focus()
+    try {
+      this.scrollToBottom(300)
+      this.$refs.textInput.focus()
+    } catch (ignoredError) {}
   },
 
   methods: {
@@ -497,9 +499,9 @@ export default {
       this.$nextTick(() => {
         const textarea = this.$refs.textInput
         textarea.style.height = '46px'
-        let chat = document.getElementById('chatDialog')
+        let chat = document.getElementById('chat-dialog')
         if (this.isDialog) {
-          chat = document.getElementById('chatDialogPopUp')
+          chat = document.getElementById('chat-dialog-pop-up')
         }
         chat.style.height = this.chatStyle.height
       })
@@ -671,9 +673,9 @@ export default {
 
     autoResize () {
       this.$nextTick(() => {
-        let chat = document.getElementById('chatDialog')
+        let chat = document.getElementById('chat-dialog')
         if (this.isDialog) {
-          chat = document.getElementById('chatDialogPopUp')
+          chat = document.getElementById('chat-dialog-pop-up')
         }
         const textarea = this.$refs.textInput
         textarea.style.height = 'auto'
@@ -696,7 +698,7 @@ export default {
     },
     chatStyle () {
       return {
-        height: this.isDialog ? '85.9%' : (this.isMobile ? '76vh' : '89vh'),
+        height: this.isDialog ? '85.9%' : (this.isMobile ? '76vh' : 'calc(100vh - 103px)'),
         'border-radius': '0',
         'border-top-left-radius': '5px',
         'border-top-right-radius': '5px',
