@@ -1,18 +1,20 @@
 <template>
-  <tasks-component
-    :isShowTableMode="this.isShowTableMode"
-    :isMobile="this.isMobile"
-    :tableRows="this.getTableRows"
-    :tableColumns="this.tableColumns"
-    :isFilterSelected="this.isFilterSelected"
-    :groupedTasks="this.getGroupedTasks"
-    :isNewTaskDialogShow="this.isNewTaskDialogShow"
-    :isTaskDialogShow="this.isTaskDialogShow"
-    :selectedTask="this.selectedTask"
-    :selectedGroupType="this.selectedGroupType"
-    @onTaskClicked="this.onTaskClicked"
-    @closeDialog="this.closeDialog"
-  />
+  <div style="padding: 16px">
+    <tasks-component
+      :isShowTableMode="this.isShowTableMode"
+      :isMobile="this.isMobile"
+      :tableRows="this.getTableRows"
+      :tableColumns="this.tableColumns"
+      :isFilterSelected="this.isFilterSelected"
+      :groupedTasks="this.getGroupedTasks"
+      :isNewTaskDialogShow="this.isNewTaskDialogShow"
+      :isTaskDialogShow="this.isTaskDialogShow"
+      :selectedTask="this.selectedTask"
+      :selectedGroupType="this.selectedGroupType"
+      @onTaskClicked="this.onTaskClicked"
+      @closeDialog="this.closeDialog"
+    />
+  </div>
 </template>
 
 <script>
@@ -206,59 +208,5 @@ export default {
 </script>
 
 <style scoped>
-.board {
-  white-space: nowrap;
-}
-
-.list {
-  display: inline-block;
-  vertical-align: top;
-  width: 300px;
-  margin-right: 20px;
-}
-
-.list-header {
-  background-color: #f1f1f1;
-  padding: 10px;
-  font-weight: bold;
-}
-
-.list-cards {
-  padding: 10px;
-}
-
-.card {
-  background-color: #fff;
-  border: 1px solid #ccc;
-  margin-bottom: 10px;
-  padding: 10px;
-  width: 300px;
-  display: inline-block;
-  text-decoration: none;
-  color: black;
-}
-
-.sticky-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.scroll-container {
-  display: flex;
-  overflow-x: auto;
-  overflow-y: auto;
-  width: 100%;
-}
-
-.scrollable-flex-container {
-  margin-top: 8px;
-  overscroll-behavior-x: auto;
-  display: flex;
-  width: 100%;
-  flex-wrap: nowrap;
-  height: 50%;
-  overflow: auto;
-}
 
 </style>

@@ -50,4 +50,38 @@ export default {
 
 <style scoped>
 
+.list {
+  display: inline-block;
+  vertical-align: top;
+  width: 300px;
+  margin-right: 20px;
+}
+
+.sticky-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.list-header {
+  background-color: #f1f1f1;
+  padding: 10px;
+  font-weight: bold;
+}
+
+.list-cards {
+  padding: 10px;
+}
+
+.card {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  margin-bottom: 10px;
+  padding: 10px;
+  width: 300px;
+  display: inline-block;
+  text-decoration: none;
+  color: black;
+}
+
 </style>

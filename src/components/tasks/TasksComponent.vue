@@ -2,7 +2,6 @@
   <div
     v-if="this.isShowTableMode"
     style="overflow: auto"
-    :style="this.isMobile ? 'margin-top: 8px' : 'margin-top: 8px'"
   >
     <q-table
       :rows="this.tableRows"
@@ -26,6 +25,7 @@
   <div
     v-else
     class="scrollable-flex-container"
+    style="padding-top: 8px"
     :style="this.isFilterSelected ? (this.isMobile ? 'max-height: 50vh' : 'max-height: 70vh') : 'max-height: 80vh'"
   >
     <card-tasks-view
@@ -91,5 +91,14 @@ export default {
 </script>
 
 <style scoped>
+
+.scrollable-flex-container {
+  overscroll-behavior-x: auto;
+  display: flex;
+  width: 100%;
+  flex-wrap: nowrap;
+  height: 50%;
+  overflow: auto;
+}
 
 </style>
