@@ -180,7 +180,7 @@
       </q-card-section>
       <q-card-actions
         align="right"
-        style="margin-right: 7px; margin-top: 8px;"
+        style="margin-right: 7px;"
       >
         <q-btn
           color="white"
