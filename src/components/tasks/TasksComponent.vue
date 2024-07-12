@@ -24,7 +24,6 @@
   </div>
   <div
     v-else
-    class="scrollable-flex-container"
     style="padding-top: 8px"
     :style="this.isFilterSelected ? (this.isMobile ? 'max-height: 50vh' : 'max-height: 70vh') : 'max-height: 80vh'"
   >

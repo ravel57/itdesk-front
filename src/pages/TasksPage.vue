@@ -805,6 +805,10 @@ export default {
 
     isMobile () {
       return this.$q.screen.width < 1023
+    },
+
+    urlFilterChain () {
+      return new URLSearchParams(window.location.search).get('filterChain')
     }
   },
 
@@ -814,6 +818,7 @@ export default {
         this.updateUrlWithFilterChain(newVal)
         try {
           if (!this.isFilterOpen) {
+            console.log(newVal)
             document.getElementById(`filter_${newVal.length - 1}`).children[0].click()
             this.isFilterOpen = true
           }
@@ -836,12 +841,17 @@ export default {
         }
       },
       deep: true
+    },
+
+    '$route' (to) {
+      this.initializeFilterChainFromUrl()
+      this.initializeTaskFromUrl()
     }
   },
 
   mounted () {
-    setInterval(() => this.initializeTaskFromUrl(), 500)
-    setInterval(() => this.initializeFilterChainFromUrl(), 100)
+    setTimeout(() => this.initializeTaskFromUrl(), 300)
+    setTimeout(() => this.initializeFilterChainFromUrl(), 300)
     axios.get('/api/v1/filters')
       .then(response => {
         this.savedFilters = response.data

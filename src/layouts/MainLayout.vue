@@ -24,57 +24,58 @@
         </q-item>
       </q-toolbar>
     </q-header>
-
-    <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
-      bordered
-      :mini="miniState"
-      :width="300"
-      :breakpoint="500"
-    >
-      <q-list>
-        <q-item
-          v-if="this.$q.screen.width > 1023"
-          clickable
-          @click="toggleLeftDrawer"
-        >
-          <q-item-section avatar>
-            <q-icon style="align-items: start" name="menu"/>
-          </q-item-section>
-        </q-item>
-        <essential-link
-          v-for="link in linksList"
-          :key="link.title"
-          v-bind="link"
-          :counter="this.getUnreadChats(link.title)"
-          :user="this.store.currentUser"
-          :miniState="this.miniState"
-        />
-        <q-item
-          v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
-        >
-          <q-item-section avatar>
-            <q-icon style="align-items: start" name="group"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Операторы онлайн:</q-item-label>
-            <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item
-          clickable
-          @click="this.logout"
-        >
-          <q-item-section avatar>
-            <q-icon style="align-items: start" name="logout"/>
-          </q-item-section>
-          <q-item-section>
-            <q-item-label>Выход</q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
-    </q-drawer>
+    <div style="position: fixed;height: 100%;">
+      <q-drawer
+        v-model="leftDrawerOpen"
+        show-if-above
+        bordered
+        :mini="miniState"
+        :width="300"
+        :breakpoint="500"
+      >
+        <q-list>
+          <q-item
+            v-if="this.$q.screen.width > 1023"
+            clickable
+            @click="toggleLeftDrawer"
+          >
+            <q-item-section avatar>
+              <q-icon style="align-items: start" name="menu"/>
+            </q-item-section>
+          </q-item>
+          <essential-link
+            v-for="link in linksList"
+            :key="link.title"
+            v-bind="link"
+            :counter="this.getUnreadChats(link.title)"
+            :user="this.store.currentUser"
+            :miniState="this.miniState"
+          />
+          <q-item
+            v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+          >
+            <q-item-section avatar>
+              <q-icon style="align-items: start" name="group"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Операторы онлайн:</q-item-label>
+              <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
+            </q-item-section>
+          </q-item>
+          <q-item
+            clickable
+            @click="this.logout"
+          >
+            <q-item-section avatar>
+              <q-icon style="align-items: start" name="logout"/>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Выход</q-item-label>
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-drawer>
+    </div>
     <q-page-container>
       <router-view/>
     </q-page-container>
