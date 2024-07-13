@@ -1,6 +1,6 @@
 <template>
   <q-page>
-    <div class="row" style="height: calc(100vh - 54px);">
+    <div class="row" style="height: 100vh;">
       <div class="col-3" style="min-width: fit-content">
         <q-list>
           <essential-link

@@ -68,18 +68,29 @@ export default {
   },
 
   created () {
-    this.tableData = this.store.organizations.map(() => {
-      return new Array(0)
-    })
+    this.tableData = this.store.organizations.map(() => { return new Array(0) })
     axios.get('/api/v1/sla')
       .then(response => {
-        let counter = 0
-        for (const organization in response.data) {
-          this.store.priorities.forEach(priority => {
-            const item = response.data[organization][priority.name].replace(/\D/g, '')
-            this.tableData[counter].push(item)
+        try {
+          let counter = 0
+          for (const organization in response.data) {
+            this.store.priorities.forEach(priority => {
+              const item = response.data[organization][priority.name]
+              if (this.tableData[counter] && item) {
+                this.tableData[counter].push(item.toString().replace(/\D/g, ''))
+              }
+            })
+            counter++
+          }
+        } catch (e) {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
           })
-          counter++
         }
       })
       .catch(e =>

@@ -251,7 +251,7 @@ export default {
         this.dialogTaskTags = []
         this.dialogTaskDeadline = ''
         this.dialogTaskStatus = this.store.statuses.find(status => status.defaultSelection === true).name
-        // setTimeout(() => this.$refs.taskName.focus(), 500)
+        setTimeout(() => this.$refs.taskName.focus(), 300)
       } else {
         this.dialogTaskId = this.task.id
         this.dialogTaskName = this.task.name
@@ -295,7 +295,7 @@ export default {
         priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
         executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
-        isCompleted: false,
+        completed: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,

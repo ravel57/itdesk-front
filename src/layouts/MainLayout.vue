@@ -99,7 +99,7 @@ export default {
     linksList: [
       {
         title: 'Мои заявки',
-        icon: 'task_alt',
+        icon: 'handshake',
         link: '/my-tasks',
         roles: ['ADMIN', 'OPERATOR']
       },
@@ -160,12 +160,16 @@ export default {
 
   methods: {
     logout () {
-      axios.get('/logout')
+      axios.post('/api/v1/user-offline', this.store.currentUser)
         .then(() => {
-          location.reload()
+          axios.get('/logout')
+            .then(() => location.reload())
+            .catch(() => location.reload())
         })
         .catch(() => {
-          location.reload()
+          axios.get('/logout')
+            .then(() => location.reload())
+            .catch(() => location.reload())
         })
     },
 
@@ -196,8 +200,13 @@ export default {
         this.leftDrawerOpen = !this.leftDrawerOpen
       } else {
         this.miniState = !this.miniState
+        localStorage.setItem('miniState', this.miniState.toString())
       }
     }
+  },
+
+  mounted () {
+    this.miniState = localStorage.getItem('miniState') !== 'false'
   },
 
   setup () {

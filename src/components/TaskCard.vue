@@ -60,10 +60,7 @@
       />
       <th
         class="text-body2"
-        :style="`
-                          color: ${task.deadline < Date.now() ? 'red' : 'black'};
-                          ${selectedSorting.slug === 'deadline' ? 'font-weight: 600;' : ''}
-                        `"
+        :style="`color: ${task.deadline < Date.now() ? 'red' : 'black'}; ${selectedSorting.slug === 'deadline' ? 'font-weight: 600;' : ''}`"
         v-text="this.getStamp(task.deadline)"
       />
     </tr>

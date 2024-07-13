@@ -243,7 +243,7 @@ export default {
   computed: {
     getClient () {
       const clientId = Number(this.router.params.clientId)
-      const client = this.store.clients.filter(client => client.id === clientId)[0]
+      const client = this.store.clients.find(client => client.id === clientId)
       if (client !== undefined) {
         return client
       } else {
