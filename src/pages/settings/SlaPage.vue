@@ -49,7 +49,7 @@ export default {
           axios.post('/api/v1/sla', {
             organization: this.store.organizations[organizationIndex],
             priority: this.store.priorities[priorityIndex],
-            duration: priority
+            hours: priority
           })
             .then(response => {})
             .catch(e =>
