@@ -1,5 +1,7 @@
 <template>
-  <table>
+  <table
+    @click="this.$emit('onTaskClicked', this.task)"
+  >
     <tr v-if="task.completed">
       <th
         class="small-text text-grey"
