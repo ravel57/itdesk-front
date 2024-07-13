@@ -40,7 +40,7 @@ function clientsCallback (clients) {
       }
       if (task.sla) {
         task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-        task.sla.duration = moment.duration(task.sla.duration)
+        task.sla.duration = moment.duration(task.sla.duration * 1000)
       }
       task.messages.forEach(message => {
         message.date = new Date(message.date)
@@ -97,7 +97,7 @@ function clientsForObserverCallback (message) {
       }
       if (task.sla) {
         task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-        task.sla.duration = moment.duration(task.sla.duration)
+        task.sla.duration = moment.duration(task.sla.duration * 1000)
       }
     })
     if (it.user != null) {
@@ -126,7 +126,7 @@ function currentClientCallback (message) {
     }
     if (task.sla) {
       task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-      task.sla.duration = moment.duration(task.sla.duration)
+      task.sla.duration = moment.duration(task.sla.duration * 1000)
     }
     task.messages.forEach(message => {
       message.date = new Date(message.date)

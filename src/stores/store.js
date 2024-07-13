@@ -51,7 +51,7 @@ export const useStore = defineStore('store', {
               }
               if (task.sla) {
                 task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-                task.sla.duration = moment.duration(task.sla.duration)
+                task.sla.duration = moment.duration(task.sla.duration * 1000)
               }
               task.messages.forEach(message => {
                 message.date = new Date(message.date)
