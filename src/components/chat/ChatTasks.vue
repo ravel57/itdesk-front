@@ -7,6 +7,7 @@
     <div style="margin-bottom: 3px">
       <chat-info
         style="z-index: 1"
+        :isMobile="this.isMobile"
         :client="this.client"
         :organizations="this.organizations"
         @updateClient="this.updateClient"
@@ -19,7 +20,7 @@
           <span
             class="text-h6"
             style="margin-top: 3px"
-            v-text="`Список заявок (всего: ${this.getActualTasks.length})`"
+            v-text="this.getDeclension(this.getActualTasks.length)"
           />
           <div class="container q-pa-none q-gutter-md q-position-relative">
             <q-toggle
@@ -38,12 +39,6 @@
           class="text-grey-7 cursor-pointer"
           @click="this.dialogNewTask"
           label="Создать заявку"
-          style="margin-right: 8px;"
-        />
-        <q-btn
-          @click="toggleSearch"
-          :class="showSearch ? 'text-dark' : 'text-grey-7'"
-          icon="search"
           style="margin-right: 8px;"
         />
         <q-btn
@@ -82,13 +77,12 @@
           v-if="this.selectedSorting.label"
           @click="this.changeSortingAsc"
           class="text-grey-7"
+          style="width: 20px"
           :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"/>
         <q-input
-          v-if="showSearch"
           v-model="search"
           label="Поиск по заявкам"
-          style="margin-top: 8px"
-          outlined
+          style="margin-top: 8px; margin-bottom: 8px"
           dense
           clearable
         >
@@ -96,30 +90,16 @@
             <q-icon name="search"/>
           </template>
         </q-input>
-        <q-list
-          v-if="this.searchResults.length > 0"
-        >
-          <q-item
-            v-for="task in searchResults"
-            :key="task.id"
-            clickable
-          >
-            <q-item-section
-              @click="this.onTaskClick(task)"
-              style="width: 100%;"
-            >
-              {{ task.name }}
-            </q-item-section>
-          </q-item>
-        </q-list>
       </div>
     </div>
-    <q-separator style="margin-bottom: 8px; margin-top: 8px"/>
-    <div style="overflow: auto; height: calc(-300px + 97vh)">
+    <div
+      style="overflow: auto;"
+      :style="this.isMobile ? 'height: 68%' : 'height: 75%'"
+    >
       <div class="row justify-center">
         <div style="width: 100%;">
           <q-card-section style="padding: 0">
-            <q-card class="my-card">
+            <q-card bordered class="my-card">
               <q-card-section
                 v-for="task in this.getActualTasks"
                 :key="task.id"
@@ -127,6 +107,7 @@
                 style="padding: 0"
                 class="shadow-2"
               >
+                <q-separator/>
                 <div class="flex">
                   <q-btn
                     v-if="!task.completed"
@@ -157,7 +138,6 @@
                     :taskNameShort="31"
                   />
                 </q-item>
-                <q-separator/>
               </q-card-section>
             </q-card>
           </q-card-section>
@@ -217,10 +197,8 @@ export default {
     isNewLinkedTask: false,
     taskId: null, // for update
 
-    showSearch: false,
     search: '',
     searchResults: [],
-    isShowSearchResults: false,
     sortMenuOpened: false,
     dialogTab: 'tab1',
     selectedSorting: [],
@@ -305,10 +283,6 @@ export default {
       this.$emit('scrollToElementById', task.linkedMessageId)
     },
 
-    toggleSearch () {
-      this.showSearch = !this.showSearch
-    },
-
     onSearch () {
       if (this.search) {
         this.actualTasks = this.getActualTasks.filter(task => {
@@ -366,6 +340,21 @@ export default {
 
     addMessageToTask (event) {
       this.selectedTask.messages.push(event.message)
+    },
+
+    getDeclension (count) {
+      const declensions = ['заявка', 'заявки', 'заявок']
+      let form
+
+      if (count % 10 === 1 && count % 100 !== 11) {
+        form = declensions[0]
+      } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
+        form = declensions[1]
+      } else {
+        form = declensions[2]
+      }
+
+      return `${count} ${form}`
     }
   },
 

@@ -9,8 +9,8 @@
       :rows-per-page-options="[10, 20, 50, 0]"
       :sortable="true"
       row-key="id"
+      bordered
       style="margin-top: 8px"
-      :style="this.isFilterSelected ? (this.isMobile ? 'max-height: 55vh' : 'max-height: 70vh') : 'max-height: 80vh'"
       rows-per-page-label="Строк на странице"
     >
       <template v-slot:body-cell-name="props">
@@ -24,8 +24,8 @@
   </div>
   <div
     v-else
+    class="flex-container"
     style="padding-top: 8px"
-    :style="this.isFilterSelected ? (this.isMobile ? 'max-height: 50vh' : 'max-height: 70vh') : 'max-height: 80vh'"
   >
     <card-tasks-view
       :groupedTasks="this.groupedTasks"
@@ -91,12 +91,10 @@ export default {
 
 <style scoped>
 
-.scrollable-flex-container {
-  overscroll-behavior-x: auto;
+.flex-container {
   display: flex;
   width: 100%;
   flex-wrap: nowrap;
-  height: 50%;
   overflow: auto;
 }
 
