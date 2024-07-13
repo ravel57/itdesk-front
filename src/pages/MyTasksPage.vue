@@ -1,33 +1,64 @@
 <template>
   <div style="padding: 16px">
-    <tasks-component
-      :isShowTableMode="this.isShowTableMode"
+<!--    <tasks-component-->
+<!--      :isShowTableMode="this.isShowTableMode"-->
+<!--      :isMobile="this.isMobile"-->
+<!--      :tableRows="this.getTableRows"-->
+<!--      :tableColumns="this.tableColumns"-->
+<!--      :isFilterSelected="this.isFilterSelected"-->
+<!--      :groupedTasks="this.getGroupedTasks"-->
+<!--      :isNewTaskDialogShow="this.isNewTaskDialogShow"-->
+<!--      :isTaskDialogShow="this.isTaskDialogShow"-->
+<!--      :selectedTask="this.selectedTask"-->
+<!--      :selectedGroupType="this.selectedGroupType"-->
+<!--      @onTaskClicked="this.onTaskClicked"-->
+<!--      @closeDialog="this.closeDialog"-->
+<!--    />-->
+    <div
+      style="display: flex; flex-wrap: wrap; flex-direction: row"
+    >
+      <q-item
+        v-for="task in this.store.getTasks"
+        :key="task.id"
+        class="card"
+        :style="this.isMobile ? 'justify-content: center;' : ''"
+      >
+        <task-card
+          :task="task"
+          :descriptionRequire="false"
+          :slaRequire="false"
+          :task-name-short="14"
+          :selected-sorting="''"
+          @onTaskClicked="this.onTaskClicked($event)"
+        />
+      </q-item>
+    </div>
+    <task-dialog
+      v-if="this.getPossibilityToOpenDialogTask"
+      :client="this.selectedTask.client"
       :isMobile="this.isMobile"
-      :tableRows="this.getTableRows"
-      :tableColumns="this.tableColumns"
-      :isFilterSelected="this.isFilterSelected"
-      :groupedTasks="this.getGroupedTasks"
+      :task="this.selectedTask"
       :isNewTaskDialogShow="this.isNewTaskDialogShow"
       :isTaskDialogShow="this.isTaskDialogShow"
-      :selectedTask="this.selectedTask"
-      :selectedGroupType="this.selectedGroupType"
-      @onTaskClicked="this.onTaskClicked"
-      @closeDialog="this.closeDialog"
+      :isNewTask="false"
+      @closeDialog="this.$emit('closeDialog', $event)"
+      @updateTask="this.$emit('updateTask', $event)"
     />
   </div>
 </template>
 
 <script>
-import TasksComponent from 'components/tasks/TasksComponent.vue'
 import moment from 'moment'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
+import TaskCard from 'components/TaskCard.vue'
+import TaskDialog from 'components/chat/TaskDialog.vue'
 
 export default {
 
   name: 'MyTasks',
 
-  components: { TasksComponent },
+  components: { TaskDialog, TaskCard },
 
   data: () => ({
     isShowTableMode: false,
@@ -126,6 +157,10 @@ export default {
     ]
   }),
 
+  mounted () {
+    console.log(this.getMyTasks)
+  },
+
   methods: {
     isMobile () {
       return this.$q.screen.width < 1023
@@ -153,6 +188,13 @@ export default {
       } catch (e) {
         return []
       }
+    },
+    getPossibilityToOpenDialogTask () {
+      return this.isNewTaskDialogShow || this.isTaskDialogShow
+    },
+
+    getMyTasks () {
+      return this.store.getTasks.filter(task => task.executor.id === this.store.currentUser.id)
     },
 
     getFilteredTasks () {
@@ -208,5 +250,19 @@ export default {
 </script>
 
 <style scoped>
+
+.card {
+  border-radius: 5px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  width: 300px;
+  display: inline-block;
+  text-decoration: none;
+  color: black;
+  margin-left: 8px;
+  margin-right: 8px;
+  margin-bottom: 8px
+}
 
 </style>

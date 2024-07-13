@@ -19,7 +19,7 @@ export default {
   width: 25px;
   height: 25px;
   border-radius: 50%;
-  background-color: #1976D2;
+  background-color: var(--q-primary);
   display: flex;
   color: white;
   align-items: center;

@@ -64,7 +64,10 @@ export default {
 }
 
 .list-header {
-  background-color: #f1f1f1;
+  border-radius: 5px;
+  width: 300px;
+  color: white;
+  background-color: var(--q-primary);
   padding: 10px;
   font-weight: bold;
 }
@@ -74,6 +77,7 @@ export default {
 }
 
 .card {
+  border-radius: 5px;
   background-color: #fff;
   border: 1px solid #ccc;
   margin-bottom: 10px;

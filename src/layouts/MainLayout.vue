@@ -24,7 +24,7 @@
         </q-item>
       </q-toolbar>
     </q-header>
-    <div style="position: fixed;height: 100%;">
+    <div style="position: fixed;height: 100%;z-index: 10001;">
       <q-drawer
         v-model="leftDrawerOpen"
         show-if-above
@@ -172,9 +172,10 @@ export default {
     getUnreadChats (title) {
       if (title === 'Чаты') {
         try {
-          return this.store.clients
+          const messageCounter = this.store.clients
             .filter(client => client.messages.filter(message => !message.read).length > 0)
             .length
+          return this.miniState && messageCounter > 9 ? '9+' : messageCounter
         } catch (e) {
           return 0
         }

@@ -16,21 +16,19 @@
       <q-card-section>
         <q-card style="margin-bottom: 8px">
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
+            <q-input
+              v-model="this.templateSearch"
+              label="Поиск по шаблонам"
+              dense
+              clearable
+              style="width: 100%;padding: 16px"
+              @clear="this.templateSearch = ''"
+            >
+              <template v-slot:append>
+                <q-icon name="search"/>
+              </template>
+            </q-input>
             <q-scroll-area style="height: 60vh; padding-top: 0">
-              <q-item>
-                <q-input
-                  v-model="this.templateSearch"
-                  label="Поиск по шаблонам"
-                  dense
-                  clearable
-                  style="width: 100%;"
-                  @clear="this.templateSearch = ''"
-                >
-                  <template v-slot:append>
-                    <q-icon name="search"/>
-                  </template>
-                </q-input>
-              </q-item>
               <q-item
                 v-for="(item, index) in this.filteredTemplates"
                 :key="index"

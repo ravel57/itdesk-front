@@ -9,7 +9,7 @@
           v-text="`${this.client.lastname} ${this.client.firstname}`"
         />
         <q-btn
-          v-if="this.editClientInfoButtonShow.value"
+          v-if="this.editClientInfoButtonShow.value || this.isMobile"
           @mouseenter="editButtonCancelHide(this.editShowTimer)"
           icon="edit"
           @click="dialogShow"
@@ -146,7 +146,7 @@ import axios from 'axios'
 export default {
   name: 'ChatClientInfo',
 
-  props: ['client', 'organizations'],
+  props: ['client', 'organizations', 'isMobile'],
 
   data: () => ({
     isNotificationEnabled: true,
