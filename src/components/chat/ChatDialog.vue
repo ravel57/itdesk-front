@@ -727,12 +727,12 @@ export default {
     },
     search (newVal) {
       this.onSearch(newVal)
-    },
-    messages (oldVal, newVal) {
-      if (oldVal !== newVal) {
-        this.scrollToBottom()
-      }
     }
+    // messages (oldVal, newVal) {
+    //   if (oldVal !== newVal) {
+    //     this.scrollToBottom()
+    //   }
+    // }
   },
 
   setup () {
