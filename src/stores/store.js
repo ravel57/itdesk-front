@@ -24,7 +24,8 @@ export const useStore = defineStore('store', {
     templates: [],
     knowledgeBase: [],
     usersOnline: [],
-    currentUser: {}
+    currentUser: {},
+    currentClient: {}
   }),
 
   getters: {
