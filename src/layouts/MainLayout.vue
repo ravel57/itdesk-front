@@ -98,16 +98,16 @@ export default {
   data: () => ({
     linksList: [
       {
-        title: 'Мои заявки',
-        icon: 'handshake',
-        link: '/my-tasks',
-        roles: ['ADMIN', 'OPERATOR']
-      },
-      {
         title: 'Чаты',
         icon: 'forum',
         link: '/chats',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
+      },
+      {
+        title: 'Мои заявки',
+        icon: 'handshake',
+        link: '/my-tasks',
+        roles: ['ADMIN', 'OPERATOR']
       },
       {
         title: 'Чат',

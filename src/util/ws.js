@@ -19,7 +19,12 @@ export function connect () {
       stompClient.subscribe('/topic/authenticated-users/', message => authenticatedUsersCallback(message))
     }
     if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
-      stompClient.subscribe('/topic/mark-read/', message => console.log(message))
+      stompClient.subscribe('/topic/mark-read/', message => {
+        const binaryData = new Uint8Array(message._binaryBody)
+        const textDecoder = new TextDecoder('utf-8')
+        const decodedString = textDecoder.decode(binaryData)
+        console.log(JSON.parse(decodedString))
+      })
     }
   })
 }
