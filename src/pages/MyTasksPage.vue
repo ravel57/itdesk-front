@@ -13,7 +13,7 @@
           :task="task"
           :descriptionRequire="false"
           :slaRequire="false"
-          :task-name-short="14"
+          :task-name-short="20"
           :selected-sorting="''"
           @onTaskClicked="this.onTaskClicked($event)"
         />
