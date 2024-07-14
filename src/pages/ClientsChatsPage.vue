@@ -31,7 +31,7 @@
                 <q-item-section>
                   <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
                   <q-item-label caption>{{ this.getOrganization(client) }}</q-item-label>
-                  <q-item-label caption>{{ this.getTimeLastMessage(client.lastMessageTime) }}</q-item-label>
+                  <q-item-label class="shorten-text" caption>{{ this.getTimeLastMessage(client.lastMessageTime) }} {{this.getClientLastMessage(client)}}</q-item-label>
                   <div class="flex items-end">
                     <q-item-label caption>
                       Заявок: {{ this.getActualTasks(client).length }}
@@ -168,6 +168,15 @@ export default {
       parts.push(`${minutes % 60} минут`)
       const result = parts.join(', ')
       return `${result} назад (${dateString})`
+    },
+
+    getClientLastMessage (client) {
+      const lastMessageText = client.messages.at(-1).text
+      if (lastMessageText) {
+        return `: ${lastMessageText}`
+      } else {
+        return ''
+      }
     }
   },
 
@@ -218,3 +227,12 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.shorten-text {
+  width:60vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
