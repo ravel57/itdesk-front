@@ -101,6 +101,7 @@
               style="white-space: pre-wrap;"
               :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
               @click.right="this.invertContextMenu"
+              @change="scrollToBottom"
             >
               <template v-slot:stamp>
                 <span
