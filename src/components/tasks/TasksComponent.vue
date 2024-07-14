@@ -29,7 +29,7 @@
   >
     <card-tasks-view
       :groupedTasks="this.groupedTasks"
-      :selectedGroupType="this.selectedGroupType"
+      :selectedGroupType="''"
       @onTaskClicked="this.$emit('onTaskClicked', $event)"
     />
   </div>
