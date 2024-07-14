@@ -16,7 +16,8 @@
         <q-item
           v-for="task in this.getFilteredTasks"
           :key="task.id"
-          class="card cursor-pointer"
+          class="card"
+          clickable
           :style="this.isMobile ? 'justify-content: center;' : ''"
         >
           <task-card
