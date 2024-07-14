@@ -132,4 +132,5 @@ function currentClientCallback (message) {
       message.date = new Date(message.date)
     })
   })
+  useStore().currentClient = paredClient
 }

@@ -55,7 +55,15 @@
             v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
           >
             <q-item-section avatar>
-              <q-icon style="align-items: start" name="group"/>
+              <q-icon
+                style="align-items:
+                start" name="group"
+              />
+              <circle-counter
+                v-if="this.miniState"
+                :counter="this.store.usersOnline.length"
+                class="mini-counter"
+              />
             </q-item-section>
             <q-item-section>
               <q-item-label>Операторы онлайн:</q-item-label>
@@ -87,11 +95,13 @@ import EssentialLink from 'components/EssentialLink.vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useStore } from 'stores/store'
+import CircleCounter from 'components/CircleCounter.vue'
 
 export default {
   name: 'MainLayout',
 
   components: {
+    CircleCounter,
     EssentialLink
   },
 
@@ -220,3 +230,15 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.mini-counter {
+  position: absolute !important;
+  height: 12px !important;
+  width: 12px !important;
+  font-size: 9px !important;
+  margin-left: 15px !important;
+  background-color: var(--q-primary) !important;
+  top: 8px !important;
+}
+</style>
