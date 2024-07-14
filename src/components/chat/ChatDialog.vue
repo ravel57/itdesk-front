@@ -80,13 +80,13 @@
     ref="chatDialog"
     :style="chatStyle"
     class="shadow-2"
+    @scroll="this.updateScroll"
   >
     <q-page-container>
       <q-page
         style="padding-top: 8px;min-height: 0"
         :ref="this.isDialog ? 'chatPopUp' : 'chat'"
         :id="this.isDialog ? 'chatPopUp' : 'chat'"
-        scroll
       >
         <div class="q-pa-md row justify-center q-gutter-md">
           <div
@@ -458,7 +458,6 @@ export default {
 
   mounted () {
     try {
-      this.scrollToBottom(100)
       this.$refs.textInput.focus()
     } catch (ignoredError) {}
   },
@@ -474,11 +473,8 @@ export default {
 
     scrollToBottom (timeout = 0) {
       setTimeout(() => {
-        document.getElementById(this.isDialog ? 'chatPopUp' : 'chat')
-          .scrollIntoView({
-            block: 'end',
-            behavior: `${timeout !== 0 ? 'auto' : 'smooth'}`
-          })
+        const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
+        scrollArea.scrollTo(0, document.getElementById('chat-dialog').children[0].children[0].scrollHeight)
       }, timeout)
     },
 
@@ -509,7 +505,7 @@ export default {
         }
         chat.style.height = this.chatStyle.height
       })
-      this.scrollToBottom()
+      this.scrollToBottom(600)
     },
 
     handleTabPressed (event) {
@@ -729,12 +725,21 @@ export default {
     },
     search (newVal) {
       this.onSearch(newVal)
+    },
+    messages (oldVal, newVal) {
+      if (newVal.length !== 0) {
+        if (oldVal.length !== newVal.length) {
+          const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+          if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
+            this.scrollToBottom(100)
+          }
+        }
+      } else {
+        if (oldVal.length !== newVal.length) {
+          this.scrollToBottom(0)
+        }
+      }
     }
-    // messages (oldVal, newVal) {
-    //   if (oldVal !== newVal) {
-    //     this.scrollToBottom()
-    //   }
-    // }
   },
 
   setup () {

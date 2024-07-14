@@ -260,7 +260,6 @@ export default {
   },
 
   mounted () {
-    document.title = `Чат: ${this.getClient.firstname} ${this.getClient.lastname}`
     if (this.isMobile) {
       this.tab = 'tab3'
     }
@@ -274,6 +273,7 @@ export default {
   },
 
   created () {
+    document.title = `Чат: ${this.getClient.firstname} ${this.getClient.lastname}`
     this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
     const typingMessageTextElement = this.store.clients
       .find(client => client.id === this.getClient.id)

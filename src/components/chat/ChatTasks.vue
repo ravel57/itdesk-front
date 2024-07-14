@@ -104,7 +104,7 @@
                 v-for="task in this.getActualTasks"
                 :key="task.id"
                 :id="`task_${task.id}`"
-                style="padding: 0"
+                style="padding: 0;overflow-x: hidden;"
                 class="shadow-2"
               >
                 <q-separator/>

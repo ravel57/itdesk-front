@@ -20,6 +20,15 @@
           clickable
           :style="this.isMobile ? 'justify-content: center;' : ''"
         >
+          <q-btn
+            style="margin: 0 0 8px;padding: 0"
+            flat
+            dense
+            icon="assignment_ind"
+            @click.stop="this.$router.push({ path: `/chats/${task.client.id}` })"
+          >
+          Перейти в чат
+          </q-btn>
           <task-card
             :task="task"
             :descriptionRequire="false"
@@ -38,8 +47,8 @@
         :isNewTaskDialogShow="this.isNewTaskDialogShow"
         :isTaskDialogShow="this.isTaskDialogShow"
         :isNewTask="false"
-        @closeDialog="this.$emit('closeDialog', $event)"
-        @updateTask="this.$emit('updateTask', $event)"
+        @closeDialog="this.closeDialog"
+        @updateTask="this.updateTask"
       />
     </div>
   </q-page>
@@ -83,6 +92,30 @@ export default {
       this.isTaskDialogShow = true
       this.selectedTask = task
       this.updateUrlWithTask(task.id)
+    },
+
+    updateTask (task, newTask) {
+      this.selectedTask = newTask.data
+    },
+
+    updateUrlWithTask (openedTaskId) {
+      const queryParams = new URLSearchParams(window.location.search)
+      queryParams.set('task', openedTaskId)
+      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+    },
+
+    initializeTaskFromUrl () {
+      const queryParams = new URLSearchParams(window.location.search)
+      const taskIdFromUrl = queryParams.get('task')
+      if (!taskIdFromUrl && this.isTaskDialogShow) {
+        this.closeDialog()
+      }
+      if (taskIdFromUrl) {
+        const taskFromUrl = this.getFilteredTasks.find(task => task.id === Number(taskIdFromUrl))
+        this.onTaskClicked(taskFromUrl)
+      } else {
+        this.isNewTaskDialogShow = false
+      }
     }
   },
 
@@ -105,7 +138,14 @@ export default {
   },
 
   mounted () {
+    setTimeout(() => this.initializeTaskFromUrl(), 300)
     document.title = 'ITdesk мои заявки'
+  },
+
+  watch: {
+    '$route' (to) {
+      this.initializeTaskFromUrl()
+    }
   },
 
   setup () {
