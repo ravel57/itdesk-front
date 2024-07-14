@@ -25,29 +25,33 @@
     />
   </div>
   <div style="position: relative">
-    <div style="display: flex; width: 100%;">
-      <q-input
-        v-model="search"
-        label="Поиск по сообщениям"
-        dense
-        clearable
-        style="width: 100%;padding: 0 8px;"
-        @focus="this.isShowSearchResults = true"
-        @blur="this.onBlur"
-      >
-        <template v-slot:append>
-          <q-icon name="search"/>
-        </template>
-      </q-input>
-      <q-btn
-        v-if="!this.isShowHelper & !this.isMobile"
-        icon="add"
-        @click="this.showHelper"
-        flat
-        dense
-        class="q-ml-auto"
-      />
-    </div>
+    <q-card
+      style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;z-index: 0"
+    >
+      <div style="display: flex; width: 100%;">
+        <q-input
+          v-model="search"
+          label="Поиск по сообщениям"
+          dense
+          clearable
+          style="width: 100%;padding: 0 8px 5px;"
+          @focus="this.isShowSearchResults = true"
+          @blur="this.onBlur"
+        >
+          <template v-slot:append>
+            <q-icon name="search"/>
+          </template>
+        </q-input>
+        <q-btn
+          v-if="!this.isShowHelper & !this.isMobile"
+          icon="add"
+          @click="this.showHelper"
+          flat
+          dense
+          class="q-ml-auto"
+        />
+      </div>
+    </q-card>
     <q-list
       v-if="this.isShowSearchResults"
       class="shadow-2 rounded-borders scrollable-list-container"
@@ -454,7 +458,7 @@ export default {
 
   mounted () {
     try {
-      this.scrollToBottom(300)
+      this.scrollToBottom(100)
       this.$refs.textInput.focus()
     } catch (ignoredError) {}
   },
@@ -698,10 +702,8 @@ export default {
     },
     chatStyle () {
       return {
-        height: this.isDialog ? '85.9%' : (this.isMobile ? '76vh' : 'calc(100vh - 103px)'),
+        height: this.isDialog ? '85.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
         'border-radius': '0',
-        'border-top-left-radius': '5px',
-        'border-top-right-radius': '5px',
         'min-height': '0',
         'background-color': '#F0F0F0'
       }
@@ -763,4 +765,5 @@ textarea:focus {
   height: 70px;
   overflow-y: auto;
 }
+
 </style>
