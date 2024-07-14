@@ -107,6 +107,10 @@ export default {
     ]
   }),
 
+  mounted () {
+    document.title = 'ITdesk настройки'
+  },
+
   setup () {
     const store = useStore()
     return { store }

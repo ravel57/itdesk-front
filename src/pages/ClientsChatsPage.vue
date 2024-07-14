@@ -206,6 +206,10 @@ export default {
     }
   },
 
+  mounted () {
+    document.title = 'ITdesk чаты'
+  },
+
   setup () {
     const store = useStore()
     return {

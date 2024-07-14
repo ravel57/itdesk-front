@@ -104,6 +104,10 @@ export default {
     }
   },
 
+  mounted () {
+    document.title = 'ITdesk мои заявки'
+  },
+
   setup () {
     const store = useStore()
     const router = useRoute()

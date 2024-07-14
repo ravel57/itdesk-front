@@ -850,6 +850,7 @@ export default {
   },
 
   mounted () {
+    document.title = 'ITdesk заявки'
     setTimeout(() => this.initializeTaskFromUrl(), 300)
     setTimeout(() => this.initializeFilterChainFromUrl(), 300)
     axios.get('/api/v1/filters')

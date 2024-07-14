@@ -260,6 +260,7 @@ export default {
   },
 
   mounted () {
+    document.title = `Чат: ${this.getClient.firstname} ${this.getClient.lastname}`
     if (this.isMobile) {
       this.tab = 'tab3'
     }

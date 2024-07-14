@@ -59,6 +59,10 @@ export default {
     }
   },
 
+  mounted () {
+    document.title = 'ITdesk помощь'
+  },
+
   setup () {
     const store = useStore()
     return { store }
