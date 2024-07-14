@@ -1,17 +1,22 @@
 <template>
-  <chat-dialog
-    :isMobile="this.isMobile"
-    :messages="this.user.support.messages"
-    :inputField="this.inputField"
-    :isSending="this.isSending"
-    :currentUser="this.store.currentUser"
-    :taskWatchingNow="[]"
-    :typing="[]"
-    @sendMessage="this.sendMessage"
-    @keyPressed="this.keyPressed"
-    @isSending="this.isSending = true"
-    style="height: 100%; width: 50%"
-  />
+  <div class="col no-shadow rounded-borders" style="height: calc(100vh - 90px); width: 50%; padding: 8px;">
+    <chat-dialog
+      :is-mobile="this.isMobile"
+      :messages="[]"
+      :input-field="this.inputField"
+      :templates="this.store.templates"
+      :isSending="this.isSending"
+      :current-user="this.store.currentUser"
+      :client-id="1"
+      :is-show-helper="true"
+      :taskWatchingNow="[]"
+      :typing="[]"
+      :isDialog="false"
+      @sendMessage="this.sendMessage"
+      @isSending="this.isSending = true"
+      @keyPressed="this.keyPressed"
+    />
+  </div>
 </template>
 
 <script>

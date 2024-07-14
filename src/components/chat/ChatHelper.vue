@@ -1,6 +1,7 @@
 <template>
   <q-card class="my-card">
-    <q-scroll-area
+    <div
+      style="overflow: auto"
       :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"
     >
       <div style="width: 100%;">
@@ -28,7 +29,7 @@
                 <q-icon name="search"/>
               </template>
             </q-input>
-            <q-scroll-area style="height: 60vh; padding-top: 0">
+            <div style="height: 60vh; padding-top: 0;overflow: auto">
               <q-item
                 v-for="(item, index) in this.filteredTemplates"
                 :key="index"
@@ -50,12 +51,12 @@
                   </q-item-label>
                 </q-item-section>
               </q-item>
-            </q-scroll-area>
+            </div>
           </q-expansion-item>
         </q-card>
         <q-card style="margin-bottom: 8px">
           <q-expansion-item label="База знаний" class="spoiler">
-            <q-scroll-area style="height: 60vh;">
+            <div style="height: 60vh;overflow: auto">
               <q-item
                 v-for="(item, index) in this.knowledgeBase"
                 :key="index"
@@ -65,12 +66,12 @@
               >
                 {{ item.title }} [{{ item.tags.join(', ') }}]
               </q-item>
-            </q-scroll-area>
+            </div>
           </q-expansion-item>
         </q-card>
         <q-card style="margin-bottom: 8px">
           <q-expansion-item label="Макросы" class="spoiler">
-            <q-scroll-area style="height: 60vh;">
+            <div style="height: 60vh;overflow: auto">
               <q-item
                 v-for="(item, index) in this.macros"
                 :key="index"
@@ -79,11 +80,16 @@
               >
                 {{ item.text }}
               </q-item>
-            </q-scroll-area>
+            </div>
           </q-expansion-item>
         </q-card>
       </q-card-section>
-    </q-scroll-area>
+    </div>
+<!--    <q-scroll-area-->
+<!--      :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"-->
+<!--    >-->
+<!--      -->
+<!--    </q-scroll-area>-->
   </q-card>
   <q-dialog
     v-model="modalVisible"
