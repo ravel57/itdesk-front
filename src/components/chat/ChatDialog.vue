@@ -88,7 +88,8 @@
           <div
             v-for="message in this.messages"
             :key="message.id"
-            style="width: 100%; margin-top: 0"
+            style="position: relative;width: 100%; margin-top: 0"
+            @click.right="this.invertContextMenu"
           >
             <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
@@ -100,8 +101,6 @@
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
               :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
-              @click.right="this.invertContextMenu"
-              @change="scrollToBottom"
             >
               <template v-slot:stamp>
                 <span
@@ -163,102 +162,102 @@
                   v-html="this.findLinks(message.text)"
                   style="max-width: 400px;"
                 />
-                <q-menu
-                  v-if="this.isShowCustomContextMenu"
-                  touch-position
-                  context-menu
-                >
-                  <q-list dense style="min-width: 100px">
-                    <q-item
-                      clickable
-                      v-close-popup
-                    >
-                      <q-item-section
-                        @click="this.setReplyMessage(message)"
-                      >
-                        Ответить
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                    >
-                      <q-item-section
-                        @click="this.deleteMessage(message)"
-                      >
-                        Удалить
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                    >
-                      <q-item-section
-                        @click="copyToClipboard(message.text)"
-                      >
-                        Скопировать текст
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                    >
-                      <q-item-section
-                        @click="pastToInputField(message.text)"
-                        v-close-popup
-                      >
-                        Вставить в поле ввода
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                    >
-                      <q-item-section
-                        @click="this.createNewTask(message)"
-                        v-close-popup
-                      >
-                        Создать заявку из сообщения
-                      </q-item-section>
-                    </q-item>
-                    <!-- <q-item-->
-                    <!--   clickable-->
-                    <!-- >-->
-                    <!--   <q-item-section-->
-                    <!--     v-close-popup-->
-                    <!--   >-->
-                    <!--     Найти в базе знаний TODO-->
-                    <!--   </q-item-section>-->
-                    <!-- </q-item>-->
-                    <q-item
-                      v-if="this.tasks.length > 0"
-                      clickable
-                    >
-                      <q-item-section>
-                        Сделать ключевым для заявки
-                      </q-item-section>
-                      <q-item-section side>
-                        <q-icon name="keyboard_arrow_right"/>
-                      </q-item-section>
-                      <q-menu anchor="top end" self="top start">
-                        <q-list>
-                          <q-item
-                            v-for="task in this.tasks.filter(t => !t.completed)"
-                            :key="task"
-                            dense
-                            clickable
-                            @click="this.linkToTask(message, task)"
-                            v-close-popup
-                          >
-                            <q-item-section>
-                              {{ task.name }}
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-menu>
-                    </q-item>
-                  </q-list>
-                </q-menu>
               </div>
             </q-chat-message>
+            <q-menu
+              v-if="this.isShowCustomContextMenu"
+              touch-position
+              context-menu
+            >
+              <q-list dense style="min-width: 100px">
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="this.setReplyMessage(message)"
+                  >
+                    Ответить
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="this.deleteMessage(message)"
+                  >
+                    Удалить
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="copyToClipboard(message.text)"
+                  >
+                    Скопировать текст
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                >
+                  <q-item-section
+                    @click="pastToInputField(message.text)"
+                    v-close-popup
+                  >
+                    Вставить в поле ввода
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                >
+                  <q-item-section
+                    @click="this.createNewTask(message)"
+                    v-close-popup
+                  >
+                    Создать заявку из сообщения
+                  </q-item-section>
+                </q-item>
+                <!-- <q-item-->
+                <!--   clickable-->
+                <!-- >-->
+                <!--   <q-item-section-->
+                <!--     v-close-popup-->
+                <!--   >-->
+                <!--     Найти в базе знаний TODO-->
+                <!--   </q-item-section>-->
+                <!-- </q-item>-->
+                <q-item
+                  v-if="this.tasks.length > 0"
+                  clickable
+                >
+                  <q-item-section>
+                    Сделать ключевым для заявки
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon name="keyboard_arrow_right"/>
+                  </q-item-section>
+                  <q-menu anchor="top end" self="top start">
+                    <q-list>
+                      <q-item
+                        v-for="task in this.tasks.filter(t => !t.completed)"
+                        :key="task"
+                        dense
+                        clickable
+                        @click="this.linkToTask(message, task)"
+                        v-close-popup
+                      >
+                        <q-item-section>
+                          {{ task.name }}
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-item>
+              </q-list>
+            </q-menu>
           </div>
         </div>
       </q-page>
@@ -602,7 +601,7 @@ export default {
         setTimeout(() => {
           this.isShowCustomContextMenu = true
           this.rightClickCounter = 0
-        }, 1000)
+        }, 500)
       }
       this.rightClickCounter++
     },
