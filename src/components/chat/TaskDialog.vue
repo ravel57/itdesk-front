@@ -7,9 +7,18 @@
     <q-card
       :class="this.isMobile ? 'dialog-width' : 'large-dialog-width'"
     >
-      <q-toolbar
-        class="justify-end"
-      >
+      <q-toolbar class="justify-end">
+        <q-btn
+          v-if="!(this.$route.path.includes('chats'))"
+          flat
+          dense
+          icon="assignment_ind"
+          @click="this.$router.push({ path: `/chats/${this.client.id}` })"
+        >
+          <q-tooltip>
+            Перейти в чат
+          </q-tooltip>
+        </q-btn>
         <q-btn
           flat
           round
