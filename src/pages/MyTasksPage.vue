@@ -1,36 +1,47 @@
 <template>
-  <div style="padding: 16px">
-    <div
-      style="display: flex; flex-wrap: wrap; flex-direction: row"
-    >
-      <q-item
-        v-for="task in this.getFilteredTasks"
-        :key="task.id"
-        class="card cursor-pointer"
-        :style="this.isMobile ? 'justify-content: center;' : ''"
-      >
-        <task-card
-          :task="task"
-          :descriptionRequire="false"
-          :slaRequire="false"
-          :task-name-short="20"
-          :selected-sorting="''"
-          @onTaskClicked="this.onTaskClicked($event)"
-        />
-      </q-item>
+  <q-page padding style="padding-bottom: 0;">
+    <div style="display: flex; width: 100%;">
+      <q-input
+        outlined
+        v-model="this.searchRequest"
+        label="Поиск"
+        style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
+        clearable
+      />
     </div>
-    <task-dialog
-      v-if="this.isTaskDialogShow"
-      :client="this.selectedTask.client"
-      :isMobile="this.isMobile"
-      :task="this.selectedTask"
-      :isNewTaskDialogShow="this.isNewTaskDialogShow"
-      :isTaskDialogShow="this.isTaskDialogShow"
-      :isNewTask="false"
-      @closeDialog="this.$emit('closeDialog', $event)"
-      @updateTask="this.$emit('updateTask', $event)"
-    />
-  </div>
+    <div style="padding: 16px">
+      <div
+        style="display: flex; flex-wrap: wrap; flex-direction: row"
+      >
+        <q-item
+          v-for="task in this.getFilteredTasks"
+          :key="task.id"
+          class="card cursor-pointer"
+          :style="this.isMobile ? 'justify-content: center;' : ''"
+        >
+          <task-card
+            :task="task"
+            :descriptionRequire="false"
+            :slaRequire="false"
+            :task-name-short="20"
+            :selected-sorting="''"
+            @onTaskClicked="this.onTaskClicked($event)"
+          />
+        </q-item>
+      </div>
+      <task-dialog
+        v-if="this.isTaskDialogShow"
+        :client="this.selectedTask.client"
+        :isMobile="this.isMobile"
+        :task="this.selectedTask"
+        :isNewTaskDialogShow="this.isNewTaskDialogShow"
+        :isTaskDialogShow="this.isTaskDialogShow"
+        :isNewTask="false"
+        @closeDialog="this.$emit('closeDialog', $event)"
+        @updateTask="this.$emit('updateTask', $event)"
+      />
+    </div>
+  </q-page>
 </template>
 
 <script>
@@ -51,7 +62,7 @@ export default {
     isTaskDialogShow: false,
     isFilterSelected: false,
     selectedTask: {},
-    selectedGroupType: { label: 'Исполнитель', slug: 'executor' }
+    searchRequest: ''
   }),
 
   methods: {
