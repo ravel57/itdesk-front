@@ -176,11 +176,7 @@ export default {
     getClientLastMessage (client) {
       if (client.messages.at(-1)) {
         const lastMessageText = client.messages.at(-1).text
-        if (lastMessageText) {
-          return `: ${lastMessageText}`
-        } else {
-          return ''
-        }
+        return lastMessageText ? `: ${lastMessageText}` : ''
       } else {
         return null
       }
