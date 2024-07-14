@@ -638,8 +638,8 @@ export default {
             task.id.toString().toLowerCase().includes(this.searchRequest.toLowerCase()) ||
             task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
             // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase())
+            task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
+            // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
         }
         return (!task.completed || this.isShowCompletedTasks) && matchesSearchRequest
       })

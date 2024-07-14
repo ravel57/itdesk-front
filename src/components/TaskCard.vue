@@ -1,23 +1,53 @@
 <template>
-  <table>
+  <table
+    @click="this.$emit('onTaskClicked', this.task)"
+  >
     <tr v-if="task.completed">
-      <th class="small-text text-grey" v-text="'ЗАЯВКА ЗАКРЫТА'" colspan="2"/>
+      <th
+        class="small-text text-grey"
+        v-text="'ЗАЯВКА ЗАКРЫТА'"
+        colspan="2"
+      />
     </tr>
     <tr>
-      <th class="small-text text-grey" v-text="'ID заявки'"/>
-      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.id"/>
+      <th
+        class="small-text text-grey"
+        v-text="'ID заявки'"
+      />
+      <th
+        :class="{'text-body2': true, 'text-grey': task.completed}"
+        v-text="task.id"
+      />
     </tr>
     <tr>
-      <th class="small-text text-grey" v-text="'Название: '"/>
-      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.shortenLine(task.name)"/>
+      <th
+        class="small-text text-grey"
+        v-text="'Название: '"
+      />
+      <th
+        :class="{'text-body2': true, 'text-grey': task.completed}"
+        v-text="this.shortenLine(task.name)"
+      />
     </tr>
     <tr v-if="this.descriptionRequire">
-      <th class="small-text text-grey" v-text="'Описание: '"/>
-      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.description"/>
+      <th
+        class="small-text text-grey"
+        v-text="'Описание: '"
+      />
+      <th
+        :class="{'text-body2': true, 'text-grey': task.completed}"
+        v-text="task.description"
+      />
     </tr>
     <tr>
-      <th class="small-text text-grey" v-text="'Теги: '"/>
-      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.tags.map(tag => tag.name).join(', ')"/>
+      <th
+        class="small-text text-grey"
+        v-text="'Теги: '"
+      />
+      <th
+        :class="{'text-body2': true, 'text-grey': task.completed}"
+        v-text="task.tags.map(tag => tag.name).join(', ')"
+      />
     </tr>
     <tr>
       <th
@@ -28,7 +58,8 @@
       <th
         :class="{'text-body2': true, 'text-grey': task.completed}"
         :style="this.selectedSorting.slug === 'priority' ? 'font-weight: 600;': ''"
-        v-text="task.priority.name"/>
+        v-text="task.priority.name"
+      />
     </tr>
     <tr>
       <th

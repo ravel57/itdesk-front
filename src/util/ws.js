@@ -19,12 +19,7 @@ export function connect () {
       stompClient.subscribe('/topic/authenticated-users/', message => authenticatedUsersCallback(message))
     }
     if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
-      stompClient.subscribe('/topic/mark-read/', message => {
-        const binaryData = new Uint8Array(message._binaryBody)
-        const textDecoder = new TextDecoder('utf-8')
-        const decodedString = textDecoder.decode(binaryData)
-        console.log(JSON.parse(decodedString))
-      })
+      stompClient.subscribe('/topic/mark-read/', message => currentClientCallback(message))
     }
   })
 }
@@ -45,7 +40,7 @@ function clientsCallback (clients) {
       }
       if (task.sla) {
         task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-        task.sla.duration = moment.duration(task.sla.duration)
+        task.sla.duration = moment.duration(task.sla.duration * 1000)
       }
       task.messages.forEach(message => {
         message.date = new Date(message.date)
@@ -102,7 +97,7 @@ function clientsForObserverCallback (message) {
       }
       if (task.sla) {
         task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-        task.sla.duration = moment.duration(task.sla.duration)
+        task.sla.duration = moment.duration(task.sla.duration * 1000)
       }
     })
     if (it.user != null) {
@@ -114,4 +109,27 @@ function clientsForObserverCallback (message) {
     }
   })
   useStore().clients = parsedClients
+}
+
+function currentClientCallback (message) {
+  const binaryData = new Uint8Array(message._binaryBody)
+  const textDecoder = new TextDecoder('utf-8')
+  const decodedString = textDecoder.decode(binaryData)
+  const paredClient = JSON.parse(decodedString)
+  paredClient.messages.forEach(m => {
+    m.date = new Date(m.date)
+  })
+  paredClient.tasks.forEach(task => {
+    task.createdAt = new Date(task.createdAt)
+    if (task.deadline) {
+      task.deadline = new Date(task.deadline)
+    }
+    if (task.sla) {
+      task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
+      task.sla.duration = moment.duration(task.sla.duration * 1000)
+    }
+    task.messages.forEach(message => {
+      message.date = new Date(message.date)
+    })
+  })
 }

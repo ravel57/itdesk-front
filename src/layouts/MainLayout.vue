@@ -105,7 +105,7 @@ export default {
       },
       {
         title: 'Мои заявки',
-        icon: 'handshake',
+        icon: 'task',
         link: '/my-tasks',
         roles: ['ADMIN', 'OPERATOR']
       },
@@ -117,7 +117,7 @@ export default {
       },
       {
         title: 'Заявки',
-        icon: 'task',
+        icon: 'find_in_page',
         link: '/tasks',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
       },
