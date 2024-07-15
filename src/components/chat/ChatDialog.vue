@@ -69,7 +69,7 @@
           @click="goToMessage(message.id)"
           style="width: 100%; background-color: white"
         >
-          {{ message.text }}
+          {{this.getName(message) ? this.getName(message) : `${this.client.lastname} ${this.client.firstname}` }} : {{ message.text }}
         </q-item-section>
       </q-item>
     </q-list>
@@ -436,7 +436,8 @@ export default {
     'taskWatchingNow',
     'isShowHelper',
     'isMobile',
-    'isDialog'
+    'isDialog',
+    'client'
   ],
 
   data: () => ({
@@ -632,7 +633,9 @@ export default {
         this.isShowSearchResults = true
       } else {
         this.searchResults = []
-        this.isShowSearchResults = false
+        setTimeout(() => {
+          this.isShowSearchResults = false
+        }, 300)
       }
     },
 
@@ -643,7 +646,7 @@ export default {
     onBlur () {
       setTimeout(() => {
         this.isShowSearchResults = false
-      }, 100)
+      }, 300)
     },
 
     showHelper () {

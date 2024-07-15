@@ -1,5 +1,5 @@
 <template>
-  <q-page padding>
+  <q-page padding style="min-width: 0">
     <q-input
       v-if="this.store.clients.length > 0"
       v-model="searchQuery"

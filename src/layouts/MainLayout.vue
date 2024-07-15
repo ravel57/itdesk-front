@@ -16,8 +16,8 @@
           aria-label="Menu"
           @click="toggleLeftDrawer"
         />
-        <q-item @click="this.$router.push('/')" clickable>
-          <q-toolbar-title><logo-component/></q-toolbar-title>
+        <q-item style="padding: 0" @click="this.$router.push('/')" clickable>
+          <q-toolbar-title style="padding: 5px 0 0;"><logo-component style="height: 35px"/></q-toolbar-title>
         </q-item>
       </q-toolbar>
     </q-header>
@@ -45,7 +45,7 @@
                 style="align-items: start;"
                 name="menu"/>
               <div
-                style="width: 70%;
+                style="width: 71%;
                 position: absolute;
                 margin-left: 55px;
                 background-color: #5c35f9;

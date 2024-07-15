@@ -42,6 +42,7 @@
             :task-watching-now="this.getClient.watchingUsers"
             :deleteClient="this.deleteClient"
             :isShowHelper="this.isShowHelper"
+            :client="this.getClient"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
