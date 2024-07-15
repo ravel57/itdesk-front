@@ -17,10 +17,7 @@
           @click="toggleLeftDrawer"
         />
         <q-item @click="this.$router.push('/')" clickable>
-          <q-avatar>
-            <img src="/logo.png" alt=""/>
-          </q-avatar>
-          <q-toolbar-title>ITdesk</q-toolbar-title>
+          <q-toolbar-title><logo-component/></q-toolbar-title>
         </q-item>
       </q-toolbar>
     </q-header>
@@ -29,6 +26,7 @@
         v-model="leftDrawerOpen"
         show-if-above
         bordered
+        style="position: relative"
         :mini="miniState"
         :width="300"
         :breakpoint="500"
@@ -37,10 +35,28 @@
           <q-item
             v-if="this.$q.screen.width > 1023"
             clickable
+            style="overflow-x: hidden"
             @click="toggleLeftDrawer"
           >
-            <q-item-section avatar>
-              <q-icon style="align-items: start" name="menu"/>
+            <q-item-section
+              avatar
+            >
+              <q-icon
+                style="align-items: start;"
+                name="menu"/>
+              <div
+                style="width: 70%;
+                position: absolute;
+                margin-left: 55px;
+                background-color: #5c35f9;
+                border-radius: 4px;
+                justify-items: center;
+                display: flex;
+                justify-content: center;
+                align-items: center;"
+              >
+                <logo-component style="height: 35px;padding: 5px;"/>
+              </div>
             </q-item-section>
           </q-item>
           <essential-link
@@ -57,12 +73,13 @@
             <q-item-section avatar>
               <q-icon style="align-items: start" name="group"/>
             </q-item-section>
-            <q-item-section>
+            <q-item-section style="position: absolute;margin-left: 55px;">
               <q-item-label>Операторы онлайн:</q-item-label>
               <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item
+            style="position: absolute;bottom: 0;width: 100%;"
             clickable
             @click="this.logout"
           >
@@ -87,11 +104,13 @@ import EssentialLink from 'components/EssentialLink.vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import { useStore } from 'stores/store'
+import LogoComponent from 'components/Logo.vue'
 
 export default {
   name: 'MainLayout',
 
   components: {
+    LogoComponent,
     EssentialLink
   },
 

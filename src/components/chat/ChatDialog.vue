@@ -458,6 +458,7 @@ export default {
 
   mounted () {
     try {
+      this.scrollToBottom(50)
       this.$refs.textInput.focus()
     } catch (ignoredError) {}
   },

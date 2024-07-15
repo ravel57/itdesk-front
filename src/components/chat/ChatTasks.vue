@@ -113,14 +113,14 @@
                     v-if="!task.completed"
                     icon="check_circle"
                     label="Закрыть заявку"
-                    class="text-grey"
+                    class="text-dark"
                     flat
                     @click="this.setTaskCompleted(task)"
                   />
                   <q-btn
                     v-if="task.linkedMessageId"
                     icon="link"
-                    class="text-grey"
+                    class="text-dark"
                     flat
                     dense
                     @click="scrollToElementById(task)"
