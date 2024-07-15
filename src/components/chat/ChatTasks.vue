@@ -1,7 +1,7 @@
 <template>
   <q-card
     id="taskColumn"
-    style="padding: 16px;"
+    style="padding: 16px;overflow: hidden;"
     :style="this.isMobile ? 'height: calc(100vh - 110px)' : 'height: calc(100vh - 16px);'"
   >
     <div style="margin-bottom: 3px">
@@ -104,7 +104,7 @@
                 v-for="task in this.getActualTasks"
                 :key="task.id"
                 :id="`task_${task.id}`"
-                style="padding: 0"
+                style="padding: 0;overflow-x: hidden;"
                 class="shadow-2"
               >
                 <q-separator/>
@@ -113,14 +113,14 @@
                     v-if="!task.completed"
                     icon="check_circle"
                     label="Закрыть заявку"
-                    class="text-grey"
+                    class="text-dark"
                     flat
                     @click="this.setTaskCompleted(task)"
                   />
                   <q-btn
                     v-if="task.linkedMessageId"
                     icon="link"
-                    class="text-grey"
+                    class="text-dark"
                     flat
                     dense
                     @click="scrollToElementById(task)"

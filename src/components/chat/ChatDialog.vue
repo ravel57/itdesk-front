@@ -25,29 +25,33 @@
     />
   </div>
   <div style="position: relative">
-    <div style="display: flex; width: 100%;">
-      <q-input
-        v-model="search"
-        label="Поиск по сообщениям"
-        dense
-        clearable
-        style="width: 100%;padding: 0 8px;"
-        @focus="this.isShowSearchResults = true"
-        @blur="this.onBlur"
-      >
-        <template v-slot:append>
-          <q-icon name="search"/>
-        </template>
-      </q-input>
-      <q-btn
-        v-if="!this.isShowHelper & !this.isMobile"
-        icon="add"
-        @click="this.showHelper"
-        flat
-        dense
-        class="q-ml-auto"
-      />
-    </div>
+    <q-card
+      style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;z-index: 0"
+    >
+      <div style="display: flex; width: 100%;">
+        <q-input
+          v-model="search"
+          label="Поиск по сообщениям"
+          dense
+          clearable
+          style="width: 100%;padding: 0 8px 5px;"
+          @focus="this.isShowSearchResults = true"
+          @blur="this.onBlur"
+        >
+          <template v-slot:append>
+            <q-icon name="search"/>
+          </template>
+        </q-input>
+        <q-btn
+          v-if="!this.isShowHelper & !this.isMobile"
+          icon="add"
+          @click="this.showHelper"
+          flat
+          dense
+          class="q-ml-auto"
+        />
+      </div>
+    </q-card>
     <q-list
       v-if="this.isShowSearchResults"
       class="shadow-2 rounded-borders scrollable-list-container"
@@ -65,7 +69,7 @@
           @click="goToMessage(message.id)"
           style="width: 100%; background-color: white"
         >
-          {{ message.text }}
+          {{this.getName(message) ? this.getName(message) : `${this.client.lastname} ${this.client.firstname}` }} : {{ message.text }}
         </q-item-section>
       </q-item>
     </q-list>
@@ -76,19 +80,20 @@
     ref="chatDialog"
     :style="chatStyle"
     class="shadow-2"
+    @scroll="this.updateScroll"
   >
     <q-page-container>
       <q-page
         style="padding-top: 8px;min-height: 0"
         :ref="this.isDialog ? 'chatPopUp' : 'chat'"
         :id="this.isDialog ? 'chatPopUp' : 'chat'"
-        scroll
       >
         <div class="q-pa-md row justify-center q-gutter-md">
           <div
             v-for="message in this.messages"
             :key="message.id"
-            style="width: 100%; margin-top: 0"
+            style="position: relative;width: 100%; margin-top: 0"
+            @click.right="this.invertContextMenu"
           >
             <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
@@ -100,8 +105,6 @@
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
               :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
-              @click.right="this.invertContextMenu"
-              @change="scrollToBottom"
             >
               <template v-slot:stamp>
                 <span
@@ -163,102 +166,102 @@
                   v-html="this.findLinks(message.text)"
                   style="max-width: 400px;"
                 />
-                <q-menu
-                  v-if="this.isShowCustomContextMenu"
-                  touch-position
-                  context-menu
-                >
-                  <q-list dense style="min-width: 100px">
-                    <q-item
-                      clickable
-                      v-close-popup
-                    >
-                      <q-item-section
-                        @click="this.setReplyMessage(message)"
-                      >
-                        Ответить
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                    >
-                      <q-item-section
-                        @click="this.deleteMessage(message)"
-                      >
-                        Удалить
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                      v-close-popup
-                    >
-                      <q-item-section
-                        @click="copyToClipboard(message.text)"
-                      >
-                        Скопировать текст
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                    >
-                      <q-item-section
-                        @click="pastToInputField(message.text)"
-                        v-close-popup
-                      >
-                        Вставить в поле ввода
-                      </q-item-section>
-                    </q-item>
-                    <q-item
-                      clickable
-                    >
-                      <q-item-section
-                        @click="this.createNewTask(message)"
-                        v-close-popup
-                      >
-                        Создать заявку из сообщения
-                      </q-item-section>
-                    </q-item>
-                    <!-- <q-item-->
-                    <!--   clickable-->
-                    <!-- >-->
-                    <!--   <q-item-section-->
-                    <!--     v-close-popup-->
-                    <!--   >-->
-                    <!--     Найти в базе знаний TODO-->
-                    <!--   </q-item-section>-->
-                    <!-- </q-item>-->
-                    <q-item
-                      v-if="this.tasks.length > 0"
-                      clickable
-                    >
-                      <q-item-section>
-                        Сделать ключевым для заявки
-                      </q-item-section>
-                      <q-item-section side>
-                        <q-icon name="keyboard_arrow_right"/>
-                      </q-item-section>
-                      <q-menu anchor="top end" self="top start">
-                        <q-list>
-                          <q-item
-                            v-for="task in this.tasks.filter(t => !t.completed)"
-                            :key="task"
-                            dense
-                            clickable
-                            @click="this.linkToTask(message, task)"
-                            v-close-popup
-                          >
-                            <q-item-section>
-                              {{ task.name }}
-                            </q-item-section>
-                          </q-item>
-                        </q-list>
-                      </q-menu>
-                    </q-item>
-                  </q-list>
-                </q-menu>
               </div>
             </q-chat-message>
+            <q-menu
+              v-if="this.isShowCustomContextMenu"
+              touch-position
+              context-menu
+            >
+              <q-list dense style="min-width: 100px">
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="this.setReplyMessage(message)"
+                  >
+                    Ответить
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="this.deleteMessage(message)"
+                  >
+                    Удалить
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="copyToClipboard(message.text)"
+                  >
+                    Скопировать текст
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                >
+                  <q-item-section
+                    @click="pastToInputField(message.text)"
+                    v-close-popup
+                  >
+                    Вставить в поле ввода
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                >
+                  <q-item-section
+                    @click="this.createNewTask(message)"
+                    v-close-popup
+                  >
+                    Создать заявку из сообщения
+                  </q-item-section>
+                </q-item>
+                <!-- <q-item-->
+                <!--   clickable-->
+                <!-- >-->
+                <!--   <q-item-section-->
+                <!--     v-close-popup-->
+                <!--   >-->
+                <!--     Найти в базе знаний TODO-->
+                <!--   </q-item-section>-->
+                <!-- </q-item>-->
+                <q-item
+                  v-if="this.tasks.length > 0"
+                  clickable
+                >
+                  <q-item-section>
+                    Сделать ключевым для заявки
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon name="keyboard_arrow_right"/>
+                  </q-item-section>
+                  <q-menu anchor="top end" self="top start">
+                    <q-list>
+                      <q-item
+                        v-for="task in this.tasks.filter(t => !t.completed)"
+                        :key="task"
+                        dense
+                        clickable
+                        @click="this.linkToTask(message, task)"
+                        v-close-popup
+                      >
+                        <q-item-section>
+                          {{ task.name }}
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-item>
+              </q-list>
+            </q-menu>
           </div>
         </div>
       </q-page>
@@ -433,7 +436,8 @@ export default {
     'taskWatchingNow',
     'isShowHelper',
     'isMobile',
-    'isDialog'
+    'isDialog',
+    'client'
   ],
 
   data: () => ({
@@ -455,7 +459,7 @@ export default {
 
   mounted () {
     try {
-      this.scrollToBottom(300)
+      this.scrollToBottom(50)
       this.$refs.textInput.focus()
     } catch (ignoredError) {}
   },
@@ -471,11 +475,8 @@ export default {
 
     scrollToBottom (timeout = 0) {
       setTimeout(() => {
-        document.getElementById(this.isDialog ? 'chatPopUp' : 'chat')
-          .scrollIntoView({
-            block: 'end',
-            behavior: `${timeout !== 0 ? 'auto' : 'smooth'}`
-          })
+        const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
+        scrollArea.scrollTo(0, document.getElementById('chat-dialog').children[0].children[0].scrollHeight)
       }, timeout)
     },
 
@@ -506,7 +507,7 @@ export default {
         }
         chat.style.height = this.chatStyle.height
       })
-      this.scrollToBottom()
+      this.scrollToBottom(500)
     },
 
     handleTabPressed (event) {
@@ -602,7 +603,7 @@ export default {
         setTimeout(() => {
           this.isShowCustomContextMenu = true
           this.rightClickCounter = 0
-        }, 1000)
+        }, 500)
       }
       this.rightClickCounter++
     },
@@ -632,7 +633,9 @@ export default {
         this.isShowSearchResults = true
       } else {
         this.searchResults = []
-        this.isShowSearchResults = false
+        setTimeout(() => {
+          this.isShowSearchResults = false
+        }, 300)
       }
     },
 
@@ -643,7 +646,7 @@ export default {
     onBlur () {
       setTimeout(() => {
         this.isShowSearchResults = false
-      }, 100)
+      }, 300)
     },
 
     showHelper () {
@@ -699,10 +702,8 @@ export default {
     },
     chatStyle () {
       return {
-        height: this.isDialog ? '85.9%' : (this.isMobile ? '76vh' : 'calc(100vh - 103px)'),
+        height: this.isDialog ? '85.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
         'border-radius': '0',
-        'border-top-left-radius': '5px',
-        'border-top-right-radius': '5px',
         'min-height': '0',
         'background-color': '#F0F0F0'
       }
@@ -728,12 +729,21 @@ export default {
     },
     search (newVal) {
       this.onSearch(newVal)
+    },
+    messages (oldVal, newVal) {
+      if (newVal.length !== 0) {
+        if (oldVal.length !== newVal.length) {
+          const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+          if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
+            this.scrollToBottom(100)
+          }
+        }
+      } else {
+        if (oldVal.length !== newVal.length) {
+          this.scrollToBottom(0)
+        }
+      }
     }
-    // messages (oldVal, newVal) {
-    //   if (oldVal !== newVal) {
-    //     this.scrollToBottom()
-    //   }
-    // }
   },
 
   setup () {
@@ -764,4 +774,5 @@ textarea:focus {
   height: 70px;
   overflow-y: auto;
 }
+
 </style>
