@@ -1,7 +1,7 @@
 <template>
   <q-card
     id="taskColumn"
-    style="padding: 16px;"
+    style="padding: 16px;overflow: hidden;"
     :style="this.isMobile ? 'height: calc(100vh - 110px)' : 'height: calc(100vh - 16px);'"
   >
     <div style="margin-bottom: 3px">

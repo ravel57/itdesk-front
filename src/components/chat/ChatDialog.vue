@@ -506,7 +506,7 @@ export default {
         }
         chat.style.height = this.chatStyle.height
       })
-      this.scrollToBottom(600)
+      this.scrollToBottom(500)
     },
 
     handleTabPressed (event) {
