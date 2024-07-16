@@ -43,6 +43,7 @@
             :deleteClient="this.deleteClient"
             :isShowHelper="this.isShowHelper"
             :client="this.getClient"
+            :isEnd="this.isEnd"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -114,7 +115,8 @@ export default {
     isNotificationEnabled: true,
     isSending: false,
     linkedMessageId: null,
-    isShowHelper: true
+    isShowHelper: true,
+    isEnd: false
   }),
 
   methods: {
@@ -244,7 +246,8 @@ export default {
     getMessagePage (pageCounter) {
       axios.get(`/api/v1/client/${this.getClient.id}/get-message-page?page=${pageCounter}`)
         .then(response => {
-          const messages = response.data
+          const messages = response.data.messages
+          this.isEnd = response.data.isEnd
           messages.forEach(message => { message.date = new Date(message.date) })
           this.getClient.messages = messages.concat(this.getClient.messages)
         })

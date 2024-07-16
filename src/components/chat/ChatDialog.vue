@@ -439,7 +439,8 @@ export default {
     'isShowHelper',
     'isMobile',
     'isDialog',
-    'client'
+    'client',
+    'isEnd'
   ],
 
   data: () => ({
@@ -453,7 +454,8 @@ export default {
     search: '',
     searchResults: [],
     isShowSearchResults: false,
-    pageCounter: 0
+    pageCounter: 0,
+    requestPending: false
   }),
 
   updated () {
@@ -701,9 +703,20 @@ export default {
     },
     getPortionMessages () {
       const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
-      if (Array.from({ length: (140 - 90) + 1 }, (value, index) => 90 + index).includes(scrollZone.scrollTop)) {
-        this.pageCounter = this.pageCounter + 1
-        this.$emit('getMessagePage', this.pageCounter)
+      if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 === 0) {
+        if (!this.requestPending && !this.isEnd) {
+          this.requestPending = true
+          const previousScrollHeight = scrollZone.scrollHeight
+          const previousScrollTop = scrollZone.scrollTop
+          this.pageCounter = this.pageCounter + 1
+          this.$emit('getMessagePage', this.pageCounter)
+          setTimeout(() => {
+            this.requestPending = false
+            const newScrollHeight = scrollZone.scrollHeight
+            const addedHeight = newScrollHeight - previousScrollHeight
+            scrollZone.scrollTop = previousScrollTop + addedHeight
+          }, 200)
+        }
       }
     }
   },
