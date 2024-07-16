@@ -242,7 +242,7 @@ export default {
     },
 
     getMessagePage (pageCounter) {
-      axios.get(`/client/${this.getClient.id}/get-message-page`, pageCounter)
+      axios.get(`/client/${this.getClient.id}/get-message-page?page=${pageCounter}`)
         .then(response => {
           this.getClient.messages = this.getClient.messages.concat(response.data)
         })

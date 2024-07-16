@@ -701,7 +701,7 @@ export default {
     },
     getPortionMessages () {
       const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
-      if (Array.from({ length: (100 - 90) + 1 }, (value, index) => 90 + index).includes(scrollZone.scrollTop)) {
+      if (Array.from({ length: (140 - 90) + 1 }, (value, index) => 90 + index).includes(scrollZone.scrollTop)) {
         this.pageCounter = this.pageCounter + 1
         this.$emit('getMessagePage', this.pageCounter)
       }
