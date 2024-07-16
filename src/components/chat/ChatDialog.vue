@@ -80,7 +80,7 @@
     ref="chatDialog"
     :style="chatStyle"
     class="shadow-2"
-    @scroll="this.updateScroll"
+    @scroll="this.getPortionMessages()"
   >
     <q-page-container>
       <q-page
@@ -135,7 +135,8 @@
                 >
                 <video
                   v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
-                  style="width: 100%; max-width: 400px"
+                  style="max-width: 400px"
+                  :style="this.getMediaMessageSize(message)"
                   controls
                 >
                   <source
@@ -451,7 +452,8 @@ export default {
     replyMessageId: null,
     search: '',
     searchResults: [],
-    isShowSearchResults: false
+    isShowSearchResults: false,
+    pageCounter: 0
   }),
 
   updated () {
@@ -696,6 +698,13 @@ export default {
         newHeight = (400 * message.fileHeight) / message.fileWidth
       }
       return `height: ${newHeight}px; width: ${message.fileWidth}px`
+    },
+    getPortionMessages () {
+      const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+      if (Array.from({ length: (100 - 90) + 1 }, (value, index) => 90 + index).includes(scrollZone.scrollTop)) {
+        this.pageCounter = this.pageCounter + 1
+        this.$emit('getMessagePage', this.pageCounter)
+      }
     }
   },
 

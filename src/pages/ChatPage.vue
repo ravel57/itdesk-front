@@ -52,6 +52,7 @@
             @clearLinkedMessageId="this.clearLinkedMessageId"
             @deleteMessage="this.deleteMessage"
             @showHelper="this.showHelper"
+            @getMessagePage="this.getMessagePage"
           />
         </div>
         <div
@@ -238,6 +239,13 @@ export default {
       this.isShowHelper = false
       this.tab = 'tab1'
       localStorage.setItem('isShowHelper', 'false')
+    },
+
+    getMessagePage (pageCounter) {
+      axios.get(`/client/${this.getClient.id}/get-message-page`, pageCounter)
+        .then(response => {
+          this.getClient.messages = this.getClient.messages.concat(response.data)
+        })
     }
   },
 
