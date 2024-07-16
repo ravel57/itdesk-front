@@ -16,12 +16,24 @@
           aria-label="Menu"
           @click="toggleLeftDrawer"
         />
-        <q-item style="padding: 0" @click="this.$router.push('/')" clickable>
-          <q-toolbar-title style="padding: 5px 0 0;"><logo-component style="height: 35px"/></q-toolbar-title>
+        <q-item
+          style="padding: 0"
+          @click="this.$router.push('/')"
+          clickable
+        >
+          <q-toolbar-title
+            style="padding: 5px 0 0;"
+          >
+            <logo-component
+              style="height: 35px"
+            />
+          </q-toolbar-title>
         </q-item>
       </q-toolbar>
     </q-header>
-    <div style="position: fixed;height: 100%;z-index: 10001;">
+    <div
+      style="position: fixed; height: 100%; z-index: 6000;"
+    >
       <q-drawer
         v-model="leftDrawerOpen"
         show-if-above

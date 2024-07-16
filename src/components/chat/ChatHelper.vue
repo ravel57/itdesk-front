@@ -69,20 +69,20 @@
             </div>
           </q-expansion-item>
         </q-card>
-        <q-card style="margin-bottom: 8px">
-          <q-expansion-item label="Макросы" class="spoiler">
-            <div style="height: 60vh;overflow: auto">
-              <q-item
-                v-for="(item, index) in this.macros"
-                :key="index"
-                class="hidden-text q-layout-padding"
-                clickable
-              >
-                {{ item.text }}
-              </q-item>
-            </div>
-          </q-expansion-item>
-        </q-card>
+<!--        <q-card style="margin-bottom: 8px">-->
+<!--          <q-expansion-item label="Макросы" class="spoiler">-->
+<!--            <div style="height: 60vh;overflow: auto">-->
+<!--              <q-item-->
+<!--                v-for="(item, index) in this.macros"-->
+<!--                :key="index"-->
+<!--                class="hidden-text q-layout-padding"-->
+<!--                clickable-->
+<!--              >-->
+<!--                {{ item.text }}-->
+<!--              </q-item>-->
+<!--            </div>-->
+<!--          </q-expansion-item>-->
+<!--        </q-card>-->
       </q-card-section>
     </div>
 <!--    <q-scroll-area-->

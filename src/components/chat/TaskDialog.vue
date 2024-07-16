@@ -1,7 +1,6 @@
 <template>
   <q-dialog
     v-model="getPossibilityToOpenDialogTask"
-    style="z-index: 10002"
     persistent
     backdrop-filter="blur(4px)"
   >
