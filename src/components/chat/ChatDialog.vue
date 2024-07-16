@@ -129,7 +129,8 @@
                 <img
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
-                  style="width: 100%; max-width: 400px"
+                  style="max-width: 400px;"
+                  :style="this.getMediaMessageSize(message)"
                   alt=""
                 >
                 <video
@@ -688,6 +689,13 @@ export default {
         chat.style.height = textarea.offsetHeight > 46 ? `calc(${this.chatStyle.height} - ${textarea.offsetHeight - 46 + 'px'})` : this.chatStyle.height
         this.textareaHeight = textarea.style.height
       })
+    },
+    getMediaMessageSize (message) {
+      let newHeight = message.fileHeight
+      if (message.fileHeight > 400) {
+        newHeight = (400 * message.fileHeight) / message.fileWidth
+      }
+      return `height: ${newHeight}px; width: ${message.fileWidth}px`
     }
   },
 
