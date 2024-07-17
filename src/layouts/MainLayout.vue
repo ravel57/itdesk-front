@@ -218,7 +218,7 @@ export default {
       if (title === 'Чаты') {
         try {
           const messageCounter = this.store.clients
-            .filter(client => client.messages.filter(message => !message.read).length > 0)
+            .filter(client => client.unreadMessagesCount > 0)
             .length
           return this.miniState && messageCounter > 9 ? '9+' : messageCounter
         } catch (e) {

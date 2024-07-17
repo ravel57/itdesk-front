@@ -72,6 +72,7 @@ function authenticatedUsersCallback (usersOnline) {
 
 export function markRead (client) {
   const user = useStore().currentUser
+  client.tasks.forEach(task => { delete task.client })
   stompClient.send('/app/mark-read', {}, JSON.stringify({ client, user }))
 }
 

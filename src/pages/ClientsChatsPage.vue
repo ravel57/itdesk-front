@@ -196,15 +196,11 @@ export default {
         //   return this.getActualTasks(client).length > 0
         // })
       }
-      // clients = clients.sort((b, a) => {
-      //   const maxB = Math.max(...b.messages.map(e => e.date))
-      //   const maxA = Math.max(...a.messages.map(e => e.date))
-      //   return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
-      // })
-      clients.filter(client => client.lastMessage && client.messages)
-        .forEach(client => {
-          client.unreadMessagesCount = client.messages.filter(e => !e.read).length
-        })
+      clients = clients.sort((b, a) => {
+        const maxB = b.lastMessage.date
+        const maxA = a.lastMessage.date
+        return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
+      })
       return clients
     }
   },
