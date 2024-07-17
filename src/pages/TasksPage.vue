@@ -27,7 +27,7 @@
           </template>
           <q-list>
             <q-item
-              v-for="(grouper, index) in this.filterType"
+              v-for="(grouper, index) in this.filterTypes"
               :key="index"
               clickable
               v-close-popup
@@ -180,7 +180,7 @@
         </div>
       </div>
       <q-btn
-        v-if="filterType.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
+        v-if="filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
         flat
         color="grey"
         icon="add_circle"
@@ -196,7 +196,7 @@
         >
           <q-list>
             <q-item
-              v-for="option in filterType.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label))"
+              v-for="option in filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label))"
               :key="option.value"
               clickable
               @click="handleNewFilterSelection(option.label)"
@@ -299,12 +299,13 @@ import TasksComponent from 'components/tasks/TasksComponent.vue'
 export default {
   components: { TasksComponent },
   data: () => ({
-    filterType: [
+    filterTypes: [
       { label: 'Исполнитель', slug: 'executor' },
       { label: 'Тег', slug: 'tag' },
       { label: 'Организация', slug: 'organization' },
       { label: 'Приоритет', slug: 'priority' },
-      { label: 'Статус', slug: 'status' }
+      { label: 'Статус', slug: 'status' },
+      { label: 'Клиент', slug: 'client' }
     ],
     selectedGroupType: { label: 'Исполнитель', slug: 'executor' },
     filterChain: [],
@@ -426,9 +427,9 @@ export default {
 
     handleNewFilterSelection (label) {
       this.isMenuActive = false
-      const slug = this.filterType.filter(el => el.label === label)[0].slug
+      const slug = this.filterTypes.filter(el => el.label === label)[0].slug
       let options
-      if (slug === 'executor') {
+      if (slug === 'executor') { // TODO переделать на switch case
         options = this.executors
       } else if (slug === 'tag') {
         options = this.tags
@@ -438,6 +439,8 @@ export default {
         options = this.priorities
       } else if (slug === 'status') {
         options = this.statuses
+      } else if (slug === 'client') {
+        options = this.clients
       }
       this.filterChain.push({ label, options, selectedOptions: [] })
       this.addNewFilterSelectorText = ''
@@ -644,7 +647,7 @@ export default {
         return (!task.completed || this.isShowCompletedTasks) && matchesSearchRequest
       })
       this.filterChain.forEach(el => {
-        const slug = this.filterType.filter(ft => ft.label === el.label)[0].slug
+        const slug = this.filterTypes.filter(ft => ft.label === el.label)[0].slug
         switch (slug) {
           case 'executor': {
             tasks = tasks.filter(task => task.executor !== null)
@@ -672,6 +675,9 @@ export default {
           case 'status': {
             tasks = tasks.filter(task => el.selectedOptions.includes(task.status.name))
             break
+          }
+          case 'client': {
+            tasks = tasks.filter(task => el.selectedOptions.includes(`${task.client.lastname} ${task.client.firstname}`))
           }
         }
       })
@@ -721,6 +727,10 @@ export default {
           source = this.statuses
           options = Object.groupBy(tasks, ({ status }) => status.name)
           break
+        }
+        case 'client':{
+          source = this.clients
+          options = Object.groupBy(tasks, ({ client }) => `${client.lastname} ${client.firstname}`)
         }
       }
 
@@ -803,6 +813,10 @@ export default {
       return this.store.statuses.map(status => status.name)
     },
 
+    clients () {
+      return this.store.clients.map(client => `${client.lastname} ${client.firstname}`)
+    },
+
     isMobile () {
       return this.$q.screen.width < 1023
     },
@@ -834,11 +848,7 @@ export default {
 
     selectedSavedFilter: {
       handler (newVal) {
-        if (newVal !== '') {
-          this.isShowDelFilterPreset = true
-        } else {
-          this.isShowDelFilterPreset = false
-        }
+        this.isShowDelFilterPreset = newVal !== ''
       },
       deep: true
     },
