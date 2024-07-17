@@ -171,7 +171,7 @@ export default {
     },
 
     markMessagesRead () {
-      if (this.getClient.id) {
+      if (this.getClient && this.getClient.id) {
         markRead(this.getClient)
       }
     },
