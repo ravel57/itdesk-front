@@ -419,7 +419,6 @@
 </template>
 
 <script>
-// TODO загрузка порциями
 import { useStore } from 'stores/store'
 
 export default {
@@ -454,7 +453,7 @@ export default {
     search: '',
     searchResults: [],
     isShowSearchResults: false,
-    pageCounter: 0,
+    pageCounter: 2,
     requestPending: false
   }),
 
@@ -708,8 +707,8 @@ export default {
           this.requestPending = true
           const previousScrollHeight = scrollZone.scrollHeight
           const previousScrollTop = scrollZone.scrollTop
-          this.pageCounter = this.pageCounter + 1
           this.$emit('getMessagePage', this.pageCounter)
+          this.pageCounter++
           setTimeout(() => {
             this.requestPending = false
             const newScrollHeight = scrollZone.scrollHeight

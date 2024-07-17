@@ -26,14 +26,15 @@ export function connect () {
 
 function clientsCallback (clients) {
   const parsedClients = JSON.parse(clients.body)
-  parsedClients.forEach(it => {
-    if (it.lastname === null) {
-      it.lastname = ''
+  parsedClients.forEach(client => {
+    if (client.lastname === null) {
+      client.lastname = ''
     }
-    it.messages.forEach(message => {
-      message.date = new Date(message.date)
-    })
-    it.tasks.forEach(task => {
+    // client.messages.forEach(message => {
+    //   message.date = new Date(message.date)
+    // })
+    client.messages = useStore().clients.find(c => c.id === client.id).messages
+    client.tasks.forEach(task => {
       task.createdAt = new Date(task.createdAt)
       if (task.deadline) {
         task.deadline = new Date(task.deadline)
@@ -46,14 +47,14 @@ function clientsCallback (clients) {
         message.date = new Date(message.date)
       })
     })
-    if (it.user != null) {
-      it.user.forEach(user => {
+    if (client.user != null) {
+      client.user.forEach(user => {
         if (user.lastname === null) {
           user.lastname = ''
         }
       })
     }
-    // it.tasks.forEach(task => { task.client = it })
+    client.tasks.forEach(task => { task.client = client })
   })
   useStore().clients = parsedClients
 }
@@ -87,9 +88,9 @@ function clientsForObserverCallback (message) {
     if (it.lastname === null) {
       it.lastname = ''
     }
-    it.messages.forEach(message => {
-      message.date = new Date(message.date)
-    })
+    // it.messages.forEach(message => {
+    //   message.date = new Date(message.date)
+    // })
     it.tasks.forEach(task => {
       task.createdAt = new Date(task.createdAt)
       if (task.deadline) {
@@ -116,9 +117,9 @@ function currentClientCallback (message) {
   const textDecoder = new TextDecoder('utf-8')
   const decodedString = textDecoder.decode(binaryData)
   const paredClient = JSON.parse(decodedString)
-  paredClient.messages.forEach(m => {
-    m.date = new Date(m.date)
-  })
+  // paredClient.messages.forEach(m => {
+  //   m.date = new Date(m.date)
+  // })
   paredClient.tasks.forEach(task => {
     task.createdAt = new Date(task.createdAt)
     if (task.deadline) {

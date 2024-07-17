@@ -42,11 +42,11 @@ export const useStore = defineStore('store', {
       axios.get('/api/v1/clients')
         .then(response => {
           this.clients = response.data
-          this.clients.forEach(it => {
-            it.messages.forEach(message => {
-              message.date = new Date(message.date)
-            })
-            it.tasks.forEach(task => {
+          this.clients.forEach(client => {
+            // client.messages.forEach(message => {
+            //   message.date = new Date(message.date)
+            // })
+            client.tasks.forEach(task => {
               task.createdAt = new Date(task.createdAt)
               if (task.deadline) {
                 task.deadline = new Date(task.deadline)

@@ -64,7 +64,6 @@
           <chat-helper
             :isMobile="this.isMobile"
             :templates="this.store.templates"
-            :macros="this.macros"
             :knowledgeBase="this.store.knowledgeBase"
             @onTemplateClick="onTemplateClick"
             @hideHelper="this.hideHelper"
@@ -109,7 +108,6 @@ export default {
 
   data: () => ({
     tab: 'tab1',
-    macros: [], // FIXME
     inputField: '',
     isComment: false,
     isNotificationEnabled: true,
@@ -249,7 +247,11 @@ export default {
           const messages = response.data.messages
           this.isEnd = response.data.isEnd
           messages.forEach(message => { message.date = new Date(message.date) })
-          this.getClient.messages = messages.concat(this.getClient.messages)
+          if (pageCounter <= 1) {
+            this.getClient.messages = messages
+          } else {
+            this.getClient.messages = messages.concat(this.getClient.messages)
+          }
         })
     }
   },
@@ -258,12 +260,13 @@ export default {
     getClient () {
       const clientId = Number(this.router.params.clientId)
       const client = this.store.clients.find(client => client.id === clientId)
-      if (client !== undefined) {
+      if (client) {
         return client
       } else {
         return {
           messages: [],
-          tasks: []
+          tasks: [],
+          id: clientId
         }
       }
     },
@@ -274,6 +277,7 @@ export default {
   },
 
   mounted () {
+    this.getMessagePage(1)
     if (this.isMobile) {
       this.tab = 'tab3'
     }
