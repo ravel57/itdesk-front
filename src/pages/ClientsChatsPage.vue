@@ -204,14 +204,6 @@ export default {
       clients.filter(client => client.lastMessage && client.messages)
         .forEach(client => {
           client.unreadMessagesCount = client.messages.filter(e => !e.read).length
-            .toLocaleTimeString('ru-RU', {
-              timeZone: 'Europe/Moscow',
-              year: 'numeric',
-              month: 'numeric',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })
         })
       return clients
     }
