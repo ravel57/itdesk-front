@@ -69,7 +69,7 @@
           @click="goToMessage(message.id)"
           style="width: 100%; background-color: white"
         >
-          {{this.getName(message) ? this.getName(message) : `${this.client.lastname} ${this.client.firstname}` }} : {{ message.text }}
+          {{ this.getName(message) ? this.getName(message) : `${this.client.lastname} ${this.client.firstname}` }} : {{ message.text }}
         </q-item-section>
       </q-item>
     </q-list>
@@ -117,13 +117,13 @@
                 />
               </template>
               <div
-                v-if="this.getReplyMessageText(message)"
+                v-if="message.replyMessageText"
                 class="flex"
               >
                 <q-icon
                   name="reply"
                 />
-                {{ this.getReplyMessageText(message) }}
+                {{ message.replyMessageText }}
               </div>
               <div>
                 <img
@@ -465,7 +465,8 @@ export default {
     try {
       this.scrollToBottom(50)
       this.$refs.textInput.focus()
-    } catch (ignoredError) {}
+    } catch (ignoredError) {
+    }
   },
 
   methods: {
@@ -616,15 +617,6 @@ export default {
       this.replyMessageId = message.id
     },
 
-    getReplyMessageText (message) {
-      const find = this.messages.find(m => message.id !== null && m.id !== null && m.id === message.replyMessageId)
-      if (find) {
-        return find.text
-      } else {
-        return null
-      }
-    },
-
     onSearch () {
       if (this.search) {
         this.searchResults = this.messages.filter(message => {
@@ -693,6 +685,7 @@ export default {
         this.textareaHeight = textarea.style.height
       })
     },
+
     getMediaMessageSize (message) {
       let newHeight = message.fileHeight
       if (message.fileHeight > 400) {
@@ -700,22 +693,21 @@ export default {
       }
       return `height: ${newHeight}px; width: ${message.fileWidth}px`
     },
+
     getPortionMessages () {
       const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
-      if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 === 0) {
-        if (!this.requestPending && !this.isEnd) {
-          this.requestPending = true
-          const previousScrollHeight = scrollZone.scrollHeight
-          const previousScrollTop = scrollZone.scrollTop
-          this.$emit('getMessagePage', this.pageCounter)
-          this.pageCounter++
-          setTimeout(() => {
-            this.requestPending = false
-            const newScrollHeight = scrollZone.scrollHeight
-            const addedHeight = newScrollHeight - previousScrollHeight
-            scrollZone.scrollTop = previousScrollTop + addedHeight
-          }, 200)
-        }
+      if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 === 0 && !this.requestPending && !this.isEnd) {
+        this.requestPending = true
+        const previousScrollHeight = scrollZone.scrollHeight
+        const previousScrollTop = scrollZone.scrollTop
+        this.$emit('getMessagePage', this.pageCounter)
+        this.pageCounter++
+        setTimeout(() => {
+          this.requestPending = false
+          const newScrollHeight = scrollZone.scrollHeight
+          const addedHeight = newScrollHeight - previousScrollHeight
+          scrollZone.scrollTop = previousScrollTop + addedHeight
+        }, 200)
       }
     }
   },
@@ -754,11 +746,15 @@ export default {
 
   watch: {
     linkedMessageId () {
-      this.scrollToElementById(`message_${this.linkedMessageId}`)
+      if (this.linkedMessageId) {
+        this.scrollToElementById(`message_${this.linkedMessageId}`)
+      }
     },
+
     search (newVal) {
       this.onSearch(newVal)
     },
+
     messages (oldVal, newVal) {
       if (newVal.length !== 0) {
         if (oldVal.length !== newVal.length) {
