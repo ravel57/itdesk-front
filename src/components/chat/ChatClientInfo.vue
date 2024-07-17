@@ -1,93 +1,93 @@
 <template>
-      <div
-        style="display: flex"
-      >
-        <div
-          class="text-h6"
-          @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
-          @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
-          v-text="`${this.client.lastname} ${this.client.firstname}`"
-        />
-        <q-btn
-          v-if="this.editClientInfoButtonShow.value || this.isMobile"
-          @mouseenter="editButtonCancelHide(this.editShowTimer)"
-          icon="edit"
-          @click="dialogShow"
-          dense
-          flat
-          size="xs"
-        />
-<!--        <q-toggle-->
-<!--          v-model="this.isNotificationEnabled"-->
-<!--          icon="notifications_active"-->
-<!--          color="primary"-->
-<!--          class="element q-position-absolute q-right-0"-->
-<!--          @mouseover="this.showTooltipNotifications = true"-->
-<!--          @mouseup="this.showTooltipNotifications = false"-->
-<!--        >-->
-<!--          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
-<!--        </q-toggle>-->
-        <q-btn
-          icon="expand_circle_down"
-          flat
-          dense
-          class="q-ml-auto"
-          color="grey"
-        >
-          <q-menu v-model="this.menuOpened" content-class="menu-content">
-            <q-list>
-              <q-item clickable v-close-popup>
-                <q-item-section>rPCSMT</q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup>
-                <q-item-section>new user generator</q-item-section>
-              </q-item>
-              <q-item clickable v-close-popup>
-                <q-item-section>check-adminpc</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
-      </div>
-      <div
-        class="flex"
-        style="align-items: center"
-      >
-        <q-icon
-          v-if="this.getOrganization"
-          name="store"
-        />
-        <div
-          class="text-subtitle2"
-          @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
-          @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
-          v-text="this.getOrganization"
-        />
-      </div>
-      <div
-        class="text-subtitle2"
-        @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
-        @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
-        v-text="this.client.moreInfo"
-      />
-      <div
-        class="text-subtitle2"
-        style="align-items: center"
-      >
-        <img
-          v-if="client.messageFrom === 'TELEGRAM'"
-          src="/telegram.png"
-          alt="tg"
-          style="width: 16px"
-        >
-        <img
-          v-else-if="client.messageFrom === 'EMAIL'"
-          src="/email.png"
-          alt="email"
-          style="width: 16px"
-        >
-        {{ this.client.sourceChannel }}
-      </div>
+  <div
+    style="display: flex"
+  >
+    <div
+      class="text-h6"
+      @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+      @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
+      v-text="this.getClientName"
+    />
+    <q-btn
+      v-if="this.editClientInfoButtonShow.value || this.isMobile"
+      @mouseenter="editButtonCancelHide(this.editShowTimer)"
+      icon="edit"
+      @click="dialogShow"
+      dense
+      flat
+      size="xs"
+    />
+    <!--        <q-toggle-->
+    <!--          v-model="this.isNotificationEnabled"-->
+    <!--          icon="notifications_active"-->
+    <!--          color="primary"-->
+    <!--          class="element q-position-absolute q-right-0"-->
+    <!--          @mouseover="this.showTooltipNotifications = true"-->
+    <!--          @mouseup="this.showTooltipNotifications = false"-->
+    <!--        >-->
+    <!--          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
+    <!--        </q-toggle>-->
+    <q-btn
+      icon="expand_circle_down"
+      flat
+      dense
+      class="q-ml-auto"
+      color="grey"
+    >
+      <q-menu v-model="this.menuOpened" content-class="menu-content">
+        <q-list>
+          <q-item clickable v-close-popup>
+            <q-item-section>rPCSMT</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup>
+            <q-item-section>new user generator</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup>
+            <q-item-section>check-adminpc</q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-btn>
+  </div>
+  <div
+    class="flex"
+    style="align-items: center"
+  >
+    <q-icon
+      v-if="this.getOrganization"
+      name="store"
+    />
+    <div
+      class="text-subtitle2"
+      @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+      @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
+      v-text="this.getOrganization"
+    />
+  </div>
+  <div
+    class="text-subtitle2"
+    @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
+    @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
+    v-text="this.client.moreInfo"
+  />
+  <div
+    class="text-subtitle2"
+    style="align-items: center"
+  >
+    <img
+      v-if="client.messageFrom === 'TELEGRAM'"
+      src="/telegram.png"
+      alt="tg"
+      style="width: 16px"
+    >
+    <img
+      v-else-if="client.messageFrom === 'EMAIL'"
+      src="/email.png"
+      alt="email"
+      style="width: 16px"
+    >
+    {{ this.client.sourceChannel }}
+  </div>
   <q-dialog
     v-model="this.dialogVisible"
     persistent
@@ -95,7 +95,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-end">
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
@@ -253,6 +253,23 @@ export default {
       } else {
         return ''
       }
+    },
+
+    getClientName () {
+      return `${this.client.lastname ? this.client.lastname : ''} ${this.client.firstname ? this.client.firstname : ''}`
+    }
+  },
+
+  watch: {
+    client: {
+      immediate: true,
+      handler (newVal) {
+        if (newVal !== undefined) {
+          if ((newVal.firstname || newVal.lastname) !== undefined) {
+            document.title = `Чат: ${this.client.firstname} ${this.client.lastname !== null ? this.client.lastname : ''}`
+          }
+        }
+      }
     }
   }
 }
@@ -263,9 +280,11 @@ export default {
   display: flex;
   align-items: center;
 }
+
 .menu-content {
   min-width: 200px;
 }
+
 .scrollable-div {
   overflow: auto;
 }
