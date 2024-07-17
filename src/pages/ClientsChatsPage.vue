@@ -30,10 +30,21 @@
               >
                 <q-item-section>
                   <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
-                  <q-item-label caption>{{ this.getOrganization(client) }}</q-item-label>
-                  <q-item-label class="shorten-text" caption>{{ this.getTimeLastMessage(client.lastMessageTime) }} {{this.getClientLastMessage(client)}}</q-item-label>
+                  <q-item-label
+                    caption
+                  >
+                    {{ this.getOrganization(client) }}
+                  </q-item-label>
+                  <q-item-label
+                    class="shorten-text"
+                    caption
+                  >
+                    {{ this.getTimeLastMessage(new Date(client.lastMessage.date)) }}: {{client.lastMessage.text }}
+                  </q-item-label>
                   <div class="flex items-end">
-                    <q-item-label caption>
+                    <q-item-label
+                      caption
+                    >
                       Заявок: {{ this.getActualTasks(client).length }}
                     </q-item-label>
                     <q-linear-progress
@@ -146,20 +157,10 @@ export default {
       }
     },
 
-    parseDateString (dateString) {
-      const [datePart, timePart] = dateString.split(', ')
-      const [day, month, year] = datePart.split('.').map(Number)
-      const [hours, minutes] = timePart.split(':').map(Number)
-
-      return new Date(year, month - 1, day, hours, minutes)
-    },
-
-    getTimeLastMessage (dateString) {
-      if (dateString !== 'Invalid Date') {
-        console.log(dateString)
-        const pastDate = this.parseDateString(dateString)
+    getTimeLastMessage (date) {
+      if (date) {
         const currentDate = new Date()
-        const timeDifference = currentDate - pastDate
+        const timeDifference = currentDate - date
         const seconds = Math.floor(timeDifference / 1000)
         const minutes = Math.floor(seconds / 60)
         const hours = Math.floor(minutes / 60)
@@ -169,16 +170,14 @@ export default {
         if (hours % 24 > 0) parts.push(`${hours % 24} часов`)
         parts.push(`${minutes % 60} минут`)
         const result = parts.join(' ')
-        return `${result} назад (${dateString})`
-      }
-    },
-
-    getClientLastMessage (client) {
-      if (client.messages.at(-1)) {
-        const lastMessageText = client.messages.at(-1).text
-        return lastMessageText ? `: ${lastMessageText}` : ''
-      } else {
-        return null
+        return `${result} назад (${date.toLocaleTimeString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })})`
       }
     }
   },
@@ -197,23 +196,23 @@ export default {
         //   return this.getActualTasks(client).length > 0
         // })
       }
-      clients = clients.sort((b, a) => {
-        const maxB = Math.max(...b.messages.map(e => e.date))
-        const maxA = Math.max(...a.messages.map(e => e.date))
-        return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
-      })
-      clients.forEach(client => {
-        client.unreadMessagesCount = client.messages.filter(e => !e.read).length
-        client.lastMessageTime = new Date(Math.max(...client.messages.map(e => e.date)))
-          .toLocaleTimeString('ru-RU', {
-            timeZone: 'Europe/Moscow',
-            year: 'numeric',
-            month: 'numeric',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })
-      })
+      // clients = clients.sort((b, a) => {
+      //   const maxB = Math.max(...b.messages.map(e => e.date))
+      //   const maxA = Math.max(...a.messages.map(e => e.date))
+      //   return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
+      // })
+      clients.filter(client => client.lastMessage && client.messages)
+        .forEach(client => {
+          client.unreadMessagesCount = client.messages.filter(e => !e.read).length
+            .toLocaleTimeString('ru-RU', {
+              timeZone: 'Europe/Moscow',
+              year: 'numeric',
+              month: 'numeric',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
+        })
       return clients
     }
   },
