@@ -139,7 +139,7 @@ export default {
 
   mounted () {
     setTimeout(() => this.initializeTaskFromUrl(), 300)
-    document.title = 'ITdesk мои заявки'
+    document.title = 'ULDESK мои заявки'
   },
 
   watch: {

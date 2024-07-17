@@ -206,7 +206,7 @@ export default {
   },
 
   mounted () {
-    document.title = 'ITdesk чаты'
+    document.title = 'ULDESK чаты'
   },
 
   setup () {

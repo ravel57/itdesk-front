@@ -65,7 +65,7 @@ export default {
   },
 
   mounted () {
-    document.title = 'ITdesk помощь'
+    document.title = 'ULDESK помощь'
   },
 
   setup () {
