@@ -8,6 +8,7 @@
       :class="this.isMobile ? 'dialog-width' : 'large-dialog-width'"
     >
       <q-toolbar class="justify-end">
+        <!--FIXME-->
         <q-btn
           v-if="!(this.$route.path.includes('chats'))"
           flat
@@ -65,6 +66,12 @@
               <q-card-section
                 class="no-padding"
               >
+                <q-input
+                  v-if="this.dialogTaskId"
+                  v-model="this.dialogTaskId"
+                  label="ID"
+                  readonly
+                />
                 <q-input
                   v-model="this.dialogTaskName"
                   ref="taskName"

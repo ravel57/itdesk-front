@@ -84,8 +84,8 @@
           >
             <q-item-section avatar>
               <q-icon
-                style="align-items:
-                start" name="group"
+                style="align-items:start"
+                name="group"
               />
               <circle-counter
                 v-if="this.miniState"
