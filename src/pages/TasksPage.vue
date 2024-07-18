@@ -766,6 +766,10 @@ export default {
     '$route' (to) {
       this.initializeFilterChainFromUrl()
       this.initializeTaskFromUrl()
+    },
+
+    selectedGroupType () {
+      localStorage.setItem('GroupType', `{ "label": "${this.selectedGroupType.label}", "slug": "${this.selectedGroupType.slug}" }`)
     }
   },
 
@@ -787,6 +791,13 @@ export default {
           }]
         }))
     this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
+  },
+
+  created () {
+    const savedGroupType = localStorage.getItem('GroupType')
+    if (savedGroupType) {
+      this.selectedGroupType = JSON.parse(savedGroupType)
+    }
   },
 
   setup () {
