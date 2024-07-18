@@ -191,8 +191,6 @@ export default {
 
     linkToTask (message, task) {
       axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, { message, task })
-        .then(response => {
-        })
         .catch(e => {
           this.$q.notify({
             message: e.message,
@@ -211,8 +209,6 @@ export default {
 
     deleteMessage (message) {
       axios.delete(`/api/v1/client/${this.getClient.id}/delete-message/${message.id}`)
-        .then(response => {
-        })
         .catch(e => {
           this.$q.notify({
             message: e.message,
@@ -242,17 +238,18 @@ export default {
     },
 
     getMessagePage (pageCounter) {
-      axios.get(`/api/v1/client/${this.getClient.id}/get-message-page?page=${pageCounter}`)
-        .then(response => {
-          const messages = response.data.messages
-          this.isEnd = response.data.isEnd
-          messages.forEach(message => { message.date = new Date(message.date) })
-          if (pageCounter <= 1) {
-            this.getClient.messages = messages
-          } else {
+      if (pageCounter <= 1) {
+        this.getClient.messages = this.store.currentChatMessageData.messages
+        this.isEnd = this.store.currentChatMessageData.isEnd
+      } else {
+        axios.get(`/api/v1/client/${this.getClient.id}/get-message-page?page=${pageCounter}`)
+          .then(response => {
+            const messages = response.data.messages
+            this.isEnd = response.data.isEnd
+            messages.forEach(message => { message.date = new Date(message.date) })
             this.getClient.messages = messages.concat(this.getClient.messages)
-          }
-        })
+          })
+      }
     }
   },
 
@@ -277,7 +274,6 @@ export default {
   },
 
   mounted () {
-    this.getMessagePage(1)
     if (this.isMobile) {
       this.tab = 'tab3'
     }
@@ -291,7 +287,7 @@ export default {
   },
 
   created () {
-    document.title = `Чат: ${this.getClient.firstname} ${this.getClient.lastname}`
+    this.getMessagePage(1)
     this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
     const typingMessageTextElement = this.store.clients
       .find(client => client.id === this.getClient.id)

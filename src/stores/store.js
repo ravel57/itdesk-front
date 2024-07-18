@@ -27,7 +27,12 @@ export const useStore = defineStore('store', {
     currentUser: {
       authorities: ['ADMIN']
     },
-    currentClient: {}
+    currentClient: {},
+    currentChatMessageData:
+      {
+        messages: [],
+        isEnd: false
+      }
   }),
 
   getters: {
@@ -105,6 +110,21 @@ export const useStore = defineStore('store', {
       axios.get('/api/v1/knowledge-base')
         .then(response => {
           this.knowledgeBase = response.data
+        })
+    },
+    fetchClientMessages (clientId) {
+      return axios.get(`/api/v1/client/${clientId}/get-message-page?page=1`)
+        .then(response => {
+          const messages = response.data.messages
+          const isEnd = response.data.isEnd
+          messages.forEach(message => { message.date = new Date(message.date) })
+          this.currentChatMessageData.messages = messages
+          this.currentChatMessageData.isEnd = isEnd
+          return { messages, isEnd }
+        })
+        .catch(error => {
+          console.error(error)
+          throw error
         })
     }
   }

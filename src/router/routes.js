@@ -1,3 +1,5 @@
+import { useStore } from 'stores/store'
+
 const routes = [
   {
     path: '/',
@@ -18,7 +20,21 @@ const routes = [
       },
       {
         path: 'chats/:clientId(\\d+)',
-        component: () => import('pages/ChatPage.vue')
+        component: () => import('pages/ChatPage.vue'),
+        beforeEnter: (to, from, next) => {
+          const store = useStore()
+          const clientId = to.params.clientId
+
+          if (!store.currentChatMessageData.length || store.currentClient.id !== parseInt(clientId)) {
+            store.fetchClientMessages(clientId)
+              .then(() => {
+                store.currentClient = store.clients.find(client => client.id === parseInt(clientId)) || {}
+                next()
+              })
+          } else {
+            next()
+          }
+        }
       },
       {
         path: 'tasks',

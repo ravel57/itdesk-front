@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).length > 0"
+    v-if="this.nowWatching.length > 0"
     style="
       display: block;
       position: absolute;
@@ -21,7 +21,7 @@
     ">
     <div
       style="display: flex; flex-wrap: nowrap; flex-direction: row"
-      v-text="`Сейчас смотрят: ${this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
+      v-text="`Сейчас смотрят: ${this.nowWatching.map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
     />
   </div>
   <div style="position: relative">
@@ -718,9 +718,11 @@ export default {
       const s = filter.length > 1 ? ' печатают...' : ' печатает...'
       return filter.map(t => `${t.firstname} ${t.lastname}`).join(', ') + s
     },
+
     renderShortcutPlaceholder () {
       return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
     },
+
     chatStyle () {
       return {
         height: this.isDialog ? '85.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
@@ -729,6 +731,7 @@ export default {
         'background-color': '#F0F0F0'
       }
     },
+
     textareaStyle () {
       return {
         borderStyle: 'unset',
@@ -741,6 +744,10 @@ export default {
         transition: 'height 0.2s ease',
         backgroundColor: this.isComment ? '#d1c4e9' : ''
       }
+    },
+
+    nowWatching () {
+      return this.taskWatchingNow.filter(user => user.id !== this.currentUser.id)
     }
   },
 
@@ -755,19 +762,20 @@ export default {
       this.onSearch(newVal)
     },
 
-    messages (oldVal, newVal) {
-      if (newVal.length !== 0) {
-        if (oldVal.length !== newVal.length) {
-          const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
-          if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
-            this.scrollToBottom(100)
+    messages: {
+      immediate: true,
+      handler (newVal, oldVal) {
+        if (newVal.length !== 0) {
+          if (oldVal.length === 0) {
+            this.scrollToBottom(0)
           }
         }
-      } else {
-        if (oldVal.length !== newVal.length) {
-          this.scrollToBottom(0)
+        const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+        if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
+          this.scrollToBottom(100)
         }
-      }
+      },
+      deep: true
     }
   },
 
