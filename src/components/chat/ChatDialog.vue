@@ -458,7 +458,7 @@ export default {
   }),
 
   updated () {
-    this.$emit('updated')
+    setTimeout(() => { this.$emit('updated') }, 150)
   },
 
   mounted () {
@@ -765,15 +765,14 @@ export default {
     messages: {
       immediate: true,
       handler (newVal, oldVal) {
-        if (newVal.length !== 0) {
-          if (oldVal.length === 0) {
-            this.scrollToBottom(0)
+        try {
+          if (document.getElementById('chat-dialog').children[0].children[0]) {
+            const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+            if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
+              this.scrollToBottom(0)
+            }
           }
-        }
-        const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
-        if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
-          this.scrollToBottom(100)
-        }
+        } catch (ignoreError) {}
       },
       deep: true
     }
