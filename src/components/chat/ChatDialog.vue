@@ -1,26 +1,11 @@
 <template>
   <div
     v-if="this.nowWatching.length > 0"
-    style="
-      display: block;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 0 5px;
-      font-size: 14px;
-      z-index: 1000;
-      color: white;
-      max-width: 100%;
-      background: #5C35F9;
-      border-radius: 5px;
-     "
-    :style="
-    'opacity: 0.4' +
-    ';left: ' + (this.isMobile ? '50%' : (!this.isShowHelper ? '35%' : '23%')) +
-    ';top: ' + (this.isMobile ? '9%' : '7%')
-    ">
+    class="now-watching-cloud"
+    :style="this.nowWatchingStyle"
+  >
     <div
-      style="display: flex; flex-wrap: nowrap; flex-direction: row"
+      class="now-watching-text"
       v-text="`Сейчас смотрят: ${this.nowWatching.map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
     />
   </div>
@@ -285,33 +270,12 @@
       >
         <div
           v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
-          style="
-            display: block;
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 0 5px;
-            color: white;
-            font-size: 14px;
-            z-index: 1000;
-            margin-bottom: 5px;
-            opacity: .6;
-            max-width: 100%;
-         "
+          class="action-clouds"
         >
           <div style="display: flex; flex-direction: column; flex-wrap: nowrap">
             <div
               v-if="this.attachedFile"
-              style="
-                      display: flex;
-                      flex-wrap: nowrap;
-                      align-items: center;
-                      background-color: #5C35F9;
-                      border-radius: 5px;
-                      justify-content: center;
-                      padding-left: 10px"
-              class="popupContent"
+              class="attach-file-text"
             >
               {{ this.shortenLine(this.attachedFile.name) }}
               <q-btn
@@ -322,26 +286,12 @@
               />
             </div>
             <div
-              style="
-                      background-color: #5C35F9;
-                      border-radius: 5px;
-                      margin-top: 5px;
-                      text-align: center;
-                      padding-left: 10px;
-                      padding-right: 10px;
-                    "
+              class="typing-users-cloud"
               v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
               v-text="this.getTypingUsers"
             />
             <div
-              style="
-                    background-color: #5C35F9;
-                    border-radius: 5px;
-                    margin-top: 5px;
-                    text-align: center;
-                    padding-left: 10px;
-                    padding-right: 10px;
-                    font-size: 16px;"
+              class="reply-message-cloud"
               v-if="this.replyMessageId !== null"
             >
               <q-icon
@@ -748,6 +698,14 @@ export default {
 
     nowWatching () {
       return this.taskWatchingNow.filter(user => user.id !== this.currentUser.id)
+    },
+
+    nowWatchingStyle () {
+      return {
+        opacity: '0.4',
+        left: this.isMobile ? '50%' : (!this.isShowHelper ? '35%' : '23%'),
+        top: this.isMobile ? '9%' : '7%'
+      }
     }
   },
 
@@ -787,6 +745,71 @@ export default {
 </script>
 
 <style scoped>
+
+.now-watching-cloud {
+  display: block;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  font-size: 14px;
+  z-index: 1000;
+  color: white;
+  max-width: 100%;
+  background: #5C35F9;
+  border-radius: 5px;
+}
+
+.now-watching-text {
+  display: flex;
+  flex-wrap: nowrap;
+  flex-direction: row
+}
+
+.action-clouds {
+  display: block;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  color: white;
+  font-size: 14px;
+  z-index: 1000;
+  margin-bottom: 5px;
+  opacity: .6;
+  max-width: 100%;
+}
+
+.attach-file-text {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  background-color: #5C35F9;
+  border-radius: 5px;
+  justify-content: center;
+  padding-left: 10px
+}
+
+.typing-users-cloud {
+  background-color: #5C35F9;
+  border-radius: 5px;
+  margin-top: 5px;
+  text-align: center;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.reply-message-cloud {
+  background-color: #5C35F9;
+  border-radius: 5px;
+  margin-top: 5px;
+  text-align: center;
+  padding-left: 10px;
+  padding-right: 10px;
+  font-size: 16px;
+}
+
 textarea {
   width: 200%;
   resize: none;
