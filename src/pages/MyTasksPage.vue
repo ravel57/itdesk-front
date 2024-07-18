@@ -20,15 +20,13 @@
           clickable
           :style="this.isMobile ? 'justify-content: center;' : ''"
         >
-          <q-btn
-            style="margin: 0 0 8px;padding: 0"
-            flat
-            dense
-            icon="assignment_ind"
-            @click.stop="this.$router.push({ path: `/chats/${task.client.id}` })"
+          <a
+            style="font-size: 15px "
+            :href="this.getChatLink(task.client.id)"
           >
-          Перейти в чат
-          </q-btn>
+            <q-icon name="assignment_ind"/>
+            Перейти в чат
+          </a>
           <task-card
             :task="task"
             :descriptionRequire="false"
@@ -116,6 +114,11 @@ export default {
       } else {
         this.isNewTaskDialogShow = false
       }
+    },
+
+    getChatLink (id) {
+      const origin = window.location.origin
+      return `${origin}/chats/${id}`
     }
   },
 
@@ -171,4 +174,8 @@ export default {
   margin-right: 8px;
   margin-bottom: 8px
 }
+a:visited { text-decoration: none; }
+a:hover { text-decoration: none; }
+a:focus { text-decoration: none; }
+a:hover, a:active { text-decoration: none; }
 </style>

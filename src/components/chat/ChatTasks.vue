@@ -283,14 +283,6 @@ export default {
       this.$emit('scrollToElementById', task.linkedMessageId)
     },
 
-    onSearch () {
-      if (this.search) {
-        this.actualTasks = this.getActualTasks.filter(task => {
-          return task.name.includes(this.search)
-        })
-      }
-    },
-
     goToTask (taskId) {
       this.scrollToElementById(`task_${taskId}`)
     },
@@ -362,7 +354,15 @@ export default {
     getActualTasks () {
       const filteredTasks = this.tasks.filter(task => {
         const showCompleted = !task.completed || this.isShowCompletedTasks
-        const matchSearch = !this.search || task.name.toLowerCase().includes(this.search.toLowerCase())
+        let matchSearch = true
+        if (this.search) {
+          matchSearch = task.name.toLowerCase().includes(this.search.toLowerCase()) ||
+            task.id.toString().toLowerCase().includes(this.search.toLowerCase()) ||
+            task.priority.name.toLowerCase().includes(this.search.toLowerCase()) ||
+            // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
+            task.status.name.toLowerCase().includes(this.search.toLowerCase()) // ||
+          // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
+        }
         return showCompleted && matchSearch
       })
       if (this.selectedSorting.slug) {
@@ -423,10 +423,6 @@ export default {
   },
 
   watch: {
-    search (newVal) {
-      this.onSearch(newVal)
-    },
-
     isNewTaskDialogShow (newVal) {
       if (this.isNewTaskDialogShow === false) {
         const queryParams = new URLSearchParams(window.location.search)

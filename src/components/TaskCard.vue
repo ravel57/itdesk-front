@@ -136,6 +136,11 @@
         />
       </th>
     </tr>
+    <tr v-if="!this.$route.path.includes('chat')">
+<!--      FIXME-->
+      <th class="small-text text-grey" v-text="'Последняя активность: '"/>
+      <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.getStamp(new Date(task.client.lastMessage.date))"/>
+    </tr>
   </table>
 </template>
 

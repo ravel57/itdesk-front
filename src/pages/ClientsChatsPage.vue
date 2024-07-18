@@ -220,7 +220,7 @@ export default {
 
 <style scoped>
 .shorten-text {
-  width:60vw;
+  width:80vw;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
