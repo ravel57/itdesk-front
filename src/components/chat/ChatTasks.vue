@@ -36,6 +36,7 @@
           </div>
         </div>
         <q-btn
+          v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
           class="text-grey-7 cursor-pointer"
           @click="this.dialogNewTask"
           label="Создать заявку"
@@ -164,6 +165,7 @@ import axios from 'axios'
 import ChatInfo from 'components/chat/ChatClientInfo.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import TaskCard from 'components/TaskCard.vue'
+import { useStore } from 'stores/store'
 
 export default {
 
@@ -434,6 +436,11 @@ export default {
 
   mounted () {
     setInterval(() => this.initializeTaskFromUrl(), 500)
+  },
+
+  setup () {
+    const store = useStore()
+    return { store }
   }
 
 }
