@@ -5,7 +5,7 @@
     backdrop-filter="blur(4px)"
   >
     <q-card
-      :class="this.isMobile ? 'dialog-width' : 'large-dialog-width'"
+      :class="this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) ? 'dialog-width' : 'large-dialog-width'"
     >
       <q-toolbar class="justify-end">
         <!--FIXME-->
@@ -142,7 +142,7 @@
                     style="width: 100%; margin-right: 8px"
                   />
                   <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete"
+                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
                     label="Закрыть заявку"
                     color="white"
                     text-color="primary"
@@ -150,14 +150,14 @@
                     @click="this.setTaskCompleted(this.task)"
                   />
                   <q-btn
-                    v-if="this.dialogTaskComplete"
+                    v-if="this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
                     label="Вернуть в работу"
                     color="white"
                     text-color="primary"
                     @click="this.setTaskNotCompleted(this.task)"
                   />
                   <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete"
+                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
                     icon="ac_unit"
                     text-color="primary"
                     style="margin-left: 8px"
@@ -170,8 +170,8 @@
             </q-card>
           </div>
           <div
+            v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
             class="flex-item"
-            v-if="(!this.isMobile || this.dialogTab === 'tab2')"
             style="margin-bottom: 1.6%"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
