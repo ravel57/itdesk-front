@@ -235,7 +235,7 @@ export default {
     },
 
     updateTask (task, newTask) {
-      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask
     },
 
     setTaskCompleted (task) {

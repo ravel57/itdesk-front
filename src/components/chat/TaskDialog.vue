@@ -154,8 +154,9 @@
                     icon="ac_unit"
                     text-color="primary"
                     style="margin-left: 8px"
+                    @click="changeTaskFrozen(this.task)"
                   >
-                    <q-tooltip>Заморозить заявку</q-tooltip>
+                    <q-tooltip>{{ this.task.frozen ? 'Заморозить заявку' : 'Разморозить заявку' }}</q-tooltip>
                   </q-btn>
                 </div>
               </q-card-section>
@@ -346,12 +347,10 @@ export default {
 
     setTaskCompleted (task) {
       task.completed = true
-      task = Object.keys(task).filter(objKey =>
-        objKey !== 'client').reduce((newObj, client) => {
+      task = Object.keys(task).filter(objKey => objKey !== 'client').reduce((newObj, client) => {
         newObj[client] = task[client]
         return newObj
-      }, {}
-      )
+      }, {})
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
@@ -378,16 +377,37 @@ export default {
 
     setTaskNotCompleted (task) {
       task.completed = false
-      task = Object.keys(task).filter(objKey =>
-        objKey !== 'client').reduce((newObj, client) => {
+      task = Object.keys(task).filter(objKey => objKey !== 'client').reduce((newObj, client) => {
         newObj[client] = task[client]
         return newObj
-      }, {}
-      )
+      }, {})
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
           this.$emit('updateTask', task, newTask)
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+    },
+
+    changeTaskFrozen (task) {
+      task.frozen = !task.frozen
+      console.log(task)
+      task = Object.keys(task).filter(objKey => objKey !== 'client').reduce((newObj, client) => {
+        newObj[client] = task[client]
+        return newObj
+      }, {})
+      axios.patch(`/api/v1/client/${this.client.id}/task`, task)
+        .then(newTask => {
+          this.closeDialog()
+          this.$emit('updateTask', task, newTask.data)
         })
         .catch(e =>
           this.$q.notify({
