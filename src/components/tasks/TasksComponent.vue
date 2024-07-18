@@ -49,6 +49,7 @@
 <script>
 import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
+import moment from 'moment'
 
 export default {
 
@@ -60,7 +61,6 @@ export default {
     'isShowTableMode',
     'isMobile',
     'tableRows',
-    'tableColumns',
     'isFilterSelected',
     'groupedTasks',
     'selectedGroupType',
@@ -69,7 +69,103 @@ export default {
     'selectedTask'
   ],
 
-  data: () => ({}),
+  data: () => ({
+    tableColumns: [
+      {
+        name: 'id',
+        label: 'ID',
+        align: 'left',
+        field: row => row.id,
+        sortable: true
+      },
+      {
+        name: 'name',
+        label: 'Название',
+        align: 'left',
+        field: row => row.name.length > 31 ? row.name.substring(0, 60) + '...' : row.name,
+        sortable: true
+      },
+      {
+        name: 'tags',
+        label: 'Теги',
+        align: 'left',
+        field: row => row.tags.map(tag => tag.name).join(', '),
+        sortable: true
+      },
+      {
+        name: 'priority',
+        label: 'Приоритет',
+        align: 'left',
+        field: row => row.priority.name,
+        sortable: true
+      },
+      {
+        name: 'createdAt',
+        label: 'Создана',
+        align: 'left',
+        field: row => row.createdAt.toLocaleTimeString('ru-RU', {
+          timeZone: 'Europe/Moscow',
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        sortable: true
+      },
+      {
+        name: 'status',
+        label: 'Статус',
+        align: 'left',
+        field: row => row.status.name,
+        sortable: true
+      },
+      {
+        name: 'deadline',
+        label: 'Дедлайн',
+        align: 'left',
+        field: row => row.deadline
+          ? row.deadline.toLocaleTimeString('ru-RU', {
+            timeZone: 'Europe/Moscow',
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+          : '',
+        sortable: true
+      },
+      {
+        name: 'executor',
+        label: 'Исполнитель',
+        align: 'left',
+        field: row => row.executor
+          ? row.executor.firstname + ' ' + row.executor.lastname
+          : '',
+        sortable: true
+      },
+      {
+        name: 'sla',
+        label: 'SLA',
+        align: 'left',
+        field: row => {
+          if (!row.sla || !row.sla.startDate || !row.sla.duration) {
+            return '0 ч. 0 м.'
+          }
+          const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
+          const now = moment()
+          const duration = moment.duration(endDateTime.diff(now))
+          if (duration.asMilliseconds() < 0) {
+            return '0 ч. 0 м.'
+          } else {
+            return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+          }
+        },
+        sortable: true
+      }
+    ]
+  }),
 
   methods: {
     shortenLine (string) {
