@@ -107,6 +107,10 @@ const routes = [
           {
             path: 'email',
             component: () => import('pages/settings/EmailPage.vue')
+          },
+          {
+            path: 'license',
+            component: () => import('pages/settings/LicensePage.vue')
           }
         ]
       },

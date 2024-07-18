@@ -103,6 +103,12 @@ export default {
         link: '/settings/email',
         slug: 'email',
         roles: ['ADMIN']
+      },
+      {
+        title: 'Лицензия',
+        link: '/settings/license',
+        slug: 'license',
+        roles: ['ADMIN']
       }
     ]
   }),
