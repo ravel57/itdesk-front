@@ -39,7 +39,7 @@
                     class="shorten-text"
                     caption
                   >
-                    {{ this.getTimeLastMessage(new Date(client.lastMessage.date)) }}: {{client.lastMessage.text }}
+                    {{ this.getTimeLastMessage(client) +' : ' + this.getLastMessage(client) }}
                   </q-item-label>
                   <div class="flex items-end">
                     <q-item-label
@@ -157,10 +157,11 @@ export default {
       }
     },
 
-    getTimeLastMessage (date) {
-      if (date) {
+    getTimeLastMessage (client) {
+      if (client.lastMessage) {
+        const dateFormatted = new Date(client.lastMessage.date)
         const currentDate = new Date()
-        const timeDifference = currentDate - date
+        const timeDifference = currentDate - dateFormatted
         const seconds = Math.floor(timeDifference / 1000)
         const minutes = Math.floor(seconds / 60)
         const hours = Math.floor(minutes / 60)
@@ -170,7 +171,7 @@ export default {
         if (hours % 24 > 0) parts.push(`${hours % 24} часов`)
         parts.push(`${minutes % 60} минут`)
         const result = parts.join(' ')
-        return `${result} назад (${date.toLocaleTimeString('ru-RU', {
+        return `${result} назад (${dateFormatted.toLocaleTimeString('ru-RU', {
           timeZone: 'Europe/Moscow',
           year: 'numeric',
           month: 'numeric',
@@ -178,6 +179,23 @@ export default {
           hour: '2-digit',
           minute: '2-digit'
         })})`
+      }
+    },
+    getLastMessage (client) {
+      if (client.lastMessage) {
+        if (client.lastMessage.text) {
+          return client.lastMessage.text
+        } else {
+          if (client.lastMessage.fileType.startsWith('video/')) {
+            return 'Видео'
+          } else if (client.lastMessage.fileType.startsWith('image/')) {
+            return 'Изображение'
+          } else if (client.lastMessage.fileType.startsWith('audio/')) {
+            return 'Аудио'
+          }
+        }
+      } else {
+        return ''
       }
     }
   },
