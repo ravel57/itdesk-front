@@ -118,8 +118,8 @@
                 >
                 <video
                   v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
-                  style="max-width: 400px"
-                  :style="this.getMediaMessageSize(message)"
+                  style="max-width: 400px;"
+                  :style="this.isMobile ? 'height: 200px;width: 200px' : 'height: 400px;width: 400px'"
                   controls
                 >
                   <source
