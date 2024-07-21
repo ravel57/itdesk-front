@@ -55,10 +55,12 @@
         </div>
         <div
           :class="this.isMobile ? '' : 'flex-container'"
+          style="max-height: 600px;"
         >
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab1')"
             class="flex-item"
+            style="max-height: 100%"
           >
             <q-card
               class="no-border-card"
@@ -159,11 +161,11 @@
                   <q-btn
                     v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
                     icon="ac_unit"
-                    text-color="primary"
+                    :text-color="this.task.frozen ? 'primary' : 'gray'"
                     style="margin-left: 8px"
                     @click="changeTaskFrozen(this.task)"
                   >
-                    <q-tooltip>{{ this.task.frozen ? 'Заморозить заявку' : 'Разморозить заявку' }}</q-tooltip>
+                    <q-tooltip>{{ this.task.frozen ? 'Разморозить заявку' : 'Заморозить заявку' }}</q-tooltip>
                   </q-btn>
                 </div>
               </q-card-section>
@@ -197,7 +199,7 @@
       </q-card-section>
       <q-card-actions
         align="right"
-        style="margin-right: 7px;"
+        style="margin-right: 7px;margin-bottom: 8px;"
       >
         <q-btn
           color="white"

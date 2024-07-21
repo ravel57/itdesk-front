@@ -187,7 +187,7 @@ export default {
       this.dialogVisible = true
       this.dialogLastName = this.client.lastname
       this.dialogFirstName = this.client.firstname
-      this.dialogOrganization = this.client.organization.name
+      this.dialogOrganization = this.getOrganization
       this.dialogAnotherInfo = this.client.moreInfo
     },
 

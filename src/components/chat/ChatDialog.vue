@@ -6,14 +6,14 @@
   >
     <div
       class="now-watching-text"
-      v-text="`Сейчас смотрят: ${this.nowWatching.map(user => `${user.firstname} ${user.lastname}`).join(', ')}`"
+      v-text="`Сейчас смотрят: ${this.nowWatching}`"
     />
   </div>
   <div style="position: relative">
     <q-card
-      style="border-bottom-left-radius: 0; border-bottom-right-radius: 0;z-index: 0"
+      class="search-container"
     >
-      <div style="display: flex; width: 100%;">
+      <div class="search">
         <q-input
           v-model="search"
           label="Поиск по сообщениям"
@@ -39,8 +39,7 @@
     </q-card>
     <q-list
       v-if="this.isShowSearchResults"
-      class="shadow-2 rounded-borders scrollable-list-container"
-      style="position: absolute;width: 100%;z-index: 10;background-color: white;max-height: 400px; overflow-y: auto;"
+      class="search-results shadow-2 rounded-borders scrollable-list-container"
       :style="(this.searchResults.length > 0) ? 'height: auto' : 'height: 0'"
       bordered
     >
@@ -54,7 +53,7 @@
           @click="goToMessage(message.id)"
           style="width: 100%; background-color: white"
         >
-          {{ this.getName(message) ? this.getName(message) : `${this.client.lastname} ${this.client.firstname}` }} : {{ message.text }}
+          {{ this.getSearchTitle(message) }}
         </q-item-section>
       </q-item>
     </q-list>
@@ -114,7 +113,6 @@
                 <img
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
-                  style="max-width: 400px;"
                   :style="this.getMediaMessageSize(message)"
                   alt=""
                 >
@@ -256,23 +254,22 @@
   </q-layout>
   <q-page
     position="bottom"
-    style="margin-bottom: 8px; max-height: 400px; min-height: 0; width: 100%;"
+    class="input-container"
     expand
   >
     <div
       v-if="['ADMIN', 'OPERATOR', 'CLIENT'].includes(this.store.currentUser.authorities[0])"
-      class="inputControl"
       style="width: 100%;"
     >
       <q-card
-        style="position: relative; display: flex; width: 100%; flex-direction: row; flex-wrap: nowrap; align-items: end; border-radius: 0; border-bottom-left-radius: 5px; border-bottom-right-radius: 5px;"
+        class="input-item"
         :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
       >
         <div
           v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
           class="action-clouds"
         >
-          <div style="display: flex; flex-direction: column; flex-wrap: nowrap">
+          <div class="input-clouds-container">
             <div
               v-if="this.attachedFile"
               class="attach-file-text"
@@ -320,7 +317,6 @@
         />
         <textarea
           ref="textInput"
-          style="border-style: unset; margin: 0 8px; width: 100%"
           :value="this.inputField"
           :placeholder="this.renderShortcutPlaceholder"
           :style="textareaStyle"
@@ -637,11 +633,12 @@ export default {
     },
 
     getMediaMessageSize (message) {
+      const maxWidth = this.isMobile ? 200 : 400
       let newHeight = message.fileHeight
-      if (message.fileHeight > 400) {
-        newHeight = (400 * message.fileHeight) / message.fileWidth
+      if (message.fileHeight > maxWidth) {
+        newHeight = (maxWidth * message.fileHeight) / message.fileWidth
       }
-      return `height: ${newHeight}px; width: ${message.fileWidth}px`
+      return `max-width: ${maxWidth}px; height: ${newHeight}px; width: ${message.fileWidth}px`
     },
 
     getPortionMessages () {
@@ -659,6 +656,16 @@ export default {
           scrollZone.scrollTop = previousScrollTop + addedHeight
         }, 200)
       }
+    },
+
+    getSearchTitle (message) {
+      if (this.getName(message) !== '') {
+        return `${this.getName(message)} : ${message.text}`
+      } else {
+        const lastname = this.client.lastname
+        const firstname = this.client.firstname
+        return `${lastname !== null ? lastname : ''} ${firstname !== null ? firstname : ''} : ${message.text}`
+      }
     }
   },
 
@@ -675,7 +682,7 @@ export default {
 
     chatStyle () {
       return {
-        height: this.isDialog ? '85.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
+        height: this.isDialog ? '86.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
         'border-radius': '0',
         'min-height': '0',
         'background-color': '#F0F0F0'
@@ -697,7 +704,7 @@ export default {
     },
 
     nowWatching () {
-      return this.taskWatchingNow.filter(user => user.id !== this.currentUser.id)
+      return this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')
     },
 
     nowWatchingStyle () {
@@ -811,13 +818,59 @@ export default {
 }
 
 textarea {
-  width: 200%;
+  border-style: unset;
+  margin: 0 8px;
+  width: 100%;
   resize: none;
   transition: height 0.2s ease;
 }
 
 textarea:focus {
   outline: none;
+}
+
+.search-container {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  z-index: 0
+}
+
+.search {
+  display: flex;
+  width: 100%;
+}
+
+.search-results {
+  position: absolute;
+  width: 100%;z-index: 10;
+  background-color: white;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.input-container {
+  margin-bottom: 8px;
+  max-height: 400px;
+  min-height: 0 !important;
+  width: 100%;
+}
+
+.input-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: end;
+  border-radius: 0;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+}
+
+.input-clouds-container {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap
 }
 
 .strikethrough {

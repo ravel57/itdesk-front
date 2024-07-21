@@ -25,7 +25,7 @@
   <div
     v-else
     class="flex-container"
-    style="padding-top: 8px"
+    :style="this.taskCardStyle"
   >
     <card-tasks-view
       :groupedTasks="this.groupedTasks"
@@ -66,7 +66,8 @@ export default {
     'selectedGroupType',
     'isNewTaskDialogShow',
     'isTaskDialogShow',
-    'selectedTask'
+    'selectedTask',
+    'filterContainerHeight'
   ],
 
   data: () => ({
@@ -174,12 +175,24 @@ export default {
       } else {
         return string
       }
+    },
+
+    getTaskCardStyle () {
+      const taskHeight = this.taskCardStyle.height
+      return `${this.taskCardStyle['padding-top']} ${taskHeight}`
     }
   },
 
   computed: {
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
+    },
+
+    taskCardStyle () {
+      return {
+        'padding-top': '8px',
+        height: this.isMobile ? `calc(72vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})` : `calc(92vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})`
+      }
     }
   }
 }

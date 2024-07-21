@@ -34,7 +34,9 @@ function clientsCallback (clients) {
     // client.messages.forEach(message => {
     //   message.date = new Date(message.date)
     // })
-    client.messages = useStore().clients.find(c => c.id === client.id).messages
+    try {
+      client.messages = useStore().clients.find(c => c.id === client.id).messages
+    } catch (ignoreError) {}
     client.tasks.forEach(task => {
       task.createdAt = new Date(task.createdAt)
       if (task.deadline) {
@@ -141,6 +143,11 @@ function currentClientCallback (message) {
 function clientMessageCallback (message) {
   const clientMessage = JSON.parse(message.body)
   clientMessage.message.date = new Date(clientMessage.message.date)
+  if (!(useStore().clients.find(c => c.id === clientMessage.client.id))) {
+    useStore().clients.push(clientMessage.client)
+  }
   const client = useStore().clients.find(c => c.id === clientMessage.client.id)
-  client.messages.push(clientMessage.message)
+  try {
+    client.messages.push(clientMessage.message)
+  } catch (ignoredError) {}
 }
