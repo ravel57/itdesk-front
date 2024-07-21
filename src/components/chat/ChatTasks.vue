@@ -95,7 +95,7 @@
     </div>
     <div
       style="overflow: auto;"
-      :style="this.isMobile ? 'height: 68%' : 'height: 75%'"
+      :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 240px)'"
     >
       <div class="row justify-center">
         <div style="width: 100%;">

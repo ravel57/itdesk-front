@@ -116,6 +116,7 @@
     </div>
     <div
       v-if="this.isFilterSelected"
+      id="filter-container"
       style="display: flex;margin-top: 8px; align-items: center;"
       :style="this.isMobile ? 'display:flex; flex-direction:row; flex-wrap: wrap; justify-content:center; width: 100%': ''"
     >
@@ -255,6 +256,7 @@
       :isNewTaskDialogShow="this.isNewTaskDialogShow"
       :isTaskDialogShow="this.isTaskDialogShow"
       :selectedTask="this.selectedTask"
+      :filter-container-height="this.filterContainerHeight"
       @onTaskClicked="this.onTaskClicked"
       @closeDialog="this.closeDialog"
     />
@@ -323,7 +325,8 @@ export default {
     selectedTask: {},
     isNewTaskDialogShow: false,
     isTaskDialogShow: false,
-    isShowDelFilterPreset: false
+    isShowDelFilterPreset: false,
+    filterContainerHeight: 0
   }),
 
   methods: {
@@ -739,6 +742,10 @@ export default {
   watch: {
     filterChain: {
       handler (newVal) {
+        if (this.isFilterSelected) {
+          this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
+        }
+        console.log(this.filterContainerHeight)
         this.updateUrlWithFilterChain(newVal)
         try {
           if (!this.isFilterOpen) {
@@ -770,6 +777,15 @@ export default {
 
     selectedGroupType () {
       localStorage.setItem('GroupType', `{ "label": "${this.selectedGroupType.label}", "slug": "${this.selectedGroupType.slug}" }`)
+    },
+
+    isFilterSelected () {
+      if (this.isFilterSelected) {
+        setTimeout(() => { this.filterContainerHeight = document.getElementById('filter-container').scrollHeight }, 100)
+      } else {
+        this.filterContainerHeight = 0
+      }
+      console.log(this.filterContainerHeight)
     }
   },
 

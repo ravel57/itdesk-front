@@ -114,7 +114,6 @@
                 <img
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
-                  style="max-width: 400px;"
                   :style="this.getMediaMessageSize(message)"
                   alt=""
                 >
@@ -637,11 +636,12 @@ export default {
     },
 
     getMediaMessageSize (message) {
+      const maxWidth = this.isMobile ? 200 : 400
       let newHeight = message.fileHeight
-      if (message.fileHeight > 400) {
-        newHeight = (400 * message.fileHeight) / message.fileWidth
+      if (message.fileHeight > maxWidth) {
+        newHeight = (maxWidth * message.fileHeight) / message.fileWidth
       }
-      return `height: ${newHeight}px; width: ${message.fileWidth}px`
+      return `max-width: ${maxWidth}px; height: ${newHeight}px; width: ${message.fileWidth}px`
     },
 
     getPortionMessages () {
