@@ -12,8 +12,8 @@
       class="list-cards"
     >
       <q-item
-        v-for="(task, index) in taskList.taskCards"
-        :key="index"
+        v-for="(task, taskIndex) in taskList.taskCards"
+        :key="taskIndex"
         class="no-padding"
       >
         <q-item
@@ -21,6 +21,13 @@
           clickable
           @click="this.$emit('onTaskClicked', task)"
         >
+          <input
+            :id="`radio_${task.id}_${taskIndex}`"
+            class="radio-select"
+            type="checkbox"
+            v-model="checkedTasks[task.id]"
+            @click.stop
+          >
           <task-card
             :task="task"
             :selectedSorting="this.selectedGroupType"
@@ -43,8 +50,30 @@ export default {
 
   name: 'CardTasksView',
 
-  props: ['groupedTasks', 'selectedGroupType']
+  props: ['groupedTasks', 'selectedGroupType'],
 
+  data: () => ({
+    checkedTasks: {},
+    selectedTasks: []
+  }),
+
+  watch: {
+    checkedTasks: {
+      handler () {
+        this.updateSelectedTasks()
+      },
+      deep: true
+    }
+  },
+
+  methods: {
+    updateSelectedTasks () {
+      this.selectedTasks = Object.entries(this.checkedTasks)
+        .filter(([id, checked]) => checked)
+        .map(([id]) => this.groupedTasks.flatMap(group => group.taskCards).find(task => task.id === Number(id)))
+        .filter(task => task !== undefined)
+    }
+  }
 }
 </script>
 
@@ -86,6 +115,12 @@ export default {
   display: inline-block;
   text-decoration: none;
   color: black;
+}
+
+.radio-select {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--q-primary);
 }
 
 </style>

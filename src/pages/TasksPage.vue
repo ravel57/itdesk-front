@@ -745,11 +745,9 @@ export default {
         if (this.isFilterSelected) {
           this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
         }
-        console.log(this.filterContainerHeight)
         this.updateUrlWithFilterChain(newVal)
         try {
           if (!this.isFilterOpen) {
-            console.log(newVal)
             document.getElementById(`filter_${newVal.length - 1}`).children[0].click()
             this.isFilterOpen = true
           }
@@ -785,7 +783,6 @@ export default {
       } else {
         this.filterContainerHeight = 0
       }
-      console.log(this.filterContainerHeight)
     }
   },
 

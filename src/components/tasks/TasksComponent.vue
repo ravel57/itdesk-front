@@ -191,7 +191,7 @@ export default {
     taskCardStyle () {
       return {
         'padding-top': '8px',
-        height: this.isMobile ? `calc(72vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})` : `calc(92vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})`
+        height: this.isMobile ? `calc(77vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})` : `calc(92vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})`
       }
     }
   }

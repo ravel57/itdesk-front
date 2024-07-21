@@ -408,7 +408,6 @@ export default {
 
     changeTaskFrozen (task) {
       task.frozen = !task.frozen
-      console.log(task)
       task = Object.keys(task).filter(objKey => objKey !== 'client').reduce((newObj, client) => {
         newObj[client] = task[client]
         return newObj

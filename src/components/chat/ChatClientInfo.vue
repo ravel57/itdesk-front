@@ -224,6 +224,7 @@ export default {
       axios.delete(`/api/v1/client/${this.client.id}`)
         .then(() => {
           this.$emit('deleteClient', this.client)
+          this.$router.push('/chats')
         })
         .catch(e => {
           this.$q.notify({

@@ -215,11 +215,13 @@ export default {
         //   return this.getActualTasks(client).length > 0
         // })
       }
-      clients = clients.sort((b, a) => {
-        const maxB = b.lastMessage.date
-        const maxA = a.lastMessage.date
-        return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
-      })
+      try {
+        clients = clients.sort((b, a) => {
+          const maxB = b.lastMessage.date
+          const maxA = a.lastMessage.date
+          return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
+        })
+      } catch (ignoreError) {}
       return clients
     }
   },
