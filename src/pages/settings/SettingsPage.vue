@@ -108,7 +108,7 @@ export default {
   }),
 
   mounted () {
-    document.title = 'ULDESK настройки'
+    document.title = 'ULDESK : Настройки'
   },
 
   setup () {

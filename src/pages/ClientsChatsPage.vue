@@ -227,7 +227,7 @@ export default {
   },
 
   mounted () {
-    document.title = 'ULDESK чаты'
+    document.title = 'ULDESK : Чаты'
   },
 
   setup () {
