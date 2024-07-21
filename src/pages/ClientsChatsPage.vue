@@ -181,6 +181,7 @@ export default {
         })})`
       }
     },
+
     getLastMessage (client) {
       if (client.lastMessage) {
         if (client.lastMessage.text) {
