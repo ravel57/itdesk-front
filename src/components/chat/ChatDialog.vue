@@ -114,6 +114,8 @@
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
                   :style="this.getMediaMessageSize(message)"
+                  style="cursor: pointer"
+                  @click="this.openPhoto(message)"
                   alt=""
                 >
                 <video
@@ -362,6 +364,14 @@
       </q-card>
     </div>
   </q-page>
+  <q-dialog v-model="this.isShowMaxSizePhoto">
+    <q-card style="max-height: 90vh; max-width: 80vw">
+      <img
+        :style="`height: ${this.selectedPhoto.fileHeight}px; width: ${this.selectedPhoto.fileWidth}px`"
+        :src="`/files/images/${this.selectedPhoto.fileUuid}`"
+        alt="">
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -400,7 +410,9 @@ export default {
     searchResults: [],
     isShowSearchResults: false,
     pageCounter: 2,
-    requestPending: false
+    requestPending: false,
+    isShowMaxSizePhoto: false,
+    selectedPhoto: ''
   }),
 
   updated () {
@@ -666,6 +678,11 @@ export default {
         const firstname = this.client.firstname
         return `${lastname !== null ? lastname : ''} ${firstname !== null ? firstname : ''} : ${message.text}`
       }
+    },
+
+    openPhoto (photo) {
+      this.isShowMaxSizePhoto = true
+      this.selectedPhoto = photo
     }
   },
 
