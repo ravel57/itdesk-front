@@ -463,6 +463,7 @@ export default {
     },
 
     removeFilters () {
+      this.selectedSavedFilter = ''
       this.filterChain = []
     },
 
