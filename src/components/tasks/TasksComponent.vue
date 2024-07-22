@@ -3,24 +3,42 @@
     v-if="this.isShowTableMode"
     style="overflow: auto"
   >
-    <q-table
-      :rows="this.tableRows"
-      :columns="this.tableColumns"
-      :rows-per-page-options="[10, 20, 50, 0]"
-      :sortable="true"
-      row-key="id"
-      bordered
-      style="margin-top: 8px"
-      rows-per-page-label="Строк на странице"
-    >
-      <template v-slot:body-cell-name="props">
-        <q-td :props="props">
-          <div @click="this.$emit('onTaskClicked', props.row)">
-            {{ this.shortenLine(props.row.name) }}
-          </div>
-        </q-td>
-      </template>
-    </q-table>
+    <div style="position: relative">
+      <q-btn
+        style="
+          font-size: 8px;
+          position: absolute;
+          right: 20px;
+          z-index: 25;
+          top: 15px;"
+        size="xs"
+        dense
+        icon="edit"
+        @click="this.isShowTableSettings = true"
+      >
+        <q-tooltip>Настроить таблицу</q-tooltip>
+      </q-btn>
+      <q-table
+        :rows="this.tableRows"
+        :columns="this.filterTableColumns"
+        :rows-per-page-options="[10, 20, 50, 0]"
+        :sortable="true"
+        row-key="id"
+        bordered
+        style="margin-top: 8px"
+        selection="single"
+        v-model:selected="this.selectedTasks"
+        rows-per-page-label="Строк на странице"
+      >
+        <template v-slot:body-cell-name="props">
+          <q-td :props="props">
+            <div @click="this.$emit('onTaskClicked', props.row)">
+              {{ this.shortenLine(props.row.name) }}
+            </div>
+          </q-td>
+        </template>
+      </q-table>
+    </div>
   </div>
   <div
     v-else
@@ -44,16 +62,67 @@
     @closeDialog="this.$emit('closeDialog', $event)"
     @updateTask="this.$emit('updateTask', $event)"
   />
+  <q-dialog v-model="this.isShowTableSettings" persistent>
+    <q-card style="width: 300px">
+      <q-card-section class="row items-center">
+        <draggable
+          :list="this.activeColumns"
+          item-key="id"
+          class="list-group"
+          ghost-class="ghost"
+          style="width: 100%"
+          @start="dragging = true"
+          @end="dragging = false"
+        >
+          <template #item="{ element }">
+            <q-item
+              class="list-group-item"
+              :class="{ 'not-draggable': true }"
+              style="cursor: grab;"
+            >
+              <q-item-section
+                top
+                style="justify-content: center"
+              >
+                {{ element.label }}
+              </q-item-section>
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  :text-color="element.active ? 'primary' : 'grey'"
+                  dense
+                  flat
+                  icon="check_box"
+                  @click="element.active = !element.active"
+                >
+                  <q-tooltip>
+                    {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
+                  </q-tooltip>
+                </q-btn>
+              </q-item-section>
+            </q-item>
+          </template>
+        </draggable>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat label="Закрыть" color="primary" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
 import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import moment from 'moment'
+import draggable from 'vuedraggable'
 
 export default {
 
-  components: { TaskDialog, CardTasksView },
+  components: { draggable, TaskDialog, CardTasksView },
 
   name: 'TasksComponent',
 
@@ -71,6 +140,7 @@ export default {
   ],
 
   data: () => ({
+    isShowTableSettings: false,
     tableColumns: [
       {
         name: 'id',
@@ -165,7 +235,20 @@ export default {
         },
         sortable: true
       }
-    ]
+    ],
+    activeColumns: [
+      { name: 'id', label: 'ID', active: true },
+      { name: 'name', label: 'Название', active: true },
+      { name: 'tags', label: 'Теги', active: true },
+      { name: 'priority', label: 'Приоритет', active: true },
+      { name: 'createdAt', label: 'Создана', active: true },
+      { name: 'status', label: 'Статус', active: true },
+      { name: 'deadline', label: 'Дедлайн', active: true },
+      { name: 'executor', label: 'Исполнитель', active: true },
+      { name: 'sla', label: 'SLA', active: true }
+    ],
+    selectedTasks: [],
+    dragging: true
   }),
 
   methods: {
@@ -175,11 +258,6 @@ export default {
       } else {
         return string
       }
-    },
-
-    getTaskCardStyle () {
-      const taskHeight = this.taskCardStyle.height
-      return `${this.taskCardStyle['padding-top']} ${taskHeight}`
     }
   },
 
@@ -193,6 +271,33 @@ export default {
         'padding-top': '8px',
         height: this.isMobile ? `calc(77vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})` : `calc(92vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})`
       }
+    },
+
+    filterTableColumns () {
+      return this.activeColumns
+        .map(activeCol => {
+          const col = this.tableColumns.find(tableCol => tableCol.name === activeCol.name && activeCol.active !== false)
+          if (col) {
+            return { ...col, label: activeCol.label }
+          }
+          return null
+        })
+        .filter(col => col !== null)
+    }
+  },
+
+  watch: {
+    activeColumns: {
+      deep: true,
+      handler () {
+        localStorage.setItem('taskTableSettings', JSON.stringify(this.activeColumns))
+      }
+    }
+  },
+
+  created () {
+    if (localStorage.getItem('taskTableSettings')) {
+      this.activeColumns = JSON.parse(localStorage.getItem('taskTableSettings'))
     }
   }
 }
