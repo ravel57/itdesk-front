@@ -379,7 +379,7 @@ export default {
           .then(response => {
             this.savedFilters.push(response.data)
             this.dialogSaveFilterClose()
-            this.selectedSavedFilter = response.data
+            this.selectedSavedFilter = response.data.label
           })
           .catch(e =>
             this.$q.notify({
@@ -424,6 +424,7 @@ export default {
     },
 
     deleteSavedFilter () {
+      console.log(this.selectedSavedFilter)
       const filterId = this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).id
       axios.delete(`/api/v1/filter/${filterId}`)
         .then(() => {
@@ -463,6 +464,7 @@ export default {
     },
 
     removeFilters () {
+      this.selectedSavedFilter = ''
       this.filterChain = []
     },
 

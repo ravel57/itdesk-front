@@ -114,6 +114,8 @@
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
                   :style="this.getMediaMessageSize(message)"
+                  style="cursor: pointer"
+                  @click="this.openPhoto(message)"
                   alt=""
                 >
                 <video
@@ -362,6 +364,16 @@
       </q-card>
     </div>
   </q-page>
+  <q-dialog v-model="this.isShowMaxSizePhoto">
+    <q-card :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw' : 'max-height: 90vh; max-width: 80vw'">
+      <div style="overflow-x: auto">
+        <img
+          :style="`height: ${this.selectedPhoto.fileHeight}px; width: ${this.selectedPhoto.fileWidth}px`"
+          :src="`/files/images/${this.selectedPhoto.fileUuid}`"
+          alt="">
+      </div>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -400,7 +412,9 @@ export default {
     searchResults: [],
     isShowSearchResults: false,
     pageCounter: 2,
-    requestPending: false
+    requestPending: false,
+    isShowMaxSizePhoto: false,
+    selectedPhoto: ''
   }),
 
   updated () {
@@ -666,6 +680,11 @@ export default {
         const firstname = this.client.firstname
         return `${lastname !== null ? lastname : ''} ${firstname !== null ? firstname : ''} : ${message.text}`
       }
+    },
+
+    openPhoto (photo) {
+      this.isShowMaxSizePhoto = true
+      this.selectedPhoto = photo
     }
   },
 
@@ -682,7 +701,7 @@ export default {
 
     chatStyle () {
       return {
-        height: this.isDialog ? '86.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
+        height: this.isDialog ? '84.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
         'border-radius': '0',
         'min-height': '0',
         'background-color': '#F0F0F0'

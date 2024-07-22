@@ -55,7 +55,6 @@
         </div>
         <div
           :class="this.isMobile ? '' : 'flex-container'"
-          style="max-height: 600px;"
         >
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab1')"
