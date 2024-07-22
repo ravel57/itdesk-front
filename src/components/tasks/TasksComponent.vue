@@ -28,6 +28,7 @@
         style="margin-top: 8px"
         selection="multiple"
         v-model:selected="this.selectedTasks"
+        :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
         rows-per-page-label="Строк на странице"
       >
         <template v-slot:body-cell-name="props">
