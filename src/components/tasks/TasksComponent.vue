@@ -26,7 +26,7 @@
         row-key="id"
         bordered
         style="margin-top: 8px"
-        selection="single"
+        selection="multiple"
         v-model:selected="this.selectedTasks"
         rows-per-page-label="Строк на странице"
       >
