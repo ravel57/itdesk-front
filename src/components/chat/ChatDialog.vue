@@ -701,7 +701,7 @@ export default {
 
     chatStyle () {
       return {
-        height: this.isDialog ? '86.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
+        height: this.isDialog ? '84.5%' : (this.isMobile ? '75vh' : 'calc(100vh - 107px)'),
         'border-radius': '0',
         'min-height': '0',
         'background-color': '#F0F0F0'

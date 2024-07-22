@@ -55,7 +55,6 @@
         </div>
         <div
           :class="this.isMobile ? '' : 'flex-container'"
-          style="max-height: 600px;"
         >
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab1')"
@@ -174,26 +173,27 @@
           <div
             class="flex-item"
             v-if="(!this.isMobile || this.dialogTab === 'tab2')"
-            style="margin-bottom: 1.6%; max-height: 100%"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
-            <chat-dialog
-              :is-mobile="this.isMobile"
-              :messages="this.task.messages"
-              :input-field="this.inputField"
-              :templates="this.store.templates"
-              :isSending="this.isSending"
-              :current-user="this.store.currentUser"
-              :linkedMessageId="this.linkedMessageId"
-              :client-id="this.client.id"
-              :is-show-helper="true"
-              :taskWatchingNow="[]"
-              :typing="[]"
-              :isDialog="true"
-              @sendMessage="this.sendMessage"
-              @isSending="this.isSending = true"
-              @keyPressed="this.keyPressed"
-            />
+            <div style="height: 100%">
+              <chat-dialog
+                :is-mobile="this.isMobile"
+                :messages="this.task.messages"
+                :input-field="this.inputField"
+                :templates="this.store.templates"
+                :isSending="this.isSending"
+                :current-user="this.store.currentUser"
+                :linkedMessageId="this.linkedMessageId"
+                :client-id="this.client.id"
+                :is-show-helper="true"
+                :taskWatchingNow="[]"
+                :typing="[]"
+                :isDialog="true"
+                @sendMessage="this.sendMessage"
+                @isSending="this.isSending = true"
+                @keyPressed="this.keyPressed"
+              />
+            </div>
           </div>
         </div>
       </q-card-section>
