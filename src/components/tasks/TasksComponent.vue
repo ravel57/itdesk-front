@@ -63,7 +63,10 @@
     @updateTask="this.$emit('updateTask', $event)"
   />
   <q-dialog v-model="this.isShowTableSettings" persistent>
-    <q-card style="width: 300px">
+    <q-card style="width: 500px">
+      <q-card-section class="row items-center q-pb-none text-h6">
+        Настройка колонок таблицы
+      </q-card-section>
       <q-card-section class="row items-center">
         <draggable
           :list="this.activeColumns"

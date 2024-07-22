@@ -365,11 +365,13 @@
     </div>
   </q-page>
   <q-dialog v-model="this.isShowMaxSizePhoto">
-    <q-card style="max-height: 90vh; max-width: 80vw">
-      <img
-        :style="`height: ${this.selectedPhoto.fileHeight}px; width: ${this.selectedPhoto.fileWidth}px`"
-        :src="`/files/images/${this.selectedPhoto.fileUuid}`"
-        alt="">
+    <q-card :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw' : 'max-height: 90vh; max-width: 80vw'">
+      <div style="overflow-x: auto">
+        <img
+          :style="`height: ${this.selectedPhoto.fileHeight}px; width: ${this.selectedPhoto.fileWidth}px`"
+          :src="`/files/images/${this.selectedPhoto.fileUuid}`"
+          alt="">
+      </div>
     </q-card>
   </q-dialog>
 </template>
