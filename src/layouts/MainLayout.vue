@@ -98,6 +98,25 @@
               <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
             </q-item-section>
           </q-item>
+          <q-item style="position: absolute; bottom: 45px;width: 100%;">
+            <q-item-section avatar>
+              <div
+                style="background-color: var(--q-primary);
+                    border-radius: 100%;
+                    color: white;
+                    width: 25px;
+                    height: 25px;
+                    align-content: center !important;
+                    position: relative;
+                "
+              >
+                <q-item-label style="position: absolute;top: 5px;right: 8px; display: flex !important;">{{ (this.store.currentUser.lastname).slice(0, 1).toUpperCase() }}</q-item-label>
+              </div>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label style="white-space: pre-wrap; position: absolute">{{ this.store.currentUser.lastname + ' ' + this.store.currentUser.firstname}}</q-item-label>
+            </q-item-section>
+          </q-item>
           <q-item
             style="position: absolute;bottom: 0;width: 100%;"
             clickable
