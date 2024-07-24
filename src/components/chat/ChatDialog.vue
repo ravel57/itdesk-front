@@ -91,9 +91,9 @@
               :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
             >
               <template v-slot:stamp>
-                <span
-                  v-text="this.getStamp(message)"
-                />
+              <span
+                v-text="this.getStamp(message)"
+              />
                 <q-icon
                   v-if="message.linkedTaskId"
                   style="margin-left: 8px"
@@ -267,6 +267,24 @@
         class="input-item"
         :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
       >
+        <q-btn
+          v-if="this.scrollToBottomKey"
+          class="shadow-2"
+          icon="keyboard_double_arrow_down"
+          style="
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            z-index: 1;
+            bottom: 100%;
+            right: 5px;
+            opacity: 0.5;
+            background-color: white;
+            border-radius: 4px;
+            margin-bottom: 5px;
+          "
+          @click="this.scrollToBottom"
+        />
         <div
           v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
           class="action-clouds"
@@ -294,10 +312,12 @@
               v-if="this.replyMessageId !== null"
             >
               <q-icon
+                style="margin-right: 2px"
                 name="reply"
               />
-              В ответ на: {{ this.shortenLine(this.messages.find(m => m.id === this.replyMessageId).text) }}
+              В ответ на: {{ this.getReplyMessage(this.messages.find(m => m.id === this.replyMessageId)) }}
               <q-icon
+                style="margin-right: 2px"
                 name="close"
                 @click="this.replyMessageId = null"
               />
@@ -414,7 +434,8 @@ export default {
     pageCounter: 2,
     requestPending: false,
     isShowMaxSizePhoto: false,
-    selectedPhoto: ''
+    selectedPhoto: '',
+    scrollToBottomKey: false
   }),
 
   updated () {
@@ -633,6 +654,20 @@ export default {
       }
     },
 
+    getReplyMessage (message) {
+      if (message.text) {
+        return this.shortenLine(message.text)
+      } else {
+        if (message.fileType.startsWith('video/')) {
+          return 'Видео'
+        } else if (message.fileType.startsWith('image/')) {
+          return 'Изображение'
+        } else if (message.fileType.startsWith('audio/')) {
+          return 'Аудио'
+        }
+      }
+    },
+
     autoResize () {
       this.$nextTick(() => {
         let chat = document.getElementById('chat-dialog')
@@ -659,6 +694,9 @@ export default {
 
     getPortionMessages () {
       const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+
+      this.scrollToBottomKey = (scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 <= 75
+
       if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 === 0 && !this.requestPending && !this.isEnd) {
         this.requestPending = true
         const previousScrollHeight = scrollZone.scrollHeight
@@ -810,18 +848,25 @@ export default {
 }
 
 .attach-file-text {
+  height: 26px;
+  border-style: solid;
+  border-width: 1px;
+  background-color: white;
+  color: black !important;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  background-color: #5C35F9;
-  border-radius: 5px;
+  border-radius: 4px;
   justify-content: center;
   padding-left: 10px
 }
 
 .typing-users-cloud {
-  background-color: #5C35F9;
-  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  background-color: white;
+  color: black !important;
+  border-radius: 4px;
   margin-top: 5px;
   text-align: center;
   padding-left: 10px;
@@ -829,8 +874,14 @@ export default {
 }
 
 .reply-message-cloud {
-  background-color: #5C35F9;
-  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  background-color: white;
+  color: black !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-radius: 4px;
   margin-top: 5px;
   text-align: center;
   padding-left: 10px;
