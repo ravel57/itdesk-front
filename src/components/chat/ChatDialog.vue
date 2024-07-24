@@ -269,11 +269,11 @@
       >
         <q-btn
           v-if="this.scrollToBottomKey"
-          class="shadow-2"
+          class="shadow-1"
           icon="keyboard_double_arrow_down"
           style="
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             position: absolute;
             z-index: 1;
             bottom: 100%;
@@ -283,7 +283,7 @@
             border-radius: 4px;
             margin-bottom: 5px;
           "
-          @click="this.scrollToBottom"
+          @click="this.smoothScrollToBottom"
         />
         <div
           v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
@@ -468,6 +468,11 @@ export default {
       }, timeout)
     },
 
+    smoothScrollToBottom () {
+      const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
+      scrollArea.scrollTo({ top: scrollArea.scrollHeight, left: 0, behavior: 'smooth' })
+    },
+
     sendMessage () {
       const textarea = this.$refs.textInput
       if (textarea.value || this.attachedFile) {
@@ -643,15 +648,7 @@ export default {
     },
 
     shortenLine (string) {
-      if (string) {
-        if (string.length > 25) {
-          return string.substring(0, 25) + '...'
-        } else {
-          return string
-        }
-      } else {
-        return 'Файл'
-      }
+      return string.substring(0, 25) + '...'
     },
 
     getReplyMessage (message) {

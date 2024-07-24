@@ -27,7 +27,7 @@
       <q-table
         :rows="this.tableRows"
         :columns="this.filterTableColumns"
-        :rows-per-page-options="[10, 20, 50, 0]"
+        :rows-per-page-options="[0]"
         :sortable="true"
         row-key="id"
         bordered
@@ -46,7 +46,15 @@
               />
             </q-td>
             <q-td v-for="col in props.cols" :key="col.name" :props="props">
-              {{ col.value }}
+              <div
+                v-if="col.name === 'deadline'"
+                :style="`color: ${this.parseStrToDate(col.value) < Date.now() ? 'red' : 'black'}`"
+              >
+                {{ col.value }}
+              </div>
+              <div v-else>
+                {{ col.value }}
+              </div>
             </q-td>
           </q-tr>
         </template>
@@ -133,7 +141,7 @@
 <script>
 import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
-import moment from 'moment'
+import moment from 'moment/moment'
 import draggable from 'vuedraggable'
 
 export default {
@@ -274,6 +282,10 @@ export default {
       } else {
         return string
       }
+    },
+
+    parseStrToDate (str) {
+      return moment(str, 'DD.MM.YYYY, HH:mm')
     }
   },
 

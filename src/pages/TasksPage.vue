@@ -140,7 +140,7 @@
               v-for="(filter, index) in this.filterChain"
               :key="index"
               style="display: flex; border-right: 16px; padding-right: 16px"
-              :id="`filter_${index}`"
+              :id="`filter_${filter.slug}`"
             >
               <q-select
                 outlined
@@ -362,7 +362,7 @@ export default {
       } else if (slug === 'client') {
         options = this.clients
       }
-      this.filterChain.push({ label, options, selectedOptions: [] })
+      this.filterChain.push({ label, options, selectedOptions: [], slug })
       this.addNewFilterSelectorText = ''
       this.isFilterOpen = false
     },
@@ -758,11 +758,11 @@ export default {
           this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
         }
         this.updateUrlWithFilterChain(newVal)
+        const queryParams = new URLSearchParams(window.location.search)
+        const filterChainFromUrl = queryParams.get('filterChain')
         try {
-          if (!this.isFilterOpen) {
-            document.getElementById(`filter_${newVal.length - 1}`).children[0].click()
-            this.isFilterOpen = true
-          }
+          const filters = JSON.parse(this.base64DecodeUnicode(filterChainFromUrl))
+          document.getElementById(`filter_${filters[filters.length - 1].slug}`).children[0].click()
         } catch (ignored) {
         }
       },
