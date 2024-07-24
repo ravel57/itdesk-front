@@ -1,5 +1,8 @@
 <template>
   <div class="col no-shadow rounded-borders" style="height: calc(100vh - 90px); width: 50%; padding: 8px;">
+    <span
+      v-text="'Чат с поддержкой ULDESK'"
+    />
     <chat-dialog
       :is-mobile="this.isMobile"
       :messages="[]"
