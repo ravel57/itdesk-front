@@ -47,25 +47,25 @@
                     >
                       Заявок: {{ this.getActualTasks(client).length }}
                     </q-item-label>
-                    <q-linear-progress
-                      v-if="this.getActualTasks(client).filter(task => task.sla !== null).length > 0"
-                      :value="this.getSlaPercent(this.getActualTasks(client))"
-                      reverse
-                      stripe
-                      rounded
-                      class="q-mt-sm"
-                      style="width: 80px; margin-left: 16px; border: solid 1px darkgray"
-                      size="12px"
-                      :color="this.getSlaColor(this.getActualTasks(client))"
-                    >
-                      <q-tooltip
-                        anchor="top middle"
-                        self="bottom middle"
-                        :offset="[10, 10]"
-                      >
-                        Минимальный SLA среди заявок
-                      </q-tooltip>
-                    </q-linear-progress>
+<!--                    <q-linear-progress-->
+<!--                      v-if="this.getActualTasks(client).filter(task => task.sla !== null).length > 0"-->
+<!--                      :value="this.getSlaPercent(this.getActualTasks(client))"-->
+<!--                      reverse-->
+<!--                      stripe-->
+<!--                      rounded-->
+<!--                      class="q-mt-sm"-->
+<!--                      style="width: 80px; margin-left: 16px; border: solid 1px darkgray"-->
+<!--                      size="12px"-->
+<!--                      :color="this.getSlaColor(this.getActualTasks(client))"-->
+<!--                    >-->
+<!--                      <q-tooltip-->
+<!--                        anchor="top middle"-->
+<!--                        self="bottom middle"-->
+<!--                        :offset="[10, 10]"-->
+<!--                      >-->
+<!--                        Минимальный SLA среди заявок-->
+<!--                      </q-tooltip>-->
+<!--                    </q-linear-progress>-->
                   </div>
                 </q-item-section>
                 <q-item-section
