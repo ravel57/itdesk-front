@@ -692,7 +692,7 @@ export default {
     getPortionMessages () {
       const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
 
-      this.scrollToBottomKey = (scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 <= 75
+      this.scrollToBottomKey = (scrollZone.scrollHeight - scrollZone.clientHeight) - scrollZone.scrollTop >= 600
 
       if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 === 0 && !this.requestPending && !this.isEnd) {
         this.requestPending = true
