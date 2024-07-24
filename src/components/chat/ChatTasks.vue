@@ -127,7 +127,7 @@
                     class="text-dark"
                     flat
                     dense
-                    @click="scrollToElementById(task)"
+                    @click="getLinkedMessage(task)"
                   />
                 </div>
                 <q-item
@@ -290,8 +290,8 @@ export default {
       }
     },
 
-    scrollToElementById (task) {
-      this.$emit('scrollToElementById', task.linkedMessageId)
+    getLinkedMessage (task) {
+      this.$emit('scrollToElementById', task)
     },
 
     goToTask (taskId) {

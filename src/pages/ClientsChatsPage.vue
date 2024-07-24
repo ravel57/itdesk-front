@@ -21,7 +21,7 @@
           v-for="client in this.getSortedAndFilteredClients"
           :key="client.id"
         >
-          <q-item clickable>
+          <q-item clickable style="position: relative">
             <q-item-section>
               <router-link
                 :to="`/chats/${client.id}`"
@@ -78,6 +78,7 @@
                     class="text-red"
                   />
                   <circle-counter
+                    style="position: absolute;right: 0;top: 30px;"
                     :counter="client.unreadMessagesCount"
                   />
                 </q-item-section>
@@ -193,6 +194,8 @@ export default {
             return 'Изображение'
           } else if (client.lastMessage.fileType.startsWith('audio/')) {
             return 'Аудио'
+          } else {
+            return ''
           }
         }
       } else {

@@ -86,7 +86,7 @@
             :priorities="this.store.priorities"
             :is-mobile="this.isMobile"
             @newTask="this.newTask"
-            @scrollToElementById="this.linkedMessageId = $event"
+            @scrollToElementById="this.getLinkedMessage($event)"
           />
         </div>
       </div>
@@ -248,6 +248,20 @@ export default {
             this.isEnd = response.data.isEnd
             messages.forEach(message => { message.date = new Date(message.date) })
             this.getClient.messages = messages.concat(this.getClient.messages)
+          })
+      }
+    },
+
+    getLinkedMessage (task) {
+      const taskWithLinkedMessage = this.getClient.messages.filter(m => m.id === task.linkedMessageId)
+      if (taskWithLinkedMessage.length > 0) {
+        this.linkedMessageId = task.linkedMessageId
+      } else {
+        axios.post(`/api/v1/client/${this.getClient.id}/get-linked-message`, task)
+          .then(response => {
+            this.getClient.messages = response.data
+            this.getClient.messages.forEach(message => { message.date = new Date(message.date) })
+            setTimeout(() => { this.linkedMessageId = task.linkedMessageId }, 100)
           })
       }
     }
