@@ -12,16 +12,22 @@
           z-index: 25;
           top: 15px;"
         size="xs"
-        dense
+        flat
         icon="edit"
         @click="this.isShowTableSettings = true"
       >
-        <q-tooltip>Настроить таблицу</q-tooltip>
+        <q-tooltip
+          anchor="center left"
+          self="center right"
+          :offset="[10, 10]"
+        >
+          Настроить таблицу
+        </q-tooltip>
       </q-btn>
       <q-table
         :rows="this.tableRows"
         :columns="this.filterTableColumns"
-        :rows-per-page-options="[10, 20, 50, 0]"
+        :rows-per-page-options="[0]"
         :sortable="true"
         row-key="id"
         bordered
@@ -31,12 +37,26 @@
         :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
         rows-per-page-label="Строк на странице"
       >
-        <template v-slot:body-cell-name="props">
-          <q-td :props="props">
-            <div @click="this.$emit('onTaskClicked', props.row)">
-              {{ this.shortenLine(props.row.name) }}
-            </div>
-          </q-td>
+        <template v-slot:body="props">
+          <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
+            <q-td>
+              <q-checkbox
+                v-model="props.selected"
+                @click.stop
+              />
+            </q-td>
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+              <div
+                v-if="col.name === 'deadline'"
+                :style="`color: ${this.parseStrToDate(col.value) < Date.now() ? 'red' : 'black'}`"
+              >
+                {{ col.value }}
+              </div>
+              <div v-else>
+                {{ col.value }}
+              </div>
+            </q-td>
+          </q-tr>
         </template>
       </q-table>
     </div>
@@ -121,7 +141,7 @@
 <script>
 import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
-import moment from 'moment'
+import moment from 'moment/moment'
 import draggable from 'vuedraggable'
 
 export default {
@@ -262,6 +282,10 @@ export default {
       } else {
         return string
       }
+    },
+
+    parseStrToDate (str) {
+      return moment(str, 'DD.MM.YYYY, HH:mm')
     }
   },
 

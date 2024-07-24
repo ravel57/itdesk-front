@@ -11,6 +11,7 @@
     </div>
     <div style="padding: 16px">
       <div
+        v-if="this.getFilteredTasks.length > 0"
         style="display: flex; flex-wrap: wrap; flex-direction: row"
       >
         <q-item
@@ -37,6 +38,11 @@
           />
         </q-item>
       </div>
+      <div
+        v-else
+        class="text-h3 absolute-center text-primary"
+        v-text="'Заявок нет'"
+      />
       <task-dialog
         v-if="this.isTaskDialogShow"
         :client="this.selectedTask.client"

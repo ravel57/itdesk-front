@@ -37,7 +37,7 @@
         </div>
         <q-btn
           v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
-          class="text-grey-7 cursor-pointer"
+          class="text-primary cursor-pointer"
           @click="this.dialogNewTask"
           label="Создать заявку"
           style="margin-right: 8px;"
@@ -79,26 +79,29 @@
           @click="this.changeSortingAsc"
           class="text-grey-7"
           style="width: 20px"
-          :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"/>
-        <q-input
-          v-model="search"
-          label="Поиск по заявкам"
-          style="margin-top: 8px; margin-bottom: 8px"
-          dense
-          clearable
-        >
-          <template v-slot:append>
-            <q-icon name="search"/>
-          </template>
-        </q-input>
+          :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
+        />
+        <div v-if="this.getActualTasks.length > 0">
+          <q-input
+            v-model="search"
+            label="Поиск по заявкам"
+            style="margin-top: 8px; margin-bottom: 8px"
+            dense
+            clearable
+          >
+            <template v-slot:append>
+              <q-icon name="search"/>
+            </template>
+          </q-input>
+        </div>
       </div>
     </div>
     <div
-      style="overflow: auto;"
+      style="overflow: auto;position: relative"
       :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 240px)'"
     >
       <div class="row justify-center">
-        <div style="width: 100%;">
+        <div v-if="this.getActualTasks.length > 0" style="width: 100%;">
           <q-card-section style="padding: 0">
             <q-card bordered class="my-card">
               <q-card-section
@@ -143,6 +146,12 @@
             </q-card>
           </q-card-section>
         </div>
+        <div
+          v-else
+          style="text-align: center"
+          class="text-h3 absolute-center text-primary"
+          v-text="'Заявок нет'"
+        />
       </div>
     </div>
   </q-card>

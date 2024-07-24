@@ -91,9 +91,9 @@
               :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
             >
               <template v-slot:stamp>
-                <span
-                  v-text="this.getStamp(message)"
-                />
+              <span
+                v-text="this.getStamp(message)"
+              />
                 <q-icon
                   v-if="message.linkedTaskId"
                   style="margin-left: 8px"
@@ -221,7 +221,7 @@
                 <!--   </q-item-section>-->
                 <!-- </q-item>-->
                 <q-item
-                  v-if="this.tasks.length > 0"
+                  v-if="this.tasks.filter(t => !t.completed).length > 0"
                   clickable
                 >
                   <q-item-section>
@@ -267,6 +267,24 @@
         class="input-item"
         :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
       >
+        <q-btn
+          v-if="this.scrollToBottomKey"
+          class="shadow-1"
+          icon="keyboard_double_arrow_down"
+          style="
+            width: 36px;
+            height: 36px;
+            position: absolute;
+            z-index: 1;
+            bottom: 100%;
+            right: 5px;
+            opacity: 0.5;
+            background-color: white;
+            border-radius: 4px;
+            margin-bottom: 5px;
+          "
+          @click="this.smoothScrollToBottom"
+        />
         <div
           v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
           class="action-clouds"
@@ -294,10 +312,12 @@
               v-if="this.replyMessageId !== null"
             >
               <q-icon
+                style="margin-right: 2px"
                 name="reply"
               />
-              В ответ на: {{ this.shortenLine(this.messages.find(m => m.id === this.replyMessageId).text) }}
+              В ответ на: {{ this.getReplyMessage(this.messages.find(m => m.id === this.replyMessageId)) }}
               <q-icon
+                style="margin-right: 2px"
                 name="close"
                 @click="this.replyMessageId = null"
               />
@@ -346,7 +366,7 @@
           </q-btn>
         </div>
         <div
-          v-if="!this.isDialog"
+          v-if="this.comments"
         >
           <q-btn
             style="margin-bottom: 6px"
@@ -381,24 +401,24 @@ import { useStore } from 'stores/store'
 
 export default {
   name: 'ChatDialog',
-
-  props: [
-    'messages',
-    'inputField',
-    'templates',
-    'isSending',
-    'clientId',
-    'typing',
-    'currentUser',
-    'linkedMessageId',
-    'tasks',
-    'taskWatchingNow',
-    'isShowHelper',
-    'isMobile',
-    'isDialog',
-    'client',
-    'isEnd'
-  ],
+  props: {
+    messages: { type: Array },
+    inputField: { type: String },
+    templates: { type: Array },
+    isSending: { type: Boolean },
+    clientId: { type: Number },
+    typing: { default: () => [], type: Array },
+    currentUser: { type: Object },
+    linkedMessageId: { type: Number },
+    tasks: { type: Array },
+    taskWatchingNow: { default: () => [], type: Array },
+    isShowHelper: { type: Boolean },
+    isMobile: { type: Boolean },
+    isDialog: { default: false, type: Boolean },
+    client: { type: Object },
+    isEnd: { type: Boolean },
+    comments: { default: true, type: Boolean }
+  },
 
   data: () => ({
     textareaHeight: 'auto',
@@ -414,7 +434,8 @@ export default {
     pageCounter: 2,
     requestPending: false,
     isShowMaxSizePhoto: false,
-    selectedPhoto: ''
+    selectedPhoto: '',
+    scrollToBottomKey: false
   }),
 
   updated () {
@@ -423,7 +444,9 @@ export default {
 
   mounted () {
     try {
-      this.scrollToBottom(50)
+      if (!this.isDialog) {
+        this.scrollToBottom(50)
+      }
       this.$refs.textInput.focus()
     } catch (ignoredError) {
     }
@@ -443,6 +466,11 @@ export default {
         const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
         scrollArea.scrollTo(0, document.getElementById('chat-dialog').children[0].children[0].scrollHeight)
       }, timeout)
+    },
+
+    smoothScrollToBottom () {
+      const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
+      scrollArea.scrollTo({ top: scrollArea.scrollHeight, left: 0, behavior: 'smooth' })
     },
 
     sendMessage () {
@@ -620,14 +648,20 @@ export default {
     },
 
     shortenLine (string) {
-      if (string) {
-        if (string.length > 25) {
-          return string.substring(0, 25) + '...'
-        } else {
-          return string
-        }
+      return string.substring(0, 25) + '...'
+    },
+
+    getReplyMessage (message) {
+      if (message.text) {
+        return this.shortenLine(message.text)
       } else {
-        return 'Файл'
+        if (message.fileType.startsWith('video/')) {
+          return 'Видео'
+        } else if (message.fileType.startsWith('image/')) {
+          return 'Изображение'
+        } else if (message.fileType.startsWith('audio/')) {
+          return 'Аудио'
+        }
       }
     },
 
@@ -657,6 +691,9 @@ export default {
 
     getPortionMessages () {
       const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+
+      this.scrollToBottomKey = (scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 <= 75
+
       if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 === 0 && !this.requestPending && !this.isEnd) {
         this.requestPending = true
         const previousScrollHeight = scrollZone.scrollHeight
@@ -808,18 +845,25 @@ export default {
 }
 
 .attach-file-text {
+  height: 26px;
+  border-style: solid;
+  border-width: 1px;
+  background-color: white;
+  color: black !important;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  background-color: #5C35F9;
-  border-radius: 5px;
+  border-radius: 4px;
   justify-content: center;
   padding-left: 10px
 }
 
 .typing-users-cloud {
-  background-color: #5C35F9;
-  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  background-color: white;
+  color: black !important;
+  border-radius: 4px;
   margin-top: 5px;
   text-align: center;
   padding-left: 10px;
@@ -827,8 +871,14 @@ export default {
 }
 
 .reply-message-cloud {
-  background-color: #5C35F9;
-  border-radius: 5px;
+  border-style: solid;
+  border-width: 1px;
+  background-color: white;
+  color: black !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-radius: 4px;
   margin-top: 5px;
   text-align: center;
   padding-left: 10px;
