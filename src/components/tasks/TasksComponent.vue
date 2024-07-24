@@ -37,12 +37,18 @@
         :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
         rows-per-page-label="Строк на странице"
       >
-        <template v-slot:body-cell-name="props">
-          <q-td :props="props">
-            <div @click="this.$emit('onTaskClicked', props.row)">
-              {{ this.shortenLine(props.row.name) }}
-            </div>
-          </q-td>
+        <template v-slot:body="props">
+          <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
+            <q-td>
+              <q-checkbox
+                v-model="props.selected"
+                @click.stop
+              />
+            </q-td>
+            <q-td v-for="col in props.cols" :key="col.name" :props="props">
+              {{ col.value }}
+            </q-td>
+          </q-tr>
         </template>
       </q-table>
     </div>

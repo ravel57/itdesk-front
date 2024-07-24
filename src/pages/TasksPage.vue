@@ -542,7 +542,10 @@ export default {
         this.closeDialog()
       }
       if (taskIdFromUrl) {
-        const taskFromUrl = this.getFilteredTasks.find(task => task.id === Number(taskIdFromUrl))
+        const taskFromUrl = this.store.getTasks.find(task => task.id === Number(taskIdFromUrl))
+        if (taskFromUrl.completed) {
+          this.isShowCompletedTasks = true
+        }
         this.onTaskClicked(taskFromUrl)
       } else {
         this.isNewTaskDialogShow = false
@@ -792,6 +795,10 @@ export default {
       } else {
         this.filterContainerHeight = 0
       }
+    },
+
+    isShowCompletedTasks () {
+      localStorage.setItem('isShowCompletedTasks', this.isShowCompletedTasks)
     }
   },
 
@@ -812,10 +819,11 @@ export default {
             icon: 'close', color: 'white', dense: true, handler: () => undefined
           }]
         }))
-    this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
   },
 
   created () {
+    this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
+    this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
     const savedGroupType = localStorage.getItem('GroupType')
     if (savedGroupType) {
       this.selectedGroupType = JSON.parse(savedGroupType)
