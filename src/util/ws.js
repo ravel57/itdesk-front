@@ -86,6 +86,11 @@ export function typing (client, user, text) {
   stompClient.send('/app/typing', {}, JSON.stringify({ client, user, text }))
 }
 
+export function getClientsForObserver (user) {
+// FIXME TODO
+  stompClient.send('/app/observer', {}, JSON.stringify(user))
+}
+
 function clientsForObserverCallback (message) {
   const parsedClients = JSON.parse(message.body)
   parsedClients.forEach(it => {
