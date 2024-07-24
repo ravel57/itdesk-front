@@ -12,7 +12,7 @@
     </thead>
     <tbody>
     <tr
-      v-for="(organization, rowIndex) in this.store.organizations"
+      v-for="(organization, rowIndex) in this.getOrganizations"
       :key="rowIndex"
     >
       <td
@@ -67,15 +67,25 @@ export default {
     }
   },
 
+  computed: {
+    getOrganizations () {
+      return [{ name: 'Стандартный SLA' }].concat(structuredClone(this.store.organizations))
+    }
+  },
+
   created () {
-    this.tableData = this.store.organizations.map(() => { return new Array(0) })
+    this.tableData = this.getOrganizations.map(() => { return new Array(0) })
+    // /**/console.log(this.tableData)/**/
     axios.get('/api/v1/sla')
       .then(response => {
         try {
+          // /**/console.log(response.data)/**/
           let counter = 0
           for (const organization in response.data) {
             this.store.priorities.forEach(priority => {
+              // /**/console.log(response.data[organization])/**/
               const item = response.data[organization][priority.name]
+              // /**/console.log(item)/**/
               if (this.tableData[counter] && item) {
                 this.tableData[counter].push(item.toString().replace(/\D/g, ''))
               }

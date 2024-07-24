@@ -99,43 +99,43 @@
       <th class="small-text text-grey" v-text="'Исполнитель: '"/>
       <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="getName(task.executor)"/>
     </tr>
-    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">
-      <th
-        class="small-text"
-        :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:gray'"
-        v-text="'SLA: '"
-      />
-      <th class="text-body2"
-          :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"
-          style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
-        Осталось: {{ this.getSlaTime(task) }}
-        <q-linear-progress
-          stripe
-          rounded
-          :value="this.getSlaPercent(task)"
-          reverse
-          :color="this.getSlaColor(task)"
-          style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"
-          size="12px"
-        />
-        <q-btn
-          v-if="!this.slaIsPause"
-          dense
-          flat
-          color="grey"
-          @click.stop="this.slaIsPause = !this.slaIsPause"
-          icon="pause_circle"
-        />
-        <q-btn
-          v-if="this.slaIsPause"
-          dense
-          flat
-          color="grey"
-          @click.stop="this.slaIsPause = !this.slaIsPause"
-          icon="play_circle"
-        />
-      </th>
-    </tr>
+<!--    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">-->
+<!--      <th-->
+<!--        class="small-text"-->
+<!--        :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:gray'"-->
+<!--        v-text="'SLA: '"-->
+<!--      />-->
+<!--      <th class="text-body2"-->
+<!--          :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"-->
+<!--          style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">-->
+<!--        Осталось: {{ this.getSlaTime(task) }}-->
+<!--        <q-linear-progress-->
+<!--          stripe-->
+<!--          rounded-->
+<!--          :value="this.getSlaPercent(task)"-->
+<!--          reverse-->
+<!--          :color="this.getSlaColor(task)"-->
+<!--          style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"-->
+<!--          size="12px"-->
+<!--        />-->
+<!--        <q-btn-->
+<!--          v-if="!this.slaIsPause"-->
+<!--          dense-->
+<!--          flat-->
+<!--          color="grey"-->
+<!--          @click.stop="this.slaIsPause = !this.slaIsPause"-->
+<!--          icon="pause_circle"-->
+<!--        />-->
+<!--        <q-btn-->
+<!--          v-if="this.slaIsPause"-->
+<!--          dense-->
+<!--          flat-->
+<!--          color="grey"-->
+<!--          @click.stop="this.slaIsPause = !this.slaIsPause"-->
+<!--          icon="play_circle"-->
+<!--        />-->
+<!--      </th>-->
+<!--    </tr>-->
     <tr v-if="!this.$route.path.includes('chat')">
 <!--      FIXME-->
       <th class="small-text text-grey" v-text="'Последняя активность: '"/>

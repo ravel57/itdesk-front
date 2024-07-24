@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <q-btn
       icon="add"
-      label="Добавить знание FIXME"
+      label="Добавить статью"
       @click="this.dialogNewKnowledge"
     />
     <div class="table-container">

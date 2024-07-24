@@ -82,12 +82,12 @@ export default {
       // link: '/settings/macros', s
       // lug: 'macros'
       // },
-      {
-        title: 'SLA',
-        link: '/settings/sla',
-        slug: 'sla',
-        roles: ['ADMIN']
-      },
+      // {
+      //   title: 'SLA',
+      //   link: '/settings/sla',
+      //   slug: 'sla',
+      //   roles: ['ADMIN']
+      // },
       // { title: 'Уведомления',
       // link: '/settings/notifications', s
       // lug: 'notifications'

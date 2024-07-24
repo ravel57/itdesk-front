@@ -239,26 +239,26 @@ export default {
           ? row.executor.firstname + ' ' + row.executor.lastname
           : '',
         sortable: true
-      },
-      {
-        name: 'sla',
-        label: 'SLA',
-        align: 'left',
-        field: row => {
-          if (!row.sla || !row.sla.startDate || !row.sla.duration) {
-            return '0 ч. 0 м.'
-          }
-          const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
-          const now = moment()
-          const duration = moment.duration(endDateTime.diff(now))
-          if (duration.asMilliseconds() < 0) {
-            return '0 ч. 0 м.'
-          } else {
-            return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
-          }
-        },
-        sortable: true
       }
+      // {
+      //   name: 'sla',
+      //   label: 'SLA',
+      //   align: 'left',
+      //   field: row => {
+      //     if (!row.sla || !row.sla.startDate || !row.sla.duration) {
+      //       return '0 ч. 0 м.'
+      //     }
+      //     const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
+      //     const now = moment()
+      //     const duration = moment.duration(endDateTime.diff(now))
+      //     if (duration.asMilliseconds() < 0) {
+      //       return '0 ч. 0 м.'
+      //     } else {
+      //       return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+      //     }
+      //   },
+      //   sortable: true
+      // }
     ],
     activeColumns: [
       { name: 'id', label: 'ID', active: true },
@@ -268,8 +268,8 @@ export default {
       { name: 'createdAt', label: 'Создана', active: true },
       { name: 'status', label: 'Статус', active: true },
       { name: 'deadline', label: 'Дедлайн', active: true },
-      { name: 'executor', label: 'Исполнитель', active: true },
-      { name: 'sla', label: 'SLA', active: true }
+      { name: 'executor', label: 'Исполнитель', active: true }
+      // { name: 'sla', label: 'SLA', active: true }
     ],
     selectedTasks: [],
     dragging: true
