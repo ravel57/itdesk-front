@@ -98,7 +98,7 @@
               <q-item-label caption style="white-space: pre-wrap;">{{ this.getUsersOnline() }}</q-item-label>
             </q-item-section>
           </q-item>
-          <q-item style="position: absolute; bottom: 45px;width: 100%;">
+          <q-item v-if="this.store.currentUser.lastname" style="position: absolute; bottom: 45px;width: 100%;">
             <q-item-section avatar>
               <div
                 style="background-color: var(--q-primary);
@@ -249,7 +249,7 @@ export default {
     },
 
     getUsersOnline () {
-      return this.store.usersOnline.map(user => user.firstname + ' ' + user.lastname).join('\n')
+      return this.store.usersOnline.map(user => user.lastname + ' ' + user.firstname).join('\n')
     },
 
     isMobile () {

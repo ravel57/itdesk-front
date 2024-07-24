@@ -221,7 +221,7 @@
                 <!--   </q-item-section>-->
                 <!-- </q-item>-->
                 <q-item
-                  v-if="this.tasks.length > 0"
+                  v-if="this.tasks.filter(t => !t.completed).length > 0"
                   clickable
                 >
                   <q-item-section>
@@ -346,7 +346,7 @@
           </q-btn>
         </div>
         <div
-          v-if="!this.isDialog"
+          v-if="this.comments"
         >
           <q-btn
             style="margin-bottom: 6px"
@@ -381,24 +381,24 @@ import { useStore } from 'stores/store'
 
 export default {
   name: 'ChatDialog',
-
-  props: [
-    'messages',
-    'inputField',
-    'templates',
-    'isSending',
-    'clientId',
-    'typing',
-    'currentUser',
-    'linkedMessageId',
-    'tasks',
-    'taskWatchingNow',
-    'isShowHelper',
-    'isMobile',
-    'isDialog',
-    'client',
-    'isEnd'
-  ],
+  props: {
+    messages: { type: Array },
+    inputField: { type: String },
+    templates: { type: Array },
+    isSending: { type: Boolean },
+    clientId: { type: Number },
+    typing: { default: () => [], type: Array },
+    currentUser: { type: Object },
+    linkedMessageId: { type: Number },
+    tasks: { type: Array },
+    taskWatchingNow: { default: () => [], type: Array },
+    isShowHelper: { type: Boolean },
+    isMobile: { type: Boolean },
+    isDialog: { default: false, type: Boolean },
+    client: { type: Object },
+    isEnd: { type: Boolean },
+    comments: { default: true, type: Boolean }
+  },
 
   data: () => ({
     textareaHeight: 'auto',

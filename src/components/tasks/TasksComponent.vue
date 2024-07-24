@@ -12,11 +12,17 @@
           z-index: 25;
           top: 15px;"
         size="xs"
-        dense
+        flat
         icon="edit"
         @click="this.isShowTableSettings = true"
       >
-        <q-tooltip>Настроить таблицу</q-tooltip>
+        <q-tooltip
+          anchor="center left"
+          self="center right"
+          :offset="[10, 10]"
+        >
+          Настроить таблицу
+        </q-tooltip>
       </q-btn>
       <q-table
         :rows="this.tableRows"
