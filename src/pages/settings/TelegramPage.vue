@@ -5,6 +5,11 @@
       label="Добавить бота"
       @click="this.dialogNewBotShow"
     />
+    <q-btn
+      icon="info"
+      label="Инструкция"
+      @click="this.isShowInstruction = true"
+    />
     <div class="table-container">
       <q-table
         :rows="telegramBots"
@@ -88,6 +93,55 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+  <q-dialog v-model="this.isShowInstruction">
+    <q-card>
+      <q-card-section>
+        <div class="text-h6">Инструкция</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        Чтобы активировать сервис настройки чат-ботов, перейдите по ссылке <a href="https://t.me/BotFather">https://t.me/BotFather</a> и нажмите «Запустить».
+      </q-card-section>
+
+      <q-card-section class="q-pt-none" style="padding-bottom: 0;">
+        После запуска появится список команд. Кроме того, базовые команды можно выбрать в BotFather, нажав на кнопку «Меню». Разберём основные опции, которые понадобятся на старте:
+      </q-card-section>
+      <q-card-section class="q-pt-none">
+        <ul style="margin-top: 3px;margin-bottom: 3px;">
+          <li>/setname — имя для чат-бота в Телеграм, которое будет появляться в диалогах с пользователями. </li>
+          <li>/setdescription — описание для Телеграм-бота.</li>
+          <li>/setabouttext — приветствие от бота.</li>
+          <li>/setuserpic — аватарка умного помощника.</li>
+          <li>/setcommands — стандартные команды для чат-бота.</li>
+          <li>/deletebot — удаление Телеграм-бота.</li>
+          <li>/token — генерация нового токена.</li>
+          <li>/setinlinegeo — запрос геоданных у пользователей. </li>
+          <li>/setjoingroups — добавление Телеграм-бота в каналы и чаты.</li>
+          <li>/setprivacy — ограничение доступа бота к конфиденциальным данным.</li>
+        </ul>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        Чтобы создать Телеграм-бот через BotFather, выбираем команду /newbot. BotFather попросит настроить название и имя для бота.
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        Ограничений и особых требований для названия нет. Однако наименование должно быть строго на латинице с окончанием bot/Bot. В название можно добавить эмодзи, чтобы выделить бота в поиске Телеграм.
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        Обратите внимание: имя Телеграм-бота должно быть уникальным. Если вы введёте наименование, которое уже есть в системе мессенджера, BotFather попросит вас выбрать другое имя.
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        При создании бота BotFather генерирует уникальный токен — ключ к вашему чат-боту. Это специальный идентификатор, с помощью которого созданный вами чат-бот в Телеграме проходит авторизацию в интерфейсе мессенджера. Идентификатор понадобится вам при добавлении бота в настройках каналов связи.
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        Не публикуйте идентификатор в открытом доступе. Также не рекомендуется сообщать его другим лицам, даже коллегам в пределах вашей компании. Иначе есть риск, что токен попадёт в руки злоумышленников, которые украдут Телеграм-бот.
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -108,7 +162,8 @@ export default {
     dialogName: '',
     isNewTelegramBot: true,
     dragging: false,
-    telegramBotId: null // for updates
+    telegramBotId: null,
+    isShowInstruction: false// for updates
   }),
 
   mounted () {

@@ -257,10 +257,11 @@ export default {
       if (taskWithLinkedMessage.length > 0) {
         this.linkedMessageId = task.linkedMessageId
       } else {
-        axios.post(`/api/v1/client/${this.getClient.id}/get-linked-message`, task)
+        axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${task.linkedMessageId}`)
           .then(response => {
-            this.getClient.messages = response.data
-            this.getClient.messages.forEach(message => { message.date = new Date(message.date) })
+            const messages = response.data
+            messages.forEach(message => { message.date = new Date(message.date) })
+            this.getClient.messages = messages
             setTimeout(() => { this.linkedMessageId = task.linkedMessageId }, 100)
           })
       }

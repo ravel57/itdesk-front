@@ -1,5 +1,5 @@
 <template>
-  <q-page padding style="min-width: 0">
+  <q-page padding style="min-width: 0;overflow-x: hidden;">
     <q-input
       v-if="this.store.clients.length > 0"
       v-model="searchQuery"
@@ -21,8 +21,8 @@
           v-for="client in this.getSortedAndFilteredClients"
           :key="client.id"
         >
-          <q-item clickable style="position: relative">
-            <q-item-section>
+          <q-item clickable>
+            <q-item-section style="position: relative">
               <router-link
                 :to="`/chats/${client.id}`"
                 style="text-decoration: none; display: flex"
@@ -70,15 +70,22 @@
                 </q-item-section>
                 <q-item-section
                   side
-                  style="display: flex; flex-direction: row; align-content: center;"
+                  style="position: absolute;right: 0;height: 100%;display: flex;flex-direction: row;align-content: center;"
                 >
                   <q-icon
                     v-if="client.tasks.filter(task => task.priority.critical && !task.completed).length > 0"
                     name="priority_high"
                     class="text-red"
-                  />
+                  >
+                    <q-tooltip
+                      anchor="center left"
+                      self="center right"
+                      :offset="[10, 10]"
+                    >
+                      Критическая заявка
+                    </q-tooltip>
+                  </q-icon>
                   <circle-counter
-                    style="position: absolute;right: 0;top: 30px;"
                     :counter="client.unreadMessagesCount"
                   />
                 </q-item-section>
@@ -188,14 +195,16 @@ export default {
         if (client.lastMessage.text) {
           return client.lastMessage.text
         } else {
-          if (client.lastMessage.fileType.startsWith('video/')) {
+          if (client.lastMessage.fileType === null) {
+            return 'Неизвестный формат файла'
+          } else if (client.lastMessage.fileType.startsWith('video/')) {
             return 'Видео'
           } else if (client.lastMessage.fileType.startsWith('image/')) {
             return 'Изображение'
           } else if (client.lastMessage.fileType.startsWith('audio/')) {
             return 'Аудио'
           } else {
-            return ''
+            return 'Файл'
           }
         }
       } else {
