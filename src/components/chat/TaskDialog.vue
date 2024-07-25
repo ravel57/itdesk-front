@@ -158,13 +158,35 @@
                     @click="this.setTaskNotCompleted(this.task)"
                   />
                   <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
                     icon="ac_unit"
-                    :text-color="this.task.frozen ? 'primary' : 'gray'"
-                    style="margin-left: 8px"
-                    @click="changeTaskFrozen(this.task)"
+                    text-color="primary"
+                    style="margin-left: 8px;position: relative"
+                    @click="this.changeTaskFrozen()"
                   >
-                    <q-tooltip>{{ this.task.frozen ? 'Разморозить заявку' : 'Заморозить заявку' }}</q-tooltip>
+                    <q-tooltip>Заморожено до {{ this.getStamp(new Date(this.task.frozenUntil)) }}</q-tooltip>
+                    <q-circular-progress
+                      v-if="this.task.frozen"
+                      :value="this.getPercentFrozenTask(this.task.frozenFrom, this.task.frozenUntil)"
+                      size="40px"
+                      style="
+                      position: absolute;
+                      font-size: 40px;
+                      margin: 0;
+                    "
+                      :thickness="0.22"
+                      color="primary"
+                      track-color="grey-3"
+                    />
+                  </q-btn>
+                  <q-btn
+                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
+                    icon="ac_unit"
+                    text-color="gray"
+                    style="margin-left: 8px"
+                    @click="this.freezeDialog = true"
+                  >
+                    <q-tooltip>Заморозить заявку</q-tooltip>
                   </q-btn>
                 </div>
               </q-card-section>
@@ -214,6 +236,45 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+  <q-dialog v-model="this.freezeDialog">
+    <q-card>
+      <q-card-section>
+        <div class="text-h6">Заморозка заявки</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <q-input
+          v-model="this.dialogTaskFreezeUntil"
+          clearable
+          label="Заморозить до"
+        >
+          <template
+            v-slot:append
+          >
+            <q-icon
+              name="event"
+              class="cursor-pointer"
+            >
+              <q-popup-proxy
+                cover
+                transition-show="scale"
+                transition-hide="scale"
+              >
+                <q-date
+                  v-model="this.dialogTaskFreezeUntil"
+                  mask="DD.MM.YYYY HH:mm"
+                />
+              </q-popup-proxy>
+            </q-icon>
+          </template>
+        </q-input>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat @click="changeTaskFrozen" label="OK" color="primary" v-close-popup />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -252,7 +313,9 @@ export default {
 
     taskId: null, // for update
     inputField: '',
-    isSending: false
+    isSending: false,
+    freezeDialog: false,
+    dialogTaskFreezeUntil: ''
   }),
 
   methods: {
@@ -405,16 +468,38 @@ export default {
           }))
     },
 
-    changeTaskFrozen (task) {
-      task.frozen = !task.frozen
-      task = Object.keys(task).filter(objKey => objKey !== 'client').reduce((newObj, client) => {
-        newObj[client] = task[client]
-        return newObj
-      }, {})
+    changeTaskFrozen () {
+      const tags = []
+      this.dialogTaskTags.forEach(tagName => tags.push(this.store.tags.find(tag => tag.name === tagName)))
+      const task = {
+        id: this.isNewTask ? null : this.taskId,
+        name: this.dialogTaskName,
+        description: this.dialogTaskDescription,
+        status: this.store.statuses.find(status => status.name === this.dialogTaskStatus),
+        priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
+        executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
+        tags,
+        completed: false,
+        createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
+        deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
+        linkedMessageId: this.linkedMessageId,
+        sla: this.isNewTask ? null : this.task.sla,
+        frozen: !this.task.frozen,
+        frozenFrom: this.task.frozen ? null : new Date(),
+        frozenUntil: this.task.frozen ? null : moment(this.dialogTaskFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+      }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
           this.$emit('updateTask', task, newTask.data)
+          this.$q.notify({
+            message: task.frozen ? 'Заявка заморожена' : 'Заявка разморожена',
+            type: 'positive',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
         })
         .catch(e =>
           this.$q.notify({
@@ -480,6 +565,30 @@ export default {
 
     keyPressed (text) {
       this.inputField = text
+    },
+
+    getPercentFrozenTask (date, endDate) {
+      const startDate = new Date(date)
+      const targetDate = new Date(endDate)
+      const now = new Date()
+      const totalInterval = targetDate - startDate
+      const timeRemaining = now - startDate
+      return (timeRemaining / totalInterval) * 100
+    },
+
+    getStamp (date) {
+      if (date) {
+        return date.toLocaleTimeString('ru-RU', {
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } else {
+        return ''
+      }
     }
   },
 
