@@ -398,6 +398,7 @@
 
 <script>
 import { useStore } from 'stores/store'
+import axios from 'axios'
 
 export default {
   name: 'ChatDialog',
@@ -406,7 +407,6 @@ export default {
     inputField: { type: String },
     templates: { type: Array },
     isSending: { type: Boolean },
-    clientId: { type: Number },
     typing: { default: () => [], type: Array },
     currentUser: { type: Object },
     linkedMessageId: { type: Number },
@@ -487,7 +487,7 @@ export default {
           replyMessageId: this.replyMessageId,
           user: this.currentUser
         }
-        this.$emit('sendMessage', { message, attachedFile: this.attachedFile, clientId: this.clientId })
+        this.$emit('sendMessage', { message, attachedFile: this.attachedFile, clientId: this.client.id })
         this.attachedFile = null
         this.replyMessageId = null
       }
@@ -607,13 +607,19 @@ export default {
 
     onSearch () {
       if (this.search) {
-        this.searchResults = this.messages.filter(message => {
-          if (message.text) {
-            return message.text.toLowerCase().includes(this.search.toLowerCase())
-          } else {
-            return false
-          }
-        })
+        axios.post(`/api/v1/client/${this.client.id}/search-messages`, { text: this.search })
+          .then(response => {
+            this.searchResults = response.data
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
         this.isShowSearchResults = true
       } else {
         this.searchResults = []
