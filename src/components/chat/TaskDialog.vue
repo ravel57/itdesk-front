@@ -568,9 +568,9 @@ export default {
     },
 
     getPercentFrozenTask (date, endDate) {
-      const startDate = new Date(date)
-      const targetDate = new Date(endDate)
-      const now = new Date()
+      const startDate = new Date(date).getTime()
+      const targetDate = new Date(endDate).getTime()
+      const now = new Date().getTime()
       const totalInterval = targetDate - startDate
       const timeRemaining = now - startDate
       return (timeRemaining / totalInterval) * 100
