@@ -55,6 +55,18 @@
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
+<!--        <q-btn-toggle-->
+<!--          v-model="this.emailType"-->
+<!--          spread-->
+<!--          class="custom-toggle"-->
+<!--          no-caps-->
+<!--          rounded-->
+<!--          unelevated-->
+<!--          toggle-color="primary"-->
+<!--          color="white"-->
+<!--          text-color="primary"-->
+<!--          :options="[{label: 'IMAP', value: 'imap'}, {label: 'Exchange', value: 'exchange'}]"-->
+<!--        />-->
         <q-input
           v-model="this.dialogName"
           label="Название"
@@ -71,6 +83,9 @@
           label="пароль"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
+<!--        <div-->
+<!--          v-if="this.emailType === 'imap'"-->
+<!--        >-->
         <q-input
           v-model="this.dialogImapServer"
           label="IMAP Server"
@@ -91,6 +106,16 @@
           label="SMTP Port"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
+<!--        </div>-->
+<!--        <div-->
+<!--          v-else-if="this.emailType === 'exchange'"-->
+<!--        >-->
+<!--          <q-input-->
+<!--            v-model="this.dialogExchangeServer"-->
+<!--            label="Exchange сервер"-->
+<!--            :rules="[val => (val && val.length > 0) || 'Обязательное поле']"-->
+<!--          />-->
+<!--        </div>-->
         <q-input
           v-model="this.dialogSubject"
           label="тема для писем"
@@ -143,10 +168,12 @@ export default {
     dialogSmtpPort: '465',
     dialogImapServer: '',
     dialogImapPort: '993',
+    dialogExchangeServer: '',
     dialogSubject: '',
     isNewEmail: false,
     showPassword: false,
-    emailId: null // for updates
+    emailId: null, // for updates
+    emailType: 'imap'
   }),
 
   methods: {
@@ -291,6 +318,8 @@ export default {
 
 </script>
 
-<style scoped>
-
+<style scoped lang="scss">
+.custom-toggle {
+  border: 1px solid #027be3
+}
 </style>

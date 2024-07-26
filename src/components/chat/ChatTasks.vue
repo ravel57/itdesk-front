@@ -31,7 +31,7 @@
               @mouseover="showTooltipClosedTasks = true"
               @mouseup="showTooltipClosedTasks = false"
             >
-              <q-tooltip v-if="showTooltipClosedTasks">Показывать закрытые заявки</q-tooltip>
+              <q-tooltip v-if="showTooltipClosedTasks">Показывать закрытые и замороженные заявки</q-tooltip>
             </q-toggle>
           </div>
         </div>
@@ -246,7 +246,7 @@ export default {
     },
 
     updateTask (task, newTask) {
-      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask
+      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
     },
 
     setTaskCompleted (task) {

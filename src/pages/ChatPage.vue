@@ -242,7 +242,7 @@ export default {
         this.getClient.messages = this.store.currentChatMessageData.messages
         this.isEnd = this.store.currentChatMessageData.isEnd
       } else {
-        axios.get(`/api/v1/client/${this.getClient.id}/get-message-page?page=${pageCounter}`)
+        axios.get(`/api/v1/client/${this.getClient.id}/messages-page?page=${pageCounter}`)
           .then(response => {
             const messages = response.data.messages
             this.isEnd = response.data.isEnd

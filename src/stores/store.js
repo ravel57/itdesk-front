@@ -113,7 +113,7 @@ export const useStore = defineStore('store', {
         })
     },
     fetchClientMessages (clientId) {
-      return axios.get(`/api/v1/client/${clientId}/get-message-page?page=1`)
+      return axios.get(`/api/v1/client/${clientId}/messages-page?page=1`)
         .then(response => {
           const messages = response.data.messages
           const isEnd = response.data.isEnd
