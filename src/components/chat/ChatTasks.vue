@@ -219,7 +219,7 @@ export default {
       { label: 'По дедлайну', slug: 'deadline' },
       { label: 'По дате создания', slug: 'creating' },
       { label: 'Приоритету', slug: 'priority' },
-      { label: 'SLA', slug: 'sla' },
+      // { label: 'SLA', slug: 'sla' },
       { label: 'По статусу', slug: 'status' }
     ],
     slaIsPause: false
