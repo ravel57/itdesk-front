@@ -569,7 +569,7 @@ export default {
             task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
             // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
         }
-        return (!task.completed || this.isShowCompletedTasks) && matchesSearchRequest
+        return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
       })
       this.filterChain.forEach(el => {
         const slug = this.filterTypes.filter(ft => ft.label === el.label)[0].slug

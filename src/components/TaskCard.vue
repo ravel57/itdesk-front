@@ -9,6 +9,17 @@
         colspan="2"
       />
     </tr>
+    <tr v-if="task.frozen">
+      <th
+        class="small-text text-grey"
+        colspan="2"
+      >
+        <q-icon
+          name="ac_unit"
+        />
+        ЗАЯВКА ЗАМОРОЖЕНА
+      </th>
+    </tr>
     <tr>
       <th
         class="small-text text-grey"

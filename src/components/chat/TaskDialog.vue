@@ -107,7 +107,7 @@
                   style="padding-top: 16px"
                 />
                 <q-input
-                  v-model="dialogTaskDeadline"
+                  v-model="this.dialogTaskDeadline"
                   clearable
                   label="Дедлайн"
                 >
@@ -124,7 +124,7 @@
                         transition-hide="scale"
                       >
                         <q-date
-                          v-model="dialogTaskDeadline"
+                          v-model="this.dialogTaskDeadline"
                           mask="DD.MM.YYYY HH:mm"
                         />
                       </q-popup-proxy>

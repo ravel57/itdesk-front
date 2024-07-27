@@ -364,7 +364,7 @@ export default {
   computed: {
     getActualTasks () {
       const filteredTasks = this.tasks.filter(task => {
-        const showCompleted = !task.completed || this.isShowCompletedTasks
+        const showCompleted = (!task.frozen && !task.completed) || this.isShowCompletedTasks
         let matchSearch = true
         if (this.search) {
           matchSearch = task.name.toLowerCase().includes(this.search.toLowerCase()) ||
