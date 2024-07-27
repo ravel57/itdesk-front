@@ -54,6 +54,7 @@
             @deleteMessage="this.deleteMessage"
             @showHelper="this.showHelper"
             @getMessagePage="this.getMessagePage"
+            @scrollToMessageAfterSearch="this.getMessageOnSearch($event)"
           />
         </div>
         <div
@@ -250,6 +251,15 @@ export default {
             this.getClient.messages = messages.concat(this.getClient.messages)
           })
       }
+    },
+
+    getMessageOnSearch (messageId) {
+      axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${messageId}`)
+        .then(response => {
+          const messages = response.data
+          messages.forEach(message => { message.date = new Date(message.date) })
+          this.getClient.messages = messages
+        })
     },
 
     getLinkedMessage (task) {

@@ -50,7 +50,7 @@
         clickable
       >
         <q-item-section
-          @click="goToMessage(message.id)"
+          @click="scrollToMessageAfterSearch(message.id)"
           style="width: 100%; background-color: white"
         >
           {{ this.getSearchTitle(message) }}
@@ -579,6 +579,15 @@ export default {
           element.style.backgroundColor = currentColor
           this.$emit('clearLinkedMessageId')
         }, 2500)
+      }
+    },
+
+    scrollToMessageAfterSearch (messageId) {
+      if (this.messages.filter(m => m.id === messageId).length > 0) {
+        this.goToMessage(messageId)
+      } else {
+        this.$emit('scrollToMessageAfterSearch', messageId)
+        setTimeout(() => { this.goToMessage(messageId) }, 300)
       }
     },
 

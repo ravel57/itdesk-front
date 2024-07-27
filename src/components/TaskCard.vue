@@ -51,7 +51,7 @@
     </tr>
     <tr>
       <th
-        class="small-text"
+        class="small-text text-grey"
         :style="this.selectedSorting.slug === 'priority' ? 'color: black;font-weight: 600;': 'color:gray'"
         v-text="'Приоритет: '"
       />
@@ -63,7 +63,7 @@
     </tr>
     <tr>
       <th
-        class="small-text"
+        class="small-text text-grey"
         :style="this.selectedSorting.slug === 'creating' ? 'color: black;font-weight: 600;': 'color:gray'"
         v-text="'Создана: '"
       />
@@ -74,7 +74,7 @@
     </tr>
     <tr v-if="!task.completed">
       <th
-        class="small-text"
+        class="small-text text-grey"
         :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"
         v-text="'Статус: '"
       />
@@ -85,7 +85,7 @@
     </tr>
     <tr>
       <th
-        class="small-text"
+        class="small-text text-grey"
         :style="this.selectedSorting.slug === 'deadline' ? 'color: black;': 'color:gray'"
         v-text="'Дедлайн: '"
       />
