@@ -713,8 +713,7 @@ export default {
         this.requestPending = true
         const previousScrollHeight = scrollZone.scrollHeight
         const previousScrollTop = scrollZone.scrollTop
-        this.$emit('getMessagePage', this.pageCounter)
-        this.pageCounter++
+        this.$emit('getMessagePage', 1)
         setTimeout(() => {
           this.requestPending = false
           const newScrollHeight = scrollZone.scrollHeight

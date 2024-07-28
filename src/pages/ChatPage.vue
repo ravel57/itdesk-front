@@ -115,7 +115,8 @@ export default {
     isSending: false,
     linkedMessageId: null,
     isShowHelper: true,
-    isEnd: false
+    isEnd: false,
+    pageCounter: 0
   }),
 
   methods: {
@@ -238,8 +239,9 @@ export default {
       localStorage.setItem('isShowHelper', 'false')
     },
 
-    getMessagePage (pageCounter) {
-      if (pageCounter <= 1) {
+    getMessagePage (pageCounter = 0) {
+      this.pageCounter += pageCounter
+      if (this.pageCounter <= 1) {
         this.getClient.messages = this.store.currentChatMessageData.messages
         this.isEnd = this.store.currentChatMessageData.isEnd
       } else {
@@ -256,7 +258,8 @@ export default {
     getMessageOnSearch (messageId) {
       axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${messageId}`)
         .then(response => {
-          const messages = response.data
+          const messages = response.data.messages
+          this.pageCounter = response.data.page
           messages.forEach(message => { message.date = new Date(message.date) })
           this.getClient.messages = messages
         })
@@ -269,7 +272,8 @@ export default {
       } else {
         axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${task.linkedMessageId}`)
           .then(response => {
-            const messages = response.data
+            const messages = response.data.messages
+            this.pageCounter = response.data.page
             messages.forEach(message => { message.date = new Date(message.date) })
             this.getClient.messages = messages
             setTimeout(() => { this.linkedMessageId = task.linkedMessageId }, 100)
@@ -312,7 +316,7 @@ export default {
   },
 
   created () {
-    this.getMessagePage(1)
+    this.getMessagePage()
     this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
     const typingMessageTextElement = this.store.clients
       .find(client => client.id === this.getClient.id)
