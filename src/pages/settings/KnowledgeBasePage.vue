@@ -46,15 +46,15 @@
               </q-item-section>
               <q-item-section
                 top
-                style="justify-content: center"
+                style="justify-content: center;white-space: pre-wrap;"
               >
-                {{ element.texts }}
+                {{ element.texts.join('\n') }}
               </q-item-section>
               <q-item-section
                 top
                 style="justify-content: center"
               >
-                {{ element.tags }}
+                {{ element.tags.map(tag => tag.name).join(', ') }}
               </q-item-section>
               <q-item-section
                 top
@@ -90,13 +90,43 @@
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
-        <q-input
-          v-model="this.dialogTexts"
-          label="Тексты"
-        />
-        <q-input
+        <div style="display: flex;width: 100%">
+          <div style="width: 100%; margin-right: 8px">
+            <div v-for="(textField, index) in this.dialogTexts" :key="index">
+              <div style="display: flex;flex-direction: row; flex-wrap: nowrap;margin-bottom: 8px">
+                <q-input
+                  style="width: 100%; margin-right: 4px"
+                  v-model="this.dialogTexts[index]"
+                  :id="index"
+                  label="Текст"
+                />
+                <q-btn
+                  v-if="this.dialogTexts.length > 1"
+                  icon="delete"
+                  text-color="gray"
+                  @click="this.dialogTexts.splice(index, 1)"
+                />
+              </div>
+            </div>
+          </div>
+          <div style="position: relative; width: 10%">
+            <q-btn
+              icon="add"
+              style="height: 40px; width: 40px;position: absolute;bottom: 8px;"
+              text-color="primary"
+              @click="this.dialogTexts.push([])"
+            />
+          </div>
+        </div>
+        <q-select
           v-model="this.dialogTags"
+          :options="this.store.tags.map(t => t.name)"
+          multiple
           label="Теги"
+          use-chips
+          use-input
+          dense
+          style="padding-top: 16px"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -138,6 +168,7 @@ export default {
     dialogTitle: '',
     dialogTexts: [],
     dialogTags: [],
+    dialogTextsCounter: 1,
 
     isNewKnowledge: true,
     knowledgeId: null, // for updates
@@ -150,16 +181,16 @@ export default {
       this.isNewKnowledge = false
       this.dialogVisible = true
       this.dialogTitle = row.title
-      this.dialogTexts = row.texts.join('\n')
-      this.dialogTags = row.tags.join('\n')
+      this.dialogTexts = structuredClone(row.texts)
+      this.dialogTags = row.tags.map(tag => tag.name)
     },
 
     dialogNewKnowledge () {
       this.dialogVisible = true
       this.isNewKnowledge = true
       this.dialogTitle = ''
-      this.dialogTexts = ''
-      this.dialogTags = ''
+      this.dialogTexts = [[]]
+      this.dialogTags = []
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
@@ -168,11 +199,13 @@ export default {
     },
 
     dialogSaveNewOrUpdateKnowledge () {
+      const tags = []
+      this.dialogTags.forEach(tagName => tags.push(this.store.tags.find(tag => tag.name === tagName)))
       const knowledge = {
         id: this.isNewKnowledge ? null : this.knowledgeId,
         title: this.dialogTitle,
-        texts: this.dialogTexts.split('\n'),
-        tags: [] // this.dialogTags.split('\n')
+        texts: this.dialogTexts,
+        tags
       }
       if (knowledge.title.length === 0) {
         this.$q.notify({

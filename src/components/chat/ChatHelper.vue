@@ -64,7 +64,7 @@
                 clickable
                 @click="showModal(item)"
               >
-                {{ item.title }} [{{ item.tags.join(', ') }}]
+                {{ item.title }}
               </q-item>
             </div>
           </q-expansion-item>
