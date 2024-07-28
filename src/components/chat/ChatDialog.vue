@@ -700,10 +700,14 @@ export default {
     getMediaMessageSize (message) {
       const maxWidth = this.isMobile ? 200 : 400
       let newHeight = message.fileHeight
-      if (message.fileHeight > maxWidth) {
-        newHeight = (maxWidth * message.fileHeight) / message.fileWidth
+      if (newHeight) {
+        if (message.fileHeight > maxWidth) {
+          newHeight = (maxWidth * message.fileHeight) / message.fileWidth
+        }
+        return `max-width: ${maxWidth}px; height: ${newHeight}px; width: ${message.fileWidth}px`
+      } else {
+        return 'max-width: 400px; height: 400px; width: 400px'
       }
-      return `max-width: ${maxWidth}px; height: ${newHeight}px; width: ${message.fileWidth}px`
     },
 
     getPortionMessages () {

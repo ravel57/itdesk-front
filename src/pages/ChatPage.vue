@@ -150,10 +150,14 @@ export default {
     },
 
     sendTextMessage (message) {
+      console.log(message)
       axios.post(`/api/v1/client/${this.getClient.id}/message`, message)
         .then(() => {
           this.inputField = ''
           this.isSending = false
+          if (message.replyMessageId) {
+            message.replyMessageText = this.getClient.messages.find(msg => msg.id === message.replyMessageId).text
+          }
           this.getClient.messages.push(message)
         })
         .catch(e =>
@@ -193,6 +197,10 @@ export default {
 
     linkToTask (message, task) {
       axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, { message, task })
+        .then(() => {
+          this.getClient.messages.find(msg => msg.id === task.linkedMessageId).linkedTaskId = null
+          this.getClient.messages.find(msg => msg.id === message.id).linkedTaskId = task.id
+        })
         .catch(e => {
           this.$q.notify({
             message: e.message,
