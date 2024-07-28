@@ -571,7 +571,8 @@ export default {
     },
 
     scrollToElementById (id) {
-      const element = document.getElementById(id).children[0].children[0].children[1]
+      const el = document.getElementById(id).children[0].children[0]
+      const element = el.children[el.children.length - 1]
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' })
         const currentColor = element.style.backgroundColor
