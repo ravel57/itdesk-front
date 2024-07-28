@@ -432,7 +432,6 @@ export default {
     search: '',
     searchResults: [],
     isShowSearchResults: false,
-    pageCounter: 2,
     requestPending: false,
     isShowMaxSizePhoto: false,
     selectedPhoto: '',
