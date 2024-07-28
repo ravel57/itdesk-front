@@ -56,7 +56,7 @@
         </q-card>
         <q-card style="margin-bottom: 8px">
           <q-expansion-item label="База знаний" class="spoiler">
-            <div style="height: 60vh;overflow: auto">
+            <div style="max-height: 60vh;overflow: auto">
               <q-item
                 v-for="(item, index) in this.knowledgeBase"
                 :key="index"
