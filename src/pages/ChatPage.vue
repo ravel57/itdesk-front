@@ -260,6 +260,7 @@ export default {
         .then(response => {
           const messages = response.data.messages
           this.pageCounter = response.data.page
+          this.isEnd = response.data.isEnd
           messages.forEach(message => { message.date = new Date(message.date) })
           this.getClient.messages = messages
         })
@@ -274,6 +275,7 @@ export default {
           .then(response => {
             const messages = response.data.messages
             this.pageCounter = response.data.page
+            this.isEnd = response.data.isEnd
             messages.forEach(message => { message.date = new Date(message.date) })
             this.getClient.messages = messages
             setTimeout(() => { this.linkedMessageId = task.linkedMessageId }, 100)
