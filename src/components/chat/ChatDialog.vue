@@ -102,7 +102,8 @@
               </template>
               <div
                 v-if="message.replyMessageText"
-                class="flex"
+                class="flex cursor-pointer"
+                @click="this.scrollToMessageAfterSearch(message.replyMessageId)"
               >
                 <q-icon
                   name="reply"
