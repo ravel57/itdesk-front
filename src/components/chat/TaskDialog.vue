@@ -168,6 +168,7 @@
                     <q-circular-progress
                       v-if="this.task.frozen"
                       :value="this.getPercentFrozenTask(this.task.frozenFrom, this.task.frozenUntil)"
+                      reverse
                       size="40px"
                       style="
                       position: absolute;
@@ -573,7 +574,7 @@ export default {
       const now = new Date().getTime()
       const totalInterval = targetDate - startDate
       const timeRemaining = now - startDate
-      return (timeRemaining / totalInterval) * 100
+      return (1 - (timeRemaining / totalInterval)) * 100
     },
 
     getStamp (date) {
