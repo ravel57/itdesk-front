@@ -27,27 +27,27 @@
     <!--        >-->
     <!--          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
     <!--        </q-toggle>-->
-    <q-btn
-      icon="expand_circle_down"
-      flat
-      dense
-      class="q-ml-auto"
-      color="grey"
-    >
-      <q-menu v-model="this.menuOpened" content-class="menu-content">
-        <q-list>
-          <q-item clickable v-close-popup>
-            <q-item-section>rPCSMT</q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup>
-            <q-item-section>new user generator</q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup>
-            <q-item-section>check-adminpc</q-item-section>
-          </q-item>
-        </q-list>
-      </q-menu>
-    </q-btn>
+    <!--    <q-btn-->
+    <!--      icon="expand_circle_down"-->
+    <!--      flat-->
+    <!--      dense-->
+    <!--      class="q-ml-auto"-->
+    <!--      color="grey"-->
+    <!--    >-->
+    <!--      <q-menu v-model="this.menuOpened" content-class="menu-content">-->
+    <!--        <q-list>-->
+    <!--          <q-item clickable v-close-popup>-->
+    <!--            <q-item-section>rPCSMT</q-item-section>-->
+    <!--          </q-item>-->
+    <!--          <q-item clickable v-close-popup>-->
+    <!--            <q-item-section>new user generator</q-item-section>-->
+    <!--          </q-item>-->
+    <!--          <q-item clickable v-close-popup>-->
+    <!--            <q-item-section>check-adminpc</q-item-section>-->
+    <!--          </q-item>-->
+    <!--        </q-list>-->
+    <!--      </q-menu>-->
+    <!--    </q-btn>-->
   </div>
   <div
     class="flex"
