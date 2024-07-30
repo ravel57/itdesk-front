@@ -95,7 +95,13 @@
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                   ref="dialogNewFilterName"
                 />
-                {{ this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions})) }}
+                <div
+                  style="white-space: pre-wrap"
+                  v-for="(filter, index) in this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions}))"
+                  :key="index"
+                >
+                  {{ filter.label + ' : ' + filter.selectedOptions.join(', ') }}
+                </div>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn
