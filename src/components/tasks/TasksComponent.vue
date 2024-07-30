@@ -315,14 +315,6 @@ export default {
     }
   },
 
-  mounted () {
-    setTimeout(() => {
-      document.getElementsByClassName('q-table--col-auto-width')[0]
-        .getElementsByClassName('q-checkbox cursor-pointer no-outline row inline no-wrap items-center')[0]
-        .style.display = 'none'
-    }, 200)
-  },
-
   watch: {
     activeColumns: {
       deep: true,

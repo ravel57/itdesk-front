@@ -59,6 +59,12 @@ export default {
     selectedTasks: []
   }),
 
+  computed: {
+    storeCheckedTasks () {
+      return this.store.checkedTasks
+    }
+  },
+
   watch: {
     checkedTasks: {
       handler () {
@@ -66,10 +72,11 @@ export default {
       },
       deep: true
     },
-    selectedTasks: {
+    storeCheckedTasks: {
       handler () {
-        this.store.checkedTasks = this.selectedTasks
-        console.log(this.store.checkedTasks)
+        if (this.storeCheckedTasks.length === 0 && this.checkedTasks.length !== 0) {
+          this.checkedTasks = []
+        }
       },
       deep: true
     }
@@ -77,7 +84,7 @@ export default {
 
   methods: {
     updateSelectedTasks () {
-      this.selectedTasks = Object.entries(this.checkedTasks)
+      this.store.checkedTasks = Object.entries(this.checkedTasks)
         .filter(([id, checked]) => checked)
         .map(([id]) => {
           return this.groupedTasks

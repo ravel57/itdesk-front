@@ -110,6 +110,7 @@ export default {
         axios.patch(`/api/v1/client/${this.getClient(task)}/task`, task)
           .then(newTask => {
             this.$emit('updateTask', task, newTask)
+            this.store.checkedTasks = []
           })
           .catch(e =>
             this.$q.notify({
