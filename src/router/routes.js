@@ -2,6 +2,10 @@ import { useStore } from 'stores/store'
 
 const routes = [
   {
+    path: '/login',
+    component: () => import('pages/LoginPage.vue')
+  },
+  {
     path: '/',
     redirect: '/chats',
     component: () => import('layouts/MainLayout.vue'),
@@ -127,7 +131,8 @@ const routes = [
       //   component: () => import('pages/PhonePage.vue')
       // }
     ]
-  }, {
+  },
+  {
     path: '/:catchAll(.*)*',
     component: () => import('pages/errors/ErrorNotFound.vue')
   }
