@@ -6,9 +6,9 @@
           <div style="background-color: white; padding: 8px; width: 240px; height: 296px; border-radius: 4px; min-width: 240px; min-height: 296px">
             <login-logo style="display: block; margin-left: auto; margin-right: auto;"/>
             <div class="text-h6" style="text-align: center;margin-top: 8px;">Войти в ULDESK</div>
-            <form style="display: flex; flex-direction: column">
-              <q-input style="margin-top: 16px" v-model="username" type="text" label="Логин"/>
-              <q-input style="margin-top: 16px" v-model="password" :type="isPwd ? 'password' : 'text'" label="Пароль">
+            <form method="post" action="/perform_login" style="display: flex; flex-direction: column">
+              <q-input name="username" style="margin-top: 16px" v-model="username" type="text" label="Логин"/>
+              <q-input name="password" style="margin-top: 16px" v-model="password" :type="isPwd ? 'password' : 'text'" label="Пароль">
                 <template v-slot:append>
                   <q-icon
                     :name="isPwd ? 'visibility_off' : 'visibility'"
@@ -18,7 +18,7 @@
                 </template>
               </q-input>
               <a style="color: var(--q-primary); margin-bottom: 15px; cursor: pointer">Забыл пароль?</a>
-              <q-btn type="submit" @click="this.login" color="primary">Войти</q-btn>
+              <q-btn type="submit" color="primary">Войти</q-btn>
             </form>
           </div>
         </div>
@@ -98,6 +98,16 @@ export default {
   methods: {
     login () {
       axios.post(`/login?username=${this.username}&password=${this.password}`)
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
     }
   }
 }

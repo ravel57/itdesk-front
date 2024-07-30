@@ -1,5 +1,5 @@
 <template>
-  <q-page padding style="padding-bottom: 0;position: relative">
+  <q-page padding style="padding-bottom: 0;position: relative; overflow-y: hidden">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
           <q-input
@@ -12,13 +12,14 @@
         </div>
         <div
           style="display: flex"
-          :style="this.isMobile ? 'margin-top: 8px' : ''"
+          :style="this.isMobile ? 'margin-top: 8px;flex-wrap: wrap;justify-content: center' : ''"
         >
           <q-btn-dropdown
             v-if="!this.isShowTableMode"
             color="primary"
             :label="this.selectedGroupType.label"
             style="align-content: center;"
+            :style="this.isMobile ? 'width: 100%' : ''"
           >
             <template v-slot:label>
               <q-tooltip>
@@ -40,7 +41,7 @@
             </q-list>
           </q-btn-dropdown>
           <div
-            style="display: flex; flex-direction: row;flex-wrap: nowrap"
+            style="display: flex; flex-direction: row;flex-wrap: nowrap; margin-left: 8px;"
             :style=" this.isMobile && this.isShowTableMode ? 'justify-content: center; width: 100%;' : ''"
           >
             <q-btn
@@ -130,7 +131,7 @@
           v-model="this.selectedSavedFilter"
           :options="this.savedFilters.map(it => it.label)"
           label="Сохраненные фильтры"
-          style="width: 25%; align-content: center; min-width: 300px; margin-right: 8px"
+          style="width: 12.5%; align-content: center; min-width: 300px; margin-right: 8px"
           :style="this.isMobile ? 'width: 100%; margin-bottom: 8px' : ''"
           @update:model-value="this.onSavedFilterSelected"
           outlined
@@ -156,7 +157,6 @@
                 use-chips
                 use-input
                 dense
-                filled
                 stack-label
                 v-model="filter.selectedOptions"
                 input-debounce="0"
@@ -273,7 +273,11 @@
       class="text-h3 absolute-center text-primary"
       v-text="'Заявок нет'"
     />
-    <div v-if="this.store.checkedTasks.length > 0" class="mass-container">
+    <div
+      v-if="this.isShowBulkActionsMenu"
+      :style="this.isMobile ? 'left: 12vw !important;' : ''"
+      class="mass-container"
+    >
       <q-page class="shadow-1" style="min-height: 0; padding: 8px; border-radius: 5px;">
         <q-btn flat text-color="primary" icon="check_circle" @click="this.openBulkModal('close')">
           <q-tooltip>Закрыть заявки</q-tooltip>
@@ -368,7 +372,8 @@ export default {
     filterContainerHeight: 0,
     isModalForBulkActions: false,
 
-    action: 'close'
+    action: 'close',
+    isShowBulkActionsMenu: false
   }),
 
   methods: {
@@ -788,6 +793,10 @@ export default {
 
     urlFilterChain () {
       return new URLSearchParams(window.location.search).get('filterChain')
+    },
+
+    showBulkActionsMenu () {
+      return this.store.checkedTasks.length > 0
     }
   },
 
@@ -839,6 +848,16 @@ export default {
 
     isShowCompletedTasks () {
       localStorage.setItem('isShowCompletedTasks', this.isShowCompletedTasks)
+    },
+
+    showBulkActionsMenu () {
+      if (this.showBulkActionsMenu) {
+        this.isShowBulkActionsMenu = true
+      } else {
+        document.getElementsByClassName('mass-container')[0].style.animationName = 'HideBulkContainer'
+        document.getElementsByClassName('mass-container')[0].style.animationPlayState = 'start'
+        setTimeout(() => { this.isShowBulkActionsMenu = false }, 200)
+      }
     }
   },
 
@@ -892,8 +911,34 @@ export default {
 
 .mass-container {
   position: absolute;
+  background-color: white;
   left: 38vw;
-  bottom: 8px;
+  bottom: -150px;
+  animation-name: BulkContainer;
+  animation-duration: 0.2s;
+  animation-fill-mode: forwards;
+}
+
+@keyframes BulkContainer {
+
+  from {
+    bottom: -150px;
+  }
+
+  to {
+    bottom: 8px;
+  }
+}
+
+@keyframes HideBulkContainer {
+
+  from {
+    bottom: 8px;
+  }
+
+  to {
+    bottom: -150px;
+  }
 }
 
 </style>
