@@ -22,6 +22,7 @@
           @click="this.$emit('onTaskClicked', task)"
         >
           <input
+            v-if="!task.completed"
             :id="`radio_${task.id}_${taskIndex}`"
             class="radio-select"
             type="checkbox"
@@ -68,6 +69,7 @@ export default {
     selectedTasks: {
       handler () {
         this.store.checkedTasks = this.selectedTasks
+        console.log(this.store.checkedTasks)
       },
       deep: true
     }
@@ -77,7 +79,11 @@ export default {
     updateSelectedTasks () {
       this.selectedTasks = Object.entries(this.checkedTasks)
         .filter(([id, checked]) => checked)
-        .map(([id]) => this.groupedTasks.flatMap(group => group.taskCards).find(task => task.id === Number(id)))
+        .map(([id]) => {
+          return this.groupedTasks
+            .flatMap(group => group.taskCards ? group.taskCards : [])
+            .find(task => task.id === Number(id))
+        })
         .filter(task => task !== undefined)
     }
   },

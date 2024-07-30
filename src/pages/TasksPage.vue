@@ -1,5 +1,5 @@
 <template>
-  <q-page padding style="padding-bottom: 0;">
+  <q-page padding style="padding-bottom: 0;position: relative">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
           <q-input
@@ -267,6 +267,25 @@
       class="text-h3 absolute-center text-primary"
       v-text="'Заявок нет'"
     />
+    <div v-if="this.store.checkedTasks.length > 0" class="mass-container">
+      <q-page class="shadow-1" style="min-height: 0; padding: 8px; border-radius: 5px;">
+        <q-btn flat text-color="primary" icon="check_circle" @click="this.openBulkModal('close')">
+          <q-tooltip>Закрыть заявки</q-tooltip>
+        </q-btn>
+        <q-btn flat text-color="primary" icon="ac_unit" @click="this.openBulkModal('freeze')">
+          <q-tooltip>Заморозить заявки</q-tooltip>
+        </q-btn>
+        <q-btn flat text-color="primary" icon="manage_accounts" @click="this.openBulkModal('executor')">
+          <q-tooltip>Сменить исполнителя заявок</q-tooltip>
+        </q-btn>
+        <q-btn flat text-color="primary" icon="cancel" @click="this.openBulkModal('status')">
+          <q-tooltip>Изменить статус заявок</q-tooltip>
+        </q-btn>
+        <q-btn flat text-color="primary" icon="priority_high" @click="this.openBulkModal('priority')">
+          <q-tooltip>Изменить приоритет заявок</q-tooltip>
+        </q-btn>
+      </q-page>
+    </div>
   </q-page>
   <q-dialog
     v-model="this.isDeleteSavedFilterDialogShow"
@@ -295,6 +314,12 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+  <q-dialog v-model="this.isModalForBulkActions" persistent>
+    <task-bulk-actions-modal
+      :action="this.action"
+      @updateTask="this.updateTask"
+    />
+  </q-dialog>
 </template>
 
 <script>
@@ -302,9 +327,10 @@ import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import TasksComponent from 'components/tasks/TasksComponent.vue'
+import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
 
 export default {
-  components: { TasksComponent },
+  components: { TaskBulkActionsModal, TasksComponent },
   data: () => ({
     filterTypes: [
       { label: 'Исполнитель', slug: 'executor' },
@@ -333,7 +359,10 @@ export default {
     isNewTaskDialogShow: false,
     isTaskDialogShow: false,
     isShowDelFilterPreset: false,
-    filterContainerHeight: 0
+    filterContainerHeight: 0,
+    isModalForBulkActions: false,
+
+    action: 'close'
   }),
 
   methods: {
@@ -554,6 +583,11 @@ export default {
 
     updateTask (task, newTask) {
       this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+    },
+
+    openBulkModal (action) {
+      this.action = action
+      this.isModalForBulkActions = true
     }
   },
 
@@ -848,6 +882,12 @@ export default {
   overflow-x: auto;
   overflow-y: auto;
   width: 100%;
+}
+
+.mass-container {
+  position: absolute;
+  left: 38vw;
+  bottom: 8px;
 }
 
 </style>

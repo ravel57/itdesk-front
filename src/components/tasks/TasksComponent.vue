@@ -298,7 +298,7 @@ export default {
     taskCardStyle () {
       return {
         'padding-top': '8px',
-        height: this.isMobile ? `calc(77vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})` : `calc(92vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})`
+        height: this.isMobile ? `calc(77vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})` : `calc(90vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})`
       }
     },
 
@@ -313,6 +313,14 @@ export default {
         })
         .filter(col => col !== null)
     }
+  },
+
+  mounted () {
+    setTimeout(() => {
+      document.getElementsByClassName('q-table--col-auto-width')[0]
+        .getElementsByClassName('q-checkbox cursor-pointer no-outline row inline no-wrap items-center')[0]
+        .style.display = 'none'
+    }, 200)
   },
 
   watch: {
