@@ -212,6 +212,7 @@
               :taskWatchingNow="[]"
               :typing="[]"
               :isDialog="true"
+              :comments="false"
               @sendMessage="this.sendMessage"
               @isSending="this.isSending = true"
               @keyPressed="this.keyPressed"
