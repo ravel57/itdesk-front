@@ -43,6 +43,7 @@
 
 <script>
 import TaskCard from 'components/TaskCard.vue'
+import { useStore } from 'stores/store'
 
 export default {
 
@@ -63,6 +64,12 @@ export default {
         this.updateSelectedTasks()
       },
       deep: true
+    },
+    selectedTasks: {
+      handler () {
+        this.store.checkedTasks = this.selectedTasks
+      },
+      deep: true
     }
   },
 
@@ -73,6 +80,18 @@ export default {
         .map(([id]) => this.groupedTasks.flatMap(group => group.taskCards).find(task => task.id === Number(id)))
         .filter(task => task !== undefined)
     }
+  },
+
+  created () {
+    this.checkedTasks = this.store.checkedTasks.reduce((acc, task) => {
+      acc[task.id] = true
+      return acc
+    }, {})
+  },
+
+  setup () {
+    const store = useStore()
+    return { store }
   }
 }
 </script>

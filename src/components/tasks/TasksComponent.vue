@@ -33,7 +33,7 @@
         bordered
         style="margin-top: 8px"
         selection="multiple"
-        v-model:selected="this.selectedTasks"
+        v-model:selected="this.store.checkedTasks"
         :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
         rows-per-page-label="Строк на странице"
       >
@@ -143,6 +143,7 @@ import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import moment from 'moment/moment'
 import draggable from 'vuedraggable'
+import { useStore } from 'stores/store'
 
 export default {
 
@@ -327,6 +328,11 @@ export default {
     if (localStorage.getItem('taskTableSettings')) {
       this.activeColumns = JSON.parse(localStorage.getItem('taskTableSettings'))
     }
+  },
+
+  setup () {
+    const store = useStore()
+    return { store }
   }
 }
 </script>
