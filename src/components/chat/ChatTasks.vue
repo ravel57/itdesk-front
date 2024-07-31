@@ -103,7 +103,7 @@
       <div class="row justify-center">
         <div v-if="this.getActualTasks.length > 0" style="width: 100%;">
           <q-card-section style="padding: 0">
-            <q-card class="my-card">
+            <q-card class="my-card" style="overflow: hidden">
               <q-card-section
                 v-for="task in this.getActualTasks"
                 :key="task.id"

@@ -7,6 +7,7 @@
             v-model="this.searchRequest"
             label="Поиск"
             style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
+            :style="this.isMobile ? 'padding-right: 0;' : ''"
             clearable
           />
         </div>
@@ -266,19 +267,24 @@
         :filter-container-height="this.filterContainerHeight"
         @onTaskClicked="this.onTaskClicked"
         @closeDialog="this.closeDialog"
+        @addMessageToTask="this.addMessageToTask"
       />
     </div>
     <div
       v-else
-      class="text-h3 absolute-center text-primary"
-      v-text="'Заявок нет'"
-    />
+    >
+      <div
+        v-if="!this.isMobile"
+        class="text-h3 absolute-center text-primary"
+        v-text="'Заявок нет'"
+      />
+    </div>
     <div
       v-if="this.isShowBulkActionsMenu"
-      :style="this.isMobile ? 'left: 12vw !important;' : ''"
+      :style="this.isMobile ? 'left: 2vw !important;' : ''"
       class="mass-container"
     >
-      <q-page class="shadow-1" style="min-height: 0; padding: 8px; border-radius: 5px;">
+      <q-page class="shadow-1" style="min-height: 0; padding: 8px; border-radius: 5px;display: flex">
         <q-btn flat text-color="primary" icon="check_circle" @click="this.openBulkModal('close')">
           <q-tooltip>Закрыть заявки</q-tooltip>
         </q-btn>
@@ -293,6 +299,18 @@
         </q-btn>
         <q-btn flat text-color="primary" icon="star_half" @click="this.openBulkModal('priority')">
           <q-tooltip>Изменить приоритет заявок</q-tooltip>
+        </q-btn>
+        <q-separator
+          style="margin-left: 16px;margin-right: 4px"
+          :style="this.isMobile ? 'margin-left: 8px': ''"
+          vertical
+        />
+        <q-separator
+          style="margin-right: 16px"
+          :style="this.isMobile ? 'margin-right: 8px': ''"
+          vertical/>
+        <q-btn flat text-color="primary" icon="check_box_outline_blank" @click="this.store.checkedTasks = []">
+          <q-tooltip>Снять выделение</q-tooltip>
         </q-btn>
       </q-page>
     </div>
@@ -471,7 +489,6 @@ export default {
     },
 
     deleteSavedFilter () {
-      console.log(this.selectedSavedFilter)
       const filterId = this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).id
       axios.delete(`/api/v1/filter/${filterId}`)
         .then(() => {
@@ -599,6 +616,10 @@ export default {
     openBulkModal (action) {
       this.action = action
       this.isModalForBulkActions = true
+    },
+
+    addMessageToTask (event) {
+      this.selectedTask.messages.push(event.message)
     }
   },
 
@@ -863,6 +884,7 @@ export default {
 
   mounted () {
     document.title = 'ULDESK : Заявки'
+    this.store.checkedTasks = []
     setTimeout(() => this.initializeTaskFromUrl(), 300)
     setTimeout(() => this.initializeFilterChainFromUrl(), 300)
     axios.get('/api/v1/filters')

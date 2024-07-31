@@ -74,7 +74,7 @@
         <div
           class="col no-shadow rounded-borders"
           v-if="!this.isMobile || this.tab === 'tab3'"
-          :style="!this.isMobile ? 'max-width: 23vw' : ''"
+          :style="!this.isMobile ? 'max-width: 28vw' : ''"
         >
           <chat-tasks
             :tasks="this.getClient.tasks"
@@ -150,7 +150,6 @@ export default {
     },
 
     sendTextMessage (message) {
-      console.log(message)
       axios.post(`/api/v1/client/${this.getClient.id}/message`, message)
         .then(() => {
           this.inputField = ''

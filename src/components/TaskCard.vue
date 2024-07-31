@@ -113,7 +113,7 @@
       </tr>
       <tr>
         <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-        <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="getName(task.executor)"/>
+        <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.executor ? getName(task.executor) : '-'"/>
       </tr>
       <!--    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">-->
       <!--      <th-->

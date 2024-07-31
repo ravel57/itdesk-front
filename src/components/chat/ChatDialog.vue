@@ -710,7 +710,14 @@ export default {
     },
 
     getPortionMessages () {
-      const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+      let scrollZone = null
+      const chatDialog = document.getElementById('chat-dialog')
+      const chatPopUp = document.getElementById('chat-dialog-pop-up')
+      if (chatDialog) {
+        scrollZone = chatDialog.children[0].children[0]
+      } else {
+        scrollZone = chatPopUp.children[0].children[0]
+      }
 
       this.scrollToBottomKey = (scrollZone.scrollHeight - scrollZone.clientHeight) - scrollZone.scrollTop >= 600
 
@@ -757,7 +764,7 @@ export default {
 
     chatStyle () {
       return {
-        height: this.isDialog ? '84.5%' : (this.isMobile ? '70.5vh' : 'calc(100vh - 107px)'),
+        height: this.isDialog ? 'calc(100% - 90px)' : (this.isMobile ? '70.5vh' : 'calc(100vh - 107px)'),
         'border-radius': '0',
         'min-height': '0',
         'background-color': '#F0F0F0'

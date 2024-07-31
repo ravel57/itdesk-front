@@ -5,7 +5,7 @@
     backdrop-filter="blur(4px)"
   >
     <q-card
-      :class="this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) ? 'dialog-width' : 'large-dialog-width'"
+      :class="this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask ? 'dialog-width' : 'large-dialog-width'"
     >
       <q-toolbar class="justify-end">
         <!--FIXME-->
@@ -33,7 +33,7 @@
         style="padding: 0 16px"
       >
         <div
-          v-if="this.isMobile"
+          v-if="this.isMobile && !this.isNewTask"
           class="sticky-tabs"
         >
           <q-tabs
@@ -54,7 +54,7 @@
           </q-tabs>
         </div>
         <div
-          :class="this.isMobile ? '' : 'flex-container'"
+          :class="this.isMobile || this.isNewTask ? '' : 'flex-container'"
         >
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab1')"
@@ -194,9 +194,8 @@
             </q-card>
           </div>
           <div
-            v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+            v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.isNewTask"
             class="flex-item"
-            style="margin-bottom: 1.6%"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
             <chat-dialog
@@ -208,6 +207,7 @@
               :current-user="this.store.currentUser"
               :linkedMessageId="this.linkedMessageId"
               :client-id="this.client.id"
+              :client="this.client"
               :is-show-helper="true"
               :taskWatchingNow="[]"
               :typing="[]"
@@ -273,7 +273,8 @@
       </q-card-section>
 
       <q-card-actions align="right">
-        <q-btn flat @click="changeTaskFrozen" label="OK" color="primary" v-close-popup />
+        <q-btn flat label="Закрыть" color="primary" v-close-popup />
+        <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -473,6 +474,19 @@ export default {
     changeTaskFrozen () {
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.store.tags.find(tag => tag.name === tagName)))
+      if (!this.task.frozen) {
+        if (this.dialogTaskFreezeUntil.length === 0) {
+          this.$q.notify({
+            message: 'Не заполнены обязательные поля',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return
+        }
+      }
       const task = {
         id: this.isNewTask ? null : this.taskId,
         name: this.dialogTaskName,
@@ -552,7 +566,7 @@ export default {
         .then(() => {
           this.inputField = ''
           this.isSending = false
-          this.$emit('addMessageToTask', { task: this.task, message: event.message })
+          this.$emit('addMessageToTask', { task: this.task, message: event.message, client: this.client })
         })
         .catch(e =>
           this.$q.notify({

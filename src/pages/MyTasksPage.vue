@@ -53,6 +53,7 @@
         :isNewTask="false"
         @closeDialog="this.closeDialog"
         @updateTask="this.updateTask"
+        @addMessageToTask="this.addMessageToTask"
       />
     </div>
   </q-page>
@@ -125,6 +126,10 @@ export default {
     getChatLink (id) {
       const origin = window.location.origin
       return `${origin}/chats/${id}`
+    },
+
+    addMessageToTask (event) {
+      this.selectedTask.messages.push(event.message)
     }
   },
 

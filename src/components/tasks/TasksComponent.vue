@@ -82,6 +82,7 @@
     :isNewTask="false"
     @closeDialog="this.$emit('closeDialog', $event)"
     @updateTask="this.$emit('updateTask', $event)"
+    @addMessageToTask="this.addMessageToTask"
   />
   <q-dialog v-model="this.isShowTableSettings" persistent>
     <q-card style="width: 500px">
@@ -287,6 +288,10 @@ export default {
 
     parseStrToDate (str) {
       return moment(str, 'DD.MM.YYYY, HH:mm')
+    },
+
+    addMessageToTask (event) {
+      this.$emit('addMessageToTask', event)
     }
   },
 
