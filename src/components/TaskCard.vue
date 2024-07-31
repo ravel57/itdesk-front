@@ -57,7 +57,7 @@
       />
       <th
         :class="{'text-body2': true, 'text-grey': task.completed}"
-        v-text="task.tags.map(tag => tag.name).join(', ')"
+        v-text="task.tags.map(tag => tag.name).length === 0 ? '-' : task.tags.map(tag => tag.name).join(', ')"
       />
     </tr>
     <tr>

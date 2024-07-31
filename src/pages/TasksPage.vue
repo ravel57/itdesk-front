@@ -288,10 +288,10 @@
         <q-btn flat text-color="primary" icon="manage_accounts" @click="this.openBulkModal('executor')">
           <q-tooltip>Сменить исполнителя заявок</q-tooltip>
         </q-btn>
-        <q-btn flat text-color="primary" icon="cancel" @click="this.openBulkModal('status')">
+        <q-btn flat text-color="primary" icon="clear_all" @click="this.openBulkModal('status')">
           <q-tooltip>Изменить статус заявок</q-tooltip>
         </q-btn>
-        <q-btn flat text-color="primary" icon="priority_high" @click="this.openBulkModal('priority')">
+        <q-btn flat text-color="primary" icon="star_half" @click="this.openBulkModal('priority')">
           <q-tooltip>Изменить приоритет заявок</q-tooltip>
         </q-btn>
       </q-page>
