@@ -5,7 +5,7 @@
         <div style="display: flex;justify-content: center;align-items: center;z-index: 15;position: absolute;top: 50%;bottom: 50%;left: 50%;right: 50%;">
           <div style="background-color: white; padding: 8px; width: 240px; height: 296px; border-radius: 4px; min-width: 240px; min-height: 296px">
             <login-logo style="display: block; margin-left: auto; margin-right: auto;"/>
-            <div class="text-h6" style="text-align: center;margin-top: 8px;">Войти в ULDESK</div>
+            <div class="text-h6" style="text-align: center;margin-top: 8px;font-weight: 550">Войти в ULDESK</div>
             <form method="post" action="/perform_login" style="display: flex; flex-direction: column">
               <q-input name="username" style="margin-top: 16px" v-model="username" type="text" label="Логин"/>
               <q-input name="password" style="margin-top: 16px" v-model="password" :type="isPwd ? 'password' : 'text'" label="Пароль">

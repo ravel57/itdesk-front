@@ -22,7 +22,7 @@
           :style="this.isMobile ? 'justify-content: center;' : ''"
         >
           <a
-            style="font-size: 15px "
+            style="font-size: 15px;color: var(--q-primary);text-decoration: none;"
             :href="this.getChatLink(task.client.id)"
           >
             <q-icon name="assignment_ind"/>

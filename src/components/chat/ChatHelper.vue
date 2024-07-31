@@ -29,11 +29,12 @@
                 <q-icon name="search"/>
               </template>
             </q-input>
-            <div style="height: 60vh; padding-top: 0;overflow: auto">
+            <div style="height: 60vh; padding-top: 0;overflow: hidden">
               <q-item
                 v-for="(item, index) in this.filteredTemplates"
                 :key="index"
                 class="hidden-text q-layout-padding"
+                dense
                 clickable
                 @click="onTemplateClick(item)"
               >
@@ -60,6 +61,7 @@
               <q-item
                 v-for="(item, index) in this.knowledgeBase"
                 :key="index"
+                dense
                 class="hidden-text q-layout-padding"
                 clickable
                 @click="showModal(item)"

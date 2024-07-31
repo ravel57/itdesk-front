@@ -103,33 +103,14 @@
       <div class="row justify-center">
         <div v-if="this.getActualTasks.length > 0" style="width: 100%;">
           <q-card-section style="padding: 0">
-            <q-card bordered class="my-card">
+            <q-card class="my-card">
               <q-card-section
                 v-for="task in this.getActualTasks"
                 :key="task.id"
                 :id="`task_${task.id}`"
-                style="padding: 0;overflow-x: hidden;"
+                style="padding: 0;border-style: solid;border-width: 0.01em;border-radius: 4px; border-color: gray; margin-top: 8px"
                 class="shadow-2"
               >
-                <q-separator/>
-                <div class="flex">
-                  <q-btn
-                    v-if="!task.completed"
-                    icon="check_circle"
-                    label="Закрыть заявку"
-                    class="text-dark"
-                    flat
-                    @click="this.setTaskCompleted(task)"
-                  />
-                  <q-btn
-                    v-if="task.linkedMessageId"
-                    icon="link"
-                    class="text-dark"
-                    flat
-                    dense
-                    @click="getLinkedMessage(task)"
-                  />
-                </div>
                 <q-item
                   clickable
                   @click="this.onTaskClick(task)"
@@ -139,9 +120,33 @@
                     :selectedSorting="this.selectedSorting"
                     :descriptionRequire="true"
                     :slaRequire="true"
-                    :taskNameShort="31"
+                    :taskNameShort="22"
                   />
                 </q-item>
+                <div
+                  class="flex"
+                  style="justify-content: space-between;flex-wrap: nowrap; overflow: hidden"
+                  :style="task.linkedMessageId ? '' : 'justify-content: end;'"
+                >
+                  <q-btn
+                    v-if="task.linkedMessageId"
+                    icon="link"
+                    class="text-gray"
+                    dense
+                    flat
+                    style="margin: 8px;"
+                    @click="getLinkedMessage(task)"
+                  ><q-tooltip>Привязана к сообщению</q-tooltip></q-btn>
+                  <q-btn
+                    v-if="!task.completed"
+                    icon="check"
+                    label="Закрыть заявку"
+                    color="primary"
+                    style="margin: 8px;"
+                    dense
+                    @click="this.setTaskCompleted(task)"
+                  />
+                </div>
               </q-card-section>
             </q-card>
           </q-card-section>
@@ -317,6 +322,9 @@ export default {
       }
       if (taskIdFromUrl) {
         const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
+        if (taskFromUrl.completed) {
+          this.isShowCompletedTasks = true
+        }
         this.onTaskClick(taskFromUrl)
       } else {
         this.isNewTaskDialogShow = false

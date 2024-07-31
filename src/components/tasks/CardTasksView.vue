@@ -26,6 +26,7 @@
             :id="`radio_${task.id}_${taskIndex}`"
             class="radio-select"
             type="checkbox"
+            style="margin-bottom: 8px;margin-left: 4px;"
             v-model="checkedTasks[task.id]"
             @click.stop
           >
@@ -34,7 +35,7 @@
             :selectedSorting="this.selectedGroupType"
             :descriptionRequire="false"
             :slaRequire="false"
-            :taskNameShort="14"
+            :taskNameShort="22"
           />
         </q-item>
       </q-item>
