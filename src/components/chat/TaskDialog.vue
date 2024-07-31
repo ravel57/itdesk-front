@@ -7,27 +7,31 @@
     <q-card
       :class="this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask ? 'dialog-width' : 'large-dialog-width'"
     >
-      <q-toolbar class="justify-end">
+      <q-toolbar class="justify-between">
         <!--FIXME-->
-        <q-btn
-          v-if="!(this.$route.path.includes('chats'))"
-          flat
-          dense
-          icon="assignment_ind"
-          @click="this.$router.push({ path: `/chats/${this.client.id}` })"
-        >
-          <q-tooltip>
-            Перейти в чат
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          flat
-          round
-          dense
-          icon="close"
-          @click="this.closeDialog"
-          v-close-popup
-        />
+        <div class="text-h6">Заявка № {{ this.task.id }}</div>
+        <div class="">
+          <q-btn
+            v-if="!(this.$route.path.includes('chats'))"
+            flat
+            round
+            dense
+            icon="ios_share"
+            @click="this.$router.push({ path: `/chats/${this.client.id}` })"
+          >
+            <q-tooltip>
+              Перейти в чат
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            flat
+            round
+            dense
+            icon="close"
+            @click="this.closeDialog"
+            v-close-popup
+          />
+        </div>
       </q-toolbar>
       <q-card-section
         style="padding: 0 16px"
@@ -67,12 +71,6 @@
               <q-card-section
                 class="no-padding"
               >
-                <q-input
-                  v-if="this.dialogTaskId"
-                  v-model="this.dialogTaskId"
-                  label="ID"
-                  readonly
-                />
                 <q-input
                   v-model="this.dialogTaskName"
                   ref="taskName"
@@ -222,7 +220,7 @@
       </q-card-section>
       <q-card-actions
         align="right"
-        style="margin-right: 7px;margin-bottom: 8px;"
+        style="margin-right: 7px;margin-bottom: 8px;margin-top: 8px"
       >
         <q-btn
           color="white"

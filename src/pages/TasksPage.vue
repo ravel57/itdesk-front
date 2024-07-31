@@ -4,6 +4,7 @@
         <div style="display: flex; width: 100%;">
           <q-input
             outlined
+            dense
             v-model="this.searchRequest"
             label="Поиск"
             style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
@@ -12,14 +13,15 @@
           />
         </div>
         <div
-          style="display: flex"
-          :style="this.isMobile ? 'margin-top: 8px;flex-wrap: wrap;justify-content: center' : ''"
+          style="display: flex;height: 40px;"
+          :style="this.isMobile ? 'margin-top: 8px;flex-wrap: wrap;justify-content: center;height: auto;' : ''"
         >
           <q-btn-dropdown
             v-if="!this.isShowTableMode"
             color="primary"
+            dense
             :label="this.selectedGroupType.label"
-            style="align-content: center;"
+            style="align-content: center;padding-left: 8px;"
             :style="this.isMobile ? 'width: 100%' : ''"
           >
             <template v-slot:label>
@@ -191,7 +193,7 @@
           v-if="filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
           flat
           color="grey"
-          icon="add_circle"
+          icon="add"
           @click="!this.isMenuActive"
         >
           <q-tooltip>
@@ -242,7 +244,7 @@
         </q-btn>
         <q-btn
           v-if="this.filterChain.length > 0"
-          icon="cancel"
+          icon="close"
           color="grey"
           @click="this.removeFilters"
           flat
@@ -309,7 +311,7 @@
           style="margin-right: 16px"
           :style="this.isMobile ? 'margin-right: 8px': ''"
           vertical/>
-        <q-btn flat text-color="primary" icon="check_box_outline_blank" @click="this.store.checkedTasks = []">
+        <q-btn flat text-color="primary" icon="disabled_by_default" @click="this.store.checkedTasks = []">
           <q-tooltip>Снять выделение</q-tooltip>
         </q-btn>
       </q-page>

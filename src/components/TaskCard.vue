@@ -1,53 +1,45 @@
 <template>
-  <div style="display: flex;flex-direction: column">
-    <div class="flex" style="flex-wrap: nowrap">
-      <div class="small-text text-grey" style="margin-right: 8px; margin-left: 3px">№{{ this.task.id }}</div>
-      <div class="text-body2">{{ this.shortenLine(task.name) }}</div>
+  <div style="display: flex;flex-direction: column;width: 100%">
+    <div class="flex" style="flex-wrap: nowrap;overflow: hidden;white-space: nowrap;">
+      <slot name="chatLink"></slot>
+    </div>
+    <div style="display: flex; flex-direction: row; justify-content: space-between; flex-wrap: nowrap; position: relative;align-items: center;height: 23px;">
+      <div class="flex" style="flex-wrap: nowrap;overflow: hidden;white-space: nowrap;width: 70%;">
+        <slot name="checkBox"></slot>
+        <div class="small-text text-grey" style="margin-right: 8px; margin-left: 3px">№{{ this.task.id }}</div>
+        <div class="text-body2" style="text-overflow: ellipsis; overflow: hidden">{{ task.name }}</div>
+      </div>
+      <div style="position: absolute;top: 0; right: 0;">
+        <div
+          style="
+          border-style: solid;
+          background-color: rgba(148, 121, 255, 0.2);
+          border-width: 1px;
+          border-radius: 4px;
+          border-color: var(--q-primary);
+          color: var(--q-primary);
+          padding-left: 4px;
+          padding-right: 4px;
+          "
+        >
+          <div v-if="this.task.frozen">
+            Заморожена
+          </div>
+          <div v-else-if="this.task.completed">
+            Закрыта
+          </div>
+          <div v-else-if="!this.task.completed && !this.task.frozen">
+            {{ task.status.name }}
+          </div>
+        </div>
+      </div>
     </div>
     <table
       @click="this.$emit('onTaskClicked', this.task)"
     >
-      <tr v-if="task.completed">
-        <th
-          class="small-text text-grey"
-          v-text="'ЗАЯВКА ЗАКРЫТА'"
-          colspan="2"
-        />
-      </tr>
-      <tr v-if="task.frozen">
-        <th
-          class="small-text text-grey"
-          colspan="2"
-        >
-          <q-icon
-            name="ac_unit"
-          />
-          ЗАЯВКА ЗАМОРОЖЕНА
-        </th>
-      </tr>
-      <!--    <tr>-->
-      <!--      <th-->
-      <!--        class="small-text text-grey"-->
-      <!--        v-text="'ID заявки'"-->
-      <!--      />-->
-      <!--      <th-->
-      <!--        :class="{'text-body2': true, 'text-grey': task.completed}"-->
-      <!--        v-text="task.id"-->
-      <!--      />-->
-      <!--    </tr>-->
-      <!--    <tr>-->
-      <!--      <th-->
-      <!--        class="small-text text-grey"-->
-      <!--        v-text="'Название: '"-->
-      <!--      />-->
-      <!--      <th-->
-      <!--        :class="{'text-body2': true, 'text-grey': task.completed}"-->
-      <!--        v-text="this.shortenLine(task.name)"-->
-      <!--      />-->
-      <!--    </tr>-->
       <tr v-if="this.descriptionRequire">
         <th
-          class="small-text text-grey"
+          class="small-text text-grey row-label"
           v-text="'Описание: '"
         />
         <th
@@ -57,17 +49,17 @@
       </tr>
       <tr>
         <th
-          class="small-text text-grey"
+          class="small-text text-grey row-label"
           v-text="'Теги: '"
         />
         <th
-          :class="{'text-body2': true, 'text-grey': task.completed}"
+          :class="{'text-body2': true, 'text-grey': task.completed, 'truncate': true}"
           v-text="task.tags.map(tag => tag.name).length === 0 ? '-' : task.tags.map(tag => tag.name).join(', ')"
         />
       </tr>
       <tr>
         <th
-          class="small-text text-grey"
+          class="small-text text-grey row-label"
           :style="this.selectedSorting.slug === 'priority' ? 'color: black;font-weight: 600;': 'color:gray'"
           v-text="'Приоритет: '"
         />
@@ -78,8 +70,15 @@
         />
       </tr>
       <tr>
+        <th class="small-text text-grey row-label" v-text="'Исполнитель: '"/>
         <th
-          class="small-text text-grey"
+          :class="{'text-body2': true, 'text-grey': task.completed}"
+          style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;width: 79%;display: block"
+          v-text="task.executor ? getName(task.executor) : '-'"/>
+      </tr>
+      <tr>
+        <th
+          class="small-text text-grey row-label"
           :style="this.selectedSorting.slug === 'creating' ? 'color: black;font-weight: 600;': 'color:gray'"
           v-text="'Создана: '"
         />
@@ -88,32 +87,29 @@
           :style="this.selectedSorting.slug === 'creating' ? 'font-weight: 600;': ''"
           v-text="this.getStamp(task.createdAt)"/>
       </tr>
-      <tr v-if="!task.completed">
-        <th
-          class="small-text text-grey"
-          :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"
-          v-text="'Статус: '"
-        />
-        <th
-          class="text-body2"
-          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"
-          v-text="task.status.name"/>
-      </tr>
+<!--      <tr v-if="!task.completed">-->
+<!--        <th-->
+<!--          class="small-text text-grey"-->
+<!--          :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"-->
+<!--          v-text="'Статус: '"-->
+<!--        />-->
+<!--        <th-->
+<!--          class="text-body2"-->
+<!--          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"-->
+<!--          v-text="task.status.name"/>-->
+<!--      </tr>-->
       <tr>
         <th
-          class="small-text text-grey"
+          class="small-text text-grey row-label"
           :style="this.selectedSorting.slug === 'deadline' ? 'color: black;': 'color:gray'"
           v-text="'Дедлайн: '"
         />
         <th
           class="text-body2"
+          :class="task.completed ? 'text-grey' : ''"
           :style="`color: ${task.deadline && (task.deadline < Date.now()) ? 'red' : 'black'}; ${selectedSorting.slug === 'deadline' ? 'font-weight: 600;' : ''}`"
           v-text="task.deadline ? this.getStamp(task.deadline) : '-'"
         />
-      </tr>
-      <tr>
-        <th class="small-text text-grey" v-text="'Исполнитель: '"/>
-        <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="task.executor ? getName(task.executor) : '-'"/>
       </tr>
       <!--    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">-->
       <!--      <th-->
@@ -154,10 +150,11 @@
       <!--    </tr>-->
       <tr v-if="!this.$route.path.includes('chat')">
         <!--      FIXME-->
-        <th class="small-text text-grey" v-text="'Последняя активность: '"/>
+        <th class="small-text text-grey row-label" v-text="'Последняя активность: '"/>
         <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.getStamp(new Date(task.client.lastMessage.date))"/>
       </tr>
     </table>
+    <slot name="taskControl"></slot>
   </div>
 </template>
 
@@ -242,8 +239,11 @@ th {
   text-align: left;
 }
 
-.shorten-text {
-  width:35%;
+.row-label {
+}
+
+.truncate {
+  max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

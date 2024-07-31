@@ -38,12 +38,15 @@
         <q-btn
           v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
           class="text-primary cursor-pointer"
+          icon="add_circle"
+          color="primary"
           @click="this.dialogNewTask"
           label="Создать заявку"
           style="margin-right: 8px;"
         />
         <q-btn
           icon="sort"
+          flat
           class="text-grey-7"
           style="margin-right: 8px;"
         >
@@ -77,6 +80,7 @@
         <q-btn
           v-if="this.selectedSorting.label"
           @click="this.changeSortingAsc"
+          flat
           class="text-grey-7"
           style="width: 20px"
           :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
@@ -108,11 +112,12 @@
                 v-for="task in this.getActualTasks"
                 :key="task.id"
                 :id="`task_${task.id}`"
-                style="padding: 0;border-style: solid;border-width: 0.01em;border-radius: 4px; border-color: gray; margin-top: 8px"
+                style="padding: 0;border-style: solid;border-width: 0.01em;border-radius: 4px; border-color: var(--q-primary); margin-top: 8px; max-width: 420px;"
                 class="shadow-2"
               >
                 <q-item
                   clickable
+                  style="padding: 8px"
                   @click="this.onTaskClick(task)"
                 >
                   <task-card
@@ -121,32 +126,37 @@
                     :descriptionRequire="true"
                     :slaRequire="true"
                     :taskNameShort="22"
-                  />
+                  >
+                    <template v-slot:taskControl>
+                      <div
+                        class="flex"
+                        style="justify-content: space-between;flex-wrap: nowrap; overflow: hidden;"
+                        :style="task.linkedMessageId ? '' : 'justify-content: end;'"
+                      >
+                        <q-btn
+                          v-if="task.linkedMessageId"
+                          icon="link"
+                          class="text-gray"
+                          dense
+                          flat
+                          @click.stop="getLinkedMessage(task)"
+                        >
+                          <div class="text-grey">
+                            Привязано
+                          </div>
+                        </q-btn>
+                        <q-btn
+                          v-if="!task.completed"
+                          icon="check"
+                          label="Закрыть заявку"
+                          color="primary"
+                          dense
+                          @click.stop="this.setTaskCompleted(task)"
+                        />
+                      </div>
+                    </template>
+                  </task-card>
                 </q-item>
-                <div
-                  class="flex"
-                  style="justify-content: space-between;flex-wrap: nowrap; overflow: hidden"
-                  :style="task.linkedMessageId ? '' : 'justify-content: end;'"
-                >
-                  <q-btn
-                    v-if="task.linkedMessageId"
-                    icon="link"
-                    class="text-gray"
-                    dense
-                    flat
-                    style="margin: 8px;"
-                    @click="getLinkedMessage(task)"
-                  ><q-tooltip>Привязана к сообщению</q-tooltip></q-btn>
-                  <q-btn
-                    v-if="!task.completed"
-                    icon="check"
-                    label="Закрыть заявку"
-                    color="primary"
-                    style="margin: 8px;"
-                    dense
-                    @click="this.setTaskCompleted(task)"
-                  />
-                </div>
               </q-card-section>
             </q-card>
           </q-card-section>

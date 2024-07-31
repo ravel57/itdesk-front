@@ -72,7 +72,7 @@
   />
   <div
     class="text-subtitle2"
-    style="align-items: center"
+    style="align-items: center; display: flex"
   >
     <img
       v-if="client.messageFrom === 'TELEGRAM'"

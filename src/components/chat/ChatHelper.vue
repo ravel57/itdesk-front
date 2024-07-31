@@ -15,7 +15,7 @@
         />
       </div>
       <q-card-section>
-        <q-card style="margin-bottom: 8px">
+        <q-card bordered class="no-shadow" style="margin-bottom: 8px">
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
             <q-input
               v-model="this.templateSearch"
@@ -56,7 +56,7 @@
             </div>
           </q-expansion-item>
         </q-card>
-        <q-card style="margin-bottom: 8px">
+        <q-card bordered class="no-shadow" style="margin-bottom: 8px">
           <q-expansion-item label="База знаний" class="spoiler">
             <div style="max-height: 60vh;overflow: auto">
               <q-item

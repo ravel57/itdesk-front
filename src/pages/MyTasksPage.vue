@@ -3,6 +3,7 @@
     <div style="display: flex; width: 100%;">
       <q-input
         outlined
+        dense
         v-model="this.searchRequest"
         label="Поиск"
         style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
@@ -13,29 +14,39 @@
       <div
         v-if="this.getFilteredTasks.length > 0"
         style="display: flex; flex-wrap: wrap; flex-direction: row"
+        :style="!this.isMobile ? 'justify-content: center;' : 'justify-content: start;'"
       >
         <q-item
           v-for="task in this.getFilteredTasks"
           :key="task.id"
-          class="card"
+          style="border-style: solid;border-width: 0.01em;border-radius: 4px; border-color: var(--q-primary); margin-top: 8px; max-width: 420px;width: 100%;margin-right: 20px"
           clickable
-          :style="this.isMobile ? 'justify-content: center;' : ''"
+          class="no-padding"
         >
-          <a
-            style="font-size: 15px;color: var(--q-primary);text-decoration: none;"
-            :href="this.getChatLink(task.client.id)"
+          <q-item
+            clickable
+            style="padding: 8px;max-width: 420px;width: 420px;overflow: hidden"
+            @click="this.onTaskClicked(task)"
           >
-            <q-icon name="assignment_ind"/>
-            Перейти в чат
-          </a>
-          <task-card
-            :task="task"
-            :descriptionRequire="false"
-            :slaRequire="false"
-            :task-name-short="20"
-            :selected-sorting="''"
-            @onTaskClicked="this.onTaskClicked($event)"
-          />
+            <task-card
+              :task="task"
+              :descriptionRequire="false"
+              :slaRequire="false"
+              :task-name-short="20"
+              :selected-sorting="''"
+              @onTaskClicked="this.onTaskClicked($event)"
+            >
+              <template v-slot:chatLink>
+                <a
+                  style="font-size: 15px;color: var(--q-primary);text-decoration: none;margin-left: 3px;"
+                  :href="this.getChatLink(task.client.id)"
+                >
+                  <q-icon name="assignment_ind"/>
+                  Перейти в чат
+                </a>
+              </template>
+            </task-card>
+          </q-item>
         </q-item>
       </div>
       <div
