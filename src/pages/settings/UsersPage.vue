@@ -52,7 +52,7 @@
         <q-input
           v-if="this.isNewUser"
           v-model="this.dialogUsername"
-          label="username"
+          label="e-mail (username)"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
@@ -170,6 +170,8 @@ export default {
     },
 
     dialogSaveNewOrUpdateUser () {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+      const isValidEmail = emailRegex.test(this.dialogUsername)
       const user = {
         id: this.isNewUser ? null : this.userId,
         username: this.isNewUser ? this.dialogUsername : null,
@@ -179,7 +181,7 @@ export default {
         authorities: this.dialogRole,
         availableOrganizations: this.dialogRole === 'Менеджер организации' ? [this.dialogOrganization] : this.dialogOrganization
       }
-      if ((this.isNewUser && user.username.length === 0) || (this.isNewUser && user.password.length === 0) ||
+      if ((this.isNewUser && (user.username.length === 0 || !isValidEmail)) || (this.isNewUser && user.password.length === 0) ||
         user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
