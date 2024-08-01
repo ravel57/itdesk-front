@@ -1,5 +1,5 @@
 <template>
-  <div style="display: flex;flex-direction: column;width: 100%">
+  <div id="task-card" style="display: flex;flex-direction: column;width: 100%">
     <div class="flex" style="flex-wrap: nowrap;overflow: hidden;white-space: nowrap;">
       <slot name="chatLink"></slot>
     </div>
@@ -7,10 +7,11 @@
       <div class="flex" style="flex-wrap: nowrap;overflow: hidden;white-space: nowrap;width: 70%;">
         <slot name="checkBox"></slot>
         <div class="small-text text-grey" style="margin-right: 8px; margin-left: 3px">№{{ this.task.id }}</div>
-        <div class="text-body2" style="text-overflow: ellipsis; overflow: hidden">{{ task.name }}</div>
+        <div id="task-card-name" class="text-body2" style="text-overflow: ellipsis; overflow: hidden">{{ task.name }}</div>
       </div>
       <div style="position: absolute;top: 0; right: 0;">
         <div
+          id="task-card-status"
           style="
           border-style: solid;
           background-color: rgba(148, 121, 255, 0.2);

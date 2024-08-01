@@ -73,29 +73,34 @@
                 class="no-padding"
               >
                 <q-input
+                  id="task-name"
                   v-model="this.dialogTaskName"
                   ref="taskName"
                   label="Название *"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                 />
                 <q-input
+                  id="task-description"
                   type="textarea"
                   v-model="this.dialogTaskDescription"
                   label="Описание"
                 />
                 <q-select
+                  id="task-priority"
                   v-model="this.dialogTaskPriority"
                   :options="this.store.priorities.map(priority => priority.name)"
                   label="Приоритет *"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                 />
                 <q-select
+                  id="task-executor"
                   v-model="dialogTaskExecutor"
                   :options="this.store.users.filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0])).map(user => this.getUserName(user))"
                   label="Исполнитель"
                   use-input
                 />
                 <q-select
+                  id="task-tags"
                   v-model="this.dialogTaskTags"
                   :options="this.store.tags.map(t => t.name)"
                   multiple
@@ -106,6 +111,7 @@
                   style="padding-top: 16px"
                 />
                 <q-input
+                  id="task-deadline"
                   v-model="this.dialogTaskDeadline"
                   clearable
                   label="Дедлайн"
@@ -131,10 +137,12 @@
                   </template>
                 </q-input>
                 <div
+                  id="task-controls"
                   class="flex"
                   style="height: 56px; flex-wrap: nowrap;margin-top: 8px;"
                 >
                   <q-select
+                    id="task-status"
                     v-model="this.dialogTaskStatus"
                     :options="this.store.statuses.map(s => s.name)"
                     label="Статус *"
@@ -156,44 +164,49 @@
                     text-color="primary"
                     @click="this.setTaskNotCompleted(this.task)"
                   />
-                  <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
-                    icon="ac_unit"
-                    text-color="primary"
-                    style="margin-left: 8px;position: relative"
-                    @click="this.changeTaskFrozen()"
-                  >
-                    <q-tooltip>Заморожено до {{ this.getStamp(new Date(this.task.frozenUntil)) }}</q-tooltip>
-                    <q-circular-progress
-                      v-if="this.task.frozen"
-                      :value="this.getPercentFrozenTask(this.task.frozenFrom, this.task.frozenUntil)"
-                      reverse
-                      size="40px"
-                      style="
+                  <div id="unfreeze-task-btn">
+                    <q-btn
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
+                      icon="ac_unit"
+                      text-color="primary"
+                      style="margin-left: 8px;position: relative;height: 100%"
+                      @click="this.changeTaskFrozen()"
+                    >
+                      <q-tooltip>Заморожено до {{ this.getStamp(new Date(this.task.frozenUntil)) }}</q-tooltip>
+                      <q-circular-progress
+                        v-if="this.task.frozen"
+                        :value="this.getPercentFrozenTask(this.task.frozenFrom, this.task.frozenUntil)"
+                        reverse
+                        size="40px"
+                        style="
                       position: absolute;
                       font-size: 40px;
                       margin: 0;
                     "
-                      :thickness="0.22"
-                      color="primary"
-                      track-color="grey-3"
-                    />
-                  </q-btn>
-                  <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
-                    icon="ac_unit"
-                    text-color="gray"
-                    style="margin-left: 8px"
-                    @click="this.freezeDialog = true"
-                  >
-                    <q-tooltip>Заморозить заявку</q-tooltip>
-                  </q-btn>
+                        :thickness="0.22"
+                        color="primary"
+                        track-color="grey-3"
+                      />
+                    </q-btn>
+                  </div>
+                  <div id="freeze-task-btn" style="margin-left: 8px">
+                    <q-btn
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
+                      icon="ac_unit"
+                      style="height: 100%;"
+                      text-color="gray"
+                      @click="this.freezeDialog = true"
+                    >
+                      <q-tooltip>Заморозить заявку</q-tooltip>
+                    </q-btn>
+                  </div>
                 </div>
               </q-card-section>
             </q-card>
           </div>
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.isNewTask"
+            id="chat-section"
             class="flex-item"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
@@ -230,6 +243,7 @@
           @click="this.closeDialog"
         />
         <q-btn
+          id="save-task"
           color="primary"
           label="Сохранить"
           @click="this.saveNewOrUpdateTask"
@@ -238,44 +252,50 @@
     </q-card>
   </q-dialog>
   <q-dialog v-model="this.freezeDialog">
-    <q-card>
-      <q-card-section>
-        <div class="text-h6">Заморозка заявки</div>
-      </q-card-section>
+    <div id="task-freeze-modal">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Заморозка заявки</div>
+        </q-card-section>
 
-      <q-card-section class="q-pt-none">
-        <q-input
-          v-model="this.dialogTaskFreezeUntil"
-          clearable
-          label="Заморозить до"
-        >
-          <template
-            v-slot:append
-          >
-            <q-icon
-              name="event"
-              class="cursor-pointer"
+        <q-card-section class="q-pt-none">
+          <div id="freeze-time-input">
+            <q-input
+              v-model="this.dialogTaskFreezeUntil"
+              clearable
+              label="Заморозить до"
             >
-              <q-popup-proxy
-                cover
-                transition-show="scale"
-                transition-hide="scale"
+              <template
+                v-slot:append
               >
-                <q-date
-                  v-model="this.dialogTaskFreezeUntil"
-                  mask="DD.MM.YYYY HH:mm"
-                />
-              </q-popup-proxy>
-            </q-icon>
-          </template>
-        </q-input>
-      </q-card-section>
+                <q-icon
+                  name="event"
+                  class="cursor-pointer"
+                >
+                  <q-popup-proxy
+                    cover
+                    transition-show="scale"
+                    transition-hide="scale"
+                  >
+                    <q-date
+                      v-model="this.dialogTaskFreezeUntil"
+                      mask="DD.MM.YYYY HH:mm"
+                    />
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+          </div>
+        </q-card-section>
 
-      <q-card-actions align="right">
-        <q-btn flat label="Закрыть" color="primary" v-close-popup />
-        <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary" v-close-popup />
-      </q-card-actions>
-    </q-card>
+        <q-card-actions align="right">
+          <q-btn flat label="Закрыть" color="primary" v-close-popup />
+          <div id="freeze-save-btn">
+            <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary" v-close-popup />
+          </div>
+        </q-card-actions>
+      </q-card>
+    </div>
   </q-dialog>
 </template>
 

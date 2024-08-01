@@ -194,11 +194,27 @@ export default {
       typing(this.getClient, this.store.currentUser, text)
     },
 
-    linkToTask (message, task) {
+    linkToTask (message, oldTask) {
+      const task = {
+        id: oldTask.id,
+        name: oldTask.name,
+        description: oldTask.description,
+        status: oldTask.status,
+        priority: oldTask.priority,
+        executor: oldTask.executor,
+        tags: oldTask.tags,
+        completed: oldTask.completed,
+        createdAt: oldTask.createdAt,
+        deadline: oldTask.deadline,
+        linkedMessageId: oldTask.linkedMessageId,
+        sla: oldTask.sla
+      }
       axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, { message, task })
         .then(() => {
-          this.getClient.messages.find(msg => msg.id === task.linkedMessageId).linkedTaskId = null
-          this.getClient.messages.find(msg => msg.id === message.id).linkedTaskId = task.id
+          if (this.getClient.messages.find(msg => msg.id === oldTask.linkedMessageId)) {
+            this.getClient.messages.find(msg => msg.id === oldTask.linkedMessageId).linkedTaskId = null
+          }
+          this.getClient.messages.find(msg => msg.id === message.id).linkedTaskId = oldTask.id
         })
         .catch(e => {
           this.$q.notify({

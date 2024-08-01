@@ -327,6 +327,7 @@
         </div>
         <q-btn
           style="margin-bottom: 6px"
+          id="choose-file-btn"
           type="file"
           @click="attachFile"
           icon="attach_file"
@@ -351,6 +352,7 @@
           <q-btn
             v-if="this.inputField.length > 0 || this.attachedFile"
             icon="send"
+            id="send-message-btn"
             @click="this.sendMessage"
             :loading="this.isSending"
             color="white"
@@ -370,6 +372,7 @@
           v-if="this.comments"
         >
           <q-btn
+            id="comment-mode-btn"
             style="margin-bottom: 6px"
             @click="this.switchToComment"
             dense

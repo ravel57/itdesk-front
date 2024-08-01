@@ -93,7 +93,7 @@ export default {
 
     doAction () {
       this.store.checkedTasks.filter(task => !task.completed).forEach(task => {
-        if (this.tasksFreezeUntil.length === 0 && this.tasksExecutor.length === 0 &&
+        if (this.action !== 'close' && this.tasksFreezeUntil.length === 0 && this.tasksExecutor.length === 0 &&
           this.tasksStatus.length === 0 && this.tasksPriority.length === 0) {
           this.$q.notify({
             message: 'Не заполнены обязательные поля',

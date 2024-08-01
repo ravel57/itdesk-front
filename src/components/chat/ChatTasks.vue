@@ -37,6 +37,7 @@
         </div>
         <q-btn
           v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+          id="create-task"
           class="text-primary cursor-pointer"
           icon="add_circle"
           color="primary"
@@ -85,7 +86,7 @@
           style="width: 20px"
           :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
         />
-        <div v-if="this.getActualTasks.length > 0">
+        <div id="task-search">
           <q-input
             v-model="search"
             label="Поиск по заявкам"
@@ -101,6 +102,7 @@
       </div>
     </div>
     <div
+      id="task-vertical-carousel"
       style="overflow: auto;position: relative"
       :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 280px)'"
     >
@@ -146,6 +148,7 @@
                           </div>
                         </q-btn>
                         <q-btn
+                          id="close-task-btn"
                           v-if="!task.completed"
                           icon="check"
                           label="Закрыть заявку"
@@ -261,15 +264,28 @@ export default {
     },
 
     updateTask (task, newTask) {
-      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+      this.$emit('updateTask', task, newTask)
     },
 
     setTaskCompleted (task) {
-      task.completed = true
-      axios.patch(`/api/v1/client/${this.client.id}/task`, task)
+      const completedTask = {
+        id: task.id,
+        name: task.name,
+        description: task.description,
+        status: task.status,
+        priority: task.priority,
+        executor: task.executor,
+        tags: task.tags,
+        completed: true,
+        createdAt: task.createdAt,
+        deadline: task.deadline,
+        linkedMessageId: task.linkedMessageId,
+        sla: task.sla
+      }
+      axios.patch(`/api/v1/client/${this.client.id}/task`, completedTask)
         .then(newTask => {
           this.closeDialog()
-          this.$emit('updateTask', task, newTask)
+          this.updateTask(task, newTask)
         })
         .catch(e =>
           this.$q.notify({
