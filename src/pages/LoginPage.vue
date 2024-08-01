@@ -84,7 +84,7 @@
 
 <script>
 import LoginLogo from 'components/LoginLogo.vue'
-import axios from 'axios'
+// import axios from 'axios'
 
 export default {
   name: 'LoginPage',
@@ -96,19 +96,19 @@ export default {
   }),
 
   methods: {
-    login () {
-      axios.post(`/login?username=${this.username}&password=${this.password}`)
-        .catch(e => {
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          })
-        })
-    }
+    // login () {
+    //   axios.post(`/login?username=${this.username}&password=${this.password}`)
+    //     .catch(e => {
+    //       this.$q.notify({
+    //         message: e.message,
+    //         type: 'negative',
+    //         position: 'top-right',
+    //         actions: [{
+    //           icon: 'close', color: 'white', dense: true, handler: () => undefined
+    //         }]
+    //       })
+    //     })
+    // }
   }
 }
 </script>
