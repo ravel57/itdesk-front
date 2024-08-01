@@ -36,7 +36,7 @@
                 :id="`radio_${task.id}_${taskIndex}`"
                 class="radio-select"
                 type="checkbox"
-                style="margin-bottom: 8px;margin-left: 4px;"
+                style="margin-top: 4.5px;margin-left: 4px;height: 12px;width: 12px;"
                 v-model="checkedTasks[task.id]"
                 @click.stop
               >

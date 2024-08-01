@@ -39,7 +39,7 @@
     </q-card>
     <q-list
       v-if="this.isShowSearchResults"
-      class="search-results shadow-2 rounded-borders scrollable-list-container"
+      class="search-results no-shadow rounded-borders scrollable-list-container"
       :style="(this.searchResults.length > 0) ? 'height: auto' : 'height: 0'"
       bordered
     >

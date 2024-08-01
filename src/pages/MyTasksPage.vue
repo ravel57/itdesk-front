@@ -14,7 +14,7 @@
       <div
         v-if="this.getFilteredTasks.length > 0"
         style="display: flex; flex-wrap: wrap; flex-direction: row"
-        :style="!this.isMobile ? 'justify-content: center;' : 'justify-content: start;'"
+        :style="this.isMobile ? 'justify-content: center;' : 'justify-content: start;'"
       >
         <q-item
           v-for="task in this.getFilteredTasks"
@@ -92,9 +92,6 @@ export default {
   }),
 
   methods: {
-    isMobile () {
-      return this.$q.screen.width < 1023
-    },
 
     closeDialog () {
       const queryParams = new URLSearchParams(window.location.search)
@@ -159,6 +156,10 @@ export default {
           }
           return !task.completed && matchesSearchRequest
         })
+    },
+
+    isMobile () {
+      return this.$q.screen.width < 1023
     }
   },
 

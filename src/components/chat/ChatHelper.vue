@@ -4,7 +4,10 @@
       style="overflow: auto"
       :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"
     >
-      <div style="width: 100%;">
+      <div style="width: 100%; display: flex; justify-content: space-between;padding-left: 8px;padding-top: 8px;padding-bottom: 8px;">
+        <div style="width: 90px; height: 40px; border-radius: 4px; background-color: var(--q-primary); color: white; display:flex;justify-content: center;align-items: center">
+          Подсказки
+        </div>
         <q-btn
           v-if="!this.isMobile"
           icon="remove"
@@ -14,8 +17,8 @@
           class="q-ml-auto flex justify-end"
         />
       </div>
-      <q-card-section>
-        <q-card bordered class="no-shadow" style="margin-bottom: 8px">
+      <q-card-section style="padding: 0">
+        <q-card class="no-shadow" style="margin-bottom: 8px">
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
             <q-input
               v-model="this.templateSearch"
@@ -56,7 +59,7 @@
             </div>
           </q-expansion-item>
         </q-card>
-        <q-card bordered class="no-shadow" style="margin-bottom: 8px">
+        <q-card class="no-shadow" style="margin-bottom: 8px">
           <q-expansion-item label="База знаний" class="spoiler">
             <div style="max-height: 60vh;overflow: auto">
               <q-item

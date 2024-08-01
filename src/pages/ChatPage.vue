@@ -74,7 +74,7 @@
         <div
           class="col no-shadow rounded-borders"
           v-if="!this.isMobile || this.tab === 'tab3'"
-          :style="!this.isMobile ? 'max-width: 22vw;min-width:min-content;' : ''"
+          :style="!this.isMobile ? 'max-width: 22vw;min-width:452px;' : ''"
         >
           <chat-tasks
             :tasks="this.getClient.tasks"
