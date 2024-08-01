@@ -54,9 +54,10 @@
     style="align-items: center"
   >
     <q-icon
-      v-if="this.getOrganization"
+      :style="!this.getOrganization ? 'color: grey !important' : 'color: black !important'"
       name="store"
     />
+    <div v-if="!this.getOrganization" class="text-italic text-grey text-subtitle2" v-text="'Без организации'"/>
     <div
       class="text-subtitle2"
       @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
@@ -70,6 +71,7 @@
     @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
     v-text="this.client.moreInfo"
   />
+  <div v-if="!this.client.moreInfo" class="text-italic text-grey text-subtitle2" v-text="'Нет дополнительной информации'"/>
   <div
     class="text-subtitle2"
     style="align-items: center; display: flex"

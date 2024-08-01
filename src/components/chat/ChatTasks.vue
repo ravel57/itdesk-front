@@ -102,7 +102,7 @@
     </div>
     <div
       style="overflow: auto;position: relative"
-      :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 240px)'"
+      :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 280px)'"
     >
       <div class="row justify-center">
         <div v-if="this.getActualTasks.length > 0" style="width: 100%;">

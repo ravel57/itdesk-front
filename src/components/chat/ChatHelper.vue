@@ -5,7 +5,7 @@
       :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"
     >
       <div style="width: 100%; display: flex; justify-content: space-between;padding-left: 8px;padding-top: 8px;padding-bottom: 8px;">
-        <div style="width: 90px; height: 40px; border-radius: 4px; background-color: var(--q-primary); color: white; display:flex;justify-content: center;align-items: center">
+        <div style="width: 100px; height: 40px; border-radius: 4px; background-color: var(--q-primary); color: white; display:flex;justify-content: center;align-items: center;font-size: 17px">
           Подсказки
         </div>
         <q-btn

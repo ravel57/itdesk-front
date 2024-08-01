@@ -9,7 +9,8 @@
     >
       <q-toolbar class="justify-between">
         <!--FIXME-->
-        <div class="text-h6">Заявка № {{ this.task.id }}</div>
+        <div v-if="this.isNewTask" class="text-h6">Новая заявка</div>
+        <div v-else class="text-h6">Заявка № {{ this.task.id }}</div>
         <div class="">
           <q-btn
             v-if="!(this.$route.path.includes('chats'))"
