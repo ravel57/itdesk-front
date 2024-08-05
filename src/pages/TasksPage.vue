@@ -142,7 +142,7 @@
         />
         <div
           v-if="this.isFilterSelected"
-          style="overflow: auto; margin-right: 8px;height: 100%"
+          style="margin-right: 8px;height: 100%"
           :style="isMobile ? 'width: 100%': ''"
         >
           <div style="display: flex;flex-direction: row; flex-wrap: nowrap">
@@ -159,11 +159,10 @@
                 :options="filter.options"
                 use-chips
                 use-input
-                dense
                 stack-label
                 v-model="filter.selectedOptions"
                 input-debounce="0"
-                style="width: 250px; height: 100%;"
+                style="width: 250px; height: 100%;min-height: 56px;"
                 behavior="menu"
               >
                 <!--@filter="filterFn"-->
@@ -286,32 +285,37 @@
       :style="this.isMobile ? 'left: 2vw !important;' : ''"
       class="mass-container"
     >
-      <q-page class="shadow-1" style="min-height: 0; padding: 8px; border-radius: 5px;display: flex">
-        <q-btn flat text-color="primary" icon="check_circle" @click="this.openBulkModal('close')">
+      <q-page class="shadow-1" style="min-height: 0; padding: 0; border-radius: 5px;display: flex">
+        <q-btn v-if="!this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="check_circle" @click="this.openBulkModal('close')">
           <q-tooltip>Закрыть заявки</q-tooltip>
         </q-btn>
-        <q-btn flat text-color="primary" icon="ac_unit" @click="this.openBulkModal('freeze')">
+        <q-btn v-if="this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="cancel" @click="this.openBulkModal('open')">
+          <q-tooltip>Открыть заявку</q-tooltip>
+        </q-btn>
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">
           <q-tooltip>Заморозить заявки</q-tooltip>
         </q-btn>
-        <q-btn flat text-color="primary" icon="manage_accounts" @click="this.openBulkModal('executor')">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts" @click="this.openBulkModal('executor')">
           <q-tooltip>Сменить исполнителя заявок</q-tooltip>
         </q-btn>
-        <q-btn flat text-color="primary" icon="clear_all" @click="this.openBulkModal('status')">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="clear_all" @click="this.openBulkModal('status')">
           <q-tooltip>Изменить статус заявок</q-tooltip>
         </q-btn>
-        <q-btn flat text-color="primary" icon="star_half" @click="this.openBulkModal('priority')">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="star_half" @click="this.openBulkModal('priority')">
           <q-tooltip>Изменить приоритет заявок</q-tooltip>
         </q-btn>
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="sell" @click="this.openBulkModal('tags')">
+          <q-tooltip>Изменить теги заявок</q-tooltip>
+        </q-btn>
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="today" @click="this.openBulkModal('deadline')">
+          <q-tooltip>Изменить дедлайн заявок</q-tooltip>
+        </q-btn>
         <q-separator
-          style="margin-left: 16px;margin-right: 4px"
+          style="background-color: rgba(108, 108, 108, 1) !important;padding: 0;margin: 14px 10px;"
           :style="this.isMobile ? 'margin-left: 8px': ''"
           vertical
         />
-        <q-separator
-          style="margin-right: 16px"
-          :style="this.isMobile ? 'margin-right: 8px': ''"
-          vertical/>
-        <q-btn flat text-color="primary" icon="disabled_by_default" @click="this.store.checkedTasks = []">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="disabled_by_default" @click="this.store.checkedTasks = []">
           <q-tooltip>Снять выделение</q-tooltip>
         </q-btn>
       </q-page>
@@ -736,13 +740,13 @@ export default {
             } else {
               groupedCards.push({
                 title: key,
-                taskCards: [value[0]]
+                taskCards: [...value]
               })
             }
           }
         }
         groupedCards.forEach(it => {
-          it.title = `${it.title} (${it.taskCards.length})`
+          it.title = `${it.title ? it.title : 'Не сгрупированны'} (${it.taskCards.length})`
         })
       } else if (slug === 'organization') {
         if (options['']) {
@@ -759,7 +763,7 @@ export default {
           })
         }
         groupedCards.forEach(it => {
-          it.title = `${it.title} (${it.taskCards.length})`
+          it.title = `${it.title ? it.title : 'Не сгрупированны'} (${it.taskCards.length})`
         })
       } else {
         source.forEach(el => {
@@ -820,6 +824,10 @@ export default {
 
     showBulkActionsMenu () {
       return this.store.checkedTasks.length > 0
+    },
+
+    showOpenTaskBtn () {
+      return this.store.checkedTasks.every(task => task.completed === true)
     }
   },
 
@@ -933,9 +941,17 @@ export default {
   width: 100%;
 }
 
+.mass-actions-btn {
+  padding: 0;
+  margin: 10px;
+  width: 24px;
+}
+
 .mass-container {
   position: absolute;
-  background-color: white;
+  padding: 0 14px;
+  border-radius: 8px;
+  background-color: rgba(36, 36, 36, 1);
   left: 38vw;
   bottom: -150px;
   animation-name: BulkContainer;

@@ -6,9 +6,19 @@
   >
     <div
       class="list-header sticky-tabs"
+      style="display: flex;align-content: center;"
       :style="`background-color: hsl(${360 / this.groupedTasks.length * (this.groupedTasks.length - index)}deg 85% 40%);`"
-      v-text="taskList.title"
-    />
+    >
+      <input
+        :id="`col-checkbox-${index}`"
+        class="radio-select"
+        type="checkbox"
+        style="margin-right: 8px;height: 20px;width: 20px;"
+        :checked="isGroupChecked(taskList.taskCards)"
+        @click.stop="toggleGroupTasks(taskList.taskCards, $event.target.checked)"
+      >
+      {{ taskList.title }}
+    </div>
     <div
       class="list-cards"
     >
@@ -24,6 +34,7 @@
           @click="this.$emit('onTaskClicked', task)"
         >
           <task-card
+            class="task-card"
             :task="task"
             :selectedSorting="this.selectedGroupType"
             :descriptionRequire="false"
@@ -32,22 +43,24 @@
           >
             <template v-slot:checkBox>
               <input
-                v-if="!task.completed"
                 :id="`radio_${task.id}_${taskIndex}`"
                 class="radio-select"
                 type="checkbox"
-                style="margin-top: 4.5px;margin-left: 4px;height: 12px;width: 12px;"
+                style="margin-left: 4px;height: 20px;width: 20px;"
                 v-model="checkedTasks[task.id]"
                 @click.stop
               >
             </template>
             <template v-slot:chatLink>
-              <a
-                style="font-size: 15px;color: var(--q-primary);text-decoration: none;margin-left: 3px;"
-                :href="this.getChatLink(task.client.id)"
-              >
-                <q-icon name="assignment_ind"/>
-                Перейти в чат
+              <a :href="this.getChatLink(task.client.id)" @click.stop>
+                <div
+                  :id="`link_to_chat_${task.id}_${taskIndex}`"
+                  class="link-to-chat-container"
+                >
+                  <div class="link-container">
+                    <q-icon class="link" color="white" name="open_in_new"/>
+                  </div>
+                </div>
               </a>
             </template>
           </task-card>
@@ -71,14 +84,8 @@ export default {
 
   data: () => ({
     checkedTasks: {},
-    selectedTasks: []
+    colCheckbox: {}
   }),
-
-  computed: {
-    storeCheckedTasks () {
-      return this.store.checkedTasks
-    }
-  },
 
   watch: {
     checkedTasks: {
@@ -87,6 +94,7 @@ export default {
       },
       deep: true
     },
+
     storeCheckedTasks: {
       handler () {
         if (this.storeCheckedTasks.length === 0 && this.checkedTasks.length !== 0) {
@@ -98,6 +106,13 @@ export default {
   },
 
   methods: {
+    toggleGroupTasks (taskCards, isChecked) {
+      taskCards.forEach(task => {
+        this.checkedTasks[task.id] = isChecked
+      })
+      this.updateSelectedTasks()
+    },
+
     updateSelectedTasks () {
       this.store.checkedTasks = Object.entries(this.checkedTasks)
         .filter(([id, checked]) => checked)
@@ -112,6 +127,20 @@ export default {
     getChatLink (id) {
       const origin = window.location.origin
       return `${origin}/chats/${id}`
+    }
+  },
+
+  computed: {
+    isGroupChecked () {
+      return (taskCards) => {
+        if (taskCards) {
+          return taskCards.every(task => this.checkedTasks[task.id])
+        }
+      }
+    },
+
+    storeCheckedTasks () {
+      return this.store.checkedTasks
     }
   },
 
@@ -145,6 +174,7 @@ export default {
 }
 
 .list-header {
+  z-index: 2;
   border-radius: 5px;
   width: 440px;
   max-width: 440px;
@@ -163,6 +193,52 @@ export default {
   width: 20px;
   height: 20px;
   accent-color: var(--q-primary);
+}
+
+.link-to-chat-container {
+  background-color: var(--q-primary);
+  display: none;
+  height: 60px;
+  overflow: hidden;
+  position: absolute;
+  right: -37px;
+  top: -37px;
+  transform: rotate(45deg);
+  transition: transform .3s ease;
+  width: 60px;
+  z-index: 1;
+}
+
+.link-container {
+  color: var(--q-primary);
+  display: flex;
+  font-size: 15px;
+  margin-left: 3px;
+  padding: 0;
+  text-decoration: none;
+  transition: transform .3s ease;
+  width: 50%;
+  position: absolute;
+  right: 25%;
+  bottom: 0;
+  height: 50%;
+}
+
+.link {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  transform: rotate(-45deg);
+}
+
+.link-to-chat-container:hover {
+  transform: rotate(45deg) scale(1.2);
+}
+
+.task-card:hover {
+  .link-to-chat-container {
+    display: unset;
+  }
 }
 
 </style>

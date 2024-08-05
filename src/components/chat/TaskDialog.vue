@@ -17,7 +17,7 @@
             flat
             round
             dense
-            icon="ios_share"
+            icon="open_in_new"
             @click="this.$router.push({ path: `/chats/${this.client.id}` })"
           >
             <q-tooltip>

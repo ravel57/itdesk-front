@@ -1,8 +1,6 @@
 <template>
-  <div id="task-card" style="display: flex;flex-direction: column;width: 100%">
-    <div class="flex" style="flex-wrap: nowrap;overflow: hidden;white-space: nowrap;">
-      <slot name="chatLink"></slot>
-    </div>
+  <div id="task-card" style="display: flex;flex-direction: column;width: 100%; position: relative">
+    <slot name="chatLink"></slot>
     <div style="display: flex; flex-direction: row; justify-content: space-between; flex-wrap: nowrap; position: relative;align-items: center;height: 23px;">
       <div class="flex" style="flex-wrap: nowrap;overflow: hidden;white-space: nowrap;width: 70%;">
         <slot name="checkBox"></slot>
@@ -22,6 +20,7 @@
           padding-left: 4px;
           padding-right: 4px;
           "
+          :style="this.task.completed ? 'background-color: rgba(16, 181, 92, 0.2);color: rgba(16, 181, 92, 1); border-color: rgba(16, 181, 92, 1)' : ''"
         >
           <div v-if="this.task.frozen">
             Заморожена
