@@ -181,8 +181,19 @@ export default {
         authorities: this.dialogRole,
         availableOrganizations: this.dialogRole === 'Менеджер организации' ? [this.dialogOrganization] : this.dialogOrganization
       }
-      if ((this.isNewUser && (user.username.length === 0 || !isValidEmail)) || (this.isNewUser && user.password.length === 0) ||
+      if ((this.isNewUser && user.username.length === 0) || (this.isNewUser && user.password.length === 0) ||
         user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
+        if (!isValidEmail) {
+          this.$q.notify({
+            message: 'Почта указана не корректно',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return
+        }
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
           type: 'negative',

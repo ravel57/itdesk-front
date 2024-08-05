@@ -10,6 +10,7 @@
       :style="`background-color: hsl(${360 / this.groupedTasks.length * (this.groupedTasks.length - index)}deg 85% 40%);`"
     >
       <input
+        v-if="taskList.taskCards.length > 0"
         :id="`col-checkbox-${index}`"
         class="radio-select"
         type="checkbox"
