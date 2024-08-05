@@ -87,7 +87,18 @@
   <q-dialog v-model="this.isShowTableSettings" persistent>
     <q-card style="width: 500px">
       <q-card-section class="row items-center q-pb-none text-h6">
-        Настройка колонок таблицы
+        <q-toolbar class="justify-between">
+          <div class="text-h6">Настройка колонок таблицы</div>
+          <div class="">
+            <q-btn
+              flat
+              round
+              dense
+              icon="close"
+              v-close-popup
+            />
+          </div>
+        </q-toolbar>
       </q-card-section>
       <q-card-section class="row items-center">
         <draggable
@@ -115,25 +126,27 @@
                 top
                 side
               >
-                <q-btn
-                  :text-color="element.active ? 'primary' : 'grey'"
-                  dense
-                  flat
-                  icon="check_box"
-                  @click="element.active = !element.active"
-                >
+                <div class="">
+                  <input class="radio-select" type="checkbox" :checked="element.active" @click.stop="element.active = !element.active">
                   <q-tooltip>
                     {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
                   </q-tooltip>
-                </q-btn>
+                </div>
+<!--                <q-btn-->
+<!--                  :text-color="element.active ? 'primary' : 'grey'"-->
+<!--                  dense-->
+<!--                  flat-->
+<!--                  icon="check_box"-->
+<!--                  @click="element.active = !element.active"-->
+<!--                >-->
+<!--                </q-btn>-->
               </q-item-section>
             </q-item>
           </template>
         </draggable>
       </q-card-section>
-
       <q-card-actions align="right">
-        <q-btn flat label="Закрыть" color="primary" v-close-popup />
+        <q-btn label="Применить" color="primary" v-close-popup />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -349,6 +362,12 @@ export default {
   width: 100%;
   flex-wrap: nowrap;
   overflow: auto;
+}
+
+.radio-select {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--q-primary);
 }
 
 </style>
