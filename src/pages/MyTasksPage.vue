@@ -17,7 +17,7 @@
         :style="this.isMobile ? 'justify-content: center;' : 'justify-content: start;'"
       >
         <q-item
-          v-for="task in this.getFilteredTasks"
+          v-for="(task, index) in this.getFilteredTasks"
           :key="task.id"
           style="border-style: solid;border-width: 0.01em;border-radius: 4px; border-color: var(--q-primary); margin-top: 8px; max-width: 420px;width: 100%;margin-right: 20px"
           clickable
@@ -29,6 +29,7 @@
             @click="this.onTaskClicked(task)"
           >
             <task-card
+              class="task-card"
               :task="task"
               :descriptionRequire="false"
               :slaRequire="false"
@@ -37,12 +38,15 @@
               @onTaskClicked="this.onTaskClicked($event)"
             >
               <template v-slot:chatLink>
-                <a
-                  style="font-size: 15px;color: var(--q-primary);text-decoration: none;margin-left: 3px;"
-                  :href="this.getChatLink(task.client.id)"
-                >
-                  <q-icon name="assignment_ind"/>
-                  Перейти в чат
+                <a :href="this.getChatLink(task.client.id)" @click.stop>
+                  <div
+                    :id="`link_to_chat_${task.id}_${index}`"
+                    class="link-to-chat-container"
+                  >
+                    <div class="link-container">
+                      <q-icon class="link" color="white" name="open_in_new"/>
+                    </div>
+                  </div>
                 </a>
               </template>
             </task-card>
@@ -197,6 +201,53 @@ export default {
   margin-right: 8px;
   margin-bottom: 8px
 }
+
+.link-to-chat-container {
+  background-color: var(--q-primary);
+  display: none;
+  height: 60px;
+  overflow: hidden;
+  position: absolute;
+  right: -37px;
+  top: -37px;
+  transform: rotate(45deg);
+  transition: transform .3s ease;
+  width: 60px;
+  z-index: 1;
+}
+
+.link-container {
+  color: var(--q-primary);
+  display: flex;
+  font-size: 15px;
+  margin-left: 3px;
+  padding: 0;
+  text-decoration: none;
+  transition: transform .3s ease;
+  width: 50%;
+  position: absolute;
+  right: 25%;
+  bottom: 0;
+  height: 50%;
+}
+
+.link {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  transform: rotate(-45deg);
+}
+
+.link-to-chat-container:hover {
+  transform: rotate(45deg) scale(1.2);
+}
+
+.task-card:hover {
+  .link-to-chat-container {
+    display: unset;
+  }
+}
+
 a:visited { text-decoration: none; }
 a:hover { text-decoration: none; }
 a:focus { text-decoration: none; }
