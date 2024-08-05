@@ -1,4 +1,20 @@
 <template>
+  <div ref="globalAlert" v-if="this.globalAlert" class="global-alert" @click="this.isShowGlobalAlert = true">
+    <div style="display: flex; flex-direction: row">
+      <div class="text-h7" style="color: white; margin: 8px;width: 100%;">
+        {{ this.globalAlertMessage }}
+      </div>
+      <q-btn
+        v-if="this.isShowGlobalAlert"
+        style="padding: 8px;color: white;width: 24px;height: 24px;"
+        flat
+        round
+        dense
+        icon="close"
+        @click.stop="this.isShowGlobalAlert = false"
+      />
+    </div>
+  </div>
   <q-layout>
     <q-header
       elevated
@@ -214,6 +230,12 @@ export default {
         roles: ['ADMIN', 'OPERATOR']
       }
     ],
+    // Включение глобального предупреждения
+    globalAlert: false,
+    // Разворот предпреждения
+    isShowGlobalAlert: false,
+    // Сообщение
+    globalAlertMessage: '',
     leftDrawerOpen: false,
     miniState: true
   }),
@@ -266,6 +288,22 @@ export default {
     }
   },
 
+  watch: {
+    isShowGlobalAlert: {
+      immediate: true,
+      deep: true,
+      handler () {
+        if (this.isShowGlobalAlert) {
+          this.$refs.globalAlert.style.height = 'min-content'
+          this.$refs.globalAlert.style.cursor = 'unset'
+        } else {
+          this.$refs.globalAlert.style.height = '8px'
+          this.$refs.globalAlert.style.cursor = 'pointer'
+        }
+      }
+    }
+  },
+
   mounted () {
     this.miniState = localStorage.getItem('miniState') !== 'false'
   },
@@ -282,6 +320,20 @@ export default {
 </script>
 
 <style scoped>
+
+.global-alert {
+  cursor: pointer;
+  overflow: hidden;
+  z-index: 6001;
+  top: 0;
+  position: absolute;
+  min-height: 8px;
+  height: 8px;
+  min-width: 100%;
+  width: 100%;
+  background-color: rgba(236, 8, 8, 1);
+}
+
 .mini-counter {
   position: absolute !important;
   height: 12px !important;
