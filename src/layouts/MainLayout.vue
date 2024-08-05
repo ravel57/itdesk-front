@@ -146,7 +146,7 @@
         </q-list>
       </q-drawer>
     </div>
-    <q-page-container>
+    <q-page-container style="padding-top: 8px">
       <router-view/>
     </q-page-container>
   </q-layout>
