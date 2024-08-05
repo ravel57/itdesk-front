@@ -1,9 +1,7 @@
 <template>
   <div ref="globalAlert" v-if="this.globalAlert" class="global-alert" @click="this.isShowGlobalAlert = true">
     <div style="display: flex; flex-direction: row">
-      <div class="text-h7" style="color: white; margin: 8px;width: 100%;">
-        {{ this.globalAlertMessage }}
-      </div>
+      <div class="text-h7" style="color: white; margin: 8px;width: 100%;" v-html="this.globalAlertMessage"/>
       <q-btn
         v-if="this.isShowGlobalAlert"
         style="padding: 8px;color: white;width: 24px;height: 24px;"
