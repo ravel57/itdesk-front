@@ -21,6 +21,9 @@ export function connect () {
     if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
       stompClient.subscribe('/topic/mark-read/', message => currentClientCallback(message))
     }
+    if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
+      stompClient.subscribe('/topic/support-messages/', message => supportMessagesCallback(message))
+    }
     stompClient.subscribe('/topic/client-messages/', message => clientMessageCallback(message))
   })
 }
@@ -155,4 +158,12 @@ function clientMessageCallback (message) {
   try {
     client.messages.push(clientMessage.message)
   } catch (ignoredError) {}
+}
+
+function supportMessagesCallback (message) {
+  const supportMessages = JSON.parse(message.body)
+  supportMessages.forEach(message => {
+    message.date = new Date(message.date)
+  })
+  useStore().supportMessages = supportMessages
 }

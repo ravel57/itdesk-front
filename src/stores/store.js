@@ -33,8 +33,8 @@ export const useStore = defineStore('store', {
         messages: [],
         isEnd: false
       },
-
-    checkedTasks: []
+    checkedTasks: [],
+    supportMessages: []
   }),
 
   getters: {

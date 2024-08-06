@@ -6,7 +6,7 @@
     <div class="col no-shadow rounded-borders" style="height: calc(100vh - 90px); width: 50%; padding: 8px;">
       <chat-dialog
         :is-mobile="this.isMobile"
-        :messages="[]"
+        :messages="store.supportMessages"
         :input-field="this.inputField"
         :templates="this.store.templates"
         :isSending="this.isSending"
@@ -14,6 +14,7 @@
         :client-id="1"
         :is-show-helper="true"
         :comments="false"
+        :client="{id: -1}"
         @sendMessage="this.sendMessage"
         @isSending="this.isSending = true"
         @keyPressed="this.keyPressed"
@@ -56,7 +57,7 @@ export default {
 
   methods: {
     sendMessage (event) {
-      axios.post(`/api/v1/user/${this.store.currentUser.id}/support/send-message`, event.message)
+      axios.post('/api/v1/support/send-message', event.message)
         .then(() => {
           this.inputField = ''
           this.isSending = false
