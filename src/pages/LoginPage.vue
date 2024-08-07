@@ -82,12 +82,13 @@
                 Забыл пароль?
               </a>
               <q-btn
+                type="submit"
                 color="primary"
               >
                 Войти
               </q-btn>
             </form>
-            <form v-else-if="this.passwordRestore">
+            <div v-else-if="this.passwordRestore">
               <div style="margin: 8px;text-align: center">Введите почту, с который связан ваш аккаунт</div>
               <div>
                 <q-input
@@ -111,15 +112,15 @@
               >
                 Отправить запрос
               </q-btn>
-            </form>
-            <form v-else-if="this.emailRestore">
+            </div>
+            <div v-else-if="this.emailRestore">
               <div style="text-align: center; padding: 8px">
                 Мы отправим запрос на восстановление пароля пользователю Admin
               </div>
               <div style="text-align: center;">Или напишите нам на почту:</div>
               <div style="text-align: center;padding-bottom: 8px; color: gray;font-weight: 520">support@uldesk.com</div>
               <q-btn @click="this.requestSend = true" style="width: 100%;margin-top: 51px" color="primary">Отправить запрос</q-btn>
-            </form>
+            </div>
           </div>
         </div>
         <div v-else style="display: flex;justify-content: center;align-items: center;z-index: 15;position: absolute;top: 50%;bottom: 50%;left: 50%;right: 50%;">
