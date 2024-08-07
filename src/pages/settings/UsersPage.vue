@@ -172,6 +172,7 @@ export default {
     dialogSaveNewOrUpdateUser () {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
       const isValidEmail = emailRegex.test(this.dialogUsername)
+      console.log(isValidEmail)
       const user = {
         id: this.isNewUser ? null : this.userId,
         username: this.isNewUser ? this.dialogUsername : null,
@@ -183,19 +184,19 @@ export default {
       }
       if ((this.isNewUser && user.username.length === 0) || (this.isNewUser && user.password.length === 0) ||
         user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
-        if (!isValidEmail) {
-          this.$q.notify({
-            message: 'Почта указана не корректно',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          })
-          return
-        }
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
+      if (!isValidEmail) {
+        this.$q.notify({
+          message: 'Почта указана не корректно',
           type: 'negative',
           position: 'top-right',
           actions: [{

@@ -152,12 +152,12 @@ export default {
     sendTextMessage (message) {
       axios.post(`/api/v1/client/${this.getClient.id}/message`, message)
         .then(() => {
-          this.inputField = ''
           this.isSending = false
           if (message.replyMessageId) {
             message.replyMessageText = this.getClient.messages.find(msg => msg.id === message.replyMessageId).text
           }
           this.getClient.messages.push(message)
+          this.keyPressed('')
         })
         .catch(e =>
           this.$q.notify({

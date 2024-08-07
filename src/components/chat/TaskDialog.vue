@@ -402,7 +402,12 @@ export default {
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,
-        sla: this.isNewTask ? null : this.task.sla
+        sla: this.isNewTask ? null : this.task.sla,
+        previusStatus: this.task.previusStatus
+      }
+
+      if (task.status.name === 'Закрыта') {
+        task.completed = true
       }
       if (this.isNewTask) {
         axios.post(`/api/v1/client/${this.client.id}/task`, task)
@@ -521,7 +526,8 @@ export default {
         sla: this.isNewTask ? null : this.task.sla,
         frozen: !this.task.frozen,
         frozenFrom: this.task.frozen ? null : new Date(),
-        frozenUntil: this.task.frozen ? null : moment(this.dialogTaskFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+        frozenUntil: this.task.frozen ? null : moment(this.dialogTaskFreezeUntil, 'DD.MM.YYYY HH:mm').format(),
+        previusStatus: this.task.previusStatus
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
@@ -630,6 +636,18 @@ export default {
   computed: {
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
+    }
+  },
+
+  watch: {
+    dialogTaskStatus: {
+      deep: true,
+      handler () {
+        console.log(this.dialogTaskStatus)
+        if (this.dialogTaskStatus === 'Заморожена') {
+          this.freezeDialog = true
+        }
+      }
     }
   },
 

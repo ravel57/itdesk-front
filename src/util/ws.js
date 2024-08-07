@@ -85,8 +85,45 @@ export function userOnline (user) {
   stompClient.send('/app/user-online', {}, JSON.stringify(user))
 }
 
+function removeCycles (obj) {
+  const seenObjects = new WeakMap()
+
+  function clone (obj) {
+    if (obj && typeof obj === 'object') {
+      if (seenObjects.has(obj)) {
+        return
+      }
+      seenObjects.set(obj, true)
+
+      if (obj instanceof Date) {
+        return new Date(obj.getTime())
+      }
+
+      if (Array.isArray(obj)) {
+        return obj.map(item => clone(item))
+      } else {
+        const clonedObj = {}
+        for (const key in obj) {
+          if (key === '_locale' || key === '_calendar') {
+            continue
+          }
+          clonedObj[key] = clone(obj[key])
+        }
+        return clonedObj
+      }
+    }
+    return obj
+  }
+
+  return clone(obj)
+}
+
 export function typing (client, user, text) {
-  stompClient.send('/app/typing', {}, JSON.stringify({ client, user, text }))
+  const cleanClient = removeCycles(client)
+  const cleanUser = removeCycles(user)
+  const message = { client: cleanClient, user: cleanUser, text }
+  const messageString = JSON.stringify(message)
+  stompClient.send('/app/typing', {}, messageString)
 }
 
 export function getClientsForObserver (user) {

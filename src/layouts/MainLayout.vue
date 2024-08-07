@@ -146,7 +146,7 @@
         </q-list>
       </q-drawer>
     </div>
-    <q-page-container style="padding-top: 8px">
+    <q-page-container>
       <router-view/>
     </q-page-container>
   </q-layout>
@@ -291,12 +291,14 @@ export default {
       immediate: true,
       deep: true,
       handler () {
-        if (this.isShowGlobalAlert) {
-          this.$refs.globalAlert.style.height = 'min-content'
-          this.$refs.globalAlert.style.cursor = 'unset'
-        } else {
-          this.$refs.globalAlert.style.height = '8px'
-          this.$refs.globalAlert.style.cursor = 'pointer'
+        if (this.globalAlert) {
+          if (this.isShowGlobalAlert) {
+            this.$refs.globalAlert.style.height = 'min-content'
+            this.$refs.globalAlert.style.cursor = 'unset'
+          } else {
+            this.$refs.globalAlert.style.height = '8px'
+            this.$refs.globalAlert.style.cursor = 'pointer'
+          }
         }
       }
     }

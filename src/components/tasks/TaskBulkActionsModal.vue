@@ -233,6 +233,9 @@ export default {
     this.tasksStatus = this.store.checkedTasks.every(task => task.status === this.store.checkedTasks[0].status) ? this.store.checkedTasks[0].status.name : 'Смешанные статусы'
     this.tasksTags = this.store.checkedTasks.every(task => task.tags === this.store.checkedTasks[0].tags) ? this.store.checkedTasks[0].tags.map(tag => tag.name) : ['Смешанные теги']
     this.tasksDeadline = this.store.checkedTasks.every(task => task.deadline === this.store.checkedTasks[0].deadline) ? moment(this.store.checkedTasks[0].deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') : 'Смешанные дедлайны'
+    if (this.tasksDeadline === 'Invalid date') {
+      this.tasksDeadline = ''
+    }
   },
 
   computed: {

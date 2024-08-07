@@ -508,14 +508,16 @@ export default {
 
     handleTabPressed (event) {
       if (this.$refs.textInput.value) {
-        const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
-        const value = matches[0].trim()
-        if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
-          event.preventDefault()
-          const replaceValue = this.templates.find(e => e.shortcut === value.replace(':', '')).text
-          this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
-        }
-        this.textChanged()
+        try {
+          const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
+          const value = matches[0].trim()
+          if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
+            event.preventDefault()
+            const replaceValue = this.templates.find(e => e.shortcut === value.replace(':', '')).text
+            this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
+          }
+          this.textChanged()
+        } catch (ignoredError) {}
       }
     },
 
