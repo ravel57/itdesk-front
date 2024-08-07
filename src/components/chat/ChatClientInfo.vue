@@ -83,6 +83,12 @@
       style="width: 16px"
     >
     <img
+      v-else-if="client.messageFrom === 'WHATSAPP'"
+      src="/whatsapp.png"
+      alt="tg"
+      style="width: 16px"
+    >
+    <img
       v-else-if="client.messageFrom === 'EMAIL'"
       src="/email.png"
       alt="email"
