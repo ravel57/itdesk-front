@@ -141,7 +141,6 @@
 <script>
 import LoginLogo from 'components/LoginLogo.vue'
 import axios from 'axios'
-// import axios from 'axios'
 
 export default {
   name: 'LoginPage',
@@ -180,7 +179,17 @@ export default {
     },
 
     resetPassword () {
-      axios.post('/api/v1/support/reset-password', this.username)
+      axios.post('/api/v1/support/reset-password', { username: this.email })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
     }
     // login () {
     //   axios.post(`/login?username=${this.username}&password=${this.password}`)
