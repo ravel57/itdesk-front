@@ -20,7 +20,7 @@
           padding-left: 4px;
           padding-right: 4px;
           "
-          :style="this.task.completed ? 'background-color: rgba(16, 181, 92, 0.2);color: rgba(16, 181, 92, 1); border-color: rgba(16, 181, 92, 1)' : ''"
+          :style="this.task.completed ? 'background-color: rgba(16, 181, 92, 0.2);color: rgba(16, 181, 92, 1); border-color: rgba(16, 181, 92, 1)' : (this.task.frozen ? 'background-color: rgba(50, 173, 230, 0.2);color: rgba(50, 173, 230, 1);border-color: rgba(50, 173, 230, 1)': '')"
         >
           <div v-if="this.task.frozen">
             Заморожена

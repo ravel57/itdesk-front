@@ -4,6 +4,11 @@
     :style="this.isMobile ? 'height: calc(100vh - 90px)' : ''"
   >
     <div class="col no-shadow rounded-borders" style="position: relative; width: 50%; padding: 8px;">
+      <div
+        style="width: 100%;text-align: center;z-index: 1;opacity: 0.3;position: absolute;padding-left: 8px;user-select: none"
+        class="text-h3 absolute-center text-primary"
+        v-text="'Чат с поддержкой ULDESK'"
+      />
       <chat-dialog
         :is-mobile="this.isMobile"
         :messages="store.supportMessages"
@@ -29,11 +34,7 @@
       justify-content: center;
       align-content: center;">
       <q-page style="min-height: 0">
-        <div
-          style="width: 100%;text-align: center;"
-          class="text-h3 absolute-center text-primary"
-          v-text="'Чат с поддержкой ULDESK'"
-        />
+
       </q-page>
     </div>
   </div>

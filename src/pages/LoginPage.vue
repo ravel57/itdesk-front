@@ -6,9 +6,23 @@
           <div style="background-color: white; padding: 8px; width: 240px; height: 296px; border-radius: 4px; min-width: 240px; min-height: 296px">
             <login-logo style="display: block; margin-left: auto; margin-right: auto;"/>
             <div class="text-h6" style="text-align: center;margin-top: 8px;font-weight: 550">Войти в ULDESK</div>
-            <form method="post" action="/perform_login" style="display: flex; flex-direction: column">
-              <q-input name="username" style="margin-top: 16px" v-model="username" type="text" label="Логин"/>
-              <q-input name="password" style="margin-top: 16px" v-model="password" :type="isPwd ? 'password' : 'text'" label="Пароль">
+            <form v-if="this.login" method="post" action="/perform_login" style="display: flex; flex-direction: column">
+              <q-input
+                name="username"
+                style="margin-top: 16px"
+                v-model="username"
+                type="text"
+                label="Логин"
+                :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+              />
+              <q-input
+                name="password"
+                style="margin-top: 16px"
+                v-model="password"
+                :type="isPwd ? 'password' : 'text'"
+                label="Пароль"
+                :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+              >
                 <template v-slot:append>
                   <q-icon
                     :name="isPwd ? 'visibility_off' : 'visibility'"
@@ -17,7 +31,49 @@
                   />
                 </template>
               </q-input>
-              <a style="color: var(--q-primary); margin-bottom: 15px; cursor: pointer">Забыл пароль?</a>
+              <a @click="this.changeView('passwordRestore')" style="color: var(--q-primary); margin-bottom: 15px; cursor: pointer">Забыл пароль?</a>
+              <q-btn
+                type="submit"
+                color="primary"
+              >
+                Войти
+              </q-btn>
+            </form>
+            <form v-else-if="this.passwordRestore">
+              <div style="display: flex; flex-direction: row;align-items: center">
+                <q-btn
+                  style="margin-right: 20px;"
+                  dense
+                  flat
+                  rounded
+                  @click="this.changeView('login')"
+                  icon="arrow_back"
+                />
+                <span style="justify-content: center">Забыли пароль?</span>
+              </div>
+              <div style="margin: 8px;text-align: center">Введите почту с который связан ваш аккаунт</div>
+              <q-input
+                name="email"
+                style="margin-top: 16px"
+                v-model="this.email"
+                type="text"
+                label="Логин"
+                :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+              />
+              <a @click="this.changeView('emailRestore')" style="color: var(--q-primary); margin-bottom: 15px; cursor: pointer">Не помню почту</a>
+              <q-btn @click="this.resetPassword" style="width: 100%;margin-top: 14px;" type="submit" color="primary">Отправить запрос</q-btn>
+            </form>
+            <form v-else-if="this.emailRestore">
+              <span>
+                <q-btn
+                  dense
+                  rounded
+                  flat
+                  @click="this.changeView('login')"
+                  icon="arrow_back"
+                />
+                Забыли почту?
+              </span>
               <q-btn type="submit" color="primary">Войти</q-btn>
             </form>
           </div>
@@ -84,6 +140,7 @@
 
 <script>
 import LoginLogo from 'components/LoginLogo.vue'
+import axios from 'axios'
 // import axios from 'axios'
 
 export default {
@@ -92,10 +149,39 @@ export default {
   data: () => ({
     username: '',
     password: '',
-    isPwd: true
+    email: '',
+    isPwd: true,
+    login: true,
+    passwordRestore: false,
+    emailRestore: false
   }),
 
   methods: {
+    changeView (view) {
+      switch (view) {
+        case 'login':
+          this.login = true
+          this.passwordRestore = false
+          this.emailRestore = false
+          return
+        case 'passwordRestore':
+          this.login = false
+          this.passwordRestore = true
+          this.emailRestore = false
+          return
+        case 'emailRestore':
+          this.emailRestore = true
+          this.login = false
+          this.passwordRestore = false
+          return
+        default:
+          this.login = true
+      }
+    },
+
+    resetPassword () {
+      axios.post('/api/v1/support/reset-password', this.username)
+    }
     // login () {
     //   axios.post(`/login?username=${this.username}&password=${this.password}`)
     //     .catch(e => {
