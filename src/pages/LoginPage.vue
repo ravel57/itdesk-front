@@ -82,7 +82,6 @@
                 Забыл пароль?
               </a>
               <q-btn
-                type="submit"
                 color="primary"
               >
                 Войти
