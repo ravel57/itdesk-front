@@ -99,6 +99,12 @@ export default {
         roles: ['ADMIN']
       },
       {
+        title: 'Whatsapp',
+        link: '/settings/whatsapp',
+        slug: 'whatsapp',
+        roles: ['ADMIN']
+      },
+      {
         title: 'Электронная почта',
         link: '/settings/email',
         slug: 'email',
