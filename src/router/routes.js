@@ -109,6 +109,10 @@ const routes = [
             component: () => import('pages/settings/TelegramPage.vue')
           },
           {
+            path: 'whatsapp',
+            component: () => import('pages/settings/WhatsappPage.vue')
+          },
+          {
             path: 'email',
             component: () => import('pages/settings/EmailPage.vue')
           },
