@@ -1,279 +1,287 @@
 <template>
-  <div style="position: absolute;width: 100%;height: 100%;">
+  <div style="position: relative">
+    <q-card
+      class="search-container"
+    >
+      <div class="search">
+        <q-input
+          v-model="search"
+          label="Поиск по сообщениям"
+          dense
+          clearable
+          style="width: 100%;padding: 0 8px 5px;"
+          @focus="this.isShowSearchResults = true"
+          @blur="this.onBlur"
+        >
+          <template v-slot:append>
+            <q-icon name="search"/>
+          </template>
+        </q-input>
+        <q-btn
+          v-if="!this.isShowHelper & !this.isMobile"
+          icon="add"
+          @click="this.showHelper"
+          flat
+          dense
+          class="q-ml-auto"
+        />
+      </div>
+    </q-card>
+    <q-list
+      v-if="this.isShowSearchResults"
+      class="search-results no-shadow rounded-borders scrollable-list-container"
+      :style="(this.searchResults.length > 0) ? 'height: auto' : 'height: 0'"
+      bordered
+    >
+      <q-item
+        v-for="message in searchResults"
+        :key="message.id"
+        style="background-color: white"
+        clickable
+      >
+        <q-item-section
+          @click="scrollToMessageAfterSearch(message.id)"
+          style="width: 100%; background-color: white"
+        >
+          {{ this.getSearchTitle(message) }}
+        </q-item-section>
+      </q-item>
+    </q-list>
     <div
       v-if="this.nowWatching.length > 0"
       class="now-watching-cloud"
-      :style="this.nowWatchingStyle"
+      style="opacity: 0.8;"
     >
       <div
         class="now-watching-text"
-        v-text="`Сейчас смотрят: ${this.nowWatching}`"
-      />
-    </div>
-    <div style="position: relative">
-      <q-card
-        class="search-container"
       >
-        <div class="search">
-          <q-input
-            v-model="search"
-            label="Поиск по сообщениям"
-            dense
-            clearable
-            style="width: 100%;padding: 0 8px 5px;"
-            @focus="this.isShowSearchResults = true"
-            @blur="this.onBlur"
-          >
-            <template v-slot:append>
-              <q-icon name="search"/>
-            </template>
-          </q-input>
-          <q-btn
-            v-if="!this.isShowHelper & !this.isMobile"
-            icon="add"
-            @click="this.showHelper"
-            flat
-            dense
-            class="q-ml-auto"
-          />
-        </div>
-      </q-card>
-      <q-list
-        v-if="this.isShowSearchResults"
-        class="search-results no-shadow rounded-borders scrollable-list-container"
-        :style="(this.searchResults.length > 0) ? 'height: auto' : 'height: 0'"
-        bordered
-      >
-        <q-item
-          v-for="message in searchResults"
-          :key="message.id"
-          style="background-color: white"
-          clickable
+        <q-icon
+          color="white"
+          name="visibility"
         >
-          <q-item-section
-            @click="scrollToMessageAfterSearch(message.id)"
-            style="width: 100%; background-color: white"
-          >
-            {{ this.getSearchTitle(message) }}
-          </q-item-section>
-        </q-item>
-      </q-list>
+          <q-tooltip>
+            Сейчас смотрят
+          </q-tooltip>
+        </q-icon>
+        {{ this.nowWatching }}
+      </div>
     </div>
-    <q-layout
-      container
-      :id="this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog'"
-      ref="chatDialog"
-      :style="chatStyle"
-      class="shadow-2"
-      @scroll="this.getPortionMessages()"
-    >
-      <q-page-container>
-        <q-page
-          style="padding-top: 8px;min-height: 0"
-          :ref="this.isDialog ? 'chatPopUp' : 'chat'"
-          :id="this.isDialog ? 'chatPopUp' : 'chat'"
-        >
-          <div class="q-pa-md row justify-center q-gutter-md">
-            <div
-              v-for="message in this.messages"
-              :key="message.id"
-              style="position: relative;width: 100%; margin-top: 0"
-              @click.right="this.invertContextMenu"
+  </div>
+  <q-layout
+    container
+    :id="this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog'"
+    ref="chatDialog"
+    :style="chatStyle"
+    class="shadow-2"
+    @scroll="this.getPortionMessages()"
+  >
+    <q-page-container>
+      <q-page
+        style="padding-top: 8px;min-height: 0"
+        :ref="this.isDialog ? 'chatPopUp' : 'chat'"
+        :id="this.isDialog ? 'chatPopUp' : 'chat'"
+      >
+        <div class="q-pa-md row justify-center q-gutter-md">
+          <div
+            v-for="message in this.messages"
+            :key="message.id"
+            style="position: relative;width: 100%; margin-top: 0"
+            @click.right="this.invertContextMenu"
+          >
+            <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
+            <q-chat-message
+              :id="`message_${message.id}`"
+              :avatar="message.avatar"
+              :name="this.getName(message)"
+              :sent="message.sent"
+              text-color="black"
+              :class="message.deleted ? 'strikethrough' : ''"
+              style="white-space: pre-wrap;"
+              :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
             >
-              <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
-              <q-chat-message
-                :id="`message_${message.id}`"
-                :avatar="message.avatar"
-                :name="this.getName(message)"
-                :sent="message.sent"
-                text-color="black"
-                :class="message.deleted ? 'strikethrough' : ''"
-                style="white-space: pre-wrap;"
-                :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
-              >
-                <template v-slot:stamp>
+              <template v-slot:stamp>
               <span
                 v-text="this.getStamp(message)"
               />
-                  <q-icon
-                    v-if="message.linkedTaskId"
-                    style="margin-left: 8px"
-                    name="link"
-                  />
-                </template>
-                <div
-                  v-if="message.replyMessageText"
-                  class="flex cursor-pointer"
-                  @click="this.scrollToMessageAfterSearch(message.replyMessageId)"
-                >
-                  <q-icon
-                    name="reply"
-                  />
-                  {{ message.replyMessageText }}
-                </div>
-                <div>
-                  <img
-                    v-if="message.fileUuid && message.fileType.startsWith('image/')"
-                    :src="`/files/images/${message.fileUuid}`"
-                    :style="this.getMediaMessageSize(message)"
-                    style="cursor: pointer"
-                    @click="this.openPhoto(message)"
-                    alt=""
-                  >
-                  <video
-                    v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
-                    style="max-width: 400px;"
-                    :style="this.isMobile ? 'height: 200px;width: 200px' : 'height: 400px;width: 400px'"
-                    controls
-                  >
-                    <source
-                      :src="`/files/videos/${message.fileUuid}`"
-                      type="video/mp4"
-                    >
-                    Your browser does not support the video tag.
-                  </video>
-                  <audio
-                    v-else-if="message.fileUuid && message.fileType.startsWith('audio/')"
-                    style="min-width: 300px; width: 90%; max-width: 400px"
-                    controls
-                  >
-                    <source
-                      :src="`/files/audios/${message.fileUuid}`"
-                      type="audio/ogg"
-                    >
-                    Your browser does not support the video tag.
-                  </audio>
-                  <a
-                    v-else-if="message.fileUuid"
-                    :href="`/files/documents/${message.fileUuid}`"
-                    target="_blank"
-                  >
-                    <q-icon name="attach_file"/>
-                    {{ message.fileName }}
-                  </a>
-                  <div
-                    v-html="this.findLinks(message.text)"
-                    style="max-width: 400px;"
-                  />
-                </div>
-              </q-chat-message>
-              <q-menu
-                v-if="this.isShowCustomContextMenu"
-                touch-position
-                context-menu
+                <q-icon
+                  v-if="message.linkedTaskId"
+                  style="margin-left: 8px"
+                  name="link"
+                />
+              </template>
+              <div
+                v-if="message.replyMessageText"
+                class="flex cursor-pointer"
+                @click="this.scrollToMessageAfterSearch(message.replyMessageId)"
               >
-                <q-list dense style="min-width: 100px">
-                  <q-item
-                    clickable
+                <q-icon
+                  name="reply"
+                />
+                {{ message.replyMessageText }}
+              </div>
+              <div>
+                <img
+                  v-if="message.fileUuid && message.fileType.startsWith('image/')"
+                  :src="`/files/images/${message.fileUuid}`"
+                  :style="this.getMediaMessageSize(message)"
+                  style="cursor: pointer"
+                  @click="this.openPhoto(message)"
+                  alt=""
+                >
+                <video
+                  v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
+                  style="max-width: 400px;"
+                  :style="this.isMobile ? 'height: 200px;width: 200px' : 'height: 400px;width: 400px'"
+                  controls
+                >
+                  <source
+                    :src="`/files/videos/${message.fileUuid}`"
+                    type="video/mp4"
+                  >
+                  Your browser does not support the video tag.
+                </video>
+                <audio
+                  v-else-if="message.fileUuid && message.fileType.startsWith('audio/')"
+                  style="min-width: 300px; width: 90%; max-width: 400px"
+                  controls
+                >
+                  <source
+                    :src="`/files/audios/${message.fileUuid}`"
+                    type="audio/ogg"
+                  >
+                  Your browser does not support the video tag.
+                </audio>
+                <a
+                  v-else-if="message.fileUuid"
+                  :href="`/files/documents/${message.fileUuid}`"
+                  target="_blank"
+                >
+                  <q-icon name="attach_file"/>
+                  {{ message.fileName }}
+                </a>
+                <div
+                  v-html="this.findLinks(message.text)"
+                  style="max-width: 400px;"
+                />
+              </div>
+            </q-chat-message>
+            <q-menu
+              v-if="this.isShowCustomContextMenu"
+              touch-position
+              context-menu
+            >
+              <q-list dense style="min-width: 100px">
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="this.setReplyMessage(message)"
+                  >
+                    Ответить
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="this.deleteMessage(message)"
+                  >
+                    Удалить
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="copyToClipboard(message.text)"
+                  >
+                    Скопировать текст
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                >
+                  <q-item-section
+                    @click="pastToInputField(message.text)"
                     v-close-popup
                   >
-                    <q-item-section
-                      @click="this.setReplyMessage(message)"
-                    >
-                      Ответить
-                    </q-item-section>
-                  </q-item>
-                  <q-item
-                    clickable
+                    Вставить в поле ввода
+                  </q-item-section>
+                </q-item>
+                <q-item
+                  clickable
+                >
+                  <q-item-section
+                    @click="this.createNewTask(message)"
                     v-close-popup
                   >
-                    <q-item-section
-                      @click="this.deleteMessage(message)"
-                    >
-                      Удалить
-                    </q-item-section>
-                  </q-item>
-                  <q-item
-                    clickable
-                    v-close-popup
-                  >
-                    <q-item-section
-                      @click="copyToClipboard(message.text)"
-                    >
-                      Скопировать текст
-                    </q-item-section>
-                  </q-item>
-                  <q-item
-                    clickable
-                  >
-                    <q-item-section
-                      @click="pastToInputField(message.text)"
-                      v-close-popup
-                    >
-                      Вставить в поле ввода
-                    </q-item-section>
-                  </q-item>
-                  <q-item
-                    clickable
-                  >
-                    <q-item-section
-                      @click="this.createNewTask(message)"
-                      v-close-popup
-                    >
-                      Создать заявку из сообщения
-                    </q-item-section>
-                  </q-item>
-                  <!-- <q-item-->
-                  <!--   clickable-->
-                  <!-- >-->
-                  <!--   <q-item-section-->
-                  <!--     v-close-popup-->
-                  <!--   >-->
-                  <!--     Найти в базе знаний TODO-->
-                  <!--   </q-item-section>-->
-                  <!-- </q-item>-->
-                  <q-item
-                    v-if="this.tasks.filter(t => !t.completed).length > 0"
-                    clickable
-                  >
-                    <q-item-section>
-                      Сделать ключевым для заявки
-                    </q-item-section>
-                    <q-item-section side>
-                      <q-icon name="keyboard_arrow_right"/>
-                    </q-item-section>
-                    <q-menu anchor="top end" self="top start">
-                      <q-list>
-                        <q-item
-                          v-for="task in this.tasks.filter(t => !t.completed)"
-                          :key="task"
-                          dense
-                          clickable
-                          @click="this.linkToTask(message, task)"
-                          v-close-popup
-                        >
-                          <q-item-section>
-                            {{ task.name }}
-                          </q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-menu>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </div>
+                    Создать заявку из сообщения
+                  </q-item-section>
+                </q-item>
+                <!-- <q-item-->
+                <!--   clickable-->
+                <!-- >-->
+                <!--   <q-item-section-->
+                <!--     v-close-popup-->
+                <!--   >-->
+                <!--     Найти в базе знаний TODO-->
+                <!--   </q-item-section>-->
+                <!-- </q-item>-->
+                <q-item
+                  v-if="this.tasks.filter(t => !t.completed).length > 0"
+                  clickable
+                >
+                  <q-item-section>
+                    Сделать ключевым для заявки
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon name="keyboard_arrow_right"/>
+                  </q-item-section>
+                  <q-menu anchor="top end" self="top start">
+                    <q-list>
+                      <q-item
+                        v-for="task in this.tasks.filter(t => !t.completed)"
+                        :key="task"
+                        dense
+                        clickable
+                        @click="this.linkToTask(message, task)"
+                        v-close-popup
+                      >
+                        <q-item-section>
+                          {{ task.name }}
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-item>
+              </q-list>
+            </q-menu>
           </div>
-        </q-page>
-      </q-page-container>
-    </q-layout>
-    <q-page
-      position="bottom"
-      class="input-container"
-      expand
+        </div>
+      </q-page>
+    </q-page-container>
+  </q-layout>
+  <q-page
+    position="bottom"
+    class="input-container"
+    expand
+  >
+    <div
+      v-if="['ADMIN', 'OPERATOR', 'CLIENT'].includes(this.store.currentUser.authorities[0])"
+      style="width: 100%;"
     >
-      <div
-        v-if="['ADMIN', 'OPERATOR', 'CLIENT'].includes(this.store.currentUser.authorities[0])"
-        style="width: 100%;"
+      <q-card
+        class="input-item"
+        :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
       >
-        <q-card
-          class="input-item"
-          :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
-        >
-          <q-btn
-            v-if="this.scrollToBottomKey"
-            class="shadow-1"
-            icon="keyboard_double_arrow_down"
-            style="
+        <q-btn
+          v-if="this.scrollToBottomKey"
+          class="shadow-1"
+          icon="keyboard_double_arrow_down"
+          style="
             width: 36px;
             height: 36px;
             position: absolute;
@@ -285,111 +293,110 @@
             border-radius: 4px;
             margin-bottom: 5px;
           "
-            @click="this.smoothScrollToBottom"
-          />
-          <div
-            v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
-            class="action-clouds"
-          >
-            <div class="input-clouds-container">
-              <div
-                v-if="this.attachedFile"
-                class="attach-file-text"
-              >
-                {{ this.shortenLine(this.attachedFile.name) }}
-                <q-btn
-                  dense
-                  flat
-                  icon="delete"
-                  @click="this.attachedFile = null"
-                />
-              </div>
-              <div
-                class="typing-users-cloud"
-                v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-                v-text="this.getTypingUsers"
+          @click="this.smoothScrollToBottom"
+        />
+        <div
+          v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
+          class="action-clouds"
+        >
+          <div class="input-clouds-container">
+            <div
+              v-if="this.attachedFile"
+              class="attach-file-text"
+            >
+              {{ this.shortenLine(this.attachedFile.name) }}
+              <q-btn
+                dense
+                flat
+                icon="delete"
+                @click="this.attachedFile = null"
               />
-              <div
-                class="reply-message-cloud"
-                v-if="this.replyMessageId !== null"
-              >
-                <q-icon
-                  style="margin-right: 2px"
-                  name="reply"
-                />
-                В ответ на: {{ this.getReplyMessage(this.messages.find(m => m.id === this.replyMessageId)) }}
-                <q-icon
-                  style="margin-right: 2px"
-                  name="close"
-                  @click="this.replyMessageId = null"
-                />
-              </div>
+            </div>
+            <div
+              class="typing-users-cloud"
+              v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+              v-text="this.getTypingUsers"
+            />
+            <div
+              class="reply-message-cloud"
+              v-if="this.replyMessageId !== null"
+            >
+              <q-icon
+                style="margin-right: 2px"
+                name="reply"
+              />
+              В ответ на: {{ this.getReplyMessage(this.messages.find(m => m.id === this.replyMessageId)) }}
+              <q-icon
+                style="margin-right: 2px"
+                name="close"
+                @click="this.replyMessageId = null"
+              />
             </div>
           </div>
+        </div>
+        <q-btn
+          style="margin-bottom: 6px"
+          id="choose-file-btn"
+          type="file"
+          @click="attachFile"
+          icon="attach_file"
+          class="no-padding"
+          flat
+        />
+        <input
+          type="file"
+          id="fileInput"
+          style="display: none"
+        />
+        <textarea
+          ref="textInput"
+          :value="this.inputField"
+          :placeholder="this.renderShortcutPlaceholder"
+          :style="textareaStyle"
+          @keydown.tab.prevent="handleTabPressed"
+          @keydown="this.handleKeyPressed"
+          @input="this.textChanged"
+        />
+        <div>
           <q-btn
-            style="margin-bottom: 6px"
-            id="choose-file-btn"
-            type="file"
-            @click="attachFile"
-            icon="attach_file"
-            class="no-padding"
+            v-if="this.inputField.length > 0 || this.attachedFile"
+            icon="send"
+            id="send-message-btn"
+            @click="this.sendMessage"
+            :loading="this.isSending"
+            color="white"
+            text-color="primary"
+            dense
+            push
             flat
-          />
-          <input
-            type="file"
-            id="fileInput"
-            style="display: none"
-          />
-          <textarea
-            ref="textInput"
-            :value="this.inputField"
-            :placeholder="this.renderShortcutPlaceholder"
-            :style="textareaStyle"
-            @keydown.tab.prevent="handleTabPressed"
-            @keydown="this.handleKeyPressed"
-            @input="this.textChanged"
-          />
-          <div>
-            <q-btn
-              v-if="this.inputField.length > 0 || this.attachedFile"
-              icon="send"
-              id="send-message-btn"
-              @click="this.sendMessage"
-              :loading="this.isSending"
-              color="white"
-              text-color="primary"
-              dense
-              push
-              flat
-              :ripple="false"
-              style="margin-right: 5px; margin-bottom: 6px"
-            >
-              <q-tooltip>
-                ctrl+enter отправить
-              </q-tooltip>
-            </q-btn>
-          </div>
-          <div
-            v-if="this.comments"
+            :ripple="false"
+            style="margin-right: 5px; margin-bottom: 6px"
           >
-            <q-btn
-              id="comment-mode-btn"
-              style="margin-bottom: 6px"
-              @click="this.switchToComment"
-              dense
-              flat
-              icon="comment"
-              :color="this.isComment ? 'primary' : 'grey'"
-            >
-              <q-tooltip>
-                Режим комментария: Сообщение увидят только операторы
-              </q-tooltip>
-            </q-btn>
-          </div>
-        </q-card>
-      </div>
-    </q-page>
-  </div>
+            <q-tooltip>
+              ctrl+enter отправить
+            </q-tooltip>
+          </q-btn>
+        </div>
+        <div
+          v-if="this.comments"
+        >
+          <q-btn
+            id="comment-mode-btn"
+            style="margin-bottom: 6px"
+            @click="this.switchToComment"
+            dense
+            flat
+            icon="comment"
+            :color="this.isComment ? 'primary' : 'grey'"
+          >
+            <q-tooltip>
+              Режим комментария: Сообщение увидят только операторы
+            </q-tooltip>
+          </q-btn>
+        </div>
+      </q-card>
+    </div>
+  </q-page>
   <q-dialog v-model="this.isShowMaxSizePhoto">
     <q-card :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw' : 'max-height: 90vh; max-width: 80vw'">
       <div style="overflow-x: auto">
@@ -704,15 +711,17 @@ export default {
     },
 
     getMediaMessageSize (message) {
-      const maxWidth = this.isMobile ? 200 : 400
+      // const maxWidth = this.isMobile ? 200 : 400
+      const containerWidth = document.getElementById(this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog').offsetWidth
+      const newMaxHeight = containerWidth * 50 / 100
       let newHeight = message.fileHeight
       if (newHeight) {
-        if (message.fileHeight > maxWidth) {
-          newHeight = (maxWidth * message.fileHeight) / message.fileWidth
+        if (message.fileHeight > newMaxHeight) {
+          newHeight = (newMaxHeight * message.fileHeight) / message.fileWidth
         }
-        return `max-width: ${maxWidth}px; height: ${newHeight}px; width: ${message.fileWidth}px`
+        return `min-width: 216;max-width: ${newMaxHeight}px; height: ${newHeight}px; width: ${message.fileWidth}px`
       } else {
-        return 'max-width: 400px; height: 400px; width: 400px'
+        return 'min-width: 216;max-width: 300px; height: 300px; width: 300px'
       }
     },
 
@@ -794,14 +803,6 @@ export default {
 
     nowWatching () {
       return this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')
-    },
-
-    nowWatchingStyle () {
-      return {
-        opacity: '0.4',
-        left: this.isMobile ? '50%' : (!this.isShowHelper ? '35%' : '23%'),
-        top: this.isMobile ? '9%' : '7%'
-      }
     }
   },
 
@@ -851,15 +852,18 @@ export default {
   font-size: 14px;
   z-index: 1000;
   color: white;
-  max-width: 100%;
+  max-width: 240px;
   background: #5C35F9;
   border-radius: 5px;
 }
 
 .now-watching-text {
-  display: flex;
-  flex-wrap: nowrap;
-  flex-direction: row
+  display: block;
+  white-space: nowrap;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  user-select: none;
 }
 
 .action-clouds {

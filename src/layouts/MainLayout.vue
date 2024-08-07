@@ -287,6 +287,12 @@ export default {
   },
 
   watch: {
+    miniState: {
+      deep: true,
+      handler () {
+        this.store.miniState = this.miniState
+      }
+    },
     isShowGlobalAlert: {
       immediate: true,
       deep: true,

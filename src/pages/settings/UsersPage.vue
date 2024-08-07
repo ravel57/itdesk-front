@@ -193,7 +193,7 @@ export default {
         })
         return
       }
-      if (!isValidEmail) {
+      if (this.isNewUser && !isValidEmail) {
         this.$q.notify({
           message: 'Почта указана не корректно',
           type: 'negative',
