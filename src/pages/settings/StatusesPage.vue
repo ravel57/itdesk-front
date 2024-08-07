@@ -37,6 +37,7 @@
               side
             >
               <q-btn
+                v-if="element.name !== 'Заморожена' && element.name !== 'Закрыта'"
                 color="primary"
                 dense
                 flat
@@ -49,6 +50,7 @@
               side
             >
               <q-btn
+                v-if="element.name !== 'Заморожена' && element.name !== 'Закрыта'"
                 :text-color="element.defaultSelection ? 'primary' : 'grey'"
                 dense
                 flat

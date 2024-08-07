@@ -208,6 +208,7 @@
             v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.isNewTask"
             id="chat-section"
             class="flex-item"
+            style="position: relative"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
             <chat-dialog
@@ -643,7 +644,6 @@ export default {
     dialogTaskStatus: {
       deep: true,
       handler () {
-        console.log(this.dialogTaskStatus)
         if (this.dialogTaskStatus === 'Заморожена') {
           this.freezeDialog = true
         }

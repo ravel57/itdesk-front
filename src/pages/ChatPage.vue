@@ -26,6 +26,7 @@
         <div
           v-if="!this.isMobile || this.tab === 'tab1'"
           id="chatColumn"
+          style="position: relative;"
           class="col no-shadow rounded-borders"
         >
           <chat-dialog

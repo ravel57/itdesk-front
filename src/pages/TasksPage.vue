@@ -57,6 +57,48 @@
                 {{ this.isFilterSelected ? "Деактивировать фильтр" : "Активировать фильтр" }}
               </q-tooltip>
             </q-btn>
+            <q-btn
+              icon="sort"
+              flat
+              color="dark"
+              style="margin-right: 8px;"
+            >
+              <q-tooltip>
+                <div v-if="this.selectedSorting.label">
+                  Сортировка: {{ this.selectedSorting.label }}
+                </div>
+                <div v-else>
+                  Сортировка
+                </div>
+              </q-tooltip>
+              <q-menu
+                anchor="bottom middle" self="top middle"
+                v-model="this.sortMenuOpened"
+                content-class="menu-content"
+              >
+                <q-list>
+                  <q-item
+                    v-for="sorting in this.sortingTypes"
+                    :key="sorting.slug"
+                    clickable
+                    v-close-popup
+                    @click="this.setSortVariable(sorting)"
+                  >
+                    <q-item-section>
+                      {{ sorting.label }}
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
+            <q-btn
+              v-if="this.selectedSorting.label"
+              @click="this.changeSortingAsc"
+              flat
+              class="text-grey-7"
+              style="width: 20px"
+              :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
+            />
             <q-toggle
               v-model="this.isShowTableMode"
               color="grey"
@@ -397,7 +439,18 @@ export default {
     isModalForBulkActions: false,
 
     action: 'close',
-    isShowBulkActionsMenu: false
+    isShowBulkActionsMenu: false,
+
+    selectedSorting: [],
+    sortMenuOpened: [],
+    sortingTypes: [
+      { label: 'По дедлайну', slug: 'deadline' },
+      { label: 'По дате создания', slug: 'creating' },
+      { label: 'Приоритету', slug: 'priority' },
+      // { label: 'SLA', slug: 'sla' },
+      { label: 'По статусу', slug: 'status' }
+    ],
+    ascendingSort: true
   }),
 
   methods: {
@@ -626,6 +679,14 @@ export default {
 
     addMessageToTask (event) {
       this.selectedTask.messages.push(event.message)
+    },
+
+    setSortVariable (sort) {
+      this.selectedSorting = sort
+    },
+
+    changeSortingAsc () {
+      this.ascendingSort = !this.ascendingSort
     }
   },
 
@@ -643,6 +704,51 @@ export default {
         }
         return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
       })
+      if (this.selectedSorting.slug) {
+        if (this.ascendingSort) {
+          tasks.sort((a, b) => {
+            switch (this.selectedSorting.slug) {
+              case 'deadline':
+                return new Date(a.deadline) - new Date(b.deadline)
+              case 'creating':
+                return new Date(a.createdAt) - new Date(b.createdAt)
+              case 'priority':
+                return b.priority.orderNumber - a.priority.orderNumber
+              case 'sla':
+                if (a.sla && b.sla) {
+                  return b.sla.startDate.clone().add(b.sla.duration) - a.sla.startDate.clone().add(a.sla.duration)
+                } else {
+                  return b
+                }
+              case 'status':
+                return b.status.orderNumber - a.status.orderNumber
+              default:
+                return 0
+            }
+          })
+        } else {
+          tasks.sort((a, b) => {
+            switch (this.selectedSorting.slug) {
+              case 'deadline':
+                return new Date(b.deadline) - new Date(a.deadline)
+              case 'creating':
+                return new Date(b.createdAt) - new Date(a.createdAt)
+              case 'priority':
+                return a.priority.orderNumber - b.priority.orderNumber
+              case 'sla':
+                if (a.sla && b.sla) {
+                  return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
+                } else {
+                  return b
+                }
+              case 'status':
+                return a.status.orderNumber - b.status.orderNumber
+              default:
+                return 0
+            }
+          })
+        }
+      }
       this.filterChain.forEach(el => {
         const slug = this.filterTypes.filter(ft => ft.label === el.label)[0].slug
         switch (slug) {

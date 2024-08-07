@@ -172,7 +172,6 @@ export default {
     dialogSaveNewOrUpdateUser () {
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
       const isValidEmail = emailRegex.test(this.dialogUsername)
-      console.log(isValidEmail)
       const user = {
         id: this.isNewUser ? null : this.userId,
         username: this.isNewUser ? this.dialogUsername : null,
