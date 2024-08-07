@@ -643,9 +643,11 @@ export default {
   watch: {
     dialogTaskStatus: {
       deep: true,
-      handler () {
-        if (this.dialogTaskStatus === 'Заморожена') {
-          this.freezeDialog = true
+      handler (oldVal, newVal) {
+        if (oldVal !== '' && newVal !== '') {
+          if (this.dialogTaskStatus === 'Заморожена') {
+            this.freezeDialog = true
+          }
         }
       }
     }

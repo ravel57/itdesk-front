@@ -474,11 +474,19 @@ export default {
         queryParams.delete('task')
         this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
       }
+    },
+
+    isShowCompletedTasks () {
+      localStorage.setItem('isShowCompletedTasks', this.isShowCompletedTasks)
     }
   },
 
   mounted () {
     setInterval(() => this.initializeTaskFromUrl(), 500)
+  },
+
+  created () {
+    this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
   },
 
   setup () {
