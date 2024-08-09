@@ -80,6 +80,7 @@
                 display: flex;
                 justify-content: center;
                 align-items: center;"
+                @click.stop="this.$router.push({ path: `/chats` })"
               >
                 <logo-component style="height: 35px;padding: 5px;"/>
               </div>

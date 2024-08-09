@@ -55,9 +55,10 @@
       </div>
       <div
         v-else
-        class="text-h3 absolute-center text-primary"
-        v-text="'Заявок нет'"
-      />
+        class="absolute-center"
+      >
+        <no-tasks-placeholder/>
+      </div>
       <task-dialog
         v-if="this.isTaskDialogShow"
         :client="this.selectedTask.client"
@@ -79,12 +80,13 @@ import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import TaskCard from 'components/TaskCard.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
+import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 
 export default {
 
   name: 'MyTasks',
 
-  components: { TaskDialog, TaskCard },
+  components: { NoTasksPlaceholder, TaskDialog, TaskCard },
 
   data: () => ({
     isShowTableMode: false,

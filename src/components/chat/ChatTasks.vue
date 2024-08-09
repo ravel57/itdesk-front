@@ -167,9 +167,10 @@
         <div
           v-else
           style="text-align: center"
-          class="text-h3 absolute-center text-primary"
-          v-text="'Заявок нет'"
-        />
+          class="absolute-center"
+        >
+          <no-tasks-placeholder/>
+        </div>
       </div>
     </div>
   </q-card>
@@ -193,12 +194,13 @@ import ChatInfo from 'components/chat/ChatClientInfo.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import TaskCard from 'components/TaskCard.vue'
 import { useStore } from 'stores/store'
+import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 
 export default {
 
   name: 'ChatTasks',
 
-  components: { TaskCard, TaskDialog, ChatInfo },
+  components: { NoTasksPlaceholder, TaskCard, TaskDialog, ChatInfo },
 
   props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations', 'isMobile'],
 

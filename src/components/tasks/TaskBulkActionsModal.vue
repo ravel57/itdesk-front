@@ -250,13 +250,13 @@ export default {
         case 'executor':
           return 'Смена исполнителя заявок'
         case 'status':
-          return 'Смена статуса заявок'
+          return 'Сменить статусы заявок'
         case 'priority':
-          return 'Смена приоритета заявок'
+          return 'Сменить приоритеты заявок'
         case 'tags':
-          return 'Смена тегов заявок'
+          return 'Сменить теги заявок'
         case 'deadline':
-          return 'Смена дедлайна заявок'
+          return 'Сменить дедлайны заявок'
         default :
           return ''
       }

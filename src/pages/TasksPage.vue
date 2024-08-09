@@ -318,9 +318,10 @@
     >
       <div
         v-if="!this.isMobile"
-        class="text-h3 absolute-center text-primary"
-        v-text="'Заявок нет'"
-      />
+        class="absolute-center"
+      >
+        <no-tasks-placeholder/>
+      </div>
     </div>
     <div
       v-if="this.isShowBulkActionsMenu"
@@ -404,9 +405,10 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import TasksComponent from 'components/tasks/TasksComponent.vue'
 import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
+import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 
 export default {
-  components: { TaskBulkActionsModal, TasksComponent },
+  components: { NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent },
   data: () => ({
     filterTypes: [
       { label: 'Исполнитель', slug: 'executor' },

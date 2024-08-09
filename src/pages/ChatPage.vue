@@ -60,7 +60,7 @@
         <div
           class="col no-shadow rounded-borders"
           v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
-          :style="!this.isMobile ? 'max-width: 23vw' : ''"
+          :style="!this.isMobile ? 'max-width: 18vw' : ''"
         >
           <chat-helper
             :isMobile="this.isMobile"
