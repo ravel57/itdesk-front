@@ -52,6 +52,12 @@
               >
                 {{ col.value }}
               </div>
+              <div
+                v-else-if="col.name === 'status'"
+                :style="`color: ${col.value === 'Заморожена' ? 'rgba(50, 173, 230, 1)' : (col.value === 'Закрыта'? 'rgba(16, 181, 92, 1)' : '')}`"
+              >
+                {{ col.value }}
+              </div>
               <div v-else>
                 {{ col.value }}
               </div>
