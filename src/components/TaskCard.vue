@@ -43,7 +43,7 @@
           v-text="'Описание: '"
         />
         <th
-          :class="{'text-body2': true, 'text-grey': task.completed}"
+          :class="{'text-body2': true, 'text-grey': task.completed, 'truncate': true}"
           v-text="task.description.length === 0 ? '-' : task.description"
         />
       </tr>

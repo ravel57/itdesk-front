@@ -16,6 +16,7 @@
     "@quasar/icongenie": "^4.0.0",
     "@stomp/stompjs": "^7.0.0",
     "@types/sockjs-client": "^1.5.4",
+    "@vueuse/core": "^10.11.1",
     "app": "^0.1.0",
     "axios": "^1.2.1",
     "base64-url": "^2.3.3",

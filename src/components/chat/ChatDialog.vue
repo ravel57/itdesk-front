@@ -123,15 +123,15 @@
                 <img
                   v-if="message.fileUuid && message.fileType.startsWith('image/')"
                   :src="`/files/images/${message.fileUuid}`"
-                  :style="this.getMediaMessageSize(message)"
-                  style="cursor: pointer"
+                  :style="getMediaMessageSize(message)"
+                  style="cursor: pointer;border-radius: 4px"
                   @click="this.openPhoto(message)"
                   alt=""
                 >
                 <video
                   v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
                   style="max-width: 400px;"
-                  :style="this.isMobile ? 'height: 200px;width: 200px' : 'height: 400px;width: 400px'"
+                  :style="getMediaMessageSize(message)"
                   controls
                 >
                   <source
@@ -274,6 +274,50 @@
       style="width: 100%;"
     >
       <q-card
+        v-if="this.replyMessageId !== null"
+        style="width: 100%;height: 50px;display: flex;flex-direction: row;border-bottom-left-radius: 0;border-bottom-right-radius: 0;"
+      >
+        <div ref="replyContainer" style="display: flex;width: 100%;max-height: 50px;align-items: center">
+          <div style="height: 50px;width: 50px;display: flex;justify-content: center;align-items: center;margin-left: 5px;margin-right: 10px">
+            <img
+              v-if="this.getReplayed.fileUuid && this.getReplayed.fileType.startsWith('image/')"
+              :src="`/files/images/${this.getReplayed.fileUuid}`"
+              alt="reply-img"
+              style="width: 40px;height: 40px;border-radius: 4px"
+            >
+            <video
+              v-else-if="this.getReplayed.fileUuid && this.getReplayed.fileType.startsWith('video/')"
+              style="width: 40px;height: 40px;border-radius: 4px"
+            >
+              <source
+                :src="`/files/videos/${this.getReplayed.fileUuid}`"
+                type="video/mp4"
+              >
+              Your browser does not support the video tag.
+            </video>
+            <q-icon
+              v-else
+              size="20px"
+              name="reply"
+            />
+          </div>
+          <div style="width: 100%">
+            <div class="">
+              В ответ на {{ this.getMessageSender }}
+            </div>
+            <div class="truncate">
+              {{ this.getReplyMessage(this.getReplayed) }}
+            </div>
+          </div>
+          <q-icon
+            size="20px"
+            style="height: 50px;width: 50px;cursor: pointer"
+            name="close"
+            @click="this.replyMessageId = null"
+          />
+        </div>
+      </q-card>
+      <q-card
         class="input-item"
         :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
       >
@@ -281,12 +325,12 @@
           v-if="this.scrollToBottomKey"
           class="shadow-1"
           icon="keyboard_double_arrow_down"
+          :style="this.replyMessageId !== null ? 'bottom: 210%;' : 'bottom: 100%;'"
           style="
             width: 36px;
             height: 36px;
             position: absolute;
             z-index: 1;
-            bottom: 100%;
             right: 5px;
             opacity: 0.5;
             background-color: white;
@@ -297,6 +341,7 @@
         />
         <div
           v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
+          :style="this.replyMessageId !== null ? 'bottom: 210%;' : 'bottom: 100%;'"
           class="action-clouds"
         >
           <div class="input-clouds-container">
@@ -317,21 +362,6 @@
               v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
               v-text="this.getTypingUsers"
             />
-            <div
-              class="reply-message-cloud"
-              v-if="this.replyMessageId !== null"
-            >
-              <q-icon
-                style="margin-right: 2px"
-                name="reply"
-              />
-              В ответ на: {{ this.getReplyMessage(this.messages.find(m => m.id === this.replyMessageId)) }}
-              <q-icon
-                style="margin-right: 2px"
-                name="close"
-                @click="this.replyMessageId = null"
-              />
-            </div>
           </div>
         </div>
         <q-btn
@@ -412,6 +442,8 @@
 <script>
 import { useStore } from 'stores/store'
 import axios from 'axios'
+import { useResizeObserver } from '@vueuse/core'
+import { onMounted, ref } from 'vue'
 
 export default {
   name: 'ChatDialog',
@@ -447,7 +479,9 @@ export default {
     requestPending: false,
     isShowMaxSizePhoto: false,
     selectedPhoto: '',
-    scrollToBottomKey: false
+    scrollToBottomKey: false,
+
+    chatWindowWidth: 500
   }),
 
   updated () {
@@ -677,13 +711,13 @@ export default {
       this.isComment = !this.isComment
     },
 
-    shortenLine (string) {
+    shortenLine (string, offset = 25) {
       return string.substring(0, 25) + '...'
     },
 
     getReplyMessage (message) {
       if (message.text) {
-        return this.shortenLine(message.text)
+        return message.text
       } else {
         if (message.fileType.startsWith('video/')) {
           return 'Видео'
@@ -697,32 +731,21 @@ export default {
 
     autoResize () {
       this.$nextTick(() => {
+        let replyContainer = 0
         let chat = document.getElementById('chat-dialog')
         if (this.isDialog) {
           chat = document.getElementById('chat-dialog-pop-up')
+        }
+        if (this.$refs.replyContainer) {
+          replyContainer = this.$refs.replyContainer.offsetHeight
         }
         const textarea = this.$refs.textInput
         textarea.style.height = 'auto'
         textarea.style.height = textarea.scrollHeight + 'px'
         chat.style.height = this.chatStyle.height
-        chat.style.height = textarea.offsetHeight > 46 ? `calc(${this.chatStyle.height} - ${textarea.offsetHeight - 46 + 'px'})` : this.chatStyle.height
+        chat.style.height = textarea.offsetHeight + replyContainer > 46 ? `calc(${this.chatStyle.height} - ${textarea.offsetHeight + replyContainer - 46 + 'px'})` : this.chatStyle.height
         this.textareaHeight = textarea.style.height
       })
-    },
-
-    getMediaMessageSize (message) {
-      // const maxWidth = this.isMobile ? 200 : 400
-      const containerWidth = document.getElementById(this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog').offsetWidth
-      const newMaxHeight = containerWidth * 50 / 100
-      let newHeight = message.fileHeight
-      if (newHeight) {
-        if (message.fileHeight > newMaxHeight) {
-          newHeight = (newMaxHeight * message.fileHeight) / message.fileWidth
-        }
-        return `min-width: 216;max-width: ${newMaxHeight}px; height: ${newHeight}px; width: ${message.fileWidth}px`
-      } else {
-        return 'min-width: 216;max-width: 300px; height: 300px; width: 300px'
-      }
     },
 
     getPortionMessages () {
@@ -803,6 +826,19 @@ export default {
 
     nowWatching () {
       return this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')
+    },
+
+    getReplayed () {
+      return this.messages.find(m => m.id === this.replyMessageId)
+    },
+
+    getMessageSender () {
+      console.log(this.getReplayed)
+      if (this.getReplayed.user) {
+        return this.getReplayed.user.lastname + ' ' + this.getReplayed.user.firstname
+      } else {
+        return this.client.lastname + ' ' + this.client.firstname
+      }
     }
   },
 
@@ -830,12 +866,57 @@ export default {
         } catch (ignoreError) {}
       },
       deep: true
+    },
+
+    replyMessageId () {
+      this.autoResize()
     }
   },
 
-  setup () {
+  setup (props) {
     const store = useStore()
-    return { store }
+    const chatDialog = ref(null)
+    const containerWidth = ref('')
+    const containerHeight = ref('')
+
+    let fileHeight = null
+    let fileWidth = null
+
+    const getMediaMessageSize = (message) => {
+      if (message.fileHeight && message.fileWidth) {
+        fileHeight = message.fileHeight
+        fileWidth = message.fileWidth
+      } else {
+        fileHeight = props.isMobile ? 200 : 400
+        fileWidth = props.isMobile ? 200 : 400
+      }
+      const newMaxHeight = containerWidth.value * 60 / 100
+      let newHeight = fileHeight
+
+      if (newHeight) {
+        if (fileHeight > newMaxHeight) {
+          newHeight = (newMaxHeight * fileHeight) / fileWidth
+        }
+        return `min-width: 200px; max-width: ${newMaxHeight}px; height: ${newHeight}px; width: ${fileWidth}px;`
+      } else {
+        return 'min-width: 200px; max-width: 300px; height: 300px; width: 300px;'
+      }
+    }
+
+    onMounted(() => {
+      useResizeObserver(chatDialog, (entries) => {
+        const entry = entries[0]
+        const { width, height } = entry.contentRect
+        containerHeight.value = height
+        containerWidth.value = width
+      })
+    })
+
+    return {
+      store,
+      chatDialog,
+      getMediaMessageSize
+    }
   }
 
 }
@@ -869,7 +950,6 @@ export default {
 .action-clouds {
   display: block;
   position: absolute;
-  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
   padding: 0 5px;
@@ -986,6 +1066,12 @@ textarea:focus {
   max-height: 300px;
   height: 70px;
   overflow-y: auto;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 </style>

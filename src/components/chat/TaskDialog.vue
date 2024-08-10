@@ -144,7 +144,7 @@
                   <q-select
                     id="task-status"
                     v-model="this.dialogTaskStatus"
-                    :options="this.store.statuses.map(s => s.name)"
+                    :options="this.isNewTask ? this.store.statuses.filter(s => s.name !== 'Закрыта' && s.name !== 'Заморожена').map(s => s.name) : this.store.statuses.map(s => s.name)"
                     label="Статус *"
                     :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                     style="width: 100%; margin-right: 8px"
@@ -251,7 +251,7 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <q-dialog v-model="this.freezeDialog">
+  <q-dialog persistent v-model="this.freezeDialog">
     <div id="task-freeze-modal">
       <q-card>
         <q-card-section>
@@ -403,7 +403,7 @@ export default {
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,
         sla: this.isNewTask ? null : this.task.sla,
-        previusStatus: this.task.previusStatus
+        previusStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previusStatus
       }
 
       if (task.status.name === 'Закрыта') {
