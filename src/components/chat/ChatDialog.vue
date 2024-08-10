@@ -110,14 +110,46 @@
                 />
               </template>
               <div
-                v-if="message.replyMessageText"
+                v-if="message.replyMessageId"
                 class="flex cursor-pointer"
                 @click="this.scrollToMessageAfterSearch(message.replyMessageId)"
               >
-                <q-icon
-                  name="reply"
-                />
-                {{ message.replyMessageText }}
+                <div
+                  v-if="!message.replyUuid"
+                  style="height: 40px;width: 40px"
+                >
+                  <q-icon
+                    size="20px"
+                    name="reply"
+                  />
+                </div>
+                <div
+                  v-else-if="message.replyUuid && message.replyFileType.startsWith('image/')"
+                >
+                  <img
+                    :src="`/files/images/${message.replyUuid}`"
+                    style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
+                    @click="this.openPhoto(message)"
+                    alt=""
+                  >
+                </div>
+                <div
+                  v-else-if="message.replyUuid && message.replyFileType.startsWith('video/')"
+                >
+                  <video
+                    style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
+                  >
+                    <source
+                      :src="`/files/videos/${message.replyUuid}`"
+                      type="video/mp4"
+                    >
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+                <div style="margin-left: 10px;display: flex; flex-direction: column;justify-content: center">
+                  <div class="">От: {{ message.user ? message.user.lastname + ' ' + message.user.firstname : this.client.lastname + ' ' + this.client.username }}</div>
+                  <div class="">{{ message.replyMessageText ? message.replyMessageText : (message.replyFileType.startsWith('image/') ? 'Изображение' : (message.replyFileType.startsWith('video/') ? 'Видео' : 'Файл')) }}</div>
+                </div>
               </div>
               <div>
                 <img
@@ -192,6 +224,7 @@
                   </q-item-section>
                 </q-item>
                 <q-item
+                  v-if="message.text"
                   clickable
                   v-close-popup
                 >
@@ -202,6 +235,7 @@
                   </q-item-section>
                 </q-item>
                 <q-item
+                  v-if="message.text"
                   clickable
                 >
                   <q-item-section
@@ -283,11 +317,11 @@
               v-if="this.getReplayed.fileUuid && this.getReplayed.fileType.startsWith('image/')"
               :src="`/files/images/${this.getReplayed.fileUuid}`"
               alt="reply-img"
-              style="width: 40px;height: 40px;border-radius: 4px"
+              style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
             >
             <video
               v-else-if="this.getReplayed.fileUuid && this.getReplayed.fileType.startsWith('video/')"
-              style="width: 40px;height: 40px;border-radius: 4px"
+              style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
             >
               <source
                 :src="`/files/videos/${this.getReplayed.fileUuid}`"
@@ -428,10 +462,10 @@
     </div>
   </q-page>
   <q-dialog v-model="this.isShowMaxSizePhoto">
-    <q-card :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw' : 'max-height: 90vh; max-width: 80vw'">
+    <q-card style="overflow: hidden;" :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw;' : 'max-height: 90vh; max-width: 80vw;'">
       <div style="overflow-x: auto">
         <img
-          :style="`height: ${this.selectedPhoto.fileHeight}px; width: ${this.selectedPhoto.fileWidth}px`"
+          :style="this.getScaledImageStyle()"
           :src="`/files/images/${this.selectedPhoto.fileUuid}`"
           alt="">
       </div>
@@ -481,7 +515,10 @@ export default {
     selectedPhoto: '',
     scrollToBottomKey: false,
 
-    chatWindowWidth: 500
+    chatWindowWidth: 500,
+
+    replyFileUuid: null,
+    replyFileType: null
   }),
 
   updated () {
@@ -531,11 +568,15 @@ export default {
           comment: this.isComment,
           read: true,
           replyMessageId: this.replyMessageId,
+          replyUuid: this.replyFileUuid,
+          replyFileType: this.replyFileType,
           user: this.currentUser
         }
         this.$emit('sendMessage', { message, attachedFile: this.attachedFile, clientId: this.client.id })
         this.attachedFile = null
         this.replyMessageId = null
+        this.replyFileType = null
+        this.replyFileUuid = null
       }
       this.$nextTick(() => {
         const textarea = this.$refs.textInput
@@ -661,6 +702,8 @@ export default {
 
     setReplyMessage (message) {
       this.replyMessageId = message.id
+      this.replyFileUuid = message.fileUuid
+      this.replyFileType = message.fileType
     },
 
     onSearch () {
@@ -712,12 +755,16 @@ export default {
     },
 
     shortenLine (string, offset = 25) {
-      return string.substring(0, 25) + '...'
+      if (string.length > 25) {
+        return string.substring(0, 25) + '...'
+      } else {
+        return string
+      }
     },
 
     getReplyMessage (message) {
       if (message.text) {
-        return message.text
+        return this.shortenLine(message.text, 50)
       } else {
         if (message.fileType.startsWith('video/')) {
           return 'Видео'
@@ -725,6 +772,8 @@ export default {
           return 'Изображение'
         } else if (message.fileType.startsWith('audio/')) {
           return 'Аудио'
+        } else {
+          return 'Файл'
         }
       }
     },
@@ -760,7 +809,7 @@ export default {
 
       this.scrollToBottomKey = (scrollZone.scrollHeight - scrollZone.clientHeight) - scrollZone.scrollTop >= 600
 
-      if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 === 0 && !this.requestPending && !this.isEnd) {
+      if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 <= 3 && !this.requestPending && !this.isEnd) {
         this.requestPending = true
         const previousScrollHeight = scrollZone.scrollHeight
         const previousScrollTop = scrollZone.scrollTop
@@ -787,6 +836,28 @@ export default {
     openPhoto (photo) {
       this.isShowMaxSizePhoto = true
       this.selectedPhoto = photo
+    },
+
+    getScaledImageStyle () {
+      const maxWidth = this.isMobile ? window.innerWidth * 0.9 : window.innerWidth * 0.8
+      const maxHeight = this.isMobile ? window.innerHeight * 0.6 : window.innerHeight * 0.9
+
+      let imgWidth = this.selectedPhoto.fileWidth
+      let imgHeight = this.selectedPhoto.fileHeight
+
+      const aspectRatio = imgWidth / imgHeight
+
+      if (imgWidth > maxWidth || imgHeight > maxHeight) {
+        if (imgWidth / maxWidth > imgHeight / maxHeight) {
+          imgWidth = maxWidth
+          imgHeight = maxWidth / aspectRatio
+        } else {
+          imgHeight = maxHeight
+          imgWidth = maxHeight * aspectRatio
+        }
+      }
+
+      return `height: ${imgHeight}px; width: ${imgWidth}px;`
     }
   },
 
@@ -833,7 +904,6 @@ export default {
     },
 
     getMessageSender () {
-      console.log(this.getReplayed)
       if (this.getReplayed.user) {
         return this.getReplayed.user.lastname + ' ' + this.getReplayed.user.firstname
       } else {
@@ -879,10 +949,9 @@ export default {
     const containerWidth = ref('')
     const containerHeight = ref('')
 
-    let fileHeight = null
-    let fileWidth = null
-
     const getMediaMessageSize = (message) => {
+      let fileHeight, fileWidth
+
       if (message.fileHeight && message.fileWidth) {
         fileHeight = message.fileHeight
         fileWidth = message.fileWidth
@@ -890,17 +959,28 @@ export default {
         fileHeight = props.isMobile ? 200 : 400
         fileWidth = props.isMobile ? 200 : 400
       }
-      const newMaxHeight = containerWidth.value * 60 / 100
+
+      const newMaxWidth = containerWidth.value * 60 / 100
+      const newMaxHeight = newMaxWidth
+      let newWidth = fileWidth
       let newHeight = fileHeight
 
-      if (newHeight) {
-        if (fileHeight > newMaxHeight) {
-          newHeight = (newMaxHeight * fileHeight) / fileWidth
-        }
-        return `min-width: 200px; max-width: ${newMaxHeight}px; height: ${newHeight}px; width: ${fileWidth}px;`
+      const aspectRatio = fileWidth / fileHeight
+
+      if (fileWidth <= newMaxWidth && fileHeight <= newMaxHeight) {
+        newWidth = fileWidth
+        newHeight = fileHeight
       } else {
-        return 'min-width: 200px; max-width: 300px; height: 300px; width: 300px;'
+        if (newWidth / newMaxWidth > newHeight / newMaxHeight) {
+          newWidth = newMaxWidth
+          newHeight = newMaxWidth / aspectRatio
+        } else {
+          newHeight = newMaxHeight
+          newWidth = newMaxHeight * aspectRatio
+        }
       }
+
+      return `min-width: 200px; max-width: ${newMaxWidth}px; height: ${newHeight}px; width: ${newWidth}px;object-fit: cover;`
     }
 
     onMounted(() => {
