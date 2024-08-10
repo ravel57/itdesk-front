@@ -1,9 +1,14 @@
 <template>
+<!--  <div-->
+<!--    style="overflow: auto"-->
+<!--  >-->
+<!--    -->
+<!--  </div>-->
   <div
-    v-if="this.isShowTableMode"
-    style="overflow: auto"
+    class="flex-container"
+    :style="this.taskCardStyle"
   >
-    <div style="position: relative">
+    <div v-if="this.isShowTableMode" style="position: relative;width: 100%;">
       <q-btn
         style="
           font-size: 8px;
@@ -66,13 +71,8 @@
         </template>
       </q-table>
     </div>
-  </div>
-  <div
-    v-else
-    class="flex-container"
-    :style="this.taskCardStyle"
-  >
     <card-tasks-view
+      v-else
       :groupedTasks="this.groupedTasks"
       :selectedGroupType="''"
       @onTaskClicked="this.$emit('onTaskClicked', $event)"

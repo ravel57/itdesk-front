@@ -58,6 +58,7 @@
               </q-tooltip>
             </q-btn>
             <q-btn
+              v-if="!this.isShowTableMode"
               icon="sort"
               flat
               color="dark"
