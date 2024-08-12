@@ -170,13 +170,13 @@
       <div
         v-if="this.isFilterSelected"
         id="filter-container"
-        style="display: flex;margin-top: 8px; align-items: center;"
+        style="display: flex;margin-top: 8px; align-items: start;"
         :style="this.isMobile ? 'display:flex; flex-direction:row; flex-wrap: wrap; justify-content:center; width: 100%': ''"
       >
         <q-select
           v-model="this.selectedSavedFilter"
           :options="this.savedFilters.map(it => it.label)"
-          label="Сохраненные фильтры"
+          label="Шаблоны фильтров"
           style="width: 12.5%; align-content: center; min-width: 300px; margin-right: 8px"
           :style="this.isMobile ? 'width: 100%; margin-bottom: 8px' : ''"
           @update:model-value="this.onSavedFilterSelected"
@@ -268,7 +268,7 @@
           style="height: 40px"
         >
           <q-tooltip>
-            Сохранить фильтр
+            Сохранить шаблон
           </q-tooltip>
         </q-btn>
         <q-btn
@@ -281,7 +281,7 @@
           style="height: 40px"
         >
           <q-tooltip>
-            Удалить фильтр
+            Удалить шаблон
           </q-tooltip>
         </q-btn>
         <q-btn
@@ -1062,7 +1062,7 @@ export default {
   border-radius: 8px;
   background-color: rgba(36, 36, 36, 1);
   left: 38vw;
-  bottom: -150px;
+  bottom: -250px;
   animation-name: BulkContainer;
   animation-duration: 0.2s;
   animation-fill-mode: forwards;

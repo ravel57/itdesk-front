@@ -105,7 +105,7 @@
         </template>
       </q-input>
       <div class="text-h7" style="padding-top: 20px">
-        Выбраны {{ this.getDeclension(this.store.checkedTasks.length) }}
+        {{ this.getDeclension(this.store.checkedTasks.length) }}
       </div>
     </q-card-section>
     <q-card-actions style="position: absolute;bottom: 0;width: 100%" align="right">
@@ -214,16 +214,20 @@ export default {
     getDeclension (count) {
       const declensions = ['заявка', 'заявки', 'заявок']
       let form
+      let selected
 
       if (count % 10 === 1 && count % 100 !== 11) {
         form = declensions[0]
+        selected = 'Выбрана'
       } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
         form = declensions[1]
+        selected = 'Выбраны'
       } else {
         form = declensions[2]
+        selected = 'Выбраны'
       }
 
-      return `${count} ${form}`
+      return `${selected} ${count} ${form}`
     }
   },
 
@@ -248,15 +252,15 @@ export default {
         case 'freeze':
           return 'Заморозить заявки'
         case 'executor':
-          return 'Смена исполнителя заявок'
+          return 'Изменить исполнителя заявок'
         case 'status':
-          return 'Сменить статусы заявок'
+          return 'Изменить статусы заявок'
         case 'priority':
-          return 'Сменить приоритеты заявок'
+          return 'Изменить приоритеты заявок'
         case 'tags':
-          return 'Сменить теги заявок'
+          return 'Изменить теги заявок'
         case 'deadline':
-          return 'Сменить дедлайны заявок'
+          return 'Изменить дедлайны заявок'
         default :
           return ''
       }

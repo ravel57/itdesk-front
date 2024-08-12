@@ -24,12 +24,13 @@
                   flat
                   rounded
                   @click="this.changeView('login')"
-                  style="margin-right: 3px;padding: 0"
+                  style="margin-right: 2px;padding: 0;width: 25px;height: 28px;"
                   icon="arrow_back"
                 />
                 <div class="text-h6" style="text-align: center;font-weight: 550">
                   Забыли пароль?
                 </div>
+                <div style="width: 25px;height: 28px;margin-left: 2px;"/>
               </div>
             </div>
             <div
@@ -56,7 +57,7 @@
                 style="margin-top: 16px;padding-bottom: 0"
                 v-model="username"
                 type="text"
-                label="Логин"
+                label="Почта"
                 :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
               />
               <q-input
@@ -79,7 +80,7 @@
                 @click="this.changeView('passwordRestore')"
                 style="color: var(--q-primary); margin-bottom: 15px; cursor: pointer;z-index: 1"
               >
-                Забыл пароль?
+                Забыли пароль?
               </a>
               <q-btn
                 type="submit"
@@ -98,12 +99,12 @@
                   type="text"
                   label="Связанная почта"
                 />
-                <a
-                  @click="this.changeView('emailRestore')"
-                  style="color: var(--q-primary);cursor: pointer;"
-                >
-                  Не помню почту
-                </a>
+<!--                <a-->
+<!--                  @click="this.changeView('emailRestore')"-->
+<!--                  style="color: var(&#45;&#45;q-primary);cursor: pointer;"-->
+<!--                >-->
+<!--                  Не помню почту-->
+<!--                </a>-->
               </div>
               <q-btn
                 @click="this.resetPassword"

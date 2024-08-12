@@ -80,19 +80,19 @@
       v-if="client.messageFrom === 'TELEGRAM'"
       src="/telegram.png"
       alt="tg"
-      style="width: 16px"
+      style="width: 16px;margin-right: 8px"
     >
     <img
       v-else-if="client.messageFrom === 'WHATSAPP'"
       src="/whatsapp.png"
       alt="wa"
-      style="width: 16px"
+      style="width: 16px;margin-right: 8px"
     >
     <img
       v-else-if="client.messageFrom === 'EMAIL'"
       src="/email.png"
       alt="email"
-      style="width: 16px"
+      style="width: 16px;margin-right: 8px"
     >
     {{ this.client.sourceChannel }}
   </div>

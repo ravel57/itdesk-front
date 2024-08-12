@@ -210,8 +210,8 @@ export default {
   height: 60px;
   overflow: hidden;
   position: absolute;
-  right: -37px;
-  top: -37px;
+  right: -38px;
+  top: -38px;
   transform: rotate(45deg);
   transition: transform .3s ease;
   width: 60px;

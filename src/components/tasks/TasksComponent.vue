@@ -138,14 +138,6 @@
                     {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
                   </q-tooltip>
                 </div>
-<!--                <q-btn-->
-<!--                  :text-color="element.active ? 'primary' : 'grey'"-->
-<!--                  dense-->
-<!--                  flat-->
-<!--                  icon="check_box"-->
-<!--                  @click="element.active = !element.active"-->
-<!--                >-->
-<!--                </q-btn>-->
               </q-item-section>
             </q-item>
           </template>
