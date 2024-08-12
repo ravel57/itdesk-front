@@ -1,8 +1,11 @@
 <template>
-  <q-card class="my-card">
+  <q-card
+    class="my-card no-shadow"
+    style="border-radius: 0;border-left: 1px solid #0000001f;"
+  >
     <div
       style="overflow: auto"
-      :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"
+      :style="this.isMobile ? 'height: calc(100vh - 89px)' : 'height: 100vh;'"
     >
       <div style="width: 100%; display: flex; justify-content: space-between;padding-left: 8px;padding-top: 8px;padding-bottom: 8px;">
         <div style="width: 100px; height: 40px; border-radius: 4px; background-color: var(--q-primary); color: white; display:flex;justify-content: center;align-items: center;font-size: 17px">

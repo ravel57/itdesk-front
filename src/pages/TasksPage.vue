@@ -231,71 +231,73 @@
             </div>
           </div>
         </div>
-        <q-btn
-          v-if="filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
-          flat
-          color="grey"
-          icon="add"
-          @click="!this.isMenuActive"
-        >
-          <q-tooltip>
-            Добавить фильтр
-          </q-tooltip>
-          <q-menu
-            v-model="this.isMenuActive"
-            anchor="bottom right"
-            self="top right"
+        <div style="display: flex;align-items: center;height: 55px;">
+          <q-btn
+            v-if="filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
+            flat
+            color="grey"
+            icon="add"
+            @click="!this.isMenuActive"
           >
-            <q-list>
-              <q-item
-                v-for="option in filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label))"
-                :key="option.value"
-                clickable
-                @click="handleNewFilterSelection(option.label)"
-              >
-                <q-item-section>{{ option.label }}</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
-        <q-btn
-          v-if="this.selectedSavedFilter.length === 0 && this.filterChain.length > 0"
-          ref="saveFilterButton"
-          icon="save"
-          color="grey"
-          @click="this.dialogSaveFilter"
-          flat
-          style="height: 40px"
-        >
-          <q-tooltip>
-            Сохранить шаблон
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          v-else-if="this.isShowDelFilterPreset"
-          ref="deleteSavedFilterButton"
-          icon="delete"
-          color="grey"
-          @click="isDeleteSavedFilterDialogShow = true"
-          flat
-          style="height: 40px"
-        >
-          <q-tooltip>
-            Удалить шаблон
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="this.filterChain.length > 0"
-          icon="close"
-          color="grey"
-          @click="this.removeFilters"
-          flat
-          style="height: 40px"
-        >
-          <q-tooltip>
-            Сбросить фильтр
-          </q-tooltip>
-        </q-btn>
+            <q-tooltip>
+              Добавить фильтр
+            </q-tooltip>
+            <q-menu
+              v-model="this.isMenuActive"
+              anchor="bottom right"
+              self="top right"
+            >
+              <q-list>
+                <q-item
+                  v-for="option in filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label))"
+                  :key="option.value"
+                  clickable
+                  @click="handleNewFilterSelection(option.label)"
+                >
+                  <q-item-section>{{ option.label }}</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+          <q-btn
+            v-if="this.selectedSavedFilter.length === 0 && this.filterChain.length > 0"
+            ref="saveFilterButton"
+            icon="save"
+            color="grey"
+            @click="this.dialogSaveFilter"
+            flat
+            style="height: 40px"
+          >
+            <q-tooltip>
+              Сохранить шаблон
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            v-else-if="this.isShowDelFilterPreset"
+            ref="deleteSavedFilterButton"
+            icon="delete"
+            color="grey"
+            @click="isDeleteSavedFilterDialogShow = true"
+            flat
+            style="height: 40px"
+          >
+            <q-tooltip>
+              Удалить шаблон
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            v-if="this.filterChain.length > 0"
+            icon="close"
+            color="grey"
+            @click="this.removeFilters"
+            flat
+            style="height: 40px"
+          >
+            <q-tooltip>
+              Сбросить фильтр
+            </q-tooltip>
+          </q-btn>
+        </div>
       </div>
     <div v-if="getFilteredTasks.length > 0">
       <tasks-component

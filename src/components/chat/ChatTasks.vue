@@ -1,8 +1,10 @@
 <template>
   <q-card
     id="taskColumn"
-    style="padding: 16px;overflow: hidden;"
-    :style="this.isMobile ? 'height: calc(100vh - 140px)' : 'height: calc(100vh - 16px);'"
+    bordered
+    class="no-shadow"
+    style="overflow: hidden;border-radius: 0;display: flex;flex-direction: column;padding: 16px 16px 0;"
+    :style="this.isMobile ? 'height: calc(100vh - 89px)' : 'height: 100vh;'"
   >
     <div style="margin-bottom: 3px">
       <chat-info
@@ -14,7 +16,7 @@
       />
     </div>
     <q-separator/>
-    <div class="flex">
+    <div class="flex" style="margin-bottom: 8px;">
       <div>
         <div class="flex">
           <span
@@ -45,6 +47,17 @@
           label="Создать заявку"
           style="margin-right: 8px;"
         />
+        <q-btn
+          icon="search"
+          flat
+          :class="this.showSearch ? 'text-primary' : 'text-grey-7'"
+          style="margin-right: 8px;"
+          @click="this.showSearch = !this.showSearch"
+        >
+          <q-tooltip>
+            Поиск
+          </q-tooltip>
+        </q-btn>
         <q-btn
           icon="sort"
           flat
@@ -88,9 +101,10 @@
         />
         <div id="task-search">
           <q-input
+            v-if="this.showSearch"
             v-model="search"
             label="Поиск по заявкам"
-            style="margin-top: 8px; margin-bottom: 8px"
+            style="margin-top: 8px"
             dense
             clearable
           >
@@ -103,13 +117,13 @@
     </div>
     <div
       id="task-vertical-carousel"
-      style="overflow: auto;position: relative"
-      :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 280px)'"
+      style="overflow: auto;position: relative;width: 100%"
     >
+<!--      :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 280px)'"-->
       <div class="row justify-center">
         <div v-if="this.getActualTasks.length > 0" style="width: 100%;">
           <q-card-section style="padding: 0">
-            <q-card class="my-card" style="overflow: hidden">
+            <q-card class="my-card no-shadow" style="overflow: scroll">
               <q-card-section
                 v-for="task in this.getActualTasks"
                 :key="task.id"
@@ -242,7 +256,9 @@ export default {
       // { label: 'SLA', slug: 'sla' },
       { label: 'По статусу', slug: 'status' }
     ],
-    slaIsPause: false
+    slaIsPause: false,
+
+    showSearch: false
   }),
 
   methods: {
