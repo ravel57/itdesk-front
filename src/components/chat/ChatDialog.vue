@@ -19,7 +19,7 @@
         </q-input>
         <q-btn
           v-if="!this.isShowHelper & !this.isMobile"
-          icon="add"
+          icon="support"
           @click="this.showHelper"
           flat
           dense
