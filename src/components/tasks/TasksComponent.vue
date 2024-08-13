@@ -1,47 +1,37 @@
 <template>
-<!--  <div-->
-<!--    style="overflow: auto"-->
-<!--  >-->
-<!--    -->
-<!--  </div>-->
   <div
     class="flex-container"
-    :style="this.taskCardStyle"
+    style="padding-top: 8px"
   >
-    <div v-if="this.isShowTableMode" style="position: relative;width: 100%;">
-      <q-btn
-        style="
-          font-size: 8px;
-          position: absolute;
-          right: 20px;
-          z-index: 25;
-          top: 15px;"
-        size="xs"
-        flat
-        icon="edit"
-        @click="this.isShowTableSettings = true"
-      >
-        <q-tooltip
-          anchor="center left"
-          self="center right"
-          :offset="[10, 10]"
-        >
-          Настроить таблицу
-        </q-tooltip>
-      </q-btn>
+    <div v-if="this.isShowTableMode" style="width: 100%;">
       <q-table
+        virtual-scroll
         :rows="this.tableRows"
         :columns="this.filterTableColumns"
         :rows-per-page-options="[0]"
         :sortable="true"
         row-key="id"
         bordered
-        style="margin-top: 8px"
+        style="margin-top: 8px;margin-bottom: 16px;height: calc(100vh - 200px)"
         selection="multiple"
         v-model:selected="this.store.checkedTasks"
         :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
         rows-per-page-label="Строк на странице"
       >
+        <template v-slot:top>
+          <div class="col-2 q-table__title">Заявки</div>
+
+          <q-space/>
+
+          <q-btn
+            style="font-size: 12px"
+            icon="edit"
+            color="primary"
+            @click="this.isShowTableSettings = true"
+          >
+            Настроить таблицу
+          </q-btn>
+        </template>
         <template v-slot:body="props">
           <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
             <q-td>
@@ -133,7 +123,8 @@
                 side
               >
                 <div class="">
-                  <input class="radio-select" type="checkbox" :checked="element.active" @click.stop="element.active = !element.active">
+                  <input class="radio-select" type="checkbox" :checked="element.active"
+                         @click.stop="element.active = !element.active">
                   <q-tooltip>
                     {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
                   </q-tooltip>
@@ -144,7 +135,7 @@
         </draggable>
       </q-card-section>
       <q-card-actions align="right">
-        <q-btn label="Применить" color="primary" v-close-popup />
+        <q-btn label="Применить" color="primary" v-close-popup/>
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -172,8 +163,7 @@ export default {
     'selectedGroupType',
     'isNewTaskDialogShow',
     'isTaskDialogShow',
-    'selectedTask',
-    'filterContainerHeight'
+    'selectedTask'
   ],
 
   data: () => ({
@@ -190,14 +180,16 @@ export default {
         name: 'name',
         label: 'Название',
         align: 'left',
-        field: row => row.name.length > 31 ? row.name.substring(0, 60) + '...' : row.name,
+        field: row => row.name.length > 40 ? row.name.substring(0, 40) + '...' : row.name,
         sortable: true
       },
       {
         name: 'tags',
         label: 'Теги',
         align: 'left',
-        field: row => row.tags.map(tag => tag.name).join(', '),
+        field: row => row.tags.map(tag => tag.name).join(', ').length > 21
+          ? row.tags.map(tag => tag.name).join(', ').substring(0, 21) + '...'
+          : row.tags.map(tag => tag.name).join(', '),
         sortable: true
       },
       {
@@ -311,13 +303,6 @@ export default {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     },
 
-    taskCardStyle () {
-      return {
-        'padding-top': '8px',
-        height: this.isMobile ? `calc(68vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 5px' : ''})` : `calc(93.1vh - ${this.filterContainerHeight}px ${this.filterContainerHeight !== 0 ? '- 8px' : ''})`
-      }
-    },
-
     filterTableColumns () {
       return this.activeColumns
         .map(activeCol => {
@@ -367,5 +352,4 @@ export default {
   height: 20px;
   accent-color: var(--q-primary);
 }
-
 </style>

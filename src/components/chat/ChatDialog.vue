@@ -287,11 +287,12 @@
                     <q-list>
                       <q-item
                         v-for="task in this.tasks.filter(t => !t.completed)"
-                        :key="task"
+                        :key="task.id"
                         dense
                         clickable
                         @click="this.linkToTask(message, task)"
                         v-close-popup
+                        v-once
                       >
                         <q-item-section>
                           {{ task.name }}
@@ -539,7 +540,12 @@ export default {
   mounted () {
     try {
       if (!this.isDialog) {
-        this.scrollToBottom(50)
+        this.scrollToBottom()
+      } else {
+        setTimeout(() => {
+          const scrollArea = document.querySelector('#chat-dialog-pop-up > div > div')
+          scrollArea.scrollTo(0, scrollArea.scrollHeight)
+        }, 0)
       }
       this.$refs.textInput.focus()
     } catch (ignoredError) {
@@ -557,13 +563,13 @@ export default {
 
     scrollToBottom (timeout = 0) {
       setTimeout(() => {
-        const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
-        scrollArea.scrollTo(0, document.getElementById('chat-dialog').children[0].children[0].scrollHeight)
+        const scrollArea = document.querySelector('#chat-dialog > div > div')
+        scrollArea.scrollTo(0, scrollArea.scrollHeight)
       }, timeout)
     },
 
     smoothScrollToBottom () {
-      const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
+      const scrollArea = document.querySelector('#chat-dialog > div > div')
       scrollArea.scrollTo({ top: scrollArea.scrollHeight, left: 0, behavior: 'smooth' })
     },
 
@@ -670,7 +676,7 @@ export default {
     },
 
     scrollToElementById (id) {
-      const el = document.getElementById(id).children[0].children[0]
+      const el = document.querySelector(`#${id} > div > div:last-child`)
       const element = el.children[el.children.length - 1]
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' })

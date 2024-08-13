@@ -4,6 +4,7 @@
       icon="add"
       label="Добавить пользователя"
       @click="this.dialogNewUser"
+      style="margin-bottom: 8px;"
     />
     <div class="table-container">
       <q-table

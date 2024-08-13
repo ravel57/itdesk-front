@@ -1,5 +1,6 @@
 <template>
-  <q-page padding style="padding-bottom: 0;position: relative; overflow-y: hidden">
+  <q-page padding style="display: flex; flex-direction: column;height: 100vh;min-height: 0; padding-bottom: 0">
+    <div id="task-control-container" style="display: flex;flex-direction: column;">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
           <q-input
@@ -31,7 +32,7 @@
             </template>
             <q-list>
               <q-item
-                v-for="(grouper, index) in this.filterTypes"
+                v-for="(grouper, index) in this.getFilterType"
                 :key="index"
                 clickable
                 v-close-popup
@@ -93,7 +94,7 @@
               </q-menu>
             </q-btn>
             <q-btn
-              v-if="this.selectedSorting.label"
+              v-if="!this.isShowTableMode && this.selectedSorting.label"
               @click="this.changeSortingAsc"
               flat
               class="text-grey-7"
@@ -337,7 +338,8 @@
           </q-btn>
         </div>
       </div>
-    <div v-if="getFilteredTasks.length > 0">
+    </div>
+    <div v-if="getFilteredTasks.length > 0" style="display: flex;overflow: hidden">
       <tasks-component
         :isShowTableMode="this.isShowTableMode"
         :isMobile="this.isMobile"
@@ -348,7 +350,6 @@
         :isNewTaskDialogShow="this.isNewTaskDialogShow"
         :isTaskDialogShow="this.isTaskDialogShow"
         :selectedTask="this.selectedTask"
-        :filter-container-height="this.filterContainerHeight"
         @onTaskClicked="this.onTaskClicked"
         @closeDialog="this.closeDialog"
         @addMessageToTask="this.addMessageToTask"
@@ -370,22 +371,26 @@
       class="mass-container"
     >
       <q-page class="shadow-1" style="min-height: 0; padding: 0; border-radius: 5px;display: flex">
-        <q-btn v-if="!this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="check_circle" @click="this.openBulkModal('close')">
+        <q-btn v-if="!this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="check_circle"
+               @click="this.openBulkModal('close')">
           <q-tooltip>Закрыть заявки</q-tooltip>
         </q-btn>
-        <q-btn v-if="this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="cancel" @click="this.openBulkModal('open')">
+        <q-btn v-if="this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="cancel"
+               @click="this.openBulkModal('open')">
           <q-tooltip>Открыть заявку</q-tooltip>
         </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">
           <q-tooltip>Заморозить заявки</q-tooltip>
         </q-btn>
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts" @click="this.openBulkModal('executor')">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts"
+               @click="this.openBulkModal('executor')">
           <q-tooltip>Сменить исполнителя заявок</q-tooltip>
         </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="clear_all" @click="this.openBulkModal('status')">
           <q-tooltip>Изменить статус заявок</q-tooltip>
         </q-btn>
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="star_half" @click="this.openBulkModal('priority')">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="star_half"
+               @click="this.openBulkModal('priority')">
           <q-tooltip>Изменить приоритет заявок</q-tooltip>
         </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="sell" @click="this.openBulkModal('tags')">
@@ -399,7 +404,8 @@
           :style="this.isMobile ? 'margin-left: 8px': ''"
           vertical
         />
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="disabled_by_default" @click="this.store.checkedTasks = []">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="disabled_by_default"
+               @click="this.store.checkedTasks = []">
           <q-tooltip>Снять выделение</q-tooltip>
         </q-btn>
       </q-page>
@@ -480,7 +486,6 @@ export default {
     isNewTaskDialogShow: false,
     isTaskDialogShow: false,
     isShowDelFilterPreset: false,
-    filterContainerHeight: 0,
     isModalForBulkActions: false,
 
     action: 'close',
@@ -745,7 +750,7 @@ export default {
             task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
             // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
             task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
-            // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
+          // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
         }
         return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
       })
@@ -887,7 +892,7 @@ export default {
           options = Object.groupBy(tasks, ({ status }) => status.name)
           break
         }
-        case 'client':{
+        case 'client': {
           source = this.clients
           options = Object.groupBy(tasks, ({ client }) => `${client.lastname} ${client.firstname}`)
         }
@@ -990,6 +995,10 @@ export default {
 
     showOpenTaskBtn () {
       return this.store.checkedTasks.every(task => task.completed === true)
+    },
+
+    getFilterType () {
+      return this.filterTypes.filter(filter => filter.slug !== 'deadline')
     }
   },
 
@@ -1033,7 +1042,9 @@ export default {
 
     isFilterSelected () {
       if (this.isFilterSelected) {
-        setTimeout(() => { this.filterContainerHeight = document.getElementById('filter-container').scrollHeight }, 100)
+        setTimeout(() => {
+          this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
+        }, 100)
       } else {
         this.filterContainerHeight = 0
       }
@@ -1049,7 +1060,9 @@ export default {
       } else {
         document.getElementsByClassName('mass-container')[0].style.animationName = 'HideBulkContainer'
         document.getElementsByClassName('mass-container')[0].style.animationPlayState = 'start'
-        setTimeout(() => { this.isShowBulkActionsMenu = false }, 200)
+        setTimeout(() => {
+          this.isShowBulkActionsMenu = false
+        }, 200)
       }
     }
   },

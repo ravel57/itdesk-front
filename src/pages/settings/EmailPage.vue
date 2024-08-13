@@ -4,6 +4,7 @@
       icon="add"
       label="Добавить почту"
       @click="this.dialogNewEmailShow"
+      style="margin-bottom: 8px;"
     />
     <div class="table-container">
       <q-table
