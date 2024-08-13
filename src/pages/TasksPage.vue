@@ -196,6 +196,7 @@
               :id="`filter_${filter.slug}`"
             >
               <q-select
+                v-if="filter.slug !== 'deadline'"
                 outlined
                 :label="filter.label"
                 multiple
@@ -217,6 +218,43 @@
                   </q-item>
                 </template>
               </q-select>
+              <q-input
+                v-else
+                v-model="filter.selectedOptions"
+                clearable
+                outlined
+                :label="filter.isBeforeDeadline ? 'До дедлайна' : 'После дедлайна'"
+                style="width: 250px; height: 100%;min-height: 56px;"
+              >
+                <template v-slot:prepend>
+                  <q-btn
+                    dense
+                    flat
+                    outline
+                    :icon="filter.isBeforeDeadline ? 'arrow_downward' : 'arrow_upward'"
+                    @click.stop="filter.isBeforeDeadline = !filter.isBeforeDeadline"
+                  />
+                </template>
+                <template
+                  v-slot:append
+                >
+                  <q-icon
+                    name="event"
+                    class="cursor-pointer"
+                  >
+                    <q-popup-proxy
+                      cover
+                      transition-show="scale"
+                      transition-hide="scale"
+                    >
+                      <q-date
+                        v-model="filter.selectedOptions"
+                        mask="DD.MM.YYYY HH:mm"
+                      />
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
               <q-btn
                 icon="cancel"
                 dense
@@ -409,6 +447,7 @@ import axios from 'axios'
 import TasksComponent from 'components/tasks/TasksComponent.vue'
 import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
+import moment from 'moment/moment'
 
 export default {
   components: { NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent },
@@ -419,7 +458,8 @@ export default {
       { label: 'Организация', slug: 'organization' },
       { label: 'Приоритет', slug: 'priority' },
       { label: 'Статус', slug: 'status' },
-      { label: 'Клиент', slug: 'client' }
+      { label: 'Клиент', slug: 'client' },
+      { label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false }
     ],
     selectedGroupType: { label: 'Исполнитель', slug: 'executor' },
     filterChain: [],
@@ -786,6 +826,17 @@ export default {
           }
           case 'client': {
             tasks = tasks.filter(task => el.selectedOptions.includes(`${task.client.lastname} ${task.client.firstname}`))
+            break
+          }
+          case 'deadline': {
+            tasks = tasks.filter(task => {
+              if (el.isBeforeDeadline) {
+                return new Date(moment(el.selectedOptions, 'DD.MM.YYYY HH:mm').format()) >= new Date(task.deadline)
+              } else {
+                return new Date(moment(el.selectedOptions, 'DD.MM.YYYY HH:mm').format()) <= new Date(task.deadline)
+              }
+            })
+            break
           }
         }
       })
