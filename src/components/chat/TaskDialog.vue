@@ -208,7 +208,7 @@
             v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.isNewTask"
             id="chat-section"
             class="flex-item"
-            style="border: 1px solid #0000001f;"
+            style="border: 1px solid #0000001f;overflow: hidden;border-radius: 16px"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
             <chat-dialog
