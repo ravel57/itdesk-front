@@ -185,7 +185,7 @@
         />
         <div
           v-if="this.isFilterSelected"
-          style="margin-right: 8px;height: 100%"
+          style="margin-right: 8px;height: 100%;overflow-x: scroll;"
           :style="isMobile ? 'width: 100%': ''"
         >
           <div style="display: flex;flex-direction: row; flex-wrap: nowrap">

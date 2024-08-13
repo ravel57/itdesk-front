@@ -2,6 +2,7 @@
   <div style="position: relative">
     <q-card
       class="search-container no-shadow"
+      style="background-color: #F0F0F0"
     >
       <div class="search">
         <q-input
@@ -277,7 +278,7 @@
                   clickable
                 >
                   <q-item-section>
-                    Сделать ключевым для заявки
+                    Привязать к заявке
                   </q-item-section>
                   <q-item-section side>
                     <q-icon name="keyboard_arrow_right"/>
@@ -362,8 +363,8 @@
       </q-card>
       <q-card
         class="input-item no-shadow"
-        style="border-top: 1px solid #0000001f;border-bottom: 1px solid #0000001f;"
-        :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
+        style="border-bottom: 1px solid #0000001f;"
+        :style="'background-color: ' +  (this.isComment ? '#d1c4e9;' : '') + 'border-top: ' + (this.replyMessageId ? '' : '1px solid #0000001f;')"
       >
         <q-btn
           v-if="this.scrollToBottomKey"
