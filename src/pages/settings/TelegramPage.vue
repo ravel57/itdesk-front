@@ -4,11 +4,13 @@
       icon="add"
       label="Добавить бота"
       @click="this.dialogNewBotShow"
+      style="margin-bottom: 8px;margin-right: 8px"
     />
     <q-btn
       icon="info"
       label="Инструкция"
       @click="this.isShowInstruction = true"
+      style="margin-bottom: 8px;"
     />
     <div class="table-container">
       <q-table

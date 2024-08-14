@@ -1,5 +1,6 @@
 <template>
-  <q-page padding style="padding-bottom: 0;position: relative; overflow-y: hidden">
+  <q-page padding style="display: flex; flex-direction: column;height: 100vh;min-height: 0; padding-bottom: 0">
+    <div id="task-control-container" style="display: flex;flex-direction: column;">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
           <q-input
@@ -31,7 +32,7 @@
             </template>
             <q-list>
               <q-item
-                v-for="(grouper, index) in this.filterTypes"
+                v-for="(grouper, index) in this.getFilterType"
                 :key="index"
                 clickable
                 v-close-popup
@@ -93,7 +94,7 @@
               </q-menu>
             </q-btn>
             <q-btn
-              v-if="this.selectedSorting.label"
+              v-if="!this.isShowTableMode && this.selectedSorting.label"
               @click="this.changeSortingAsc"
               flat
               class="text-grey-7"
@@ -170,13 +171,13 @@
       <div
         v-if="this.isFilterSelected"
         id="filter-container"
-        style="display: flex;margin-top: 8px; align-items: center;"
+        style="display: flex;margin-top: 8px; align-items: start;"
         :style="this.isMobile ? 'display:flex; flex-direction:row; flex-wrap: wrap; justify-content:center; width: 100%': ''"
       >
         <q-select
           v-model="this.selectedSavedFilter"
           :options="this.savedFilters.map(it => it.label)"
-          label="Сохраненные фильтры"
+          label="Шаблоны фильтров"
           style="width: 12.5%; align-content: center; min-width: 300px; margin-right: 8px"
           :style="this.isMobile ? 'width: 100%; margin-bottom: 8px' : ''"
           @update:model-value="this.onSavedFilterSelected"
@@ -185,7 +186,7 @@
         />
         <div
           v-if="this.isFilterSelected"
-          style="margin-right: 8px;height: 100%"
+          style="margin-right: 8px;height: 100%;overflow-x: scroll;"
           :style="isMobile ? 'width: 100%': ''"
         >
           <div style="display: flex;flex-direction: row; flex-wrap: nowrap">
@@ -196,6 +197,7 @@
               :id="`filter_${filter.slug}`"
             >
               <q-select
+                v-if="filter.slug !== 'deadline'"
                 outlined
                 :label="filter.label"
                 multiple
@@ -217,6 +219,43 @@
                   </q-item>
                 </template>
               </q-select>
+              <q-input
+                v-else
+                v-model="filter.selectedOptions"
+                clearable
+                outlined
+                :label="filter.isBeforeDeadline ? 'До дедлайна' : 'После дедлайна'"
+                style="width: 250px; height: 100%;min-height: 56px;"
+              >
+                <template v-slot:prepend>
+                  <q-btn
+                    dense
+                    flat
+                    outline
+                    :icon="filter.isBeforeDeadline ? 'arrow_downward' : 'arrow_upward'"
+                    @click.stop="filter.isBeforeDeadline = !filter.isBeforeDeadline"
+                  />
+                </template>
+                <template
+                  v-slot:append
+                >
+                  <q-icon
+                    name="event"
+                    class="cursor-pointer"
+                  >
+                    <q-popup-proxy
+                      cover
+                      transition-show="scale"
+                      transition-hide="scale"
+                    >
+                      <q-date
+                        v-model="filter.selectedOptions"
+                        mask="DD.MM.YYYY HH:mm"
+                      />
+                    </q-popup-proxy>
+                  </q-icon>
+                </template>
+              </q-input>
               <q-btn
                 icon="cancel"
                 dense
@@ -231,73 +270,76 @@
             </div>
           </div>
         </div>
-        <q-btn
-          v-if="filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
-          flat
-          color="grey"
-          icon="add"
-          @click="!this.isMenuActive"
-        >
-          <q-tooltip>
-            Добавить фильтр
-          </q-tooltip>
-          <q-menu
-            v-model="this.isMenuActive"
-            anchor="bottom right"
-            self="top right"
+        <div style="display: flex;align-items: center;height: 55px;">
+          <q-btn
+            v-if="filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label)).length > 0"
+            flat
+            color="grey"
+            icon="add"
+            @click="!this.isMenuActive"
           >
-            <q-list>
-              <q-item
-                v-for="option in filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label))"
-                :key="option.value"
-                clickable
-                @click="handleNewFilterSelection(option.label)"
-              >
-                <q-item-section>{{ option.label }}</q-item-section>
-              </q-item>
-            </q-list>
-          </q-menu>
-        </q-btn>
-        <q-btn
-          v-if="this.selectedSavedFilter.length === 0 && this.filterChain.length > 0"
-          ref="saveFilterButton"
-          icon="save"
-          color="grey"
-          @click="this.dialogSaveFilter"
-          flat
-          style="height: 40px"
-        >
-          <q-tooltip>
-            Сохранить фильтр
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          v-else-if="this.isShowDelFilterPreset"
-          ref="deleteSavedFilterButton"
-          icon="delete"
-          color="grey"
-          @click="isDeleteSavedFilterDialogShow = true"
-          flat
-          style="height: 40px"
-        >
-          <q-tooltip>
-            Удалить фильтр
-          </q-tooltip>
-        </q-btn>
-        <q-btn
-          v-if="this.filterChain.length > 0"
-          icon="close"
-          color="grey"
-          @click="this.removeFilters"
-          flat
-          style="height: 40px"
-        >
-          <q-tooltip>
-            Сбросить фильтр
-          </q-tooltip>
-        </q-btn>
+            <q-tooltip>
+              Добавить фильтр
+            </q-tooltip>
+            <q-menu
+              v-model="this.isMenuActive"
+              anchor="bottom right"
+              self="top right"
+            >
+              <q-list>
+                <q-item
+                  v-for="option in filterTypes.filter(o => !this.filterChain.map(fc=> fc.label).includes(o.label))"
+                  :key="option.value"
+                  clickable
+                  @click="handleNewFilterSelection(option.label)"
+                >
+                  <q-item-section>{{ option.label }}</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+          <q-btn
+            v-if="this.selectedSavedFilter.length === 0 && this.filterChain.length > 0"
+            ref="saveFilterButton"
+            icon="save"
+            color="grey"
+            @click="this.dialogSaveFilter"
+            flat
+            style="height: 40px"
+          >
+            <q-tooltip>
+              Сохранить шаблон
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            v-else-if="this.isShowDelFilterPreset"
+            ref="deleteSavedFilterButton"
+            icon="delete"
+            color="grey"
+            @click="isDeleteSavedFilterDialogShow = true"
+            flat
+            style="height: 40px"
+          >
+            <q-tooltip>
+              Удалить шаблон
+            </q-tooltip>
+          </q-btn>
+          <q-btn
+            v-if="this.filterChain.length > 0"
+            icon="close"
+            color="grey"
+            @click="this.removeFilters"
+            flat
+            style="height: 40px"
+          >
+            <q-tooltip>
+              Сбросить фильтр
+            </q-tooltip>
+          </q-btn>
+        </div>
       </div>
-    <div v-if="getFilteredTasks.length > 0">
+    </div>
+    <div v-if="getFilteredTasks.length > 0" style="display: flex;overflow: hidden">
       <tasks-component
         :isShowTableMode="this.isShowTableMode"
         :isMobile="this.isMobile"
@@ -308,7 +350,6 @@
         :isNewTaskDialogShow="this.isNewTaskDialogShow"
         :isTaskDialogShow="this.isTaskDialogShow"
         :selectedTask="this.selectedTask"
-        :filter-container-height="this.filterContainerHeight"
         @onTaskClicked="this.onTaskClicked"
         @closeDialog="this.closeDialog"
         @addMessageToTask="this.addMessageToTask"
@@ -330,22 +371,26 @@
       class="mass-container"
     >
       <q-page class="shadow-1" style="min-height: 0; padding: 0; border-radius: 5px;display: flex">
-        <q-btn v-if="!this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="check_circle" @click="this.openBulkModal('close')">
+        <q-btn v-if="!this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="check_circle"
+               @click="this.openBulkModal('close')">
           <q-tooltip>Закрыть заявки</q-tooltip>
         </q-btn>
-        <q-btn v-if="this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="cancel" @click="this.openBulkModal('open')">
+        <q-btn v-if="this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="cancel"
+               @click="this.openBulkModal('open')">
           <q-tooltip>Открыть заявку</q-tooltip>
         </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">
           <q-tooltip>Заморозить заявки</q-tooltip>
         </q-btn>
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts" @click="this.openBulkModal('executor')">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts"
+               @click="this.openBulkModal('executor')">
           <q-tooltip>Сменить исполнителя заявок</q-tooltip>
         </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="clear_all" @click="this.openBulkModal('status')">
           <q-tooltip>Изменить статус заявок</q-tooltip>
         </q-btn>
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="star_half" @click="this.openBulkModal('priority')">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="star_half"
+               @click="this.openBulkModal('priority')">
           <q-tooltip>Изменить приоритет заявок</q-tooltip>
         </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="sell" @click="this.openBulkModal('tags')">
@@ -359,7 +404,8 @@
           :style="this.isMobile ? 'margin-left: 8px': ''"
           vertical
         />
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="disabled_by_default" @click="this.store.checkedTasks = []">
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="disabled_by_default"
+               @click="this.store.checkedTasks = []">
           <q-tooltip>Снять выделение</q-tooltip>
         </q-btn>
       </q-page>
@@ -407,6 +453,7 @@ import axios from 'axios'
 import TasksComponent from 'components/tasks/TasksComponent.vue'
 import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
+import moment from 'moment/moment'
 
 export default {
   components: { NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent },
@@ -417,7 +464,8 @@ export default {
       { label: 'Организация', slug: 'organization' },
       { label: 'Приоритет', slug: 'priority' },
       { label: 'Статус', slug: 'status' },
-      { label: 'Клиент', slug: 'client' }
+      { label: 'Клиент', slug: 'client' },
+      { label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false }
     ],
     selectedGroupType: { label: 'Исполнитель', slug: 'executor' },
     filterChain: [],
@@ -438,7 +486,6 @@ export default {
     isNewTaskDialogShow: false,
     isTaskDialogShow: false,
     isShowDelFilterPreset: false,
-    filterContainerHeight: 0,
     isModalForBulkActions: false,
 
     action: 'close',
@@ -703,7 +750,7 @@ export default {
             task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
             // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
             task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
-            // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
+          // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
         }
         return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
       })
@@ -784,6 +831,17 @@ export default {
           }
           case 'client': {
             tasks = tasks.filter(task => el.selectedOptions.includes(`${task.client.lastname} ${task.client.firstname}`))
+            break
+          }
+          case 'deadline': {
+            tasks = tasks.filter(task => {
+              if (el.isBeforeDeadline) {
+                return new Date(moment(el.selectedOptions, 'DD.MM.YYYY HH:mm').format()) >= new Date(task.deadline)
+              } else {
+                return new Date(moment(el.selectedOptions, 'DD.MM.YYYY HH:mm').format()) <= new Date(task.deadline)
+              }
+            })
+            break
           }
         }
       })
@@ -834,7 +892,7 @@ export default {
           options = Object.groupBy(tasks, ({ status }) => status.name)
           break
         }
-        case 'client':{
+        case 'client': {
           source = this.clients
           options = Object.groupBy(tasks, ({ client }) => `${client.lastname} ${client.firstname}`)
         }
@@ -937,6 +995,10 @@ export default {
 
     showOpenTaskBtn () {
       return this.store.checkedTasks.every(task => task.completed === true)
+    },
+
+    getFilterType () {
+      return this.filterTypes.filter(filter => filter.slug !== 'deadline')
     }
   },
 
@@ -980,7 +1042,9 @@ export default {
 
     isFilterSelected () {
       if (this.isFilterSelected) {
-        setTimeout(() => { this.filterContainerHeight = document.getElementById('filter-container').scrollHeight }, 100)
+        setTimeout(() => {
+          this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
+        }, 100)
       } else {
         this.filterContainerHeight = 0
       }
@@ -996,7 +1060,9 @@ export default {
       } else {
         document.getElementsByClassName('mass-container')[0].style.animationName = 'HideBulkContainer'
         document.getElementsByClassName('mass-container')[0].style.animationPlayState = 'start'
-        setTimeout(() => { this.isShowBulkActionsMenu = false }, 200)
+        setTimeout(() => {
+          this.isShowBulkActionsMenu = false
+        }, 200)
       }
     }
   },
@@ -1062,7 +1128,7 @@ export default {
   border-radius: 8px;
   background-color: rgba(36, 36, 36, 1);
   left: 38vw;
-  bottom: -150px;
+  bottom: -250px;
   animation-name: BulkContainer;
   animation-duration: 0.2s;
   animation-fill-mode: forwards;

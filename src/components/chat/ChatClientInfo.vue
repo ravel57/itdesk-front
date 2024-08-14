@@ -56,6 +56,7 @@
     <q-icon
       :style="!this.getOrganization ? 'color: grey !important' : 'color: black !important'"
       name="store"
+      style="margin-right: 8px"
     />
     <div v-if="!this.getOrganization" class="text-italic text-grey text-subtitle2" v-text="'Без организации'"/>
     <div
@@ -71,7 +72,6 @@
     @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
     v-text="this.client.moreInfo"
   />
-  <div v-if="!this.client.moreInfo" class="text-italic text-grey text-subtitle2" v-text="'Нет дополнительной информации'"/>
   <div
     class="text-subtitle2"
     style="align-items: center; display: flex"
@@ -80,19 +80,19 @@
       v-if="client.messageFrom === 'TELEGRAM'"
       src="/telegram.png"
       alt="tg"
-      style="width: 16px"
+      style="width: 16px;margin-right: 8px"
     >
     <img
       v-else-if="client.messageFrom === 'WHATSAPP'"
       src="/whatsapp.png"
       alt="wa"
-      style="width: 16px"
+      style="width: 16px;margin-right: 8px"
     >
     <img
       v-else-if="client.messageFrom === 'EMAIL'"
       src="/email.png"
       alt="email"
-      style="width: 16px"
+      style="width: 16px;margin-right: 8px"
     >
     {{ this.client.sourceChannel }}
   </div>

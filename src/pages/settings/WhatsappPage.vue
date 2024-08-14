@@ -4,6 +4,7 @@
       icon="add"
       label="Добавить телефон"
       @click="this.dialogNewAccountShow"
+      style="margin-bottom: 8px;"
     />
     <div class="table-container">
       <q-table

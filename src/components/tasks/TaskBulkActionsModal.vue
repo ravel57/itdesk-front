@@ -105,7 +105,7 @@
         </template>
       </q-input>
       <div class="text-h7" style="padding-top: 20px">
-        Выбраны {{ this.getDeclension(this.store.checkedTasks.length) }}
+        {{ this.getDeclension(this.store.checkedTasks.length) }}
       </div>
     </q-card-section>
     <q-card-actions style="position: absolute;bottom: 0;width: 100%" align="right">
@@ -113,6 +113,52 @@
       <q-btn label="Применить" color="primary" v-close-popup @click="this.doAction()"/>
     </q-card-actions>
   </q-card>
+  <q-dialog persistent v-model="this.freezeDialog">
+    <div id="task-freeze-modal">
+      <q-card>
+        <q-card-section>
+          <div class="text-h6">Заморозка заявки</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none">
+          <div id="freeze-time-input">
+            <q-input
+              v-model="this.taskFreezeUntil"
+              clearable
+              label="Заморозить до"
+            >
+              <template
+                v-slot:append
+              >
+                <q-icon
+                  name="event"
+                  class="cursor-pointer"
+                >
+                  <q-popup-proxy
+                    cover
+                    transition-show="scale"
+                    transition-hide="scale"
+                  >
+                    <q-date
+                      v-model="this.taskFreezeUntil"
+                      mask="DD.MM.YYYY HH:mm"
+                    />
+                  </q-popup-proxy>
+                </q-icon>
+              </template>
+            </q-input>
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="Закрыть" color="primary" v-close-popup />
+          <div id="freeze-save-btn">
+            <q-btn label="Применить" color="primary" v-close-popup />
+          </div>
+        </q-card-actions>
+      </q-card>
+    </div>
+  </q-dialog>
 </template>
 
 <script>
@@ -131,7 +177,9 @@ export default {
     tasksExecutor: '',
     tasksStatus: '',
     tasksTags: [],
-    tasksDeadline: ''
+    tasksDeadline: '',
+    taskFreezeUntil: '',
+    freezeDialog: false
   }),
 
   methods: {
@@ -173,6 +221,15 @@ export default {
           task.executor = this.store.users.find(user => this.getUserName(user) === this.tasksExecutor)
         } else if (this.action === 'status') {
           task.status = this.store.statuses.find(status => status.name === this.tasksStatus)
+          if (task.status.name === 'Заморожена') {
+            task.frozen = true
+            task.frozenFrom = new Date()
+            task.frozenUntil = moment(this.taskFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+          } else {
+            task.frozen = false
+            task.frozenFrom = null
+            task.frozenUntil = null
+          }
         } else if (this.action === 'priority') {
           task.priority = this.store.priorities.find(priority => priority.name === this.tasksPriority)
         } else if (this.action === 'tags') {
@@ -186,6 +243,7 @@ export default {
         axios.patch(`/api/v1/client/${this.getClient(task)}/task`, task)
           .then(newTask => {
             this.$emit('updateTask', task, newTask)
+            this.store.checkedTasks = []
           })
           .catch(e =>
             this.$q.notify({
@@ -214,25 +272,45 @@ export default {
     getDeclension (count) {
       const declensions = ['заявка', 'заявки', 'заявок']
       let form
+      let selected
 
       if (count % 10 === 1 && count % 100 !== 11) {
         form = declensions[0]
+        selected = 'Выбрана'
       } else if ([2, 3, 4].includes(count % 10) && ![12, 13, 14].includes(count % 100)) {
         form = declensions[1]
+        selected = 'Выбраны'
       } else {
         form = declensions[2]
+        selected = 'Выбраны'
       }
 
-      return `${count} ${form}`
+      return `${selected} ${count} ${form}`
     }
   },
 
   created () {
-    this.tasksExecutor = this.store.checkedTasks.every(task => task.executor === this.store.checkedTasks[0].executor) ? this.store.checkedTasks[0].executor.lastname + ' ' + this.store.checkedTasks[0].executor.firstname : 'Смешанные исполнители'
-    this.tasksPriority = this.store.checkedTasks.every(task => task.priority === this.store.checkedTasks[0].priority) ? this.store.checkedTasks[0].priority.name : 'Смешанные приоритеты'
-    this.tasksStatus = this.store.checkedTasks.every(task => task.status === this.store.checkedTasks[0].status) ? this.store.checkedTasks[0].status.name : 'Смешанные статусы'
-    this.tasksTags = this.store.checkedTasks.every(task => task.tags === this.store.checkedTasks[0].tags) ? this.store.checkedTasks[0].tags.map(tag => tag.name) : ['Смешанные теги']
-    this.tasksDeadline = this.store.checkedTasks.every(task => task.deadline === this.store.checkedTasks[0].deadline) ? moment(this.store.checkedTasks[0].deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') : 'Смешанные дедлайны'
+    const firstTask = this.store.checkedTasks[0]
+    const sameExecutor = this.store.checkedTasks.every(task => task.executor && task.executor === firstTask.executor)
+    this.tasksExecutor = sameExecutor && firstTask.executor
+      ? `${firstTask.executor.lastname} ${firstTask.executor.firstname}`
+      : 'Смешанные исполнители'
+    const samePriority = this.store.checkedTasks.every(task => task.priority && task.priority === firstTask.priority)
+    this.tasksPriority = samePriority && firstTask.priority
+      ? firstTask.priority.name
+      : 'Смешанные приоритеты'
+    const sameStatus = this.store.checkedTasks.every(task => task.status && task.status === firstTask.status)
+    this.tasksStatus = sameStatus && firstTask.status
+      ? firstTask.status.name
+      : 'Смешанные статусы'
+    const sameTags = this.store.checkedTasks.every(task => Array.isArray(task.tags) && task.tags === firstTask.tags)
+    this.tasksTags = sameTags && Array.isArray(firstTask.tags)
+      ? firstTask.tags.map(tag => tag.name)
+      : ['Смешанные теги']
+    const sameDeadline = this.store.checkedTasks.every(task => task.deadline && task.deadline === firstTask.deadline)
+    this.tasksDeadline = sameDeadline && firstTask.deadline
+      ? moment(firstTask.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm')
+      : 'Смешанные дедлайны'
     if (this.tasksDeadline === 'Invalid date') {
       this.tasksDeadline = ''
     }
@@ -248,15 +326,15 @@ export default {
         case 'freeze':
           return 'Заморозить заявки'
         case 'executor':
-          return 'Смена исполнителя заявок'
+          return 'Изменить исполнителя заявок'
         case 'status':
-          return 'Сменить статусы заявок'
+          return 'Изменить статусы заявок'
         case 'priority':
-          return 'Сменить приоритеты заявок'
+          return 'Изменить приоритеты заявок'
         case 'tags':
-          return 'Сменить теги заявок'
+          return 'Изменить теги заявок'
         case 'deadline':
-          return 'Сменить дедлайны заявок'
+          return 'Изменить дедлайны заявок'
         default :
           return ''
       }
@@ -294,6 +372,14 @@ export default {
           if (this.tasksTags[0] === 'Смешанные теги') {
             this.tasksTags.splice(0, 1)
           }
+        }
+      }
+    },
+    tasksStatus: {
+      deep: true,
+      handler () {
+        if (this.tasksStatus === 'Заморожена') {
+          this.freezeDialog = true
         }
       }
     }

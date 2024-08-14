@@ -1,7 +1,8 @@
 <template>
   <div style="position: relative">
     <q-card
-      class="search-container"
+      class="search-container no-shadow"
+      style="background-color: #F0F0F0"
     >
       <div class="search">
         <q-input
@@ -31,7 +32,7 @@
       v-if="this.isShowSearchResults"
       class="search-results no-shadow rounded-borders scrollable-list-container"
       :style="(this.searchResults.length > 0) ? 'height: auto' : 'height: 0'"
-      bordered
+      style="border-radius: 0 0 4px 4px;border-bottom: 1px solid #0000001f"
     >
       <q-item
         v-for="message in searchResults"
@@ -72,7 +73,7 @@
     :id="this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog'"
     ref="chatDialog"
     :style="chatStyle"
-    class="shadow-2"
+    class="no-shadow"
     @scroll="this.getPortionMessages()"
   >
     <q-page-container>
@@ -115,12 +116,21 @@
                 @click="this.scrollToMessageAfterSearch(message.replyMessageId)"
               >
                 <div
-                  v-if="!message.replyUuid"
-                  style="height: 40px;width: 40px"
+                  v-if="!message.replyUuid && !message.replyFileType"
+                  style="height: 40px;width: 40px;display: flex;align-items: center;justify-content: center;"
                 >
                   <q-icon
-                    size="20px"
+                    size="25px"
                     name="reply"
+                  />
+                </div>
+                <div
+                  v-else-if="message.replyFileType && message.replyFileType.startsWith('application/')"
+                  style="height: 40px;width: 40px;display: flex;align-items: center;justify-content: center;"
+                >
+                  <q-icon
+                    size="25px"
+                    name="description"
                   />
                 </div>
                 <div
@@ -129,7 +139,6 @@
                   <img
                     :src="`/files/images/${message.replyUuid}`"
                     style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
-                    @click="this.openPhoto(message)"
                     alt=""
                   >
                 </div>
@@ -269,7 +278,7 @@
                   clickable
                 >
                   <q-item-section>
-                    Сделать ключевым для заявки
+                    Привязать к заявке
                   </q-item-section>
                   <q-item-section side>
                     <q-icon name="keyboard_arrow_right"/>
@@ -278,11 +287,12 @@
                     <q-list>
                       <q-item
                         v-for="task in this.tasks.filter(t => !t.completed)"
-                        :key="task"
+                        :key="task.id"
                         dense
                         clickable
                         @click="this.linkToTask(message, task)"
                         v-close-popup
+                        v-once
                       >
                         <q-item-section>
                           {{ task.name }}
@@ -309,7 +319,8 @@
     >
       <q-card
         v-if="this.replyMessageId !== null"
-        style="width: 100%;height: 50px;display: flex;flex-direction: row;border-bottom-left-radius: 0;border-bottom-right-radius: 0;"
+        class="no-shadow"
+        style="width: 100%;height: 50px;display: flex;flex-direction: row;border-radius: 0;border-top: 1px solid #0000001f"
       >
         <div ref="replyContainer" style="display: flex;width: 100%;max-height: 50px;align-items: center">
           <div style="height: 50px;width: 50px;display: flex;justify-content: center;align-items: center;margin-left: 5px;margin-right: 10px">
@@ -352,8 +363,9 @@
         </div>
       </q-card>
       <q-card
-        class="input-item"
-        :style="'background-color: ' +  (this.isComment ? '#d1c4e9' : '')"
+        class="input-item no-shadow"
+        style="border-bottom: 1px solid #0000001f;"
+        :style="'background-color: ' +  (this.isComment ? '#d1c4e9;' : '') + 'border-top: ' + (this.replyMessageId ? '' : '1px solid #0000001f;')"
       >
         <q-btn
           v-if="this.scrollToBottomKey"
@@ -528,7 +540,12 @@ export default {
   mounted () {
     try {
       if (!this.isDialog) {
-        this.scrollToBottom(50)
+        this.scrollToBottom()
+      } else {
+        setTimeout(() => {
+          const scrollArea = document.querySelector('#chat-dialog-pop-up > div > div')
+          scrollArea.scrollTo(0, scrollArea.scrollHeight)
+        }, 0)
       }
       this.$refs.textInput.focus()
     } catch (ignoredError) {
@@ -546,13 +563,13 @@ export default {
 
     scrollToBottom (timeout = 0) {
       setTimeout(() => {
-        const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
-        scrollArea.scrollTo(0, document.getElementById('chat-dialog').children[0].children[0].scrollHeight)
+        const scrollArea = document.querySelector('#chat-dialog > div > div')
+        scrollArea.scrollTo(0, scrollArea.scrollHeight)
       }, timeout)
     },
 
     smoothScrollToBottom () {
-      const scrollArea = document.getElementById('chat-dialog').children[0].children[0]
+      const scrollArea = document.querySelector('#chat-dialog > div > div')
       scrollArea.scrollTo({ top: scrollArea.scrollHeight, left: 0, behavior: 'smooth' })
     },
 
@@ -659,7 +676,7 @@ export default {
     },
 
     scrollToElementById (id) {
-      const el = document.getElementById(id).children[0].children[0]
+      const el = document.querySelector(`#${id} > div > div:last-child`)
       const element = el.children[el.children.length - 1]
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' })
@@ -792,7 +809,7 @@ export default {
         textarea.style.height = 'auto'
         textarea.style.height = textarea.scrollHeight + 'px'
         chat.style.height = this.chatStyle.height
-        chat.style.height = textarea.offsetHeight + replyContainer > 46 ? `calc(${this.chatStyle.height} - ${textarea.offsetHeight + replyContainer - 46 + 'px'})` : this.chatStyle.height
+        chat.style.height = textarea.offsetHeight + replyContainer > 46 ? `calc(${this.chatStyle.height} - ${textarea.offsetHeight + (replyContainer !== 0 ? replyContainer + 1 : replyContainer) - 46 + 'px'})` : this.chatStyle.height
         this.textareaHeight = textarea.style.height
       })
     },
@@ -874,7 +891,7 @@ export default {
 
     chatStyle () {
       return {
-        height: this.isDialog ? 'calc(100% - 90px)' : (this.isMobile ? '70.5vh' : 'calc(100vh - 107px)'),
+        height: this.isDialog ? 'calc(100% - 90px)' : (this.isMobile ? 'calc(100vh - 178px)' : 'calc(100vh - 93px)'),
         'border-radius': '0',
         'min-height': '0',
         'background-color': '#F0F0F0'
@@ -1096,8 +1113,7 @@ textarea:focus {
 }
 
 .search-container {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+  border-radius: 0;
   z-index: 0
 }
 
@@ -1128,8 +1144,6 @@ textarea:focus {
   flex-wrap: nowrap;
   align-items: end;
   border-radius: 0;
-  border-bottom-left-radius: 5px;
-  border-bottom-right-radius: 5px;
 }
 
 .input-clouds-container {

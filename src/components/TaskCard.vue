@@ -1,26 +1,16 @@
 <template>
-  <div id="task-card" style="display: flex;flex-direction: column;width: 100%; position: relative">
+  <div id="task-card" class="task-card">
     <slot name="chatLink"></slot>
-    <div style="display: flex; flex-direction: row; justify-content: space-between; flex-wrap: nowrap; position: relative;align-items: center;height: 23px;">
-      <div class="flex" style="flex-wrap: nowrap;overflow: hidden;white-space: nowrap;width: 70%;">
+    <div class="task-card-header">
+      <div class="task-card-header-left">
         <slot name="checkBox"></slot>
-        <div class="small-text text-grey" style="margin-right: 8px; margin-left: 3px">№{{ this.task.id }}</div>
-        <div id="task-card-name" class="text-body2" style="text-overflow: ellipsis; overflow: hidden">{{ task.name }}</div>
+        <div class="task-id">№{{ this.task.id }}</div>
+        <div id="task-card-name" class="text-body2 task-card-name">{{ task.name }}</div>
       </div>
-      <div style="position: absolute;top: 0; right: 0;">
+      <div class="task-card-status-container">
         <div
           id="task-card-status"
-          style="
-          border-style: solid;
-          background-color: rgba(148, 121, 255, 0.2);
-          border-width: 1px;
-          border-radius: 4px;
-          border-color: var(--q-primary);
-          color: var(--q-primary);
-          padding-left: 4px;
-          padding-right: 4px;
-          "
-          :style="this.task.completed ? 'background-color: rgba(16, 181, 92, 0.2);color: rgba(16, 181, 92, 1); border-color: rgba(16, 181, 92, 1)' : (this.task.frozen ? 'background-color: rgba(50, 173, 230, 0.2);color: rgba(50, 173, 230, 1);border-color: rgba(50, 173, 230, 1)': '')"
+          :class="taskStatusClass"
         >
           <div v-if="this.task.frozen">
             Заморожена
@@ -34,58 +24,49 @@
         </div>
       </div>
     </div>
-    <table
-      @click="this.$emit('onTaskClicked', this.task)"
-    >
+    <table @click="this.$emit('onTaskClicked', this.task)">
       <tr v-if="this.descriptionRequire">
+        <th class="small-text text-grey row-label" v-text="'Описание: '" />
         <th
-          class="small-text text-grey row-label"
-          v-text="'Описание: '"
-        />
-        <th
-          :class="{'text-body2': true, 'text-grey': task.completed, 'truncate': true}"
+          :class="descriptionClass"
           v-text="task.description.length === 0 ? '-' : task.description"
         />
       </tr>
       <tr>
+        <th class="small-text text-grey row-label" v-text="'Теги: '" />
         <th
-          class="small-text text-grey row-label"
-          v-text="'Теги: '"
-        />
-        <th
-          :class="{'text-body2': true, 'text-grey': task.completed, 'truncate': true}"
+          :class="tagsClass"
           v-text="task.tags.map(tag => tag.name).length === 0 ? '-' : task.tags.map(tag => tag.name).join(', ')"
         />
       </tr>
       <tr>
         <th
           class="small-text text-grey row-label"
-          :style="this.selectedSorting.slug === 'priority' ? 'color: black;font-weight: 600;': 'color:gray'"
+          :class="{'highlighted': this.selectedSorting.slug === 'priority'}"
           v-text="'Приоритет: '"
         />
         <th
-          :class="{'text-body2': true, 'text-grey': task.completed}"
-          :style="this.selectedSorting.slug === 'priority' ? 'font-weight: 600;': ''"
+          :class="priorityClass"
           v-text="task.priority.name"
         />
       </tr>
       <tr>
-        <th class="small-text text-grey row-label" v-text="'Исполнитель: '"/>
+        <th class="small-text text-grey row-label" v-text="'Исполнитель: '" />
         <th
-          :class="{'text-body2': true, 'text-grey': task.completed}"
-          style="overflow: hidden;text-overflow: ellipsis;white-space: nowrap;width: 79%;display: block"
-          v-text="task.executor ? getName(task.executor) : '-'"/>
+          :class="executorClass"
+          v-text="task.executor ? getName(task.executor) : '-'"
+        />
       </tr>
       <tr>
         <th
           class="small-text text-grey row-label"
-          :style="this.selectedSorting.slug === 'creating' ? 'color: black;font-weight: 600;': 'color:gray'"
+          :class="{'highlighted': this.selectedSorting.slug === 'creating'}"
           v-text="'Создана: '"
         />
         <th
-          :class="{'text-body2': true, 'text-grey': task.completed}"
-          :style="this.selectedSorting.slug === 'creating' ? 'font-weight: 600;': ''"
-          v-text="this.getStamp(task.createdAt)"/>
+          :class="createdAtClass"
+          v-text="this.getStamp(task.createdAt)"
+        />
       </tr>
 <!--      <tr v-if="!task.completed">-->
 <!--        <th-->
@@ -101,13 +82,12 @@
       <tr>
         <th
           class="small-text text-grey row-label"
-          :style="this.selectedSorting.slug === 'deadline' ? 'color: black;': 'color:gray'"
+          :class="{'highlighted': this.selectedSorting.slug === 'deadline'}"
           v-text="'Дедлайн: '"
         />
         <th
-          class="text-body2"
-          :class="task.completed ? 'text-grey' : ''"
-          :style="`color: ${task.deadline && (task.deadline < Date.now()) ? 'red' : 'black'}; ${selectedSorting.slug === 'deadline' ? 'font-weight: 600;' : ''}`"
+          :class="deadlineClass"
+          :style="deadlineStyle"
           v-text="task.deadline ? this.getStamp(task.deadline) : '-'"
         />
       </tr>
@@ -149,9 +129,8 @@
       <!--      </th>-->
       <!--    </tr>-->
       <tr v-if="!this.$route.path.includes('chat')">
-        <!--      FIXME-->
-        <th class="small-text text-grey row-label" v-text="'Последняя активность: '"/>
-        <th :class="{'text-body2': true, 'text-grey': task.completed}" v-text="this.getStamp(new Date(task.client.lastMessage.date))"/>
+        <th class="small-text text-grey row-label" v-text="'Последняя активность: '" />
+        <th :class="lastActivityClass" v-text="this.getStamp(new Date(task.client.lastMessage.date))" />
       </tr>
     </table>
     <slot name="taskControl"></slot>
@@ -230,6 +209,72 @@ export default {
         return string
       }
     }
+  },
+
+  computed: {
+    taskStatusClass () {
+      if (this.task.completed) {
+        return 'status-completed'
+      } else if (this.task.frozen) {
+        return 'status-frozen'
+      } else {
+        return 'status-active'
+      }
+    },
+    descriptionClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        truncate: true
+      }
+    },
+    tagsClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        truncate: true
+      }
+    },
+    priorityClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        highlighted: this.selectedSorting.slug === 'priority'
+      }
+    },
+    executorClass () {
+      return {
+        'text-body2': true, // small size for executor text
+        'text-grey': this.task.completed,
+        executor: true
+      }
+    },
+    createdAtClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        highlighted: this.selectedSorting.slug === 'creating'
+      }
+    },
+    deadlineClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        highlighted: this.selectedSorting.slug === 'deadline'
+      }
+    },
+    lastActivityClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed
+      }
+    },
+    deadlineStyle () {
+      return {
+        color: this.task.deadline && this.task.deadline < Date.now() ? 'red' : 'black',
+        fontWeight: this.selectedSorting.slug === 'deadline' ? '600' : 'normal'
+      }
+    }
   }
 }
 </script>
@@ -238,14 +283,115 @@ export default {
 th {
   text-align: left;
 }
-
-.row-label {
-}
-
 .truncate {
   max-width: 200px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.task-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+}
+
+.task-card-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  position: relative;
+  align-items: center;
+  height: 23px;
+}
+
+.task-card-header-left {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 70%;
+  align-items: center;
+}
+
+.task-id {
+  margin-right: 8px;
+  margin-left: 3px;
+  font-size: 14px; /* Увеличен размер текста для ID */
+  color: grey;
+}
+
+.task-card-name {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 14px; /* Уменьшен размер текста для названия */
+}
+
+.task-card-status-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+#task-card-status {
+  border-style: solid;
+  background-color: rgba(148, 121, 255, 0.2);
+  border-width: 1px;
+  border-radius: 4px;
+  border-color: var(--q-primary);
+  color: var(--q-primary);
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.status-completed {
+  background-color: rgba(16, 181, 92, 0.2) !important;
+  color: rgba(16, 181, 92, 1) !important;
+  border-color: rgba(16, 181, 92, 1) !important;
+}
+
+.status-frozen {
+  background-color: rgba(50, 173, 230, 0.2) !important;
+  color: rgba(50, 173, 230, 1) !important;
+  border-color: rgba(50, 173, 230, 1) !important;
+}
+
+.status-active {
+  /* Default styling for active status */
+}
+
+.small-text {
+  font-size: 14px; /* Восстановлен размер для small-text */
+  color: grey;
+}
+
+.text-grey {
+  color: grey;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.executor {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 79%;
+  display: block;
+}
+
+.highlighted {
+  color: black;
+  font-weight: 600;
+}
+
+.row-label {
+  padding-right: 8px;
 }
 </style>

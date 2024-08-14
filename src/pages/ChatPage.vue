@@ -17,16 +17,16 @@
       </q-tabs>
     </div>
     <q-page
-      style="padding: 8px; height: calc(100vh - 98px); min-height: auto"
+      style="min-height: auto"
     >
       <div
-        class="q-gutter-sm row"
+        class="row"
         :style="this.isMobile ? 'height: calc(100vh - 90px)' : ''"
       >
         <div
           v-if="!this.isMobile || this.tab === 'tab1'"
           id="chatColumn"
-          class="col no-shadow rounded-borders"
+          class="col no-shadow"
         >
           <chat-dialog
             :isMobile="this.isMobile"
@@ -58,9 +58,9 @@
           />
         </div>
         <div
-          class="col no-shadow rounded-borders"
+          class="col no-shadow"
           v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
-          :style="!this.isMobile ? 'max-width: 18vw' : ''"
+          :style="!this.isMobile ? 'max-width: 22vw' : ''"
         >
           <chat-helper
             :isMobile="this.isMobile"
@@ -72,7 +72,7 @@
         </div>
 
         <div
-          class="col no-shadow rounded-borders"
+          class="col no-shadow"
           v-if="!this.isMobile || this.tab === 'tab3'"
           :style="!this.isMobile ? 'max-width: 22vw;min-width:452px;' : ''"
         >

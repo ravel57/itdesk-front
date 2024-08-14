@@ -47,7 +47,7 @@
                 :id="`radio_${task.id}_${taskIndex}`"
                 class="radio-select"
                 type="checkbox"
-                style="margin-left: 4px;height: 20px;width: 20px;"
+                style="margin-left: 4px;height: 20px;width: 20px;margin-right: 8px;"
                 v-model="checkedTasks[task.id]"
                 @click.stop
               >
@@ -162,7 +162,8 @@ export default {
 <style scoped>
 
 .list {
-  display: inline-block;
+  display: flex;
+  flex-direction: column;
   vertical-align: top;
   width: 440px;
   margin-right: 20px;
@@ -188,6 +189,7 @@ export default {
 .list-cards {
   width: 440px;
   padding: 10px;
+  overflow: scroll;
 }
 
 .radio-select {
@@ -203,8 +205,8 @@ export default {
   height: 60px;
   overflow: hidden;
   position: absolute;
-  right: -37px;
-  top: -37px;
+  right: -38px;
+  top: -38px;
   transform: rotate(45deg);
   transition: transform .3s ease;
   width: 60px;
