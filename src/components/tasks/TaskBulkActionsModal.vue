@@ -37,6 +37,9 @@
             >
               <q-date
                 v-model="this.tasksFreezeUntil"
+                first-day-of-week="1"
+                locale="ru"
+                today-btn
                 mask="DD.MM.YYYY HH:mm"
               />
             </q-popup-proxy>
@@ -98,6 +101,9 @@
             >
               <q-date
                 v-model="this.tasksDeadline"
+                first-day-of-week="1"
+                locale="ru"
+                today-btn
                 mask="DD.MM.YYYY HH:mm"
               />
             </q-popup-proxy>
@@ -141,6 +147,9 @@
                   >
                     <q-date
                       v-model="this.taskFreezeUntil"
+                      first-day-of-week="1"
+                      locale="ru"
+                      today-btn
                       mask="DD.MM.YYYY HH:mm"
                     />
                   </q-popup-proxy>
@@ -273,7 +282,6 @@ export default {
       const declensions = ['заявка', 'заявки', 'заявок']
       let form
       let selected
-
       if (count % 10 === 1 && count % 100 !== 11) {
         form = declensions[0]
         selected = 'Выбрана'
@@ -284,7 +292,6 @@ export default {
         form = declensions[2]
         selected = 'Выбраны'
       }
-
       return `${selected} ${count} ${form}`
     }
   },

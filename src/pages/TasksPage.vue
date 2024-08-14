@@ -250,6 +250,9 @@
                     >
                       <q-date
                         v-model="filter.selectedOptions"
+                        first-day-of-week="1"
+                        locale="ru"
+                        today-btn
                         mask="DD.MM.YYYY HH:mm"
                       />
                     </q-popup-proxy>

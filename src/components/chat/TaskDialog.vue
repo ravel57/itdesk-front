@@ -130,6 +130,9 @@
                       >
                         <q-date
                           v-model="this.dialogTaskDeadline"
+                          first-day-of-week="1"
+                          locale="ru"
+                          today-btn
                           mask="DD.MM.YYYY HH:mm"
                         />
                       </q-popup-proxy>
@@ -280,6 +283,9 @@
                   >
                     <q-date
                       v-model="this.dialogTaskFreezeUntil"
+                      first-day-of-week="1"
+                      locale="ru"
+                      today-btn
                       mask="DD.MM.YYYY HH:mm"
                     />
                   </q-popup-proxy>
