@@ -366,7 +366,57 @@
         v-if="!this.isMobile"
         class="absolute-center"
       >
-        <no-tasks-placeholder/>
+        <div v-if="this.filterChain.length > 0 || this.searchRequest.length > 0">
+          <div style="display: flex;flex-direction: column;align-items: center;text-align: center">
+            <div style="font-size: 20px">Заявок нет</div>
+            <div style="margin-bottom: 8px">
+              <q-btn
+                icon="close"
+                color="primary"
+                @click="this.filterChain = [];this.searchRequest = []"
+              >
+                Сбросить фильтры
+              </q-btn>
+            </div>
+            <div class="">
+              <q-btn
+                v-if="!this.isShowCompletedTasks"
+                icon="visibility"
+                color="primary"
+                outline
+                @click="this.isShowCompletedTasks = true"
+              >
+                Показать закрытые и замороженные
+              </q-btn>
+            </div>
+            <no-tasks-placeholder/>
+          </div>
+        </div>
+        <div v-else style="display: flex;flex-direction: row;align-items: center">
+          <div style="width: 140px">
+            <div style="font-size: 20px">
+              Заявок нет
+            </div>
+            <div style="font-size: 14px">
+              Возможно стоит создать их
+            </div>
+            <div style="font-size: 14px">
+              <a style="color: var(--q-primary)" href="/chats">Проверьте чаты.</a>
+            </div>
+          </div>
+          <div style="display: flex;flex-direction: column;align-items: center">
+            <no-tasks-placeholder/>
+            <q-btn
+              v-if="!this.isShowCompletedTasks"
+              icon="visibility"
+              color="primary"
+              outline
+              @click="this.isShowCompletedTasks = true"
+            >
+              Показать закрытые и замороженные
+            </q-btn>
+          </div>
+        </div>
       </div>
     </div>
     <div

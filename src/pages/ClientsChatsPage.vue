@@ -116,11 +116,12 @@
         </div>
       </q-list>
     </div>
-    <div
-      v-else
-      class="text-h3 absolute-center text-primary"
-      v-text="'Чатов нет'"
-    />
+    <div v-else class="absolute-center">
+      <div style="text-align: center;font-size: 20px">
+        Чатов нет
+        <no-tasks-placeholder/>
+      </div>
+    </div>
   </q-page>
 </template>
 
@@ -128,11 +129,12 @@
 import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import moment from 'moment'
+import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 
 export default {
   name: 'DialogsPage',
 
-  components: { CircleCounter },
+  components: { NoTasksPlaceholder, CircleCounter },
 
   data: () => ({
     searchQuery: ''

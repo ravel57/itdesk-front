@@ -57,7 +57,22 @@
         v-else
         class="absolute-center"
       >
-        <no-tasks-placeholder/>
+        <div style="display: flex;flex-direction: row;align-items: center">
+          <div style="width: 140px">
+            <div style="font-size: 20px">
+              Заявок нет
+            </div>
+            <div style="font-size: 14px">
+              Возможно стоит создать их
+            </div>
+            <div style="font-size: 14px">
+              <a style="color: var(--q-primary)" href="/chats">Проверьте чаты.</a>
+            </div>
+          </div>
+          <div style="display: flex;flex-direction: column;align-items: center">
+            <no-tasks-placeholder/>
+          </div>
+        </div>
       </div>
       <task-dialog
         v-if="this.isTaskDialogShow"
