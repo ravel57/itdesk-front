@@ -21,7 +21,7 @@
             @click="this.$router.push({ path: `/chats/${this.client.id}` })"
           >
             <q-tooltip>
-              Перейти в чат
+              Перейти в чат с {{ this.getClientName }}
             </q-tooltip>
           </q-btn>
           <q-btn
@@ -133,6 +133,7 @@
                           first-day-of-week="1"
                           locale="ru"
                           today-btn
+                          :options="this.dateOption"
                           mask="DD.MM.YYYY HH:mm"
                         />
                       </q-popup-proxy>
@@ -286,6 +287,7 @@
                       first-day-of-week="1"
                       locale="ru"
                       today-btn
+                      :options="this.dateOption"
                       mask="DD.MM.YYYY HH:mm"
                     />
                   </q-popup-proxy>
@@ -348,6 +350,15 @@ export default {
   }),
 
   methods: {
+
+    dateOption (date) {
+      const today = new Date()
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      return date >= `${year}/${month}/${day}`
+    },
+
     closeDialog () {
       this.$emit('closeDialog')
     },
@@ -643,6 +654,10 @@ export default {
   computed: {
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
+    },
+
+    getClientName () {
+      return this.task.client.lastname + ' ' + this.task.client.firstname
     }
   },
 

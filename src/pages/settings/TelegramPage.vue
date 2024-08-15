@@ -16,6 +16,7 @@
       <q-table
         :rows="telegramBots"
         :columns="columns"
+        :rows-per-page-options="[0]"
         row-key="id"
         full-width
       >
@@ -191,7 +192,7 @@ export default {
     isShowInstruction: false// for updates
   }),
 
-  mounted () {
+  created () {
     axios.get('/api/v1/telegram-bots')
       .then(response => {
         this.telegramBots = response.data

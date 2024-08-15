@@ -22,14 +22,34 @@
           :key="client.id"
         >
           <q-item clickable>
-            <q-item-section style="position: relative">
+            <q-item-section style="display: flow-root">
               <router-link
                 :to="`/chats/${client.id}`"
                 style="text-decoration: none; display: flex"
                 class="text-primary"
               >
                 <q-item-section>
-                  <q-item-label>{{ client.firstname }} {{ client.lastname }}</q-item-label>
+                  <q-item-label style="align-items: center;display: flex;">
+                    <img
+                      v-if="client.messageFrom === 'TELEGRAM'"
+                      src="/telegram.png"
+                      alt="tg"
+                      style="width: 16px;margin-right: 8px"
+                    >
+                    <img
+                      v-else-if="client.messageFrom === 'WHATSAPP'"
+                      src="/whatsapp.png"
+                      alt="wa"
+                      style="width: 16px;margin-right: 8px"
+                    >
+                    <img
+                      v-else-if="client.messageFrom === 'EMAIL'"
+                      src="/email.png"
+                      alt="email"
+                      style="width: 16px;margin-right: 8px"
+                    >
+                    {{ client.firstname }} {{ client.lastname }}
+                  </q-item-label>
                   <q-item-label
                     caption
                   >
@@ -70,7 +90,7 @@
                 </q-item-section>
                 <q-item-section
                   side
-                  style="position: absolute;right: 0;height: 100%;display: flex;flex-direction: row;align-content: center;"
+                  style="flex-direction: row;align-content: center;"
                 >
                   <q-icon
                     v-if="client.tasks.filter(task => task.priority.critical && !task.completed).length > 0"
@@ -269,7 +289,6 @@ export default {
 
 <style scoped>
 .shorten-text {
-  width:80vw;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

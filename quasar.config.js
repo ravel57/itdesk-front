@@ -122,7 +122,7 @@ module.exports = configure(function (ctx) {
       //
       // components: [],
       // directives: [],
-
+      lang: 'ru',
       // Quasar plugins
       plugins: [
         'Notify'

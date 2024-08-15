@@ -3,64 +3,63 @@
     class="flex-container"
     style="padding-top: 8px"
   >
-    <div v-if="this.isShowTableMode" style="width: 100%;">
-      <q-table
-        virtual-scroll
-        :rows="this.tableRows"
-        :columns="this.filterTableColumns"
-        :rows-per-page-options="[0]"
-        :sortable="true"
-        row-key="id"
-        bordered
-        style="margin-top: 8px;margin-bottom: 16px;height: calc(100vh - 200px)"
-        selection="multiple"
-        v-model:selected="this.store.checkedTasks"
-        :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
-        rows-per-page-label="Строк на странице"
-      >
-        <template v-slot:top>
-          <div class="col-2 q-table__title">Заявки</div>
+    <q-table
+      v-if="this.isShowTableMode"
+      virtual-scroll
+      :rows="this.tableRows"
+      :columns="this.filterTableColumns"
+      :rows-per-page-options="[0]"
+      :sortable="true"
+      row-key="id"
+      bordered
+      style="margin-top: 8px;margin-bottom: 16px;width: 100%;"
+      selection="multiple"
+      v-model:selected="this.store.checkedTasks"
+      :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
+      rows-per-page-label="Строк на странице"
+    >
+      <template v-slot:top>
+        <div class="col-2 q-table__title">Заявки</div>
 
-          <q-space/>
+        <q-space/>
 
-          <q-btn
-            style="font-size: 12px"
-            icon="edit"
-            color="primary"
-            @click="this.isShowTableSettings = true"
-          >
-            Настроить таблицу
-          </q-btn>
-        </template>
-        <template v-slot:body="props">
-          <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
-            <q-td>
-              <q-checkbox
-                v-model="props.selected"
-                @click.stop
-              />
-            </q-td>
-            <q-td v-for="col in props.cols" :key="col.name" :props="props">
-              <div
-                v-if="col.name === 'deadline'"
-                :style="`color: ${this.parseStrToDate(col.value) < Date.now() ? 'red' : 'black'}`"
-              >
-                {{ col.value }}
-              </div>
-              <div
-                v-else-if="col.name === 'status'"
-                :style="`color: ${col.value === 'Заморожена' ? 'rgba(50, 173, 230, 1)' : (col.value === 'Закрыта'? 'rgba(16, 181, 92, 1)' : '')}`"
-              >
-                {{ col.value }}
-              </div>
-              <div v-else>
-                {{ col.value }}
-              </div>
-            </q-td>
-          </q-tr>
-        </template>
-      </q-table>
-    </div>
+        <q-btn
+          style="font-size: 12px"
+          icon="edit"
+          color="primary"
+          @click="this.isShowTableSettings = true"
+        >
+          Настроить таблицу
+        </q-btn>
+      </template>
+      <template v-slot:body="props">
+        <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
+          <q-td>
+            <q-checkbox
+              v-model="props.selected"
+              @click.stop
+            />
+          </q-td>
+          <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            <div
+              v-if="col.name === 'deadline'"
+              :style="`color: ${this.parseStrToDate(col.value) < Date.now() ? 'red' : 'black'}`"
+            >
+              {{ col.value }}
+            </div>
+            <div
+              v-else-if="col.name === 'status'"
+              :style="`color: ${col.value === 'Заморожена' ? 'rgba(50, 173, 230, 1)' : (col.value === 'Закрыта'? 'rgba(16, 181, 92, 1)' : '')}`"
+            >
+              {{ col.value }}
+            </div>
+            <div v-else>
+              {{ col.value }}
+            </div>
+          </q-td>
+        </q-tr>
+      </template>
+    </q-table>
     <card-tasks-view
       v-else
       :groupedTasks="this.groupedTasks"

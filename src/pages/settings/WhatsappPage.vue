@@ -10,18 +10,19 @@
       <q-table
         :rows="whatsappAccounts"
         :columns="columns"
+        :rows-per-page-options="[0]"
         row-key="id"
         full-width
       >
         <template v-slot:body-cell-api-key="props">
           <q-td :props="props">
             <span
-              v-if="!props.row.showApiKey"
-              v-text="'***********************'"
+              v-if="props.row.showApiKey"
+              v-text="props.row.apiKey"
             />
             <span
               v-else
-              v-text="props.row.apiKey"
+              v-text="'***********************'"
             />
           </q-td>
         </template>
@@ -105,8 +106,8 @@ export default {
   data: () => ({
     columns: [
       { name: 'name', label: 'Название', align: 'left', field: 'name' },
+      { name: 'whatsappId', label: 'Whatsapp ID', align: 'left', field: 'whatsappId' },
       { name: 'apiKey', label: 'API-ключ', align: 'left', field: 'apiKey' },
-      { name: 'whatsapp-id', label: 'WhatsappID', align: 'left', field: 'whatsapp-id' },
       { name: 'show-api-key', label: 'Показать ключ', align: 'center', field: 'show-api-key' }
     ],
     whatsappAccounts: [],
@@ -120,7 +121,7 @@ export default {
     isShowInstruction: false// for updates
   }),
 
-  mounted () {
+  created () {
     axios.get('/api/v1/whatsapp')
       .then(response => {
         this.whatsappAccounts = response.data

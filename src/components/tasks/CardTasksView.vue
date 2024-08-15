@@ -26,12 +26,24 @@
       <q-item
         v-for="(task, taskIndex) in taskList.taskCards"
         :key="taskIndex"
-        style="border-style: solid;border-width: 0.01em;border-radius: 4px; border-color: var(--q-primary); margin-top: 8px; max-width: 420px;width: 420px;"
+        style="
+         border-style: solid;
+         border-width: 0.01em;
+         border-radius: 4px;
+         border-color: var(--q-primary);
+         margin-top: 8px;
+         max-width: 420px;
+         width: 420px;
+         display: block;
+         margin-right: auto;
+         margin-left: auto;
+         overflow: hidden
+        "
         class="no-padding"
       >
         <q-item
           clickable
-          style="padding: 8px;max-width: 420px;width: 420px;overflow: hidden"
+          style="padding: 8px;max-width: 420px;width: 420px;"
           @click="this.$emit('onTaskClicked', task)"
         >
           <task-card
@@ -165,7 +177,7 @@ export default {
   display: flex;
   flex-direction: column;
   vertical-align: top;
-  width: 440px;
+  width: 540px;
   margin-right: 20px;
 }
 
@@ -178,8 +190,8 @@ export default {
 .list-header {
   z-index: 2;
   border-radius: 5px;
-  width: 440px;
-  max-width: 440px;
+  width: 470px;
+  max-width: 470px;
   color: white;
   background-color: var(--q-primary);
   padding: 10px;
@@ -187,9 +199,10 @@ export default {
 }
 
 .list-cards {
-  width: 440px;
+  width: 470px;
   padding: 10px;
-  overflow: scroll;
+  overflow-y: scroll;
+  overflow-x: hidden;
 }
 
 .radio-select {
