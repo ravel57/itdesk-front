@@ -244,6 +244,7 @@
                     class="cursor-pointer"
                   >
                     <q-popup-proxy
+                      ref="qDatePopup"
                       cover
                       transition-show="scale"
                       transition-hide="scale"
@@ -255,6 +256,7 @@
                         today-btn
                         :options="this.dateOption"
                         mask="DD.MM.YYYY HH:mm"
+                        @update:model-value="this.$refs.qDatePopup.hide()"
                       />
                     </q-popup-proxy>
                   </q-icon>

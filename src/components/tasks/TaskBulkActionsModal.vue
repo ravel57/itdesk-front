@@ -31,6 +31,7 @@
             class="cursor-pointer"
           >
             <q-popup-proxy
+              ref="qDateFreezePopup"
               cover
               transition-show="scale"
               transition-hide="scale"
@@ -42,6 +43,7 @@
                 today-btn
                 :options="this.dateOption"
                 mask="DD.MM.YYYY HH:mm"
+                @update:model-value="this.$refs.qDateFreezePopup.hide()"
               />
             </q-popup-proxy>
           </q-icon>
@@ -96,6 +98,7 @@
             class="cursor-pointer"
           >
             <q-popup-proxy
+              ref="qDateDeadlinePopup"
               cover
               transition-show="scale"
               transition-hide="scale"
@@ -107,6 +110,7 @@
                 today-btn
                 :options="this.dateOption"
                 mask="DD.MM.YYYY HH:mm"
+                @update:model-value="this.$refs.qDateDeadlinePopup.hide()"
               />
             </q-popup-proxy>
           </q-icon>
@@ -143,6 +147,7 @@
                   class="cursor-pointer"
                 >
                   <q-popup-proxy
+                    ref="qDateFreezePopup"
                     cover
                     transition-show="scale"
                     transition-hide="scale"
@@ -154,6 +159,7 @@
                       today-btn
                       :options="this.dateOption"
                       mask="DD.MM.YYYY HH:mm"
+                      @update:model-value="this.$refs.qDateFreezePopup.hide()"
                     />
                   </q-popup-proxy>
                 </q-icon>
