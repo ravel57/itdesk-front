@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <q-btn
       icon="add"
-      label="Добавить телефон"
+      label="Добавить What's App"
       @click="this.dialogNewAccountShow"
       style="margin-bottom: 8px;"
     />

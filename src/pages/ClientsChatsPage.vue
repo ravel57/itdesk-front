@@ -49,6 +49,13 @@
                       style="width: 16px;margin-right: 8px"
                     >
                     {{ client.firstname }} {{ client.lastname }}
+                    <div style="color: var(--q-primary);display: flex;align-items: center;margin-left: 8px;">
+                      <q-icon
+                        color="primary"
+                        name="description"
+                      />
+                      {{ this.getActualTasks(client).length }}
+                    </div>
                   </q-item-label>
                   <q-item-label
                     caption
@@ -61,32 +68,32 @@
                   >
                     {{ this.getTimeLastMessage(client) +' : ' + this.getLastMessage(client) }}
                   </q-item-label>
-                  <div class="flex items-end">
-                    <q-item-label
-                      caption
-                    >
-                      Заявок: {{ this.getActualTasks(client).length }}
-                    </q-item-label>
-<!--                    <q-linear-progress-->
-<!--                      v-if="this.getActualTasks(client).filter(task => task.sla !== null).length > 0"-->
-<!--                      :value="this.getSlaPercent(this.getActualTasks(client))"-->
-<!--                      reverse-->
-<!--                      stripe-->
-<!--                      rounded-->
-<!--                      class="q-mt-sm"-->
-<!--                      style="width: 80px; margin-left: 16px; border: solid 1px darkgray"-->
-<!--                      size="12px"-->
-<!--                      :color="this.getSlaColor(this.getActualTasks(client))"-->
+<!--                  <div class="flex items-end">-->
+<!--                    <q-item-label-->
+<!--                      caption-->
 <!--                    >-->
-<!--                      <q-tooltip-->
-<!--                        anchor="top middle"-->
-<!--                        self="bottom middle"-->
-<!--                        :offset="[10, 10]"-->
-<!--                      >-->
-<!--                        Минимальный SLA среди заявок-->
-<!--                      </q-tooltip>-->
-<!--                    </q-linear-progress>-->
-                  </div>
+<!--                      Заявок: {{ this.getActualTasks(client).length }}-->
+<!--                    </q-item-label>-->
+<!--&lt;!&ndash;                    <q-linear-progress&ndash;&gt;-->
+<!--&lt;!&ndash;                      v-if="this.getActualTasks(client).filter(task => task.sla !== null).length > 0"&ndash;&gt;-->
+<!--&lt;!&ndash;                      :value="this.getSlaPercent(this.getActualTasks(client))"&ndash;&gt;-->
+<!--&lt;!&ndash;                      reverse&ndash;&gt;-->
+<!--&lt;!&ndash;                      stripe&ndash;&gt;-->
+<!--&lt;!&ndash;                      rounded&ndash;&gt;-->
+<!--&lt;!&ndash;                      class="q-mt-sm"&ndash;&gt;-->
+<!--&lt;!&ndash;                      style="width: 80px; margin-left: 16px; border: solid 1px darkgray"&ndash;&gt;-->
+<!--&lt;!&ndash;                      size="12px"&ndash;&gt;-->
+<!--&lt;!&ndash;                      :color="this.getSlaColor(this.getActualTasks(client))"&ndash;&gt;-->
+<!--&lt;!&ndash;                    >&ndash;&gt;-->
+<!--&lt;!&ndash;                      <q-tooltip&ndash;&gt;-->
+<!--&lt;!&ndash;                        anchor="top middle"&ndash;&gt;-->
+<!--&lt;!&ndash;                        self="bottom middle"&ndash;&gt;-->
+<!--&lt;!&ndash;                        :offset="[10, 10]"&ndash;&gt;-->
+<!--&lt;!&ndash;                      >&ndash;&gt;-->
+<!--&lt;!&ndash;                        Минимальный SLA среди заявок&ndash;&gt;-->
+<!--&lt;!&ndash;                      </q-tooltip>&ndash;&gt;-->
+<!--&lt;!&ndash;                    </q-linear-progress>&ndash;&gt;-->
+<!--                  </div>-->
                 </q-item-section>
                 <q-item-section
                   side
