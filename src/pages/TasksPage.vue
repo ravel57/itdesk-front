@@ -373,7 +373,7 @@
               <q-btn
                 icon="close"
                 color="primary"
-                @click="this.filterChain = [];this.searchRequest = []"
+                @click="this.filterChain = [];this.searchRequest = ''"
               >
                 Сбросить фильтры
               </q-btn>
