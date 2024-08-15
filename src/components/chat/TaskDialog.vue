@@ -79,6 +79,84 @@
                   label="Название *"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                 />
+                <div
+                  id="task-controls"
+                  class="flex"
+                  style="display: flex;flex-wrap: nowrap;align-items: center;max-height: 40px"
+                >
+                  <q-select
+                    id="task-status"
+                    dense
+                    outlined
+                    v-model="this.dialogTaskStatus"
+                    :options="this.isNewTask ? this.store.statuses.filter(s => s.name !== 'Закрыта' && s.name !== 'Заморожена').map(s => s.name) : this.store.statuses.map(s => s.name)"
+                    label="Статус *"
+                    :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                    style="width: 100%; margin-right: 8px;padding: 0;background-color: rgba(148, 121, 255, 0.2);border-color: rgba(92, 53, 249, 1)"
+                  />
+                  <q-btn
+                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+                    dense
+                    outline
+                    no-caps
+                    label="Закрыть заявку"
+                    color="white"
+                    text-color="primary"
+                    style="font-size: 14px;height: 40px;width: 100%;"
+                    @click="this.setTaskCompleted(this.task)"
+                  />
+                  <q-btn
+                    v-if="this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+                    dense
+                    outline
+                    no-caps
+                    label="Вернуть в работу"
+                    color="white"
+                    text-color="primary"
+                    style="font-size: 14px;height: 40px;width: 100%;"
+                    @click="this.setTaskNotCompleted(this.task)"
+                  />
+                  <div id="unfreeze-task-btn">
+                    <q-btn
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
+                      dense
+                      outline
+                      icon="ac_unit"
+                      text-color="primary"
+                      style="margin-left: 8px;position: relative;height: 40px;width: 40px"
+                      @click="this.changeTaskFrozen()"
+                    >
+                      <q-tooltip>Заморожено до {{ this.getStamp(new Date(this.task.frozenUntil)) }}</q-tooltip>
+                      <q-circular-progress
+                        v-if="this.task.frozen"
+                        :value="this.getPercentFrozenTask(this.task.frozenFrom, this.task.frozenUntil)"
+                        reverse
+                        size="32px"
+                        style="
+                      position: absolute;
+                      font-size: 32px;
+                      margin: 0;
+                    "
+                        :thickness="0.22"
+                        color="primary"
+                        track-color="grey-3"
+                      />
+                    </q-btn>
+                  </div>
+                  <div id="freeze-task-btn" style="margin-left: 8px">
+                    <q-btn
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
+                      dense
+                      outline
+                      icon="ac_unit"
+                      style="height: 40px;width: 40px"
+                      text-color="gray"
+                      @click="this.freezeDialog = true"
+                    >
+                      <q-tooltip>Заморозить заявку</q-tooltip>
+                    </q-btn>
+                  </div>
+                </div>
                 <q-input
                   id="task-description"
                   type="textarea"
@@ -142,71 +220,6 @@
                     </q-icon>
                   </template>
                 </q-input>
-                <div
-                  id="task-controls"
-                  class="flex"
-                  style="height: 56px; flex-wrap: nowrap;margin-top: 8px;"
-                >
-                  <q-select
-                    id="task-status"
-                    v-model="this.dialogTaskStatus"
-                    :options="this.isNewTask ? this.store.statuses.filter(s => s.name !== 'Закрыта' && s.name !== 'Заморожена').map(s => s.name) : this.store.statuses.map(s => s.name)"
-                    label="Статус *"
-                    :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-                    style="width: 100%; margin-right: 8px"
-                  />
-                  <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
-                    label="Закрыть заявку"
-                    color="white"
-                    text-color="primary"
-                    style="font-size: 13px"
-                    @click="this.setTaskCompleted(this.task)"
-                  />
-                  <q-btn
-                    v-if="this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
-                    label="Вернуть в работу"
-                    color="white"
-                    text-color="primary"
-                    @click="this.setTaskNotCompleted(this.task)"
-                  />
-                  <div id="unfreeze-task-btn">
-                    <q-btn
-                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
-                      icon="ac_unit"
-                      text-color="primary"
-                      style="margin-left: 8px;position: relative;height: 100%"
-                      @click="this.changeTaskFrozen()"
-                    >
-                      <q-tooltip>Заморожено до {{ this.getStamp(new Date(this.task.frozenUntil)) }}</q-tooltip>
-                      <q-circular-progress
-                        v-if="this.task.frozen"
-                        :value="this.getPercentFrozenTask(this.task.frozenFrom, this.task.frozenUntil)"
-                        reverse
-                        size="40px"
-                        style="
-                      position: absolute;
-                      font-size: 40px;
-                      margin: 0;
-                    "
-                        :thickness="0.22"
-                        color="primary"
-                        track-color="grey-3"
-                      />
-                    </q-btn>
-                  </div>
-                  <div id="freeze-task-btn" style="margin-left: 8px">
-                    <q-btn
-                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
-                      icon="ac_unit"
-                      style="height: 100%;"
-                      text-color="gray"
-                      @click="this.freezeDialog = true"
-                    >
-                      <q-tooltip>Заморозить заявку</q-tooltip>
-                    </q-btn>
-                  </div>
-                </div>
               </q-card-section>
             </q-card>
           </div>
@@ -302,9 +315,9 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Закрыть" color="primary" v-close-popup />
+          <q-btn flat label="Закрыть" color="primary" v-close-popup/>
           <div id="freeze-save-btn">
-            <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary" v-close-popup />
+            <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary" v-close-popup/>
           </div>
         </q-card-actions>
       </q-card>
@@ -317,6 +330,7 @@ import moment from 'moment/moment'
 import axios from 'axios'
 import { useStore } from 'stores/store'
 import ChatDialog from 'components/chat/ChatDialog.vue'
+import { useRoute } from 'vue-router'
 
 export default {
 
@@ -425,7 +439,8 @@ export default {
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,
         sla: this.isNewTask ? null : this.task.sla,
-        previusStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previusStatus
+        previusStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previusStatus,
+        messages: this.getLinkedMessage
       }
 
       if (task.status.name === 'Закрыта') {
@@ -662,6 +677,25 @@ export default {
 
     getClientName () {
       return this.task.client.lastname + ' ' + this.task.client.firstname
+    },
+
+    getLinkedMessage () {
+      const queryParams = new URLSearchParams(window.location.search)
+      let message = null
+      if (queryParams.get('newTaskFromMessage')) {
+        const messageId = queryParams.get('newTaskFromMessage')
+        const clientId = Number(this.router.params.clientId)
+        const client = this.store.clients.find(client => client.id === clientId)
+        message = [
+          {
+            id: null,
+            text: client.messages.find(message => message.id === Number(messageId)).text,
+            date: moment(new Date(), 'DD.MM.YYYY HH:mm'),
+            client: null
+          }
+        ]
+      }
+      return message
     }
   },
 
@@ -684,7 +718,8 @@ export default {
 
   setup () {
     const store = useStore()
-    return { store }
+    const router = useRoute()
+    return { store, router }
   }
 }
 </script>
