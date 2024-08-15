@@ -28,27 +28,35 @@
                 style="text-decoration: none; display: flex"
                 class="text-primary"
               >
+                <q-item-section side style="padding-right: 8px">
+                  <div
+                    :style="'background-color: ' + this.nameToPastelHex(`${client.lastname} ${client.firstname}`)"
+                    style="width: 50px;height: 50px;border-radius: 100%;display: flex;justify-content: center;align-items: center;color: white;font-size: 20px"
+                  >
+                    {{ this.getAbbreviation(client) }}
+                  </div>
+                </q-item-section>
                 <q-item-section>
                   <q-item-label style="align-items: center;display: flex;">
                     <img
                       v-if="client.messageFrom === 'TELEGRAM'"
                       src="/telegram.png"
                       alt="tg"
-                      style="width: 16px;margin-right: 8px"
+                      style="width: 16px;margin-right: 8px;filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);"
                     >
                     <img
                       v-else-if="client.messageFrom === 'WHATSAPP'"
                       src="/whatsapp.png"
                       alt="wa"
-                      style="width: 16px;margin-right: 8px"
+                      style="width: 16px;margin-right: 8px;filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);"
                     >
                     <img
                       v-else-if="client.messageFrom === 'EMAIL'"
                       src="/email.png"
                       alt="email"
-                      style="width: 16px;margin-right: 8px"
+                      style="width: 16px;margin-right: 8px;filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);"
                     >
-                    {{ client.firstname }} {{ client.lastname }}
+                    {{ client.lastname }} {{ client.firstname }}
                     <div style="color: var(--q-primary);display: flex;align-items: center;margin-left: 8px;">
                       <q-icon
                         color="primary"
@@ -68,32 +76,6 @@
                   >
                     {{ this.getTimeLastMessage(client) +' : ' + this.getLastMessage(client) }}
                   </q-item-label>
-<!--                  <div class="flex items-end">-->
-<!--                    <q-item-label-->
-<!--                      caption-->
-<!--                    >-->
-<!--                      Заявок: {{ this.getActualTasks(client).length }}-->
-<!--                    </q-item-label>-->
-<!--&lt;!&ndash;                    <q-linear-progress&ndash;&gt;-->
-<!--&lt;!&ndash;                      v-if="this.getActualTasks(client).filter(task => task.sla !== null).length > 0"&ndash;&gt;-->
-<!--&lt;!&ndash;                      :value="this.getSlaPercent(this.getActualTasks(client))"&ndash;&gt;-->
-<!--&lt;!&ndash;                      reverse&ndash;&gt;-->
-<!--&lt;!&ndash;                      stripe&ndash;&gt;-->
-<!--&lt;!&ndash;                      rounded&ndash;&gt;-->
-<!--&lt;!&ndash;                      class="q-mt-sm"&ndash;&gt;-->
-<!--&lt;!&ndash;                      style="width: 80px; margin-left: 16px; border: solid 1px darkgray"&ndash;&gt;-->
-<!--&lt;!&ndash;                      size="12px"&ndash;&gt;-->
-<!--&lt;!&ndash;                      :color="this.getSlaColor(this.getActualTasks(client))"&ndash;&gt;-->
-<!--&lt;!&ndash;                    >&ndash;&gt;-->
-<!--&lt;!&ndash;                      <q-tooltip&ndash;&gt;-->
-<!--&lt;!&ndash;                        anchor="top middle"&ndash;&gt;-->
-<!--&lt;!&ndash;                        self="bottom middle"&ndash;&gt;-->
-<!--&lt;!&ndash;                        :offset="[10, 10]"&ndash;&gt;-->
-<!--&lt;!&ndash;                      >&ndash;&gt;-->
-<!--&lt;!&ndash;                        Минимальный SLA среди заявок&ndash;&gt;-->
-<!--&lt;!&ndash;                      </q-tooltip>&ndash;&gt;-->
-<!--&lt;!&ndash;                    </q-linear-progress>&ndash;&gt;-->
-<!--                  </div>-->
                 </q-item-section>
                 <q-item-section
                   side
@@ -148,6 +130,26 @@ export default {
   }),
 
   methods: {
+    nameToPastelHex (name) {
+      let hash = 0
+      for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash)
+      }
+
+      let r = (hash & 0xFF0000) >> 16
+      let g = (hash & 0x00FF00) >> 8
+      let b = hash & 0x0000FF
+
+      r = Math.floor((r + 255) / 2)
+      g = Math.floor((g + 255) / 2)
+      b = Math.floor((b + 255) / 2)
+
+      // Шаг 4: Форматируем в hex
+      const pastelHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+
+      return pastelHex
+    },
+
     getActualTasks (client) {
       if (client.tasks) {
         return client.tasks.filter(task => !task.completed)
@@ -255,6 +257,12 @@ export default {
       } else {
         return ''
       }
+    },
+
+    getAbbreviation (client) {
+      const lastname = client.lastname ? client.lastname[0].toUpperCase() : ''
+      const firstname = client.firstname ? client.firstname[0].toUpperCase() : ''
+      return `${lastname}${firstname}`
     }
   },
 
