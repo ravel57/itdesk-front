@@ -273,7 +273,9 @@ export default {
         clients = clients.filter(client => {
           if (!client.firstname) client.firstname = ''
           if (!client.lastname) client.lastname = ''
-          return (client.firstname.toLowerCase() + ' ' + client.lastname.toLowerCase()).includes(this.searchQuery.toLowerCase())
+          const searchString = this.searchQuery.toLowerCase()
+          return (client.lastname.toLowerCase() + ' ' + client.firstname.toLowerCase()).includes(searchString) ||
+            client.organization.name.toLowerCase().includes(searchString)
         })
       } else {
         // clients = clients.filter(client => {
