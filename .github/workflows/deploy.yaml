@@ -1,0 +1,18 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - 'master'
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: change directory
+        run: cd ~/ITdesk
+      - name: git pull
+        run: git pull
+      - name: Build Docker containers
+        run: sudo /usr/bin/docker compose build --no-cache
+      - name: Start Docker containers
+        run: sudo /usr/bin/docker compose up -d
