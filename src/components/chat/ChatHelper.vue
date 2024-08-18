@@ -135,11 +135,11 @@
     backdrop-filter="blur(4px)"
   >
     <q-card class="dialog-width">
-      <q-toolbar class="justify-end">
+      <q-toolbar class="justify-between">
+        <h6 style="width: 100%;overflow: hidden;text-overflow: ellipsis;white-space: nowrap" v-text="this.modalTitle"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
-        <h6 v-text="this.modalTitle"/>
         <p
           v-for="(text, index) in this.modalText"
           :key="index"
