@@ -1,5 +1,5 @@
 <template>
-  <q-page padding style="display: flex; flex-direction: column;height: 100vh;min-height: 0; padding-bottom: 0">
+  <q-page padding style="display: flex; flex-direction: column;height: 100vh;min-height: 0; padding-bottom: 0;overflow: hidden">
     <div id="task-control-container" style="display: flex;flex-direction: column;">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
@@ -460,7 +460,10 @@
           :style="this.isMobile ? 'margin-left: 8px': ''"
           vertical
         />
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="disabled_by_default"
+        <div class="mass-actions-counter mass-actions-btn">
+          {{ this.store.checkedTasks.length }}
+        </div>
+        <q-btn class="mass-actions-btn" style="margin-left: 4px" flat text-color="white" icon="disabled_by_default"
                @click="this.store.checkedTasks = []">
           <q-tooltip>Снять выделение</q-tooltip>
         </q-btn>
@@ -1185,6 +1188,18 @@ export default {
   padding: 0;
   margin: 10px;
   width: 24px;
+}
+
+.mass-actions-counter {
+  user-select: none;
+  margin-right: 0;
+  margin-left: 10px;
+  font-size: 17px;
+  font-weight: 540;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center
 }
 
 .mass-container {

@@ -36,7 +36,7 @@
                 <q-icon name="search"/>
               </template>
             </q-input>
-            <div style="height: 60vh; padding-top: 0;overflow: scroll">
+            <div style="height: 60vh; padding-top: 0;overflow-y: scroll">
               <q-item
                 v-for="(item, index) in this.filteredTemplates"
                 :key="index"

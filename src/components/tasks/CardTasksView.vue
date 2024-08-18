@@ -9,15 +9,17 @@
       style="display: flex;align-content: center;"
       :style="`background-color: hsl(${360 / this.groupedTasks.length * (this.groupedTasks.length - index)}deg 85% 40%);`"
     >
-      <input
-        v-if="taskList.taskCards"
-        :id="`col-checkbox-${index}`"
-        class="radio-select"
-        type="checkbox"
-        style="margin-right: 8px;height: 20px;width: 20px;"
-        :checked="isGroupChecked(taskList.taskCards)"
-        @click.stop="toggleGroupTasks(taskList.taskCards, $event.target.checked)"
-      >
+      <label v-if="taskList.taskCards" class="custom-checkbox">
+        <input
+          v-if="taskList.taskCards"
+          :id="`col-checkbox-${index}`"
+          class="hidden-checkbox"
+          type="checkbox"
+          :checked="isGroupChecked(taskList.taskCards)"
+          @click.stop="toggleGroupTasks(taskList.taskCards, $event.target.checked)"
+        >
+        <span class="checkmark"></span>
+      </label>
       {{ taskList.title }}
     </div>
     <div
@@ -55,14 +57,17 @@
             :taskNameShort="22"
           >
             <template v-slot:checkBox>
-              <input
-                :id="`radio_${task.id}_${taskIndex}`"
-                class="radio-select"
-                type="checkbox"
-                style="margin-left: 4px;height: 20px;width: 20px;margin-right: 8px;"
-                v-model="checkedTasks[task.id]"
-                @click.stop
-              >
+              <label @click.stop class="custom-checkbox">
+                <input
+                  :id="`radio_${task.id}_${taskIndex}`"
+                  class="hidden-checkbox"
+                  type="checkbox"
+                  style="margin-left: 4px;height: 20px;width: 20px;margin-right: 8px;"
+                  v-model="checkedTasks[task.id]"
+                  @click.stop
+                >
+                <span class="checkmark"></span>
+              </label>
             </template>
             <template v-slot:chatLink>
               <a :href="this.getChatLink(task.client.id)" @click.stop>
@@ -205,11 +210,53 @@ export default {
   overflow-x: hidden;
 }
 
-.radio-select {
-  min-width: 20px;
+.hidden-checkbox {
+  display: none;
+}
+
+.custom-checkbox {
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  font-size: 16px;
+  user-select: none;
+  height: 20px;
+  margin-right: 8px;
+}
+
+.checkmark {
+  display: inline-block;
   width: 20px;
   height: 20px;
-  accent-color: var(--q-primary);
+  background-color: white;
+  border: 1px solid #d0cbcb;
+  border-radius: 30%;
+  position: relative;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.hidden-checkbox:checked + .checkmark {
+  background-color: var(--q-primary);
+  border-color: var(--q-primary);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+.hidden-checkbox:checked + .checkmark:after {
+  display: block;
+  left: 7px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .link-to-chat-container {

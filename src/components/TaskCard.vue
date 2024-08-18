@@ -25,18 +25,18 @@
       </div>
     </div>
     <table @click="this.$emit('onTaskClicked', this.task)">
-      <tr v-if="this.descriptionRequire">
+      <tr v-if="task.description.length !== 0">
         <th class="small-text text-grey row-label" v-text="'Описание: '" />
         <th
           :class="descriptionClass"
-          v-text="task.description.length === 0 ? '-' : task.description"
+          v-text="task.description"
         />
       </tr>
-      <tr>
+      <tr v-if="task.tags.map(tag => tag.name).length !== 0">
         <th class="small-text text-grey row-label" v-text="'Теги: '" />
         <th
           :class="tagsClass"
-          v-text="task.tags.map(tag => tag.name).length === 0 ? '-' : task.tags.map(tag => tag.name).join(', ')"
+          v-text="task.tags.map(tag => tag.name).join(', ')"
         />
       </tr>
       <tr>
@@ -50,11 +50,11 @@
           v-text="task.priority.name"
         />
       </tr>
-      <tr>
+      <tr v-if="task.executor">
         <th class="small-text text-grey row-label" v-text="'Исполнитель: '" />
         <th
           :class="executorClass"
-          v-text="task.executor ? getName(task.executor) : '-'"
+          v-text="getName(task.executor)"
         />
       </tr>
       <tr>
@@ -79,7 +79,7 @@
 <!--          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"-->
 <!--          v-text="task.status.name"/>-->
 <!--      </tr>-->
-      <tr>
+      <tr v-if="task.deadline">
         <th
           class="small-text text-grey row-label"
           :class="{'highlighted': this.selectedSorting.slug === 'deadline'}"
@@ -88,7 +88,7 @@
         <th
           :class="deadlineClass"
           :style="deadlineStyle"
-          v-text="task.deadline ? this.getStamp(task.deadline) : '-'"
+          v-text="this.getStamp(task.deadline)"
         />
       </tr>
       <!--    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">-->

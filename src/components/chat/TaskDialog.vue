@@ -92,7 +92,8 @@
                     :options="this.isNewTask ? this.store.statuses.filter(s => s.name !== 'Закрыта' && s.name !== 'Заморожена').map(s => s.name) : this.store.statuses.map(s => s.name)"
                     label="Статус *"
                     :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-                    style="width: 100%;padding: 0;background-color: rgba(148, 121, 255, 0.2);border-color: rgba(92, 53, 249, 1)"
+                    style="width: 100%;padding: 0;"
+                    :style="this.getBackgroundColor(this.dialogTaskStatus)"
                   />
                   <q-btn
                     v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
@@ -113,7 +114,7 @@
                     label="Вернуть в работу"
                     color="white"
                     text-color="primary"
-                    style="font-size: 14px;height: 40px;width: 100%;"
+                    style="font-size: 14px;height: 40px;width: 100%;margin-left: 8px;"
                     @click="this.setTaskNotCompleted(this.task)"
                   />
                   <div id="unfreeze-task-btn">
@@ -667,6 +668,40 @@ export default {
       } else {
         return ''
       }
+    },
+
+    getBackgroundColor (statusLabel) {
+      const status = this.store.statuses.find(status => status.name === statusLabel)
+      switch (status.name) {
+        case 'Закрыта': {
+          return 'background-color: rgba(16, 181, 92, 0.2);'
+        }
+        case 'Заморожена': {
+          return 'background-color: #32ade633;'
+        }
+        default: {
+          return `background-color: ${this.generateStatusColor(status.orderNumber)};`
+        }
+      }
+    },
+
+    generateStatusColor (index) {
+      const adjustedIndex = Math.abs(index)
+
+      function generateHSLAColor (hue) {
+        return `hsla(${hue}, 70%, 50%, 0.2)`
+      }
+
+      function isGreenOrBlue (hue) {
+        return (hue >= 120 && hue <= 240)
+      }
+
+      let hue = (adjustedIndex * 30) % 360
+      while (isGreenOrBlue(hue)) {
+        hue = (hue + 60) % 360
+      }
+
+      return generateHSLAColor(hue)
     }
   },
 
