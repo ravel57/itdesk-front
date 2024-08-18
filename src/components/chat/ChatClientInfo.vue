@@ -50,8 +50,7 @@
     <!--    </q-btn>-->
   </div>
   <div
-    class="flex"
-    style="align-items: center"
+    style="display: flex;flex-direction: row;flex-wrap: nowrap;align-items: center"
   >
     <q-icon
       :style="!this.getOrganization ? 'color: grey !important' : 'color: black !important'"
@@ -61,20 +60,22 @@
     <div v-if="!this.getOrganization" class="text-italic text-grey text-subtitle2" v-text="'Без организации'"/>
     <div
       class="text-subtitle2"
+      style="overflow: hidden;display: -webkit-box;-webkit-line-clamp: 1;-webkit-box-orient: vertical;"
       @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
       @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
       v-text="this.getOrganization"
     />
   </div>
   <div
-    class="text-subtitle2"
+    class="truncate text-subtitle2"
+    style="margin-top: 4px"
     @mouseover="editButtonShow(this.editClientInfoButtonShow, this.editShowTimer)"
     @mouseleave="editButtonHide(this.editClientInfoButtonShow, this.editShowTimer)"
     v-text="this.client.moreInfo"
   />
   <div
     class="text-subtitle2"
-    style="align-items: center; display: flex"
+    style="align-items: center; display: flex;margin-top: 4px"
   >
     <img
       v-if="client.messageFrom === 'TELEGRAM'"
@@ -296,5 +297,12 @@ export default {
 
 .scrollable-div {
   overflow: auto;
+}
+
+.truncate {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 </style>

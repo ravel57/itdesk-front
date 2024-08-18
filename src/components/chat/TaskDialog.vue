@@ -92,7 +92,7 @@
                     :options="this.isNewTask ? this.store.statuses.filter(s => s.name !== 'Закрыта' && s.name !== 'Заморожена').map(s => s.name) : this.store.statuses.map(s => s.name)"
                     label="Статус *"
                     :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-                    style="width: 100%; margin-right: 8px;padding: 0;background-color: rgba(148, 121, 255, 0.2);border-color: rgba(92, 53, 249, 1)"
+                    style="width: 100%;padding: 0;background-color: rgba(148, 121, 255, 0.2);border-color: rgba(92, 53, 249, 1)"
                   />
                   <q-btn
                     v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
@@ -102,7 +102,7 @@
                     label="Закрыть заявку"
                     color="white"
                     text-color="primary"
-                    style="font-size: 14px;height: 40px;width: 100%;"
+                    style="font-size: 14px;height: 40px;width: 100%; margin-left: 8px"
                     @click="this.setTaskCompleted(this.task)"
                   />
                   <q-btn
@@ -143,13 +143,13 @@
                       />
                     </q-btn>
                   </div>
-                  <div id="freeze-task-btn" style="margin-left: 8px">
+                  <div id="freeze-task-btn">
                     <q-btn
                       v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
                       dense
                       outline
                       icon="ac_unit"
-                      style="height: 40px;width: 40px"
+                      style="height: 40px;width: 40px;margin-left: 8px"
                       text-color="gray"
                       @click="this.freezeDialog = true"
                     >
@@ -440,7 +440,7 @@ export default {
         linkedMessageId: this.linkedMessageId,
         sla: this.isNewTask ? null : this.task.sla,
         previusStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previusStatus,
-        messages: this.getLinkedMessage
+        messages: this.isNewTask ? (this.getLinkedMessage ? this.getLinkedMessage : null) : this.task.messages
       }
 
       if (task.status.name === 'Закрыта') {

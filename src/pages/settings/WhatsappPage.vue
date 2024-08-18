@@ -14,15 +14,15 @@
         row-key="id"
         full-width
       >
-        <template v-slot:body-cell-api-key="props">
+        <template v-slot:body-cell-apiKey="props">
           <q-td :props="props">
             <span
-              v-if="props.row.showApiKey"
-              v-text="props.row.apiKey"
+              v-if="!props.row.showApiKey"
+              v-text="'**********************************************'"
             />
             <span
               v-else
-              v-text="'***********************'"
+              v-text="props.row.apiKey"
             />
           </q-td>
         </template>
