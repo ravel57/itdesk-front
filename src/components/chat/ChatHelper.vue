@@ -65,17 +65,45 @@
         </q-card>
         <q-card class="no-shadow" style="margin-bottom: 8px">
           <q-expansion-item label="База знаний" class="spoiler">
+            <q-input
+              v-model="this.knowledgeBaseSearch"
+              label="Поиск по названию"
+              dense
+              clearable
+              style="width: 100%;padding: 16px"
+              @clear="this.knowledgeBaseSearch = ''"
+            >
+              <template v-slot:append>
+                <q-icon name="search"/>
+              </template>
+            </q-input>
+            <q-select
+              id="task-tags"
+              v-model="this.tagsFilter"
+              :options="this.store.tags.map(t => t.name)"
+              multiple
+              label="Теги"
+              use-chips
+              use-input
+              dense
+              style="width: 100%;padding: 16px"
+            />
             <div style="max-height: 60vh;overflow: auto">
               <q-item
-                v-for="(item, index) in this.knowledgeBase"
+                v-for="(item, index) in this.filteredKnowledgeBase"
                 :key="index"
                 dense
                 class="hidden-text q-layout-padding"
                 clickable
-                style="padding: 16px"
+                style="padding: 16px;display: flex;flex-direction: column;"
                 @click="showModal(item)"
               >
-                {{ item.title }}
+                <div style="width: 100%;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+                  Название: {{ item.title }}
+                </div>
+                <div style="width: 100%;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
+                  Теги: {{ item.tags.map(tag => tag.name).join(',') }}
+                </div>
               </q-item>
             </div>
           </q-expansion-item>
@@ -133,6 +161,9 @@
 </template>
 
 <script>
+import { useStore } from 'stores/store'
+import { useRoute } from 'vue-router'
+
 export default {
   name: 'ChatHelper',
 
@@ -143,7 +174,10 @@ export default {
     modalTitle: '',
     modalText: '',
     templateSearch: '',
-    filteredTemplates: []
+    filteredTemplates: [],
+    tagsFilter: [],
+    filteredKnowledgeBase: [],
+    knowledgeBaseSearch: ''
   }),
 
   methods: {
@@ -181,13 +215,25 @@ export default {
   },
 
   watch: {
+    knowledgeBaseSearch (newValue) {
+      this.filteredKnowledgeBase = this.knowledgeBase
+        .filter(kb => kb.title.toLowerCase().includes(newValue.toLowerCase()))
+    },
+
+    tagsFilter (newValue) {
+      this.filteredKnowledgeBase = this.knowledgeBase.filter(kb =>
+        kb.tags.map(tag => tag.name).some(tagName => newValue.includes(tagName))
+      )
+    },
+
     templateSearch (newValue) {
       this.filteredTemplates = this.templates
         .filter(template => template.text.toLowerCase().includes(newValue.toLowerCase()) || template.shortcut.toLowerCase().includes(newValue.toLowerCase()))
     }
   },
 
-  mounted () {
+  created () {
+    this.filteredKnowledgeBase = this.knowledgeBase
     this.filteredTemplates = this.templates
   },
 
@@ -195,6 +241,12 @@ export default {
     if (this.templates) {
       this.filteredTemplates = this.templates
     }
+  },
+
+  setup () {
+    const store = useStore()
+    const router = useRoute()
+    return { store, router }
   }
 
 }
