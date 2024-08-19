@@ -51,13 +51,13 @@
     <div
       v-if="this.nowWatching.length > 0"
       class="now-watching-cloud"
-      style="opacity: 0.8;"
+      style="opacity: 0.5;"
     >
       <div
         class="now-watching-text"
       >
         <q-icon
-          color="white"
+          color="rgb(108, 108, 108)"
           name="visibility"
         >
           <q-tooltip>
@@ -386,35 +386,57 @@
           @click="this.smoothScrollToBottom"
         />
         <div
-          v-if="this.attachedFile || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
+          v-if="this.attachedFiles.length > 0 || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
           :style="this.replyMessageId !== null ? 'bottom: 210%;' : 'bottom: 100%;'"
           class="action-clouds"
         >
           <div class="input-clouds-container">
-            <div
-              v-if="this.attachedFile"
-              class="attach-file-text"
-            >
-              {{ this.shortenLine(this.attachedFile.name) }}
-              <q-btn
-                dense
-                flat
-                icon="delete"
-                @click="this.attachedFile = null"
-              />
+            <div style="width: 100%;display: flex;justify-content: center">
+              <div
+                class="typing-users-cloud"
+                v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+              >
+                <q-icon name="border_color"/>
+                {{ this.getTypingUsers }}
+              </div>
             </div>
             <div
-              class="typing-users-cloud"
-              v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
-              v-text="this.getTypingUsers"
-            />
+              v-if="this.attachedFiles.length > 2"
+              class="attach-file-card"
+              style="cursor: pointer;"
+              @click="this.showListPinedFiles = true"
+            >
+              Еще {{ this.attachedFiles.length - 2 }} файла...
+            </div>
+            <div
+              v-for="(file, index) in this.attachedFiles"
+              :key="index"
+            >
+              <div
+                v-if="index <= 1"
+                class="attach-file-card"
+              >
+                <div class="attach-file-format">
+                  {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
+                </div>
+                <div class="truncate">{{ file.name.split('.')[0] }}</div>
+                <q-space/>
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="delete"
+                  @click="this.attachedFiles.splice(index, 1)"
+                />
+              </div>
+            </div>
           </div>
         </div>
         <q-btn
           style="margin-bottom: 6px"
           id="choose-file-btn"
           type="file"
-          @click="attachFile"
+          @click="showListPinedFiles = true"
           icon="attach_file"
           class="no-padding"
           flat
@@ -435,7 +457,7 @@
         />
         <div>
           <q-btn
-            v-if="this.inputField.length > 0 || this.attachedFile"
+            v-if="this.inputField.length > 0 || this.attachedFiles.length > 0"
             icon="send"
             id="send-message-btn"
             @click="this.sendMessage"
@@ -483,6 +505,58 @@
       </div>
     </q-card>
   </q-dialog>
+  <q-dialog backdrop-filter="blur(4px)" v-model="this.showListPinedFiles">
+    <q-card class="dialog-width">
+      <q-toolbar class="justify-between">
+        <div class="text-h6" v-text="'Добавить файлы'"/>
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          v-close-popup
+        />
+      </q-toolbar>
+      <q-card-section>
+        <div style="margin-bottom: 8px;">
+          <div
+            style="margin-bottom: 16px"
+            v-for="(file, index) in this.attachedFiles"
+            :key="index"
+          >
+            <div style="display: flex;align-items: center;padding: 4px;border: solid 1px rgba(108, 108, 108, 0.2);border-radius: 4px">
+              <div style="padding: 2px 8px 2px 8px;border-radius: 4px;background-color: rgba(255, 149, 0, 1);color: white;font-size: 12px;margin-right: 8px">
+                {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
+              </div>
+              <div class="truncate">{{ file.name.split('.')[0] }}</div>
+              <q-space/>
+              <q-btn
+                flat
+                round
+                dense
+                icon="delete"
+                @click="this.attachedFiles.splice(index, 1)"
+              />
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 14px;margin-bottom: 16px">Добавлено {{ this.attachedFiles.length }} файлов</div>
+        <q-file
+          v-model="this.attachedFiles"
+          label="Перетащите сюда файл"
+          color="primary"
+          outlined
+          append
+          multiple
+          style="width: 100%"
+        >
+          <template v-slot:prepend>
+            <q-icon name="attach_file"/>
+          </template>
+        </q-file>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -517,7 +591,7 @@ export default {
     text: '',
     isShowCustomContextMenu: true,
     rightClickCounter: 0,
-    attachedFile: null,
+    attachedFiles: [],
     replyMessageId: null,
     search: '',
     searchResults: [],
@@ -530,7 +604,9 @@ export default {
     chatWindowWidth: 500,
 
     replyFileUuid: null,
-    replyFileType: null
+    replyFileType: null,
+
+    showListPinedFiles: false
   }),
 
   updated () {
@@ -575,7 +651,7 @@ export default {
 
     sendMessage () {
       const textarea = this.$refs.textInput
-      if (textarea.value || this.attachedFile) {
+      if (textarea.value || this.attachedFiles.length > 0) {
         this.$emit('isSending', true)
         const message = {
           id: null,
@@ -589,8 +665,8 @@ export default {
           replyFileType: this.replyFileType,
           user: this.currentUser
         }
-        this.$emit('sendMessage', { message, attachedFile: this.attachedFile, clientId: this.client.id })
-        this.attachedFile = null
+        this.$emit('sendMessage', { message, attachedFile: this.attachedFiles, clientId: this.client.id })
+        this.attachedFiles = []
         this.replyMessageId = null
         this.replyFileType = null
         this.replyFileUuid = null
@@ -656,7 +732,7 @@ export default {
       const fileInput = document.getElementById('fileInput')
       fileInput.click()
       fileInput.addEventListener('change', () => {
-        this.attachedFile = fileInput.files[0]
+        this.attachedFiles = fileInput.files[0]
         this.$q.notify({
           message: `Загружен файл: ${fileInput.files[0].name}`,
           type: 'positive',
@@ -1029,10 +1105,10 @@ export default {
   padding: 0 5px;
   font-size: 14px;
   z-index: 1000;
-  color: white;
+  color: rgb(108, 108, 108);
   max-width: 240px;
-  background: #5C35F9;
-  border-radius: 5px;
+  background: rgba(255, 255, 255, 1);
+  border-radius: 4px;
 }
 
 .now-watching-text {
@@ -1045,43 +1121,49 @@ export default {
 }
 
 .action-clouds {
+  width: 100%;
+  height: 100%;
   display: block;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  padding: 0 5px;
   color: white;
   font-size: 14px;
   z-index: 1000;
-  margin-bottom: 5px;
-  opacity: .6;
   max-width: 100%;
 }
 
-.attach-file-text {
-  height: 26px;
-  border-style: solid;
-  border-width: 1px;
-  background-color: white;
-  color: black !important;
+.attach-file-card {
   display: flex;
-  flex-wrap: nowrap;
   align-items: center;
+  padding: 4px;
+  border: solid 1px rgba(108, 108, 108, 0.2);
   border-radius: 4px;
-  justify-content: center;
-  padding-left: 10px
+  background-color: white;
+  color: rgba(36, 36, 36, 1);
+  margin-bottom: 4px;
+  height: 44px;
+}
+
+.attach-file-format {
+  padding: 2px 8px 2px 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 149, 0, 1);
+  color: white;font-size: 12px;
+  margin-right: 8px
 }
 
 .typing-users-cloud {
-  border-style: solid;
-  border-width: 1px;
-  background-color: white;
-  color: black !important;
+  opacity: 0.5;
+  background-color: rgba(255, 255, 255, 1);
+  color: rgba(92, 53, 249, 1) !important;
   border-radius: 4px;
   margin-top: 5px;
   text-align: center;
   padding-left: 10px;
   padding-right: 10px;
+  margin-bottom: 8px;
+  width: max-content;
 }
 
 .reply-message-cloud {
@@ -1147,9 +1229,13 @@ textarea:focus {
 }
 
 .input-clouds-container {
+  padding: 0 4px;
+  position: absolute;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  flex-wrap: nowrap
+  flex-wrap: nowrap;
+  bottom: 0;
 }
 
 .strikethrough {

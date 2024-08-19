@@ -584,18 +584,28 @@ export default {
       this.isMenuActive = false
       const slug = this.filterTypes.filter(el => el.label === label)[0].slug
       let options
-      if (slug === 'executor') { // TODO переделать на switch case
-        options = this.executors
-      } else if (slug === 'tag') {
-        options = this.tags
-      } else if (slug === 'organization') {
-        options = this.organizations
-      } else if (slug === 'priority') {
-        options = this.priorities
-      } else if (slug === 'status') {
-        options = this.statuses
-      } else if (slug === 'client') {
-        options = this.clients
+      switch (slug) {
+        case 'executor':
+          options = this.executors
+          break
+        case 'tag':
+          options = this.tags
+          break
+        case 'organization':
+          options = this.organizations
+          break
+        case 'priority':
+          options = this.priorities
+          break
+        case 'status':
+          options = this.statuses
+          break
+        case 'client':
+          options = this.clients
+          break
+        default:
+          options = null
+          break
       }
       this.filterChain.push({ label, options, selectedOptions: [], slug })
       this.addNewFilterSelectorText = ''
@@ -648,6 +658,34 @@ export default {
       const filterElement = this.savedFilters.find(el => this.selectedSavedFilter === el.label)
       if (filterElement !== undefined) {
         this.filterChain = structuredClone(filterElement.selectedOptions)
+        this.filterChain.forEach(it => {
+          const slug = this.filterTypes.filter(el => el.label === it.label)[0].slug
+          let options
+          switch (slug) {
+            case 'executor':
+              options = this.executors
+              break
+            case 'tag':
+              options = this.tags
+              break
+            case 'organization':
+              options = this.organizations
+              break
+            case 'priority':
+              options = this.priorities
+              break
+            case 'status':
+              options = this.statuses
+              break
+            case 'client':
+              options = this.clients
+              break
+            default:
+              options = null
+              break
+          }
+          it.options = options
+        })
         this.isFilterSelected = true
       } else {
         this.selectedSavedFilter = ''
@@ -1084,6 +1122,16 @@ export default {
           document.getElementById(`filter_${filters[filters.length - 1].slug}`).children[0].click()
         } catch (ignored) {
         }
+        if (this.selectedSavedFilter) {
+          const filters = structuredClone(this.filterChain)
+          filters.forEach(filter => {
+            delete filter.options
+          })
+          const isEqual = JSON.stringify(this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).selectedOptions) === JSON.stringify(filters)
+          if (!isEqual) {
+            this.selectedSavedFilter = ''
+          }
+        }
       },
       deep: true
     },
@@ -1094,6 +1142,7 @@ export default {
 
     selectedSavedFilter: {
       handler (newVal) {
+        console.log(newVal)
         this.isShowDelFilterPreset = newVal !== ''
       },
       deep: true
