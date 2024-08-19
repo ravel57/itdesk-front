@@ -365,7 +365,9 @@ export default {
     inputField: '',
     isSending: false,
     freezeDialog: false,
-    dialogTaskFreezeUntil: ''
+    dialogTaskFreezeUntil: '',
+
+    taskOnCreateProcess: false
   }),
 
   methods: {
@@ -448,10 +450,15 @@ export default {
         task.completed = true
       }
       if (this.isNewTask) {
+        if (this.taskOnCreateProcess) {
+          return
+        }
+        this.taskOnCreateProcess = true
         axios.post(`/api/v1/client/${this.client.id}/task`, task)
           .then(task => {
             this.closeDialog()
             this.$emit('newTask', task)
+            this.taskOnCreateProcess = false
           })
           .catch(e =>
             this.$q.notify({

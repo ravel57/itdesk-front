@@ -98,12 +98,19 @@
                 style="padding: 16px;display: flex;flex-direction: column;"
                 @click="showModal(item)"
               >
-                <div style="width: 100%;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
-                  Название: {{ item.title }}
-                </div>
-                <div style="width: 100%;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
-                  Теги: {{ item.tags.map(tag => tag.name).join(',') }}
-                </div>
+                <q-item-section>
+                  <q-item-label
+                    lines="1"
+                  >
+                    {{ item.title }}
+                  </q-item-label>
+                  <q-item-label
+                    caption
+                    lines="2"
+                  >
+                    Теги: {{ item.tags.map(tag => tag.name).join(',') }}
+                  </q-item-label>
+                </q-item-section>
               </q-item>
             </div>
           </q-expansion-item>
@@ -221,9 +228,13 @@ export default {
     },
 
     tagsFilter (newValue) {
-      this.filteredKnowledgeBase = this.knowledgeBase.filter(kb =>
-        kb.tags.map(tag => tag.name).some(tagName => newValue.includes(tagName))
-      )
+      if (newValue.length > 0) {
+        this.filteredKnowledgeBase = this.knowledgeBase.filter(kb =>
+          kb.tags.map(tag => tag.name).some(tagName => newValue.includes(tagName))
+        )
+      } else {
+        this.filteredKnowledgeBase = this.knowledgeBase
+      }
     },
 
     templateSearch (newValue) {
