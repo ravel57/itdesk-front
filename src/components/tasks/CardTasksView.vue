@@ -6,7 +6,7 @@
   >
     <div
       class="list-header sticky-tabs"
-      style="display: flex;align-content: center;"
+      style="display: flex;align-content: center;align-items: center"
       :style="`background-color: hsl(${360 / this.groupedTasks.length * (this.groupedTasks.length - index)}deg 85% 40%);`"
     >
       <label v-if="taskList.taskCards" class="custom-checkbox">
@@ -36,9 +36,6 @@
          margin-top: 8px;
          max-width: 420px;
          width: 420px;
-         display: block;
-         margin-right: auto;
-         margin-left: auto;
          overflow: hidden
         "
         class="no-padding"
@@ -182,7 +179,7 @@ export default {
   display: flex;
   flex-direction: column;
   vertical-align: top;
-  width: 540px;
+  width: 440px;
   margin-right: 20px;
 }
 
@@ -195,8 +192,8 @@ export default {
 .list-header {
   z-index: 2;
   border-radius: 5px;
-  width: 470px;
-  max-width: 470px;
+  width: 440px;
+  max-width: 440px;
   color: white;
   background-color: var(--q-primary);
   padding: 10px;
@@ -204,7 +201,7 @@ export default {
 }
 
 .list-cards {
-  width: 470px;
+  width: 440px;
   padding: 10px;
   overflow-y: scroll;
   overflow-x: hidden;

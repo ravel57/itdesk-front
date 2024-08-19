@@ -11,12 +11,12 @@
     backdrop-filter="blur(4px)"
   >
     <q-card class="dialog-width">
-      <q-toolbar class="justify-end">
+      <q-toolbar class="justify-between">
+        <div class="text-h6">
+          Сменить пароль
+        </div>
         <q-btn flat round dense icon="close" v-close-popup />
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
-        Новый пароль
-      </q-card-section>
       <q-input
         v-model="this.newPassword"
         label="Новый пароль"

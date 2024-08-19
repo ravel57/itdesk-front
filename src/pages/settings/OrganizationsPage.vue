@@ -60,7 +60,8 @@
     backdrop-filter="blur(4px)"
   >
     <q-card class="dialog-width">
-      <q-toolbar class="justify-end">
+      <q-toolbar class="justify-between">
+        <div class="text-h6" v-text="this.isNewOrganization ? 'Новая организация' : 'Изменить организацию'" />
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
