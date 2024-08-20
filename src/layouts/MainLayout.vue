@@ -15,7 +15,7 @@
       />
       <q-btn
         v-if="this.isShowGlobalAlert"
-        style="padding: 8px;color: white;width: 24px;height: 24px;"
+        style="padding: 8px; color: white; width: 24px; height: 24px;"
         flat
         round
         dense
@@ -240,11 +240,8 @@ export default {
         roles: ['ADMIN', 'OPERATOR']
       }
     ],
-    // Включение глобального предупреждения
     globalAlert: false,
-    // Разворот предпреждения
     isShowGlobalAlert: false,
-    // Сообщение
     globalAlertMessage: '',
     leftDrawerOpen: false,
     miniState: true
