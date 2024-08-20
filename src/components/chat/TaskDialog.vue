@@ -3,7 +3,6 @@
     v-model="getPossibilityToOpenDialogTask"
     persistent
     backdrop-filter="blur(4px)"
-    style="z-index: 10000 !important;"
   >
     <q-card
       :class="this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask ? 'dialog-width' : 'large-dialog-width'"

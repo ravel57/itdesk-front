@@ -568,6 +568,7 @@
           color="primary"
           outlined
           append
+          max-file-size="10485760"
           multiple
           style="width: 100%"
         >
@@ -585,6 +586,7 @@ import { useStore } from 'stores/store'
 import axios from 'axios'
 import { useResizeObserver } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'ChatDialog',
@@ -636,14 +638,7 @@ export default {
 
   mounted () {
     try {
-      if (!this.isDialog) {
-        this.scrollToBottom()
-      } else {
-        setTimeout(() => {
-          const scrollArea = document.querySelector('#chat-dialog-pop-up > div > div')
-          scrollArea.scrollTo(0, scrollArea.scrollHeight)
-        }, 0)
-      }
+      this.scrollToBottom()
       this.$refs.textInput.focus()
     } catch (ignoredError) {
     }
@@ -685,13 +680,19 @@ export default {
 
     scrollToBottom (timeout = 0) {
       setTimeout(() => {
-        const scrollArea = document.querySelector('#chat-dialog > div > div')
+        let scrollArea = document.querySelector('#chat-dialog > div > div')
+        if (this.isDialog) {
+          scrollArea = document.querySelector('#chat-dialog-pop-up > div > div')
+        }
         scrollArea.scrollTo(0, scrollArea.scrollHeight)
       }, timeout)
     },
 
     smoothScrollToBottom () {
-      const scrollArea = document.querySelector('#chat-dialog > div > div')
+      let scrollArea = document.querySelector('#chat-dialog > div > div')
+      if (this.isDialog) {
+        scrollArea = document.querySelector('#chat-dialog-pop-up > div > div')
+      }
       scrollArea.scrollTo({ top: scrollArea.scrollHeight, left: 0, behavior: 'smooth' })
     },
 
@@ -880,7 +881,13 @@ export default {
 
     onSearch () {
       if (this.search) {
-        axios.post(`/api/v1/client/${this.client.id}/search-messages`, { text: this.search })
+        let requestUri = `/api/v1/client/${this.client.id}/search-messages`
+        if (this.isDialog) {
+          const queryParams = new URLSearchParams(window.location.search)
+          const taskId = queryParams.get('task')
+          requestUri = `/api/v1/client/${this.client.id}/task/${taskId}/search-messages`
+        }
+        axios.post(requestUri, { text: this.search })
           .then(response => {
             this.searchResults = response.data
           })
@@ -903,7 +910,8 @@ export default {
     },
 
     goToMessage (messageId) {
-      this.scrollToElementById(`message_${messageId}`)
+      const id = this.isDialog ? `modal_message_${messageId}` : `message_${messageId}`
+      this.scrollToElementById(id)
     },
 
     onBlur () {
@@ -1046,7 +1054,7 @@ export default {
 
     chatStyle () {
       return {
-        height: this.isDialog ? 'calc(100% - 101px)' : (this.isMobile ? 'calc(100vh - 189px)' : 'calc(100vh - 103px)'),
+        height: this.isDialog ? 'calc(100% - 93px)' : (this.isMobile ? 'calc(100vh - 181px)' : 'calc(100vh - 95px)'),
         'border-radius': '0',
         'min-height': '0',
         'background-color': '#F0F0F0'
@@ -1117,6 +1125,7 @@ export default {
 
   setup (props) {
     const store = useStore()
+    const router = useRoute()
     const chatDialog = ref(null)
     const containerWidth = ref('')
     const containerHeight = ref('')
@@ -1167,6 +1176,7 @@ export default {
     return {
       store,
       chatDialog,
+      router,
       getMediaMessageSize
     }
   }
