@@ -168,6 +168,7 @@
                           label="Закрыть заявку"
                           color="primary"
                           dense
+                          style="padding: 0 8px"
                           @click.stop="this.setTaskCompleted(task)"
                         />
                       </div>

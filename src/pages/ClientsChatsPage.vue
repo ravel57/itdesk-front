@@ -144,7 +144,6 @@ export default {
       g = Math.floor((g + 255) / 2)
       b = Math.floor((b + 255) / 2)
 
-      // Шаг 4: Форматируем в hex
       const pastelHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
 
       return pastelHex

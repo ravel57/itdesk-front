@@ -7,7 +7,7 @@
       style="overflow: auto"
       :style="this.isMobile ? 'height: calc(100vh - 89px)' : 'height: 100vh;'"
     >
-      <div style="width: 100%; display: flex; justify-content: space-between;padding-left: 8px;padding-bottom: 8px;">
+      <div style="width: 100%; display: flex; justify-content: space-between;padding: 8px;">
         <q-icon
           style="height: 40px; color: var(--q-primary); font-size: 1.715em;"
           name="support"
