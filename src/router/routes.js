@@ -119,6 +119,10 @@ const routes = [
           {
             path: 'license',
             component: () => import('pages/settings/LicensePage.vue')
+          },
+          {
+            path: 'export',
+            component: () => import('pages/settings/ExportPage.vue')
           }
         ]
       },

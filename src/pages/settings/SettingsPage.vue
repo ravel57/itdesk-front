@@ -115,6 +115,12 @@ export default {
         link: '/settings/license',
         slug: 'license',
         roles: ['ADMIN']
+      },
+      {
+        title: 'Экспорт',
+        link: '/settings/export',
+        slug: 'export',
+        roles: ['ADMIN']
       }
     ]
   }),

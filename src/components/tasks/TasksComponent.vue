@@ -210,7 +210,12 @@ export default {
           hour: '2-digit',
           minute: '2-digit'
         }),
-        sortable: true
+        sortable: true,
+        sort: (a, b, rowA, rowB) => {
+          const dateA = new Date(rowA.deadline)
+          const dateB = new Date(rowB.deadline)
+          return dateA - dateB
+        }
       },
       {
         name: 'status',
@@ -233,7 +238,12 @@ export default {
             minute: '2-digit'
           })
           : '',
-        sortable: true
+        sortable: true,
+        sort: (a, b, rowA, rowB) => {
+          const dateA = new Date(rowA.deadline)
+          const dateB = new Date(rowB.deadline)
+          return dateA - dateB
+        }
       },
       {
         name: 'executor',
