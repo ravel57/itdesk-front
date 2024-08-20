@@ -173,27 +173,32 @@
                 />
                 <q-select
                   id="task-executor"
-                  v-model="dialogTaskExecutor"
-                  :options="this.store.users.filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0])).map(user => this.getUserName(user))"
+                  v-model="this.dialogTaskExecutor"
+                  :options="this.filteredUsers"
                   label="Исполнитель"
                   use-input
+                  @filter="filterUsers"
                 />
                 <q-select
                   id="task-tags"
+                  style="padding-top: 16px"
+                  class="custom-select"
                   v-model="this.dialogTaskTags"
-                  :options="this.store.tags.map(t => t.name)"
+                  :options="this.filteredTags"
                   multiple
                   label="Теги"
                   use-chips
                   use-input
                   dense
-                  style="padding-top: 16px"
+                  @filter="filterTags"
                 />
                 <q-input
                   id="task-deadline"
                   v-model="this.dialogTaskDeadline"
                   clearable
                   label="Дедлайн"
+                  @input="formatDateTime"
+                  mask="##.##.#### ##:##"
                 >
                   <template
                     v-slot:append
@@ -414,11 +419,13 @@ export default {
 
     taskOnCreateProcess: false,
 
-    isSubmitModal: false
+    isSubmitModal: false,
+
+    filteredUsers: [],
+    filteredTags: []
   }),
 
   methods: {
-
     dateOption (date) {
       const today = new Date()
       const year = today.getFullYear()
@@ -517,7 +524,6 @@ export default {
         previusStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previusStatus,
         messages: this.isNewTask ? (this.getLinkedMessage ? this.getLinkedMessage : null) : this.task.messages
       }
-
       if (task.status.name === 'Закрыта') {
         task.completed = true
       }
@@ -766,21 +772,62 @@ export default {
 
     generateStatusColor (index) {
       const adjustedIndex = Math.abs(index)
-
       function generateHSLAColor (hue) {
         return `hsla(${hue}, 70%, 50%, 0.2)`
       }
-
       function isGreenOrBlue (hue) {
         return (hue >= 120 && hue <= 240)
       }
-
       let hue = (adjustedIndex * 30) % 360
       while (isGreenOrBlue(hue)) {
         hue = (hue + 60) % 360
       }
-
       return generateHSLAColor(hue)
+    },
+
+    filterUsers (val, update) {
+      update(() => {
+        if (val) {
+          this.filteredUsers = this.store.users
+            .filter(user =>
+              ['ADMIN', 'OPERATOR'].includes(user.authorities[0]) && this.getUserName(user).toLowerCase().includes(val.toLowerCase())
+            )
+            .map(user => this.getUserName(user))
+        } else {
+          this.filteredUsers = this.store.users
+            .filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0]))
+            .map(user => this.getUserName(user))
+        }
+      })
+    },
+
+    filterTags (val, update) {
+      update(() => {
+        this.filteredTags = this.store.tags
+          .filter(tag => tag.name.toLowerCase().includes(val.toLowerCase()))
+          .map(tag => tag.name)
+      })
+    },
+
+    formatDateTime () {
+      const rawValue = this.dialogTaskDeadline.replace(/\D/g, '')
+      let formattedValue = ''
+      if (rawValue.length <= 2) {
+        formattedValue = rawValue
+      } else if (rawValue.length <= 4) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2)
+      } else if (rawValue.length <= 6) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4)
+      } else if (rawValue.length <= 8) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8)
+      } else if (rawValue.length <= 10) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8)
+      } else if (rawValue.length <= 12) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10)
+      } else {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
+      }
+      this.dialogTaskDeadline = formattedValue
     }
   },
 
@@ -859,5 +906,9 @@ th {
 .no-border-card {
   border: none;
   box-shadow: none;
+}
+
+.custom-select .q-field__label {
+  font-size: 16px;
 }
 </style>

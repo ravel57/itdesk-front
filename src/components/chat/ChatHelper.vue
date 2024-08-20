@@ -81,13 +81,14 @@
             <q-select
               id="task-tags"
               v-model="this.tagsFilter"
-              :options="this.store.tags.map(t => t.name)"
+              :options="filteredTags"
               multiple
               label="Теги"
               use-chips
               use-input
               dense
               style="width: 100%;padding: 16px"
+              @filter="filterTags"
             />
             <div style="max-height: 60vh;overflow: auto">
               <q-item
@@ -185,7 +186,8 @@ export default {
     filteredTemplates: [],
     tagsFilter: [],
     filteredKnowledgeBase: [],
-    knowledgeBaseSearch: ''
+    knowledgeBaseSearch: '',
+    filteredTags: []
   }),
 
   methods: {
@@ -219,6 +221,14 @@ export default {
 
     hideHelper () {
       this.$emit('hideHelper')
+    },
+
+    filterTags (val, update) {
+      update(() => {
+        this.filteredTags = this.store.tags
+          .filter(tag => tag.name.toLowerCase().includes(val.toLowerCase()))
+          .map(tag => tag.name)
+      })
     }
   },
 
