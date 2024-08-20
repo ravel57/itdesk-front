@@ -125,15 +125,20 @@ export default {
     },
 
     sendMessage (event) {
-      if (event.attachedFile) {
+      if (event.attachedFiles && event.attachedFiles.length > 0) {
         const formData = new FormData()
-        formData.append('file', event.attachedFile)
+        event.attachedFiles.forEach(file => {
+          formData.append('files', file)
+        })
         axios.post('/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
           .then(response => {
-            event.message.fileUuid = response.data
-            event.message.fileName = event.attachedFile.name
-            event.message.fileType = event.attachedFile.type
-            this.sendTextMessage(event.message)
+            response.data.map((fileUuid, index) => ({
+              fileUuid,
+              fileName: event.attachedFiles[index].name,
+              fileType: event.attachedFiles[index].type
+            })).forEach(message => {
+              this.sendTextMessage(message)
+            })
           })
           .catch(e =>
             this.$q.notify({

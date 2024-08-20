@@ -112,7 +112,7 @@
           >
             <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
-              :id="`message_${message.id}`"
+              :id="`${this.isDialog ? 'modal_message' : 'message'}_${message.id}`"
               :avatar="message.avatar"
               :name="this.getName(message)"
               :sent="message.sent"
@@ -711,7 +711,7 @@ export default {
           replyFileType: this.replyFileType,
           user: this.currentUser
         }
-        this.$emit('sendMessage', { message, attachedFile: this.attachedFiles, clientId: this.client.id })
+        this.$emit('sendMessage', { message, attachedFiles: this.attachedFiles, clientId: this.client.id })
         this.attachedFiles = []
         this.replyMessageId = null
         this.replyFileType = null
