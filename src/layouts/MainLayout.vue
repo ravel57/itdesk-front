@@ -313,6 +313,9 @@ export default {
 
   mounted () {
     this.miniState = localStorage.getItem('miniState') !== 'false'
+    setInterval(() => {
+      this.globalAlertMessage = this.store.globalAlertMessage.text
+    }, 5000)
   },
 
   setup () {

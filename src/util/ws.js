@@ -25,6 +25,7 @@ export function connect () {
       stompClient.subscribe('/topic/support-messages/', message => supportMessagesCallback(message))
     }
     stompClient.subscribe('/topic/client-messages/', message => clientMessageCallback(message))
+    stompClient.subscribe('/topic/global-notifications/', message => globalAlertMessageCallback(message))
   })
 }
 
@@ -203,4 +204,8 @@ function supportMessagesCallback (message) {
     message.date = new Date(message.date)
   })
   useStore().supportMessages = supportMessages
+}
+
+function globalAlertMessageCallback (message) {
+  useStore().globalAlertMessage = JSON.parse(message.body)
 }

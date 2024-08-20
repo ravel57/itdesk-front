@@ -36,7 +36,8 @@ export const useStore = defineStore('store', {
     checkedTasks: [],
     supportMessages: [],
 
-    miniState: false
+    miniState: false,
+    globalAlertMessage: []
   }),
 
   getters: {
