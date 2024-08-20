@@ -1,7 +1,18 @@
 <template>
-  <div ref="globalAlert" v-if="this.globalAlert" class="global-alert" @click="this.isShowGlobalAlert = true">
-    <div style="display: flex; flex-direction: row">
-      <div class="text-h7" style="color: white; margin: 8px;width: 100%;" v-html="this.globalAlertMessage"/>
+  <div
+    ref="globalAlert"
+    v-if="this.globalAlert"
+    class="global-alert"
+    @click="this.isShowGlobalAlert = true"
+  >
+    <div
+      style="display: flex; flex-direction: row"
+    >
+      <div
+        class="text-h7"
+        style="color: white; margin: 8px;width: 100%;"
+        v-html="this.globalAlertMessage"
+      />
       <q-btn
         v-if="this.isShowGlobalAlert"
         style="padding: 8px;color: white;width: 24px;height: 24px;"
@@ -315,6 +326,9 @@ export default {
     this.miniState = localStorage.getItem('miniState') !== 'false'
     setInterval(() => {
       this.globalAlertMessage = this.store.globalAlertMessage.text
+      if (this.globalAlertMessage) {
+        this.globalAlert = true
+      }
     }, 5000)
   },
 
