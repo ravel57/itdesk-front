@@ -128,6 +128,8 @@
 <script>
 import LoginLogo from 'components/LoginLogo.vue'
 import axios from 'axios'
+import { useStore } from 'stores/store'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'LoginComponent',
@@ -203,8 +205,17 @@ export default {
     loginRequest () {
       axios.post('/api/auth/login', { username: this.username, password: this.password })
         .then(response => {
+          if (response.status === 200) {
+            this.$router.push('/chats')
+          }
         })
     }
+  },
+
+  setup () {
+    const store = useStore()
+    const router = useRoute()
+    return { store, router }
   }
 }
 </script>
