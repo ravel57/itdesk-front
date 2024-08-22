@@ -45,7 +45,7 @@
           </div>
         </div>
       </div>
-      <div v-if="this.login" class="login-form">
+      <form v-if="this.login" method="post" action="/perform_login" class="login-form">
         <q-input
           name="username"
           class="input-field"
@@ -77,12 +77,12 @@
           Забыли пароль?
         </a>
         <q-btn
-          @click="this.loginRequest"
+          type="submit"
           color="primary"
         >
           Войти
         </q-btn>
-      </div>
+      </form>
       <div v-else-if="this.passwordRestore">
         <div class="restore-email-instruction">Введите почту, с который связан ваш аккаунт</div>
         <div>
