@@ -261,7 +261,7 @@
           color="white"
           text-color="primary"
           label="Закрыть"
-          @click="this.closeDialog"
+          @click="this.openSubmitModal"
         />
         <q-btn
           id="save-task"
@@ -324,6 +324,43 @@
       </q-card>
     </div>
   </q-dialog>
+  <q-dialog
+    v-model="this.isSubmitModal"
+  >
+    <q-card class="dialog-width">
+      <q-toolbar class="justify-between">
+        <div class="text-h6">
+          Сохранить {{ this.isNewTask ? 'заявку?' : 'изменение в заявке №' + this.task.id + '?' }}
+        </div>
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          v-close-popup
+        />
+      </q-toolbar>
+      <q-card-section>
+        {{ this.isNewTask ? 'Закрыть не сохраняя заявку?' : 'Соохранить изменения в заявке №' + this.task.id + '?' }}
+      </q-card-section>
+      <q-card-actions class="justify-end">
+        <q-btn
+          outline
+          color="primary"
+          v-close-popup
+        >
+          Отмена
+        </q-btn>
+        <q-btn
+          color="primary"
+          v-close-popup
+          @click="this.saveNewOrUpdateTask"
+        >
+          Сохранить
+        </q-btn>
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -367,7 +404,9 @@ export default {
     freezeDialog: false,
     dialogTaskFreezeUntil: '',
 
-    taskOnCreateProcess: false
+    taskOnCreateProcess: false,
+
+    isSubmitModal: false
   }),
 
   methods: {
@@ -378,6 +417,29 @@ export default {
       const month = String(today.getMonth() + 1).padStart(2, '0')
       const day = String(today.getDate()).padStart(2, '0')
       return date >= `${year}/${month}/${day}`
+    },
+
+    openSubmitModal () {
+      if (this.isNewTask) {
+        if (!this.dialogTaskName) {
+          this.closeDialog()
+        } else {
+          this.isSubmitModal = true
+        }
+      } else if (
+        this.dialogTaskName !== this.task.name || this.dialogTaskDescription !== this.task.description ||
+        this.dialogTaskPriority !== this.task.priority.name ||
+        this.dialogTaskExecutor !== this.getUserName(this.task.executor) ||
+        JSON.stringify(this.dialogTaskTags) !== JSON.stringify(this.task.tags.map(tag => tag.name)) ||
+        // this.dialogTaskTags !== this.task.tags.map(tag => tag.name) ||
+        this.dialogTaskDeadline !== moment(this.task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') ||
+        this.dialogTaskStatus !== this.task.status.name ||
+        this.dialogTaskComplete !== this.task.completed
+      ) {
+        this.isSubmitModal = true
+      } else {
+        this.closeDialog()
+      }
     },
 
     closeDialog () {
