@@ -45,7 +45,7 @@
           </div>
         </div>
       </div>
-      <form v-if="this.login" method="post" action="/perform_login" class="login-form">
+      <div v-if="this.login" class="login-form">
         <q-input
           name="username"
           class="input-field"
@@ -77,12 +77,12 @@
           Забыли пароль?
         </a>
         <q-btn
-          type="submit"
+          @click="this.loginRequest"
           color="primary"
         >
           Войти
         </q-btn>
-      </form>
+      </div>
       <div v-else-if="this.passwordRestore">
         <div class="restore-email-instruction">Введите почту, с который связан ваш аккаунт</div>
         <div>
@@ -127,6 +127,9 @@
 
 <script>
 import LoginLogo from 'components/LoginLogo.vue'
+import axios from 'axios'
+import { useStore } from 'stores/store'
+import { useRoute } from 'vue-router'
 
 export default {
   name: 'LoginComponent',
@@ -197,7 +200,22 @@ export default {
     closeNotify () {
       this.requestSend = false
       this.changeView('login')
+    },
+
+    loginRequest () {
+      axios.post('/api/auth/login', { username: this.username, password: this.password })
+        .then(response => {
+          if (response.status === 200) {
+            this.$router.push('/chats')
+          }
+        })
     }
+  },
+
+  setup () {
+    const store = useStore()
+    const router = useRoute()
+    return { store, router }
   }
 }
 </script>
