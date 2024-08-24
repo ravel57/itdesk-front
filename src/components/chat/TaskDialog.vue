@@ -29,7 +29,7 @@
             round
             dense
             icon="close"
-            @click="this.closeDialog"
+            @click="this.openSubmitModal"
             v-close-popup
           />
         </div>
