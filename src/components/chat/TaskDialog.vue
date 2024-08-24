@@ -352,6 +352,14 @@
           Отмена
         </q-btn>
         <q-btn
+          outline
+          color="primary"
+          v-close-popup
+          @click="this.closeDialog"
+        >
+          Не сохранять
+        </q-btn>
+        <q-btn
           color="primary"
           v-close-popup
           @click="this.saveNewOrUpdateTask"
