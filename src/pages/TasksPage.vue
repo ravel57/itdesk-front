@@ -1229,7 +1229,6 @@ export default {
 
     selectedSavedFilter: {
       handler (newVal) {
-        console.log(newVal)
         this.isShowDelFilterPreset = newVal !== ''
       },
       deep: true

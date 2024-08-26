@@ -69,25 +69,6 @@
         </q-item-section>
       </q-item>
     </q-list>
-<!--    <div-->
-<!--      v-if="this.nowWatching.length > 0"-->
-<!--      class="now-watching-cloud"-->
-<!--      style="opacity: 0.5;"-->
-<!--    >-->
-<!--      <div-->
-<!--        class="now-watching-text"-->
-<!--      >-->
-<!--        <q-icon-->
-<!--          color="rgb(108, 108, 108)"-->
-<!--          name="visibility"-->
-<!--        >-->
-<!--          <q-tooltip>-->
-<!--            Сейчас смотрят-->
-<!--          </q-tooltip>-->
-<!--        </q-icon>-->
-<!--        {{ this.nowWatching }}-->
-<!--      </div>-->
-<!--    </div>-->
   </div>
   <q-layout
     container
@@ -1213,30 +1194,6 @@ export default {
 </script>
 
 <style scoped>
-
-.now-watching-cloud {
-  display: block;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0 5px;
-  font-size: 14px;
-  z-index: 1000;
-  color: rgb(108, 108, 108);
-  max-width: 240px;
-  background: rgba(255, 255, 255, 1);
-  border-radius: 4px;
-  margin-top: 5px;
-}
-
-.now-watching-text {
-  display: block;
-  white-space: nowrap;
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  user-select: none;
-}
 
 .action-clouds {
   width: 100%;
