@@ -14,7 +14,7 @@
         />
         <q-btn
           v-if="!this.isMobile"
-          icon="arrow_back"
+          icon="delete"
           @click="this.hideHelper"
           flat
           dense

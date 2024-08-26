@@ -428,6 +428,8 @@ export default {
     },
 
     openSubmitModal () {
+      const dialogTaskDeadline = this.dialogTaskDeadline ? this.dialogTaskDeadline : ''
+      const taskDeadline = this.task.deadline ? moment(this.task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') : ''
       if (this.isNewTask) {
         if (!this.dialogTaskName) {
           this.closeDialog()
@@ -440,7 +442,7 @@ export default {
         this.dialogTaskExecutor !== this.getUserName(this.task.executor) ||
         JSON.stringify(this.dialogTaskTags) !== JSON.stringify(this.task.tags.map(tag => tag.name)) ||
         // this.dialogTaskTags !== this.task.tags.map(tag => tag.name) ||
-        this.dialogTaskDeadline !== moment(this.task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') ||
+        dialogTaskDeadline !== taskDeadline ||
         this.dialogTaskStatus !== this.task.status.name ||
         this.dialogTaskComplete !== this.task.completed
       ) {

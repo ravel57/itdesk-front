@@ -445,6 +445,7 @@
                 <q-btn
                   flat
                   round
+                  color="gray"
                   dense
                   icon="delete"
                   @click="this.attachedFiles.splice(index, 1)"
@@ -555,6 +556,7 @@
                 flat
                 round
                 dense
+                color="gray"
                 icon="delete"
                 @click="this.attachedFiles.splice(index, 1)"
               />

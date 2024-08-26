@@ -345,7 +345,10 @@
         </div>
       </div>
     </div>
-    <div v-if="getFilteredTasks.length > 0" style="display: flex;overflow: hidden;">
+    <div
+      v-if="getFilteredTasks.length > 0"
+      style="display: flex;overflow: hidden;height: 100%"
+    >
       <tasks-component
         :isShowTableMode="this.isShowTableMode"
         :isMobile="this.isMobile"

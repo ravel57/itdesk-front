@@ -8,7 +8,7 @@
       virtual-scroll
       :rows="this.tableRows"
       :columns="this.filterTableColumns"
-      :rows-per-page-options="[15]"
+      :rows-per-page-options="[10, 20, 40, 60, 100]"
       :sortable="true"
       row-key="id"
       bordered
