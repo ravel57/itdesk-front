@@ -69,25 +69,25 @@
         </q-item-section>
       </q-item>
     </q-list>
-    <div
-      v-if="this.nowWatching.length > 0"
-      class="now-watching-cloud"
-      style="opacity: 0.5;"
-    >
-      <div
-        class="now-watching-text"
-      >
-        <q-icon
-          color="rgb(108, 108, 108)"
-          name="visibility"
-        >
-          <q-tooltip>
-            Сейчас смотрят
-          </q-tooltip>
-        </q-icon>
-        {{ this.nowWatching }}
-      </div>
-    </div>
+<!--    <div-->
+<!--      v-if="this.nowWatching.length > 0"-->
+<!--      class="now-watching-cloud"-->
+<!--      style="opacity: 0.5;"-->
+<!--    >-->
+<!--      <div-->
+<!--        class="now-watching-text"-->
+<!--      >-->
+<!--        <q-icon-->
+<!--          color="rgb(108, 108, 108)"-->
+<!--          name="visibility"-->
+<!--        >-->
+<!--          <q-tooltip>-->
+<!--            Сейчас смотрят-->
+<!--          </q-tooltip>-->
+<!--        </q-icon>-->
+<!--        {{ this.nowWatching }}-->
+<!--      </div>-->
+<!--    </div>-->
   </div>
   <q-layout
     container
@@ -407,7 +407,10 @@
           @click="this.smoothScrollToBottom"
         />
         <div
-          v-if="this.attachedFiles.length > 0 || this.typing.filter(t => t.username !== this.currentUser.username).length > 0 || this.replyMessageId !== null"
+          v-if="this.attachedFiles.length > 0 ||
+          this.typing.filter(t => t.username !== this.currentUser.username).length > 0 ||
+          this.replyMessageId !== null ||
+          this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).length > 0"
           :style="this.replyMessageId !== null ? 'bottom: 210%;' : 'bottom: 100%;'"
           class="action-clouds"
         >
@@ -415,10 +418,21 @@
             <div style="width: 100%;display: flex;justify-content: center">
               <div
                 class="typing-users-cloud"
-                v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0"
+                v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0 ||
+                this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).length > 0
+                "
               >
-                <q-icon name="border_color"/>
-                {{ this.getTypingUsers }}
+                <div
+                  v-if="this.watchUsers.length > 0"
+                  style="margin-right: 8px"
+                >
+                  <q-icon name="visibility"/>
+                  {{ this.watchUsers.join(', ') }}
+                </div>
+                <div v-if="typingUsers.length > 0">
+                  <q-icon name="border_color"/>
+                  {{ typingUsers.join(', ') }} {{ typingUsers.length > 1 ? ' печатают...' : ' печатает...' }}
+                </div>
               </div>
             </div>
             <div
@@ -445,7 +459,7 @@
                 <q-btn
                   flat
                   round
-                  color="gray"
+                  style="color: gray"
                   dense
                   icon="delete"
                   @click="this.attachedFiles.splice(index, 1)"
@@ -556,7 +570,7 @@
                 flat
                 round
                 dense
-                color="gray"
+                style="color: gray"
                 icon="delete"
                 @click="this.attachedFiles.splice(index, 1)"
               />
@@ -1040,14 +1054,30 @@ export default {
       }
 
       return `height: ${imgHeight}px; width: ${imgWidth}px;`
+    },
+
+    getTypingWatchingUsers () {
+      const watchingNow = this.taskWatchingNow.filter(user =>
+        user.id !== this.currentUser.id &&
+        !this.typing.some(t => t.username === user.username)
+      )
+
+      const typingNow = this.typing.filter(t => t.username !== this.currentUser.username)
+
+      return {
+        typing: typingNow.map(t => `${t.lastname} ${t.firstname}`),
+        watching: watchingNow.map(user => `${user.lastname} ${user.firstname}`)
+      }
     }
   },
 
   computed: {
-    getTypingUsers () {
-      const filter = this.typing.filter(t => t.username !== this.currentUser.username)
-      const s = filter.length > 1 ? ' печатают...' : ' печатает...'
-      return filter.map(t => `${t.firstname} ${t.lastname}`).join(', ') + s
+    typingUsers () {
+      return this.getTypingWatchingUsers().typing
+    },
+
+    watchUsers () {
+      return this.getTypingWatchingUsers().watching
     },
 
     renderShortcutPlaceholder () {
@@ -1075,10 +1105,6 @@ export default {
         transition: 'height 0.2s ease',
         backgroundColor: this.isComment ? '#d1c4e9' : ''
       }
-    },
-
-    nowWatching () {
-      return this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).map(user => `${user.firstname} ${user.lastname}`).join(', ')
     },
 
     getReplayed () {
@@ -1246,6 +1272,8 @@ export default {
 }
 
 .typing-users-cloud {
+  display: flex;
+  flex-wrap: nowrap;
   opacity: 0.5;
   background-color: rgba(255, 255, 255, 1);
   color: rgba(92, 53, 249, 1) !important;

@@ -125,6 +125,17 @@
                 Закрытые заявки: {{ this.isShowCompletedTasks ? "Показаны" : "Скрыты" }}
               </q-tooltip>
             </q-toggle>
+            <q-btn
+              v-if="this.isShowTableMode"
+              icon="settings"
+              flat
+              class="text-grey-7"
+              @click="this.isShowTableSettings = true"
+            >
+              <q-tooltip>
+                Настройки таблицы
+              </q-tooltip>
+            </q-btn>
           </div>
           <q-dialog
             v-model="dialogSaveFilterVisible"
@@ -359,6 +370,7 @@
         :isNewTaskDialogShow="this.isNewTaskDialogShow"
         :isTaskDialogShow="this.isTaskDialogShow"
         :selectedTask="this.selectedTask"
+        :activeColumns="this.activeColumns"
         @onTaskClicked="this.onTaskClicked"
         @closeDialog="this.closeDialog"
         @addMessageToTask="this.addMessageToTask"
@@ -506,6 +518,65 @@
       @updateTask="this.updateTask"
     />
   </q-dialog>
+  <q-dialog v-model="this.isShowTableSettings" persistent>
+    <q-card style="width: 500px">
+      <q-card-section class="row items-center q-pb-none text-h6">
+        <q-toolbar class="justify-between">
+          <div class="text-h6">Настройка колонок таблицы</div>
+          <div class="">
+            <q-btn
+              flat
+              round
+              dense
+              icon="close"
+              v-close-popup
+            />
+          </div>
+        </q-toolbar>
+      </q-card-section>
+      <q-card-section class="row items-center">
+        <draggable
+          :list="this.activeColumns"
+          item-key="id"
+          class="list-group"
+          ghost-class="ghost"
+          style="width: 100%"
+          @start="dragging = true"
+          @end="dragging = false"
+        >
+          <template #item="{ element }">
+            <q-item
+              class="list-group-item"
+              :class="{ 'not-draggable': true }"
+              style="cursor: grab;"
+            >
+              <q-item-section
+                top
+                style="justify-content: center"
+              >
+                {{ element.label }}
+              </q-item-section>
+              <q-item-section
+                top
+                side
+              >
+                <div class="">
+                  <input class="radio-select" type="checkbox" :checked="element.active"
+                         @click.stop="element.active = !element.active">
+                  <q-tooltip>
+                    {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
+                  </q-tooltip>
+                </div>
+              </q-item-section>
+            </q-item>
+          </template>
+        </draggable>
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn label="Применить" color="primary" v-close-popup/>
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -516,9 +587,10 @@ import TasksComponent from 'components/tasks/TasksComponent.vue'
 import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import moment from 'moment/moment'
+import draggable from 'vuedraggable'
 
 export default {
-  components: { NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent },
+  components: { draggable, NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent },
   data: () => ({
     filterTypes: [
       { label: 'Исполнитель', slug: 'executor' },
@@ -530,6 +602,24 @@ export default {
       { label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false }
     ],
     selectedGroupType: { label: 'Исполнитель', slug: 'executor' },
+    sortingTypes: [
+      { label: 'По дедлайну', slug: 'deadline' },
+      { label: 'По дате создания', slug: 'creating' },
+      { label: 'Приоритету', slug: 'priority' },
+      // { label: 'SLA', slug: 'sla' },
+      { label: 'По статусу', slug: 'status' }
+    ],
+    activeColumns: [
+      { name: 'id', label: 'ID', active: true },
+      { name: 'name', label: 'Название', active: true },
+      { name: 'tags', label: 'Теги', active: true },
+      { name: 'priority', label: 'Приоритет', active: true },
+      { name: 'createdAt', label: 'Создана', active: true },
+      { name: 'status', label: 'Статус', active: true },
+      { name: 'deadline', label: 'Дедлайн', active: true },
+      { name: 'executor', label: 'Исполнитель', active: true }
+      // { name: 'sla', label: 'SLA', active: true }
+    ],
     filterChain: [],
     addNewFilterSelectorText: '',
     selectedOptions: [],
@@ -549,20 +639,14 @@ export default {
     isTaskDialogShow: false,
     isShowDelFilterPreset: false,
     isModalForBulkActions: false,
+    isShowBulkActionsMenu: false,
+    ascendingSort: true,
+    isShowTableSettings: false,
 
     action: 'close',
-    isShowBulkActionsMenu: false,
 
     selectedSorting: [],
-    sortMenuOpened: [],
-    sortingTypes: [
-      { label: 'По дедлайну', slug: 'deadline' },
-      { label: 'По дате создания', slug: 'creating' },
-      { label: 'Приоритету', slug: 'priority' },
-      // { label: 'SLA', slug: 'sla' },
-      { label: 'По статусу', slug: 'status' }
-    ],
-    ascendingSort: true
+    sortMenuOpened: []
   }),
 
   methods: {
@@ -1184,6 +1268,13 @@ export default {
           this.isShowBulkActionsMenu = false
         }, 200)
       }
+    },
+
+    activeColumns: {
+      deep: true,
+      handler () {
+        localStorage.setItem('taskTableSettings', JSON.stringify(this.activeColumns))
+      }
     }
   },
 
@@ -1210,6 +1301,9 @@ export default {
   created () {
     this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
     this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
+    if (localStorage.getItem('taskTableSettings')) {
+      this.activeColumns = JSON.parse(localStorage.getItem('taskTableSettings'))
+    }
     const savedGroupType = localStorage.getItem('GroupType')
     if (savedGroupType) {
       this.selectedGroupType = JSON.parse(savedGroupType)

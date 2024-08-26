@@ -18,20 +18,6 @@
       :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
       rows-per-page-label="Строк на странице"
     >
-      <template v-slot:top>
-        <div class="col-2 q-table__title">Заявки</div>
-
-        <q-space/>
-
-        <q-btn
-          style="font-size: 12px"
-          icon="edit"
-          color="primary"
-          @click="this.isShowTableSettings = true"
-        >
-          Настроить таблицу
-        </q-btn>
-      </template>
       <template v-slot:body="props">
         <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
           <q-td>
@@ -79,77 +65,17 @@
     @updateTask="this.$emit('updateTask', $event)"
     @addMessageToTask="this.addMessageToTask"
   />
-  <q-dialog v-model="this.isShowTableSettings" persistent>
-    <q-card style="width: 500px">
-      <q-card-section class="row items-center q-pb-none text-h6">
-        <q-toolbar class="justify-between">
-          <div class="text-h6">Настройка колонок таблицы</div>
-          <div class="">
-            <q-btn
-              flat
-              round
-              dense
-              icon="close"
-              v-close-popup
-            />
-          </div>
-        </q-toolbar>
-      </q-card-section>
-      <q-card-section class="row items-center">
-        <draggable
-          :list="this.activeColumns"
-          item-key="id"
-          class="list-group"
-          ghost-class="ghost"
-          style="width: 100%"
-          @start="dragging = true"
-          @end="dragging = false"
-        >
-          <template #item="{ element }">
-            <q-item
-              class="list-group-item"
-              :class="{ 'not-draggable': true }"
-              style="cursor: grab;"
-            >
-              <q-item-section
-                top
-                style="justify-content: center"
-              >
-                {{ element.label }}
-              </q-item-section>
-              <q-item-section
-                top
-                side
-              >
-                <div class="">
-                  <input class="radio-select" type="checkbox" :checked="element.active"
-                         @click.stop="element.active = !element.active">
-                  <q-tooltip>
-                    {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
-                  </q-tooltip>
-                </div>
-              </q-item-section>
-            </q-item>
-          </template>
-        </draggable>
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn label="Применить" color="primary" v-close-popup/>
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
 </template>
 
 <script>
 import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import moment from 'moment/moment'
-import draggable from 'vuedraggable'
 import { useStore } from 'stores/store'
 
 export default {
 
-  components: { draggable, TaskDialog, CardTasksView },
+  components: { TaskDialog, CardTasksView },
 
   name: 'TasksComponent',
 
@@ -162,11 +88,11 @@ export default {
     'selectedGroupType',
     'isNewTaskDialogShow',
     'isTaskDialogShow',
-    'selectedTask'
+    'selectedTask',
+    'activeColumns'
   ],
 
   data: () => ({
-    isShowTableSettings: false,
     tableColumns: [
       {
         name: 'id',
@@ -274,17 +200,6 @@ export default {
       //   sortable: true
       // }
     ],
-    activeColumns: [
-      { name: 'id', label: 'ID', active: true },
-      { name: 'name', label: 'Название', active: true },
-      { name: 'tags', label: 'Теги', active: true },
-      { name: 'priority', label: 'Приоритет', active: true },
-      { name: 'createdAt', label: 'Создана', active: true },
-      { name: 'status', label: 'Статус', active: true },
-      { name: 'deadline', label: 'Дедлайн', active: true },
-      { name: 'executor', label: 'Исполнитель', active: true }
-      // { name: 'sla', label: 'SLA', active: true }
-    ],
     selectedTasks: [],
     dragging: true
   }),
@@ -322,21 +237,6 @@ export default {
           return null
         })
         .filter(col => col !== null)
-    }
-  },
-
-  watch: {
-    activeColumns: {
-      deep: true,
-      handler () {
-        localStorage.setItem('taskTableSettings', JSON.stringify(this.activeColumns))
-      }
-    }
-  },
-
-  created () {
-    if (localStorage.getItem('taskTableSettings')) {
-      this.activeColumns = JSON.parse(localStorage.getItem('taskTableSettings'))
     }
   },
 

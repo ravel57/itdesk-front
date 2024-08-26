@@ -14,8 +14,9 @@
         />
         <q-btn
           v-if="!this.isMobile"
-          icon="delete"
+          icon="close"
           @click="this.hideHelper"
+          style="color: gray"
           flat
           dense
           class="q-ml-auto flex justify-end"
