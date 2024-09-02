@@ -436,8 +436,9 @@ export default {
             task.id.toString().toLowerCase().includes(this.search.toLowerCase()) ||
             task.priority.name.toLowerCase().includes(this.search.toLowerCase()) ||
             // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.status.name.toLowerCase().includes(this.search.toLowerCase()) // ||
+            task.status.name.toLowerCase().includes(this.search.toLowerCase()) ||
           // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
+            task.tags.filter(tag => tag.name.toLowerCase().includes(this.search.toLowerCase())).length > 0
         }
         return showCompleted && matchSearch
       })
