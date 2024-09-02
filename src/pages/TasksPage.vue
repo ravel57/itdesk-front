@@ -222,6 +222,7 @@
                 style="width: 250px; height: 100%; min-height: 56px;"
                 behavior="menu"
                 @input="filterFn(filter, $event)"
+                @focus="onFilterFocused(filter)"
               >
                 <template v-slot:no-option>
                   <q-item>
@@ -663,6 +664,8 @@ export default {
     },
 
     filterFn (filter, input) {
+      console.log(input.target.value)
+      console.log(filter)
       const value = input.target.value.toLowerCase()
       if (value) {
         this.filteredOptions[filter] = filter.options.filter(option =>
@@ -671,6 +674,10 @@ export default {
       } else {
         this.filteredOptions[filter] = filter.options
       }
+    },
+
+    onFilterFocused (filter) {
+      this.filteredOptions[filter] = filter.options
     },
 
     handleNewFilterSelection (label) {
