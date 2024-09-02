@@ -12,7 +12,9 @@
         separator
         style="margin-top: 8px"
       >
-        <q-item-label header class="text-bold">Название</q-item-label>
+        <q-item header class="text-bold">
+          Название
+        </q-item>
         <draggable
           :list="this.store.priorities"
           item-key="id"
