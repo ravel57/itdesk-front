@@ -4,6 +4,12 @@
       icon="add"
       label="Добавить What's App"
       @click="this.dialogNewAccountShow"
+      style="margin-bottom: 8px;margin-right: 8px"
+    />
+    <q-btn
+      icon="info"
+      label="Инструкция"
+      @click="this.isShowInstruction = true"
       style="margin-bottom: 8px;"
     />
     <div class="table-container">
@@ -54,7 +60,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewWhatsappAccount ? 'Новый Whats App' : 'Изменить Whats App'" />
+        <div class="text-h6" v-text="this.isNewWhatsappAccount ? 'Новый Whats App' : 'Изменить Whats App'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
@@ -96,13 +102,18 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+  <q-dialog persistent v-model="this.isShowInstruction">
+    <whats-app-instruction/>
+  </q-dialog>
 </template>
 
 <script>
 import axios from 'axios'
+import WhatsApp from 'components/instructions/WhatsApp.vue'
 
 export default {
   name: 'WhatsappPage',
+  components: { 'whats-app-instruction': WhatsApp },
 
   data: () => ({
     columns: [

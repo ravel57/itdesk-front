@@ -1198,9 +1198,6 @@ export default {
   watch: {
     filterChain: {
       handler (newVal) {
-        if (this.isFilterSelected) {
-          this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
-        }
         this.updateUrlWithFilterChain(newVal)
         const queryParams = new URLSearchParams(window.location.search)
         const filterChainFromUrl = queryParams.get('filterChain')
@@ -1241,16 +1238,6 @@ export default {
 
     selectedGroupType () {
       localStorage.setItem('GroupType', `{ "label": "${this.selectedGroupType.label}", "slug": "${this.selectedGroupType.slug}" }`)
-    },
-
-    isFilterSelected () {
-      if (this.isFilterSelected) {
-        setTimeout(() => {
-          this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
-        }, 100)
-      } else {
-        this.filterContainerHeight = 0
-      }
     },
 
     isShowCompletedTasks () {
