@@ -77,12 +77,12 @@
         />
         <q-input
           v-model="this.dialogEmailFrom"
-          label="почта отправления"
+          label="Почта отправления"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogPassword"
-          label="пароль"
+          label="Пароль"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
 <!--        <div-->
@@ -120,7 +120,7 @@
 <!--        </div>-->
         <q-input
           v-model="this.dialogSubject"
-          label="тема для писем"
+          label="Тема для писем"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
