@@ -48,14 +48,13 @@
       <!--    </q-btn>-->
     </div>
     <div
+      v-if="this.getOrganization"
       style="display: flex;flex-direction: row;flex-wrap: nowrap;align-items: center"
     >
       <q-icon
-        :style="!this.getOrganization ? 'color: grey !important' : 'color: black !important'"
         name="store"
-        style="margin-right: 8px"
+        style="margin-right: 8px;color: black !important"
       />
-      <div v-if="!this.getOrganization" class="text-italic text-grey text-subtitle2" v-text="'Без организации'"/>
       <div
         class="text-subtitle2"
         style="overflow: hidden;display: -webkit-box;-webkit-line-clamp: 1;-webkit-box-orient: vertical;"
