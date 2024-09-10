@@ -22,6 +22,8 @@
         v-model="this.tasksFreezeUntil"
         clearable
         label="Заморозить до"
+        @input="formatDateTime"
+        mask="##.##.#### ##:##"
       >
         <template
           v-slot:append
@@ -89,6 +91,8 @@
         v-model="this.tasksDeadline"
         clearable
         label="Дедлайн"
+        @input="formatDateTime"
+        mask="##.##.#### ##:##"
       >
         <template
           v-slot:append
@@ -138,6 +142,8 @@
               v-model="this.taskFreezeUntil"
               clearable
               label="Заморозить до"
+              @input="formatDateTime"
+              mask="##.##.#### ##:##"
             >
               <template
                 v-slot:append
@@ -311,6 +317,27 @@ export default {
         selected = 'Выбраны'
       }
       return `${selected} ${count} ${form}`
+    },
+
+    formatDateTime () {
+      const rawValue = this.dialogTaskDeadline.replace(/\D/g, '')
+      let formattedValue = ''
+      if (rawValue.length <= 2) {
+        formattedValue = rawValue
+      } else if (rawValue.length <= 4) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2)
+      } else if (rawValue.length <= 6) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4)
+      } else if (rawValue.length <= 8) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8)
+      } else if (rawValue.length <= 10) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8)
+      } else if (rawValue.length <= 12) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10)
+      } else {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
+      }
+      this.dialogTaskDeadline = formattedValue
     }
   },
 

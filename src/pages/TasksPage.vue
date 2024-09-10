@@ -1,5 +1,6 @@
 <template>
-  <q-page padding style="display: flex; flex-direction: column;height: 100vh;min-height: 0; padding-bottom: 0;overflow: hidden">
+  <q-page padding
+          style="display: flex; flex-direction: column;height: 100vh;min-height: 0; padding-bottom: 0;overflow: hidden">
     <div id="task-control-container" style="display: flex;flex-direction: column;">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
@@ -212,16 +213,17 @@
                 outlined
                 :label="filter.label"
                 multiple
-                :options="filter.options"
+                :options="this.filteredOptions[filter] ? this.filteredOptions[filter] : filter.options"
                 use-chips
                 use-input
                 stack-label
                 v-model="filter.selectedOptions"
                 input-debounce="0"
-                style="width: 250px; height: 100%;min-height: 56px;"
+                style="width: 250px; height: 100%; min-height: 56px;"
                 behavior="menu"
+                @input="filterFn(filter, $event)"
+                @focus="onFilterFocused(filter)"
               >
-                <!--@filter="filterFn"-->
                 <template v-slot:no-option>
                   <q-item>
                     <q-item-section class="text-grey">
@@ -236,7 +238,9 @@
                 clearable
                 outlined
                 :label="filter.isBeforeDeadline ? 'До дедлайна' : 'После дедлайна'"
-                style="width: 250px; height: 100%;min-height: 56px;"
+                style="width: 250px; height: 100%; min-height: 56px;"
+                @input="formatDateTime"
+                mask="##.##.#### ##:##"
               >
                 <template v-slot:prepend>
                   <q-btn
@@ -646,11 +650,11 @@ export default {
     action: 'close',
 
     selectedSorting: [],
-    sortMenuOpened: []
+    sortMenuOpened: [],
+    filteredOptions: {}
   }),
 
   methods: {
-
     dateOption (date) {
       const today = new Date()
       const year = today.getFullYear()
@@ -659,12 +663,21 @@ export default {
       return date >= `${year}/${month}/${day}`
     },
 
-    filterFn (val, update) {
-      update(() => {
-        const needle = val.toLowerCase()
-        return this.executors.map(user => user.firstname + ' ' + user.lastname)
-          .filter(option => option.label.toLowerCase().indexOf(needle) !== -1)
-      })
+    filterFn (filter, input) {
+      console.log(input.target.value)
+      console.log(filter)
+      const value = input.target.value.toLowerCase()
+      if (value) {
+        this.filteredOptions[filter] = filter.options.filter(option =>
+          option.toLowerCase().includes(value)
+        )
+      } else {
+        this.filteredOptions[filter] = filter.options
+      }
+    },
+
+    onFilterFocused (filter) {
+      this.filteredOptions[filter] = filter.options
     },
 
     handleNewFilterSelection (label) {
@@ -930,6 +943,27 @@ export default {
 
     changeSortingAsc () {
       this.ascendingSort = !this.ascendingSort
+    },
+
+    formatDateTime () {
+      const rawValue = this.dialogTaskDeadline.replace(/\D/g, '')
+      let formattedValue = ''
+      if (rawValue.length <= 2) {
+        formattedValue = rawValue
+      } else if (rawValue.length <= 4) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2)
+      } else if (rawValue.length <= 6) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4)
+      } else if (rawValue.length <= 8) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8)
+      } else if (rawValue.length <= 10) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8)
+      } else if (rawValue.length <= 12) {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10)
+      } else {
+        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
+      }
+      this.dialogTaskDeadline = formattedValue
     }
   },
 
@@ -939,11 +973,11 @@ export default {
         let matchesSearchRequest = true
         if (this.searchRequest) {
           matchesSearchRequest = task.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.id.toString().toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
-          // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
+          task.id.toString().toLowerCase().includes(this.searchRequest.toLowerCase()) ||
+          task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
+          // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
+          task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
+        // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
         }
         return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
       })
@@ -1198,24 +1232,29 @@ export default {
   watch: {
     filterChain: {
       handler (newVal) {
-        this.updateUrlWithFilterChain(newVal)
-        const queryParams = new URLSearchParams(window.location.search)
-        const filterChainFromUrl = queryParams.get('filterChain')
         try {
-          const filters = JSON.parse(this.base64DecodeUnicode(filterChainFromUrl))
-          document.getElementById(`filter_${filters[filters.length - 1].slug}`).children[0].click()
-        } catch (ignored) {
-        }
-        if (this.selectedSavedFilter) {
-          const filters = structuredClone(this.filterChain)
-          filters.forEach(filter => {
-            delete filter.options
-          })
-          const isEqual = JSON.stringify(this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).selectedOptions) === JSON.stringify(filters)
-          if (!isEqual) {
-            this.selectedSavedFilter = ''
+          if (this.isFilterSelected) {
+            this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
           }
-        }
+          this.updateUrlWithFilterChain(newVal)
+          const queryParams = new URLSearchParams(window.location.search)
+          const filterChainFromUrl = queryParams.get('filterChain')
+          try {
+            const filters = JSON.parse(this.base64DecodeUnicode(filterChainFromUrl))
+            document.getElementById(`filter_${filters[filters.length - 1].slug}`).children[0].click()
+          } catch (ignored) {
+          }
+          if (this.selectedSavedFilter) {
+            const filters = structuredClone(this.filterChain)
+            filters.forEach(filter => {
+              delete filter.options
+            })
+            const isEqual = JSON.stringify(this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).selectedOptions) === JSON.stringify(filters)
+            if (!isEqual) {
+              this.selectedSavedFilter = ''
+            }
+          }
+        } catch (e) {}
       },
       deep: true
     },

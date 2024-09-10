@@ -17,7 +17,7 @@ export default {
   }),
   methods: {
     sendExportRequest () {
-      axios.post('/api/v1/export/to-excel', null, {
+      axios.get('/api/v1/export/to-excel', {
         responseType: 'blob'
       })
         .then(response => {
