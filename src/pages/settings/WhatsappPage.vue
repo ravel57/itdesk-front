@@ -2,7 +2,7 @@
   <div class="q-pa-md">
     <q-btn
       icon="add"
-      label="Добавить What's App"
+      label="Добавить WhatsApp"
       @click="this.dialogNewAccountShow"
       style="margin-bottom: 8px;margin-right: 8px"
     />
@@ -60,7 +60,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewWhatsappAccount ? 'Новый Whats App' : 'Изменить Whats App'"/>
+        <div class="text-h6" v-text="this.isNewWhatsappAccount ? 'Новый WhatsApp' : 'Изменить WhatsApp'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">

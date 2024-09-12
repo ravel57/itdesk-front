@@ -99,7 +99,7 @@ export default {
         roles: ['ADMIN']
       },
       {
-        title: 'Whatsapp',
+        title: 'WhatsApp',
         link: '/settings/whatsapp',
         slug: 'whatsapp',
         roles: ['ADMIN']
