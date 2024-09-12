@@ -15,9 +15,9 @@
         <li>Чтобы активировать сервис настройки чат-ботов, перейдите по ссылке <a href="https://t.me/BotFather">https://t.me/BotFather</a>
           и нажмите «Запустить».
         </li>
-        <li>Выбирите команду /newbot для создания нового бота.</li>
+        <li>Выбирите команду <a style="color: rgba(92, 53, 249, 1)">/newbot</a> для создания нового бота.</li>
         <li>Введите имя.</li>
-        <li>Введите username. Он должен быть на латинице и заканчиваться на ”bot”. Например, TetrisBot или tetris_bot.
+        <li>Введите username. Он должен быть на латинице и заканчиваться на ”bot”. Например, Tetris<a style="color: rgba(92, 53, 249, 1)">Bot</a> или tetris_<a style="color: rgba(92, 53, 249, 1)">bot</a>.
         </li>
       </ol>
       <div
