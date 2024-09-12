@@ -128,7 +128,7 @@
                 </div>
                 <div
                   v-else-if="message.replyFileType && message.replyFileType.startsWith('application/')"
-                  style="height: 40px;width: 40px;display: flex;align-items: center;justify-content: center;"
+                  style="height: 40px; width: 40px; display: flex; align-items: center; justify-content: center;"
                 >
                   <q-icon
                     size="25px"
@@ -148,7 +148,7 @@
                   v-else-if="message.replyUuid && message.replyFileType.startsWith('video/')"
                 >
                   <video
-                    style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
+                    style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;"
                   >
                     <source
                       :src="`/files/videos/${message.replyUuid}`"
@@ -1318,6 +1318,7 @@ textarea:focus {
 
 .strikethrough {
   text-decoration: line-through;
+  opacity: 0.6;
 }
 
 .scrollable-list-container {
