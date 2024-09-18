@@ -506,7 +506,9 @@
             icon="comment"
             :color="this.isComment ? 'primary' : 'grey'"
           >
-            <q-tooltip>
+            <q-tooltip
+              v-if="!this.isMobile"
+            >
               Режим комментария: Сообщение увидят только операторы
             </q-tooltip>
           </q-btn>
