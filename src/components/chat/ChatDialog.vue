@@ -487,7 +487,9 @@
             :ripple="false"
             style="margin-right: 5px; margin-bottom: 6px"
           >
-            <q-tooltip>
+            <q-tooltip
+              v-if="!this.isMobile"
+            >
               ctrl+enter отправить
             </q-tooltip>
           </q-btn>
