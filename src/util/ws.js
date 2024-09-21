@@ -26,6 +26,7 @@ export function connect () {
     }
     stompClient.subscribe('/topic/client-messages/', message => clientMessageCallback(message))
     stompClient.subscribe('/topic/global-notifications/', message => globalAlertMessageCallback(message))
+    stompClient.subscribe('/topic/client-message-edited/', message => editedMessageCallback(message))
   })
 }
 
@@ -208,4 +209,13 @@ function supportMessagesCallback (message) {
 
 function globalAlertMessageCallback (message) {
   useStore().globalAlertMessage = JSON.parse(message.body)
+}
+
+function editedMessageCallback (message) {
+  const clientMessage = JSON.parse(message.body)
+  clientMessage.message.date = new Date(clientMessage.message.date)
+  const client = useStore().clients.find(c => c.id === clientMessage.client.id)
+  try {
+    client.messages.find(m => m.id === clientMessage.message.id).text = clientMessage.message.text
+  } catch (ignoredError) {}
 }
