@@ -18,6 +18,26 @@
       :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
       rows-per-page-label="Строк на странице"
     >
+      <template v-slot:header="props">
+        <tr>
+          <q-th
+            :style="{'position': 'sticky', 'top': '0', 'z-index': '1', 'background-color': 'white', 'color': 'var(--q-dark)'}"
+          >
+            <q-checkbox
+              v-model="props.selected"
+              @click.stop
+            />
+          </q-th>
+          <q-th
+            v-for="col in props.cols"
+            :key="col.name"
+            :style="{'position': 'sticky', 'top': '0', 'z-index': '1', 'background-color': 'white', 'color': 'var(--q-dark)'}"
+            :props="props"
+          >
+            {{ col.label }}
+          </q-th>
+        </tr>
+      </template>
       <template v-slot:body="props">
         <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
           <q-td>
@@ -247,7 +267,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 
 .flex-container {
   display: flex;
@@ -256,9 +276,30 @@ export default {
   overflow: auto;
 }
 
-.radio-select {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--q-primary);
+.my-sticky-header-table {
+  height: calc(100vh - 80px);
+
+  .q-table__top,
+  .q-table__bottom,
+  thead tr:first-child th {
+    background-color: var(--q-primary);
+  }
+
+  thead tr th {
+    position: sticky;
+    z-index: 1;
+  }
+
+  thead tr:first-child th {
+    top: 0;
+  }
+
+  &.q-table--loading thead tr:last-child th {
+    top: 48px;
+  }
+
+  tbody {
+    scroll-margin-top: 48px;
+  }
 }
 </style>
