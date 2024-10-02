@@ -128,7 +128,7 @@
                 </div>
                 <div
                   v-else-if="message.replyFileType && message.replyFileType.startsWith('application/')"
-                  style="height: 40px;width: 40px;display: flex;align-items: center;justify-content: center;"
+                  style="height: 40px; width: 40px; display: flex; align-items: center; justify-content: center;"
                 >
                   <q-icon
                     size="25px"
@@ -148,7 +148,7 @@
                   v-else-if="message.replyUuid && message.replyFileType.startsWith('video/')"
                 >
                   <video
-                    style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
+                    style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;"
                   >
                     <source
                       :src="`/files/videos/${message.replyUuid}`"
@@ -487,7 +487,9 @@
             :ripple="false"
             style="margin-right: 5px; margin-bottom: 6px"
           >
-            <q-tooltip>
+            <q-tooltip
+              v-if="!this.isMobile"
+            >
               ctrl+enter отправить
             </q-tooltip>
           </q-btn>
@@ -504,7 +506,9 @@
             icon="comment"
             :color="this.isComment ? 'primary' : 'grey'"
           >
-            <q-tooltip>
+            <q-tooltip
+              v-if="!this.isMobile"
+            >
               Режим комментария: Сообщение увидят только операторы
             </q-tooltip>
           </q-btn>
@@ -1318,6 +1322,7 @@ textarea:focus {
 
 .strikethrough {
   text-decoration: line-through;
+  opacity: 0.6;
 }
 
 .scrollable-list-container {

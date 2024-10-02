@@ -97,7 +97,9 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <q-dialog persistent v-model="this.isShowInstruction">
+  <q-dialog
+    v-model="this.isShowInstruction"
+  >
     <telegram-instruction/>
   </q-dialog>
 </template>
