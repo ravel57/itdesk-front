@@ -58,7 +58,7 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewTrigger ? 'Новый статус' : 'Изменить статус'" />
+        <div class="text-h6" v-text="this.isNewTrigger ? 'Новый триггер' : 'Изменить триггер'" />
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
