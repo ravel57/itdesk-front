@@ -19,6 +19,7 @@
     "@vueuse/core": "^10.11.1",
     "app": "^0.1.0",
     "axios": "^1.2.1",
+    "axios-mock-adapter": "^2.1.0",
     "base64-url": "^2.3.3",
     "base64url": "^3.0.1",
     "config": "^4.2.0",
