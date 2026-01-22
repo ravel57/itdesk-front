@@ -11,7 +11,8 @@ export const useStore = defineStore('store', {
         messages: [],
         typingUsers: [],
         typingMessageText: [],
-        watchingUsers: []
+        watchingUsers: [],
+        unreadPingMessages: []
       }
     ],
 
@@ -23,6 +24,8 @@ export const useStore = defineStore('store', {
     priorities: [],
     templates: [],
     knowledgeBase: [],
+    triggers: [],
+    triggerTypes: ['MANUAL_MACRO_APPLIED', 'TICKET_CREATED', 'TICKET_UPDATED', 'TICKET_STATUS_CHANGED', 'TICKET_PRIORITY_CHANGED', 'TICKET_ASSIGNEE_CHANGED', 'TICKET_GROUP_CHANGED', 'TICKET_TAG_ADDED', 'TICKET_TAG_REMOVED', 'TICKET_DUE_DATE_CHANGED', 'TICKET_CLOSED', 'TICKET_REOPENED', 'MESSAGE_INCOMING', 'MESSAGE_OUTGOING', 'MESSAGE_ADDED_ANY', 'MESSAGE_MENTIONED_USER', 'MESSAGE_CONTAINS_KEYWORD', 'ATTACHMENT_ADDED', 'SLA_WARNING', 'SLA_BREACHED', 'INACTIVITY_TIMEOUT', 'SCHEDULED_CRON', 'TASK_CREATED', 'TASK_UPDATED', 'TASK_COMPLETED', 'TASK_OVERDUE', 'CLIENT_CREATED', 'CLIENT_UPDATED', 'USER_CREATED', 'USER_UPDATED', 'KB_ARTICLE_CREATED', 'KB_ARTICLE_UPDATED', 'WEBHOOK_RECEIVED', 'INTEGRATION_EVENT_RECEIVED'],
     usersOnline: [],
     currentUser: {
       authorities: ['ADMIN']
@@ -115,6 +118,16 @@ export const useStore = defineStore('store', {
       axios.get('/api/v1/knowledge-base')
         .then(response => {
           this.knowledgeBase = response.data
+        })
+
+      axios.get('/api/v1/triggers')
+        .then(response => {
+          this.triggers = response.data
+        })
+
+      axios.get('/api/v1/trigger-types')
+        .then(response => {
+          this.triggerTypes = response.data
         })
     },
     fetchClientMessages (clientId) {

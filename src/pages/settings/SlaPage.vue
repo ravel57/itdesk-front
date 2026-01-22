@@ -39,30 +39,65 @@ export default {
   name: 'SlaPage',
 
   data: () => ({
-    tableData: []
+    tableData: [],
+    isPopulatingSla: false
   }),
 
   methods: {
-    onCellValueChange (newVal) {
-      newVal.map((organization, organizationIndex) => {
-        organization.forEach((priority, priorityIndex) => {
-          axios.post('/api/v1/sla', {
-            organization: this.store.organizations[organizationIndex],
-            priority: this.store.priorities[priorityIndex],
-            hours: priority
+    notifyError (e) {
+      this.$q.notify({
+        message: e.message,
+        type: 'negative',
+        position: 'top-right',
+        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+      })
+    },
+
+    buildEmptyTable () {
+      const rows = this.getOrganizations.length
+      const cols = this.store.priorities.length
+      return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''))
+    },
+
+    async loadSla () {
+      this.isPopulatingSla = true
+      try {
+        this.tableData = this.buildEmptyTable()
+
+        const { data } = await axios.get('/api/v1/sla')
+        // data: { [orgName: string]: { [priorityName: string]: number } }
+
+        this.getOrganizations.forEach((org, rowIndex) => {
+          this.store.priorities.forEach((priority, colIndex) => {
+            const hours = data?.[org.name]?.[priority.name]
+            this.tableData[rowIndex][colIndex] = (hours === null || hours === undefined) ? '' : String(hours)
           })
-            .then(response => {})
-            .catch(e =>
-              this.$q.notify({
-                message: e.message,
-                type: 'negative',
-                position: 'top-right',
-                actions: [{
-                  icon: 'close', color: 'white', dense: true, handler: () => undefined
-                }]
-              }))
         })
-        return organization
+      } catch (e) {
+        this.notifyError(e)
+      } finally {
+        this.isPopulatingSla = false
+      }
+    },
+
+    onCellValueChange (newVal) {
+      // важно: не дергать POST во время первичного заполнения таблицы
+      if (this.isPopulatingSla) return
+
+      newVal.forEach((row, rowIndex) => {
+        row.forEach((cellValue, colIndex) => {
+          const organization = (rowIndex === 0) ? null : this.store.organizations[rowIndex - 1]
+          const priority = this.store.priorities[colIndex]
+
+          const hoursStr = String(cellValue ?? '').trim()
+          const hours = hoursStr === '' ? null : Number(hoursStr)
+
+          axios.post('/api/v1/sla', {
+            organization,
+            priority,
+            hours
+          }).catch(this.notifyError)
+        })
       })
     }
   },
@@ -73,45 +108,8 @@ export default {
     }
   },
 
-  created () {
-    this.tableData = this.getOrganizations.map(() => { return new Array(0) })
-    // /**/console.log(this.tableData)/**/
-    axios.get('/api/v1/sla')
-      .then(response => {
-        try {
-          // /**/console.log(response.data)/**/
-          let counter = 0
-          for (const organization in response.data) {
-            this.store.priorities.forEach(priority => {
-              // /**/console.log(response.data[organization])/**/
-              const item = response.data[organization][priority.name]
-              // /**/console.log(item)/**/
-              if (this.tableData[counter] && item) {
-                this.tableData[counter].push(item.toString().replace(/\D/g, ''))
-              }
-            })
-            counter++
-          }
-        } catch (e) {
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          })
-        }
-      })
-      .catch(e =>
-        this.$q.notify({
-          message: e.message,
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
-        }))
+  async created () {
+    await this.loadSla()
   },
 
   setup () {
@@ -121,7 +119,7 @@ export default {
 
   watch: {
     tableData: {
-      handler: function (newVal, oldVal) {
+      handler (newVal) {
         this.onCellValueChange(newVal)
       },
       deep: true

@@ -82,15 +82,17 @@ export default {
       // link: '/settings/macros', s
       // lug: 'macros'
       // },
+      {
+        title: 'SLA',
+        link: '/settings/sla',
+        slug: 'sla',
+        roles: ['ADMIN']
+      },
       // {
-      //   title: 'SLA',
-      //   link: '/settings/sla',
-      //   slug: 'sla',
-      //   roles: ['ADMIN']
-      // },
-      // { title: 'Уведомления',
-      // link: '/settings/notifications', s
-      // lug: 'notifications'
+      //   title: 'Уведомления',
+      //   link: '/settings/notifications',
+      //   slug: 'notifications',
+      //   roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
       // },
       {
         title: 'Telegram',
@@ -108,6 +110,18 @@ export default {
         title: 'Электронная почта',
         link: '/settings/email',
         slug: 'email',
+        roles: ['ADMIN']
+      },
+      // {
+      //   title: 'ИИ-агент',
+      //   link: '/settings/ai-agent',
+      //   slug: 'ai-agent',
+      //   roles: ['ADMIN']
+      // },
+      {
+        title: 'Автоматизации',
+        link: '/settings/automatization',
+        slug: 'automatization',
         roles: ['ADMIN']
       },
       {

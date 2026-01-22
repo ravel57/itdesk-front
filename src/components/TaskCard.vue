@@ -7,7 +7,12 @@
         <div class="task-id">№{{ this.task.id }}</div>
         <div id="task-card-name" class="text-body2 task-card-name">{{ task.name }}</div>
       </div>
-      <div class="task-card-status-container">
+      <div class="task-card-status-container" style="display: flex;">
+        <circle-counter
+          v-if="isHaveInTaskPing(task)"
+          :image="'/at.svg'"
+          style="margin-right: 8px;"
+        />
         <div
           id="task-card-status"
           :class="taskStatusClass"
@@ -91,44 +96,52 @@
           v-text="this.getStamp(task.deadline)"
         />
       </tr>
-      <!--    <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">-->
-      <!--      <th-->
-      <!--        class="small-text"-->
-      <!--        :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:gray'"-->
-      <!--        v-text="'SLA: '"-->
-      <!--      />-->
-      <!--      <th class="text-body2"-->
-      <!--          :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"-->
-      <!--          style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">-->
-      <!--        Осталось: {{ this.getSlaTime(task) }}-->
-      <!--        <q-linear-progress-->
-      <!--          stripe-->
-      <!--          rounded-->
-      <!--          :value="this.getSlaPercent(task)"-->
-      <!--          reverse-->
-      <!--          :color="this.getSlaColor(task)"-->
-      <!--          style="width: 80px; margin-left: 16px; margin-right: 5px; border: solid 1px darkgray"-->
-      <!--          size="12px"-->
-      <!--        />-->
-      <!--        <q-btn-->
-      <!--          v-if="!this.slaIsPause"-->
-      <!--          dense-->
-      <!--          flat-->
-      <!--          color="grey"-->
-      <!--          @click.stop="this.slaIsPause = !this.slaIsPause"-->
-      <!--          icon="pause_circle"-->
-      <!--        />-->
-      <!--        <q-btn-->
-      <!--          v-if="this.slaIsPause"-->
-      <!--          dense-->
-      <!--          flat-->
-      <!--          color="grey"-->
-      <!--          @click.stop="this.slaIsPause = !this.slaIsPause"-->
-      <!--          icon="play_circle"-->
-      <!--        />-->
-      <!--      </th>-->
-      <!--    </tr>-->
-      <tr v-if="!this.$route.path.includes('chat')">
+      <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">
+        <th
+          class="small-text text-grey"
+          :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:#9e9e9e'"
+          v-text="'SLA: '"
+        />
+        <th class="text-body2"
+            :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"
+            style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
+          Осталось: {{ this.getSlaTime(task) }}
+          <div
+            class="sla-pill"
+            :class="{ 'sla-pill--expired': isSlaExpired(task) }"
+          >
+            <q-linear-progress
+              stripe
+              rounded
+              :value="this.getSlaPercent(task)"
+              reverse
+              :color="isSlaExpired(task) ? 'negative' : getSlaColor(task)"
+              :track-color="isSlaExpired(task) ? 'negative-2' : 'grey-3'"
+              class="sla-bar"
+              size="12px"
+            />
+          </div>
+          <div v-if="false"><!--v-if="this.$route.path.includes('chat')"-->
+            <q-btn
+              v-if="!this.slaIsPause"
+              dense
+              flat
+              color="grey"
+              @click.stop="this.slaIsPause = !this.slaIsPause"
+              icon="pause_circle"
+            />
+            <q-btn
+              v-if="this.slaIsPause"
+              dense
+              flat
+              color="grey"
+              @click.stop="this.slaIsPause = !this.slaIsPause"
+              icon="play_circle"
+            />
+          </div>
+        </th>
+      </tr>
+      <tr v-if="!this.$route.path.includes('chat')"> <!--TODO может быть сделать везде, не помню почему ограничели отображение-->
         <th class="small-text text-grey row-label" v-text="'Последняя активность: '" />
         <th :class="lastActivityClass" v-text="this.getStamp(new Date(task.client.lastMessage.date))" />
       </tr>
@@ -139,13 +152,22 @@
 
 <script>
 import moment from 'moment/moment'
+import { useStore } from 'stores/store'
+import CircleCounter from 'components/CircleCounter.vue'
 
 export default {
   name: 'TaskCard',
+
   props: ['task', 'selectedSorting', 'descriptionRequire', 'slaRequire', 'taskNameShort'],
+
+  components: { CircleCounter },
+
   data: () => ({
-    slaIsPause: false
+    slaIsPause: false,
+    nowTs: Date.now(),
+    slaTimer: null
   }),
+
   methods: {
     getStamp (date) {
       if (date) {
@@ -179,17 +201,21 @@ export default {
 
     getSlaTime (task) {
       const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
-      const now = moment()
-      const duration = moment.duration(endDateTime.diff(now))
-      if (duration.asMilliseconds() < 0) {
-        return '0 ч. 0 м.'
-      } else {
-        return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
-      }
+      const now = moment(this.nowTs)
+      const left = moment.duration(endDateTime.diff(now))
+      if (left.asMilliseconds() <= 0) return '0 ч. 0 м.'
+      const totalHours = Math.floor(left.asHours())
+      const minutes = left.minutes()
+      return `${totalHours} ч. ${minutes} м.`
     },
 
     getSlaPercent (task) {
-      return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
+      const totalMs = task.sla.duration.asMilliseconds()
+      if (!totalMs || totalMs <= 0) return 0
+      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const now = moment(this.nowTs)
+      const leftMs = Math.max(0, endDateTime.diff(now))
+      return leftMs / totalMs
     },
 
     getSlaColor (task) {
@@ -202,11 +228,29 @@ export default {
       }
     },
 
+    getSlaLeftMs (task) {
+      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const now = moment(this.nowTs)
+      return endDateTime.diff(now) // может быть < 0
+    },
+
+    isSlaExpired (task) {
+      return this.getSlaLeftMs(task) <= 0
+    },
+
     shortenLine (string) {
       if (string.length > this.taskNameShort) {
         return string.substring(0, this.taskNameShort) + '...'
       } else {
         return string
+      }
+    },
+
+    isHaveInTaskPing (task) {
+      if (task.unreadPingTasksMessages) {
+        return task.unreadPingTasksMessages[this.store.currentUser.id]
+      } else {
+        return false
       }
     }
   },
@@ -275,7 +319,23 @@ export default {
         fontWeight: this.selectedSorting.slug === 'deadline' ? '600' : 'normal'
       }
     }
+  },
+
+  mounted () {
+    this.slaTimer = setInterval(() => {
+      if (!this.slaIsPause) this.nowTs = Date.now()
+    }, 1000)
+  },
+
+  beforeUnmount () {
+    clearInterval(this.slaTimer)
+  },
+
+  setup () {
+    const store = useStore()
+    return { store }
   }
+
 }
 </script>
 
@@ -394,4 +454,27 @@ th {
 .row-label {
   padding-right: 8px;
 }
+
+.sla-pill {
+  width: 80px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+
+  border: 3px solid transparent;
+  border-radius: 5px;
+
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+.sla-pill--expired {
+  border-color: red;
+}
+
+.sla-bar {
+  width: 100%;
+}
+
 </style>

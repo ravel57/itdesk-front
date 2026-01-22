@@ -66,78 +66,138 @@
         </q-card>
         <q-card class="no-shadow" style="margin-bottom: 8px">
           <q-expansion-item label="База знаний" class="spoiler">
-            <q-input
-              v-model="this.knowledgeBaseSearch"
-              label="Поиск по названию"
-              dense
-              clearable
-              style="width: 100%;padding: 16px"
-              @clear="this.knowledgeBaseSearch = ''"
+            <div
+              class="row q-col-gutter-md items-start"
+              style="padding: 0 16px;"
             >
-              <template v-slot:append>
-                <q-icon name="search"/>
-              </template>
-            </q-input>
-            <q-select
-              id="task-tags"
-              v-model="this.tagsFilter"
-              :options="filteredTags"
-              multiple
-              label="Теги"
-              use-chips
-              use-input
-              dense
-              style="width: 100%;padding: 16px"
-              @filter="filterTags"
-            />
-            <div style="max-height: 60vh;overflow: auto">
-              <q-item
-                v-for="(item, index) in this.filteredKnowledgeBase"
-                :key="index"
-                dense
-                class="hidden-text q-layout-padding"
-                clickable
-                style="padding: 16px;display: flex;flex-direction: column;"
-                @click="showModal(item)"
+              <div
+                class="col-12 col-md-6"
               >
-                <q-item-section>
-                  <q-item-label
-                    lines="1"
+                <q-input
+                  v-model="this.knowledgeBaseSearch"
+                  label="Поиск по названию"
+                  dense
+                  clearable
+                  class="full-width"
+                  @clear="this.knowledgeBaseSearch = ''"
+                >
+                  <template #append>
+                    <q-icon name="search"/>
+                  </template>
+                </q-input>
+              </div>
+              <div class="col-12 col-md-6">
+                <q-select
+                  id="task-tags"
+                  v-model="this.tagsFilter"
+                  :options="this.filteredTags"
+                  multiple
+                  label="Теги"
+                  use-chips
+                  use-input
+                  dense
+                  class="full-width"
+                  @filter="filterTags"
+                />
+              </div>
+            </div>
+            <div class="q-px-md q-pb-md">
+              <q-card
+                flat
+                bordered
+                class="kb-ai-card"
+              >
+                <q-card-section class="q-pb-sm">
+                  <q-input
+                    v-model="this.aiQuery"
+                    label="Спросить ИИ (β-функция)"
+                    dense
+                    outlined
+                    :readonly="this.aiLoading"
+                    :clearable="!this.aiLoading"
+                    class="full-width"
+                    @clear="aiQuery = ''"
+                    @keyup.enter="aiQueryRequest"
                   >
-                    {{ item.title }}
-                  </q-item-label>
-                  <q-item-label
-                    caption
-                    lines="2"
+                    <template #append>
+                      <q-spinner
+                        v-if="aiLoading"
+                        size="18px"
+                        class="q-ml-sm"
+                      />
+                        <q-btn
+                          v-else
+                          flat
+                          dense
+                          round
+                          icon="sym_o_network_intel_node"
+                          :disable="!this.aiQuery?.trim()"
+                          @click="aiQueryRequest"
+                        >
+                        <q-tooltip>Отправить</q-tooltip>
+                      </q-btn>
+                    </template>
+                  </q-input>
+                </q-card-section>
+                <q-separator/>
+                <q-card-section class="q-pt-sm">
+                  <div
+                    v-if="this.aiResponse.length > 0"
+                    class="markdown kb-ai-response ai-md"
+                    v-html="this.aiResponseHtml"
+                  />
+                </q-card-section>
+                <q-separator/>
+                <div style="max-height: 60vh;overflow: auto">
+                  <q-item
+                    v-for="(item, index) in this.filteredKnowledgeBase"
+                    :key="index"
+                    dense
+                    class="hidden-text q-layout-padding"
+                    clickable
+                    style="padding: 16px;display: flex;flex-direction: column;"
+                    @click="showModal(item)"
                   >
-                    Теги: {{ item.tags.map(tag => tag.name).join(',') }}
-                  </q-item-label>
-                </q-item-section>
-              </q-item>
+                    <q-item-section>
+                      <q-item-label
+                        lines="1"
+                      >
+                        {{ item.title }}
+                      </q-item-label>
+                      <q-item-label
+                        caption
+                        lines="2"
+                      >
+                        Теги: {{ item.tags.map(tag => tag.name).join(',') }}
+                      </q-item-label>
+                    </q-item-section>
+                  </q-item>
+                </div>
+              </q-card>
             </div>
           </q-expansion-item>
         </q-card>
-<!--        <q-card style="margin-bottom: 8px">-->
-<!--          <q-expansion-item label="Макросы" class="spoiler">-->
-<!--            <div style="height: 60vh;overflow: auto">-->
-<!--              <q-item-->
-<!--                v-for="(item, index) in this.macros"-->
-<!--                :key="index"-->
-<!--                class="hidden-text q-layout-padding"-->
-<!--                clickable-->
-<!--              >-->
-<!--                {{ item.text }}-->
-<!--              </q-item>-->
-<!--            </div>-->
-<!--          </q-expansion-item>-->
-<!--        </q-card>-->
+        <!--<q-card style="margin-bottom: 8px">-->
+        <!--  <q-expansion-item label="Макросы" class="spoiler">-->
+        <!--    <div style="height: 60vh;overflow: auto">-->
+        <!--      <q-item-->
+        <!--        v-for="(item, index) in this.macros"-->
+        <!--        :key="index"-->
+        <!--        class="hidden-text q-layout-padding"-->
+        <!--        clickable-->
+        <!--      >-->
+        <!--        {{ item.text }}-->
+        <!--      </q-item>-->
+        <!--    </div>-->
+        <!--  </q-expansion-item>-->
+        <!--</q-card>-->
       </q-card-section>
     </div>
-<!--    <q-scroll-area-->
-<!--      :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"-->
-<!--    >-->
-<!--      -->
-<!--    </q-scroll-area>-->
+    <!--<q-scroll-area-->
+    <!--  :style="this.isMobile ? 'height: calc(100vh - 75px)' : 'height: calc(100vh - 16px)'"-->
+    <!-- >-->
+    <!--  -->
+    <!--</q-scroll-area>-->
   </q-card>
   <q-dialog
     v-model="modalVisible"
@@ -172,6 +232,9 @@
 <script>
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
+import axios from 'axios'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 export default {
   name: 'ChatHelper',
@@ -187,7 +250,10 @@ export default {
     tagsFilter: [],
     filteredKnowledgeBase: [],
     knowledgeBaseSearch: '',
-    filteredTags: []
+    filteredTags: [],
+    aiQuery: '',
+    aiLoading: false,
+    aiResponse: ''
   }),
 
   methods: {
@@ -229,6 +295,19 @@ export default {
           .filter(tag => tag.name.toLowerCase().includes(val.toLowerCase()))
           .map(tag => tag.name)
       })
+    },
+
+    aiQueryRequest () {
+      this.aiLoading = true
+      axios.get(`/api/v1/llm-query?query=${encodeURI(this.aiQuery)}`)
+        .then(response => {
+          this.aiResponse = response.data
+          this.aiLoading = false
+        })
+        .catch(() => {
+          this.aiResponse = ''
+          this.aiLoading = false
+        })
     }
   },
 
@@ -251,6 +330,23 @@ export default {
     templateSearch (newValue) {
       this.filteredTemplates = this.templates
         .filter(template => template.text.toLowerCase().includes(newValue.toLowerCase()) || template.shortcut.toLowerCase().includes(newValue.toLowerCase()))
+    }
+  },
+
+  computed: {
+    aiResponseHtml () {
+      const rawMd = typeof this.aiResponse === 'string'
+        ? this.aiResponse
+        : JSON.stringify(this.aiResponse, null, 2)
+      const html = DOMPurify.sanitize(marked.parse(rawMd || ''))
+      const root = document.createElement('div')
+      root.innerHTML = html
+      root.querySelectorAll('p').forEach(p => {
+        if (p.textContent.replace(/\u00A0/g, '').trim() === '' && p.children.length === 0) {
+          p.remove()
+        }
+      })
+      return root.innerHTML
     }
   },
 
@@ -287,5 +383,34 @@ export default {
 h1, h2, h3, h4, h5, h6, p {
   padding: 8px;
   margin: 0;
+}
+
+.kb-ai-card {
+  border-radius: 12px;
+}
+
+.kb-ai-response {
+  font-size: 14px;
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.ai-md p {
+  margin: 0;          /* убираем “пустые строки” между абзацами */
+}
+
+.ai-md p + p {
+  margin-top: 6px;    /* если хочешь небольшой аккуратный интервал */
+}
+
+.ai-md ul,
+.ai-md ol {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.ai-md li {
+  margin: 2px 0;
 }
 </style>

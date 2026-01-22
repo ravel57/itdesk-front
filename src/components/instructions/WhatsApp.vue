@@ -13,6 +13,7 @@
     </q-card-section>
     <q-card-section>
       <div class="">
+        <p>Интеграция работает через сторонний сервис whatsgate.ru</p>
         <ol>
           <li>
             Перейдите по ссылке <a href="https://whatsgate.ru/app/login">https://whatsgate.ru/app/login</a>;

@@ -212,6 +212,14 @@ export default {
     }
   },
 
+  mounted () {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('username') && url.searchParams.get('password')) {
+      this.username = url.searchParams.get('username')
+      this.password = url.searchParams.get('password')
+    }
+  },
+
   setup () {
     const store = useStore()
     const router = useRoute()

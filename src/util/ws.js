@@ -2,10 +2,13 @@ import SockJS from 'sockjs-client/dist/sockjs'
 import { Stomp } from '@stomp/stompjs'
 import { useStore } from 'stores/store'
 import moment from 'moment/moment'
+import { appConfig } from 'src/config/appConfig'
 
 let stompClient = null
 
 export function connect () {
+  if (appConfig.useMocks) return
+
   const socket = new SockJS('/ws', null, { transports: ['websocket'] })
   stompClient = Stomp.over(() => { return socket })
   stompClient.debug = () => {}
@@ -78,12 +81,14 @@ function authenticatedUsersCallback (usersOnline) {
 }
 
 export function markRead (client) {
+  if (appConfig.useMocks) return
   const user = useStore().currentUser
   client.tasks.forEach(task => { delete task.client })
   stompClient.send('/app/mark-read', {}, JSON.stringify({ client, user }))
 }
 
 export function userOnline (user) {
+  if (appConfig.useMocks) return
   stompClient.send('/app/user-online', {}, JSON.stringify(user))
 }
 
@@ -121,6 +126,7 @@ function removeCycles (obj) {
 }
 
 export function typing (client, user, text) {
+  if (appConfig.useMocks) return
   const cleanClient = removeCycles(client)
   const cleanUser = removeCycles(user)
   const message = { client: cleanClient, user: cleanUser, text }
@@ -129,7 +135,8 @@ export function typing (client, user, text) {
 }
 
 export function getClientsForObserver (user) {
-// FIXME TODO
+  if (appConfig.useMocks) return
+  // FIXME TODO
   stompClient.send('/app/observer', {}, JSON.stringify(user))
 }
 

@@ -91,15 +91,16 @@
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
-        <div style="display: flex;width: 100%">
+        <div style="display: flex; width: 100%">
           <div style="width: 100%; margin-right: 8px">
             <div v-for="(textField, index) in this.dialogTexts" :key="index">
-              <div style="display: flex;flex-direction: row; flex-wrap: nowrap;margin-bottom: 8px">
+              <div style="display: flex; flex-direction: row; flex-wrap: nowrap; margin-bottom: 8px">
                 <q-input
                   style="width: 100%; margin-right: 4px"
                   v-model="this.dialogTexts[index]"
                   :id="index"
                   label="Текст"
+                  type="textarea"
                 />
                 <q-btn
                   v-if="this.dialogTexts.length > 1"

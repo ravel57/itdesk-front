@@ -18,47 +18,70 @@
       :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
       rows-per-page-label="Строк на странице"
     >
+      <!-- кастомный хедер -->
       <template v-slot:header="props">
         <tr>
           <q-th
-            :style="{'position': 'sticky', 'top': '0', 'z-index': '1', 'background-color': 'white', 'color': 'var(--q-dark)'}"
+            :style="{
+              position: 'sticky',
+              top: '0',
+              zIndex: '1',
+              backgroundColor: 'white',
+              color: 'var(--q-dark)'
+            }"
           >
-            <q-checkbox
-              v-model="props.selected"
-              @click.stop
-            />
+            <q-checkbox v-model="props.selected" @click.stop />
           </q-th>
           <q-th
             v-for="col in props.cols"
             :key="col.name"
-            :style="{'position': 'sticky', 'top': '0', 'z-index': '1', 'background-color': 'white', 'color': 'var(--q-dark)'}"
             :props="props"
+            :style="{
+              position: 'sticky',
+              top: '0',
+              zIndex: '1',
+              backgroundColor: 'white',
+              color: 'var(--q-dark)'
+            }"
           >
             {{ col.label }}
           </q-th>
         </tr>
       </template>
+
+      <!-- кастомный боди -->
       <template v-slot:body="props">
-        <q-tr style="cursor: pointer" :props="props" @click="this.$emit('onTaskClicked', props.row)">
+        <q-tr
+          style="cursor: pointer"
+          :props="props"
+          @click="this.$emit('onTaskClicked', props.row)"
+        >
           <q-td>
-            <q-checkbox
-              v-model="props.selected"
-              @click.stop
-            />
+            <q-checkbox v-model="props.selected" @click.stop />
           </q-td>
+
           <q-td v-for="col in props.cols" :key="col.name" :props="props">
+            <!-- дедлайн красным при просрочке -->
             <div
               v-if="col.name === 'deadline'"
-              :style="`color: ${this.parseStrToDate(col.value) < Date.now() ? 'red' : 'black'}`"
+              :style="`color: ${ this.parseStrToDate(col.value) < Date.now() ? 'red' : 'black' }`"
             >
               {{ col.value }}
             </div>
-            <div
+
+            <!-- обведённый бейдж для статуса -->
+            <q-badge
               v-else-if="col.name === 'status'"
-              :style="`color: ${col.value === 'Заморожена' ? 'rgba(50, 173, 230, 1)' : (col.value === 'Закрыта'? 'rgba(16, 181, 92, 1)' : '')}`"
-            >
-              {{ col.value }}
-            </div>
+              dense
+              :color="col.value === 'Заморожена'
+            ? 'rgba(50, 173, 230, 1)'
+            : col.value === 'Закрыта'
+              ? 'rgba(16, 181, 92, 1)'
+              : 'grey'"
+              :label="col.value"
+            />
+
+            <!-- всё остальное -->
             <div v-else>
               {{ col.value }}
             </div>
@@ -66,6 +89,7 @@
         </q-tr>
       </template>
     </q-table>
+
     <card-tasks-view
       v-else
       :groupedTasks="this.groupedTasks"
@@ -92,10 +116,11 @@ import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import moment from 'moment/moment'
 import { useStore } from 'stores/store'
+import { QBadge } from 'quasar'
 
 export default {
 
-  components: { TaskDialog, CardTasksView },
+  components: { TaskDialog, CardTasksView, QBadge },
 
   name: 'TasksComponent',
 
@@ -199,26 +224,26 @@ export default {
           ? row.executor.firstname + ' ' + row.executor.lastname
           : '',
         sortable: true
+      },
+      {
+        name: 'sla',
+        label: 'SLA',
+        align: 'left',
+        field: row => {
+          if (!row.sla || !row.sla.startDate || !row.sla.duration) {
+            return '0 ч. 0 м.'
+          }
+          const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
+          const now = moment()
+          const duration = moment.duration(endDateTime.diff(now))
+          if (duration.asMilliseconds() < 0) {
+            return '0 ч. 0 м.'
+          } else {
+            return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+          }
+        },
+        sortable: true
       }
-      // {
-      //   name: 'sla',
-      //   label: 'SLA',
-      //   align: 'left',
-      //   field: row => {
-      //     if (!row.sla || !row.sla.startDate || !row.sla.duration) {
-      //       return '0 ч. 0 м.'
-      //     }
-      //     const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
-      //     const now = moment()
-      //     const duration = moment.duration(endDateTime.diff(now))
-      //     if (duration.asMilliseconds() < 0) {
-      //       return '0 ч. 0 м.'
-      //     } else {
-      //       return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
-      //     }
-      //   },
-      //   sortable: true
-      // }
     ],
     selectedTasks: [],
     dragging: true
@@ -268,7 +293,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
 .flex-container {
   display: flex;
   width: 100%;

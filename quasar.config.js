@@ -12,6 +12,8 @@ const ESLintPlugin = require('eslint-webpack-plugin')
 
 const { configure } = require('quasar/wrappers')
 
+const path = require('path')
+
 module.exports = configure(function (ctx) {
   return {
     // https://v2.quasar.dev/quasar-cli-webpack/supporting-ts
@@ -24,7 +26,8 @@ module.exports = configure(function (ctx) {
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-webpack/boot-files
     boot: [
-      'axios'
+      'axios',
+      'mocks'
     ],
 
     // https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-css
@@ -43,7 +46,8 @@ module.exports = configure(function (ctx) {
       // 'roboto-font-latin-ext', // this or either 'roboto-font', NEVER both!
 
       'roboto-font', // optional, you are not bound to it
-      'material-icons' // optional, you are not bound to it
+      'material-icons', // optional, you are not bound to it
+      'material-symbols-outlined'
     ],
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-webpack/quasar-config-js#Property%3A-build
@@ -51,7 +55,13 @@ module.exports = configure(function (ctx) {
       vueRouterMode: 'history', // available values: 'hash', 'history'
       useFilenameHashes: false, // true by default
       filenameHashing: false,
+
       extendWebpack (cfg) {
+        cfg.resolve = cfg.resolve || {}
+        cfg.resolve.alias = {
+          ...(cfg.resolve.alias || {}),
+          src: path.resolve(__dirname, 'src')
+        }
         cfg.output = {
           ...cfg.output,
           filename: 'js/[name].js',
@@ -63,6 +73,15 @@ module.exports = configure(function (ctx) {
             plugin.options.chunkFilename = 'css/[name].css'
           }
         })
+      },
+
+      env: {
+        APP_MODE: process.env.APP_MODE || (ctx.dev ? 'dev' : 'prod'),
+
+        DISABLE_AUTH: process.env.DISABLE_AUTH ?? (ctx.dev ? 'true' : 'false'),
+        USE_MOCKS: process.env.USE_MOCKS ?? (ctx.dev ? 'true' : 'false'),
+
+        API_BASE_URL: process.env.API_BASE_URL || (ctx.dev ? 'http://localhost:8099' : '')
       },
 
       // transpile: false,
@@ -97,7 +116,7 @@ module.exports = configure(function (ctx) {
       server: {
         type: 'http'
       },
-      port: 8081,
+      port: 8099,
       open: false // opens browser window automatically
     },
 
@@ -114,6 +133,7 @@ module.exports = configure(function (ctx) {
       },
 
       // iconSet: 'material-icons', // Quasar icon set
+      iconSet: 'material-symbols-outlined',
       lang: 'ru', // Quasar language pack
 
       // For special cases outside of where the auto-import strategy can have an impact
@@ -122,7 +142,6 @@ module.exports = configure(function (ctx) {
       //
       // components: [],
       // directives: [],
-      lang: 'ru',
       // Quasar plugins
       plugins: [
         'Notify'

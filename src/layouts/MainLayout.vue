@@ -210,7 +210,8 @@ export default {
       // {
       //   title: 'Поиск',
       //   icon: 'search',
-      //   link: '/search'
+      //   link: '/search',
+      //   roles: ['ADMIN', 'OPERATOR']
       // },
       // {
       //   title: 'История',
@@ -220,7 +221,8 @@ export default {
       // {
       //   title: 'Аналитика',
       //   icon: 'data_usage',
-      //   link: '/analytics'
+      //   link: '/analytics',
+      //   roles: ['ADMIN', 'OPERATOR']
       // },
       // {
       //   title: 'Телефония',
@@ -232,13 +234,13 @@ export default {
         icon: 'settings',
         link: '/settings',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
-      },
-      {
-        title: 'Помощь',
-        icon: 'contact_support',
-        link: '/help',
-        roles: ['ADMIN', 'OPERATOR']
       }
+      // {
+      //   title: 'Помощь',
+      //   icon: 'contact_support',
+      //   link: '/help',
+      //   roles: ['ADMIN', 'OPERATOR']
+      // }
     ],
     globalAlert: false,
     isShowGlobalAlert: false,

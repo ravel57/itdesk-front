@@ -6,11 +6,18 @@
   >
     {{ counter }}
   </q-item-section>
+  <q-item-section
+    v-else-if="image"
+    side
+    class="circle no-padding"
+  >
+    <img :src="image" :alt="counter" style="width: 12px;"/>
+  </q-item-section>
 </template>
 
 <script>
 export default {
-  props: ['counter']
+  props: ['counter', 'image']
 }
 </script>
 

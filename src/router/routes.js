@@ -48,10 +48,10 @@ const routes = [
       //   path: 'history',
       //   component: () => import('pages/HistoryPage.vue')
       // },
-      // {
-      //   path: 'search',
-      //   component: () => import('pages/SearchPage.vue')
-      // },
+      {
+        path: 'search',
+        component: () => import('pages/SearchPage.vue')
+      },
       {
         path: 'settings',
         component: () => import('pages/settings/SettingsPage.vue'),
@@ -102,7 +102,7 @@ const routes = [
           },
           {
             path: 'notifications',
-            component: () => import('pages/settings/SettingsPage.vue')
+            component: () => import('pages/settings/NotificationsPage.vue')
           },
           {
             path: 'telegram',
@@ -121,6 +121,14 @@ const routes = [
             component: () => import('pages/settings/LicensePage.vue')
           },
           {
+            path: 'ai-agent',
+            component: () => import('pages/settings/AiAgent.vue')
+          },
+          {
+            path: 'automatization',
+            component: () => import('pages/settings/AutomatizationPage.vue')
+          },
+          {
             path: 'export',
             component: () => import('pages/settings/ExportPage.vue')
           }
@@ -129,11 +137,11 @@ const routes = [
       {
         path: 'help',
         component: () => import('pages/HelpPage.vue')
+      },
+      {
+        path: 'analytics',
+        component: () => import('pages/AnalyticsPage.vue')
       }
-      // {
-      //   path: 'analytics',
-      //   component: () => import('pages/AnalyticsPage.vue')
-      // },
       // {
       //   path: 'phone',
       //   component: () => import('pages/PhonePage.vue')

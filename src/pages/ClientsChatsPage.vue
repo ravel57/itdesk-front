@@ -64,6 +64,34 @@
                       />
                       {{ this.getActualTasks(client).length }}
                     </div>
+                    <div class="row items-center no-wrap">
+                      <div
+                        v-if="this.getActualTasks(client).some(t => t.sla !== null)"
+                        class="sla-pill q-ml-sm"
+                        :class="{ 'sla-pill--expired': isSlaExpired(this.getActualTasks(client)) }"
+                      >
+                        <q-linear-progress
+                          v-if="this.getActualTasks(client).some(t => t.sla !== null)"
+                          :value="this.getSlaPercent(this.getActualTasks(client))"
+                          :color="this.isSlaExpired(this.getActualTasks(client)) ? 'negative' : getSlaColor(this.getActualTasks(client))"
+                          :track-color="isSlaExpired(this.getActualTasks(client)) ? 'negative-2' : 'grey-3'"
+                          reverse
+                          stripe
+                          rounded
+                          class="sla-bar"
+                          style="width: 80px; border: solid 1px darkgray"
+                          size="12px"
+                        >
+                          <q-tooltip
+                            anchor="top middle"
+                            self="bottom middle"
+                            :offset="[10, 10]"
+                          >
+                            Минимальный SLA среди заявок
+                          </q-tooltip>
+                        </q-linear-progress>
+                      </div>
+                    </div>
                   </q-item-label>
                   <q-item-label
                     caption
@@ -79,7 +107,7 @@
                 </q-item-section>
                 <q-item-section
                   side
-                  style="flex-direction: row;align-content: center;"
+                  style="flex-direction: row; align-content: center;"
                 >
                   <q-icon
                     v-if="client.tasks.filter(task => task.priority.critical && !task.completed).length > 0"
@@ -94,6 +122,11 @@
                       Критическая заявка
                     </q-tooltip>
                   </q-icon>
+                  <circle-counter
+                    v-if="isHavePing(client)"
+                    :image="'/at.svg'"
+                    style="margin-right: 8px;"
+                  />
                   <circle-counter
                     :counter="client.unreadMessagesCount"
                   />
@@ -126,7 +159,9 @@ export default {
   components: { NoTasksPlaceholder, CircleCounter },
 
   data: () => ({
-    searchQuery: ''
+    searchQuery: '',
+    nowTs: Date.now(),
+    slaTimer: null
   }),
 
   methods: {
@@ -168,27 +203,64 @@ export default {
       }
     },
 
-    getSlaHours (task) {
+    getSlaLeftMs (task) {
+      if (!task?.sla?.startDate || !task?.sla?.duration) {
+        return null
+      }
       const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
-      const now = moment()
-      const duration = moment.duration(endDateTime.diff(now))
-      return duration.days() * 24 + duration.hours() + duration.minutes() * 0.017
+      const now = moment(this.nowTs)
+      return Math.max(0, endDateTime.diff(now))
+    },
+
+    getSlaTotalMs (task) {
+      if (!task?.sla?.duration) return 0
+      // moment.duration поддерживает valueOf()/asMilliseconds()
+      return typeof task.sla.duration.asMilliseconds === 'function'
+        ? task.sla.duration.asMilliseconds()
+        : Number(task.sla.duration) || 0
+    },
+
+    isSlaExpired (tasks) {
+      const task = this.getMinimalSlaTask(tasks)
+      if (!task) return false
+      const leftMs = this.getSlaLeftMs(task)
+      return leftMs !== null && leftMs <= 0
     },
 
     getMinimalSlaTask (tasks) {
-      return tasks.sort((b, a) => a.sla.duration < b.sla.duration ? -1 : a.sla.duration > b.sla.duration ? 1 : 0)[tasks.length - 1]
+      const withSla = (tasks || []).filter(t => t?.sla?.startDate && t?.sla?.duration)
+      if (withSla.length === 0) {
+        return null
+      }
+      // Берём самую “срочную” — с минимальным оставшимся временем
+      return withSla.reduce((best, t) => {
+        const bestLeft = this.getSlaLeftMs(best)
+        const tLeft = this.getSlaLeftMs(t)
+        return (tLeft !== null && (bestLeft === null || tLeft < bestLeft)) ? t : best
+      }, withSla[0])
     },
 
     getSlaPercent (tasks) {
       const task = this.getMinimalSlaTask(tasks)
-      return this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours())
+      if (!task) {
+        return 0
+      }
+      const totalMs = this.getSlaTotalMs(task)
+      if (!totalMs) {
+        return 0
+      }
+      const leftMs = this.getSlaLeftMs(task)
+      if (leftMs === null) {
+        return 0
+      }
+      return leftMs / totalMs // 0..1
     },
 
     getSlaColor (tasks) {
-      const task = this.getMinimalSlaTask(tasks)
-      if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.5) {
+      const p = this.getSlaPercent(tasks)
+      if (p > 0.5) {
         return 'green'
-      } else if (this.getSlaHours(task) / (task.sla.duration.days() * 24 + task.sla.duration.hours()) > 0.25) {
+      } else if (p > 0.25) {
         return 'orange'
       } else {
         return 'red'
@@ -262,6 +334,14 @@ export default {
       const lastname = client.lastname ? client.lastname[0].toUpperCase() : ''
       const firstname = client.firstname ? client.firstname[0].toUpperCase() : ''
       return `${lastname}${firstname}`
+    },
+
+    isHavePing (client) {
+      if (client.unreadPingMessages) {
+        return client.unreadPingMessages[this.store.currentUser.id] || client.tasks.some(t => t.unreadPingTasksMessages[this.store.currentUser.id])
+      } else {
+        return false
+      }
     }
   },
 
@@ -273,8 +353,11 @@ export default {
           if (!client.firstname) client.firstname = ''
           if (!client.lastname) client.lastname = ''
           const searchString = this.searchQuery.toLowerCase()
-          return (client.lastname.toLowerCase() + ' ' + client.firstname.toLowerCase()).includes(searchString) ||
-            client.organization ? client.organization.name.toLowerCase().includes(searchString) : false
+          return (`${client.lastname.toLowerCase()} ${client.firstname.toLowerCase()}`).includes(searchString) ||
+          (client.organization
+            ? client.organization.name.toLowerCase().includes(searchString)
+            : false
+          )
         })
       } else {
         // clients = clients.filter(client => {
@@ -294,6 +377,13 @@ export default {
 
   mounted () {
     document.title = 'ULDESK : Чаты'
+    this.slaTimer = setInterval(() => {
+      this.nowTs = Date.now()
+    }, 1000)
+  },
+
+  beforeUnmount () {
+    clearInterval(this.slaTimer)
   },
 
   setup () {
@@ -310,5 +400,27 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sla-pill {
+  width: 80px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+
+  border: 3px solid transparent;
+  border-radius: 5px;
+
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+.sla-pill--expired {
+  border-color: red;
+}
+
+.sla-bar {
+  width: 100%;
 }
 </style>

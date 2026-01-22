@@ -1,6 +1,8 @@
 <template>
-  <q-page padding
-          style="display: flex; flex-direction: column;height: 100vh;min-height: 0; padding-bottom: 0;overflow: hidden">
+  <q-page
+    padding
+    style="display: flex; flex-direction: column; height: 100vh; min-height: 0; padding-bottom: 0; overflow: hidden"
+  >
     <div id="task-control-container" style="display: flex;flex-direction: column;">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
@@ -15,7 +17,7 @@
           />
         </div>
         <div
-          style="display: flex;height: 40px;"
+          style="display: flex; height: 40px;"
           :style="this.isMobile ? 'margin-top: 8px;flex-wrap: wrap;justify-content: center;height: auto;' : ''"
         >
           <q-btn-dropdown
@@ -160,7 +162,7 @@
                   v-for="(filter, index) in this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions}))"
                   :key="index"
                 >
-                  {{ filter.label + ' : ' + filter.selectedOptions.join(', ') }}
+                  {{ `${filter.label} : ${filter.selectedOptions.join(', ')}` }}
                 </div>
               </q-card-section>
               <q-card-actions align="right">
@@ -610,7 +612,7 @@ export default {
       { label: 'По дедлайну', slug: 'deadline' },
       { label: 'По дате создания', slug: 'creating' },
       { label: 'Приоритету', slug: 'priority' },
-      // { label: 'SLA', slug: 'sla' },
+      { label: 'SLA', slug: 'sla' },
       { label: 'По статусу', slug: 'status' }
     ],
     activeColumns: [
@@ -621,8 +623,8 @@ export default {
       { name: 'createdAt', label: 'Создана', active: true },
       { name: 'status', label: 'Статус', active: true },
       { name: 'deadline', label: 'Дедлайн', active: true },
-      { name: 'executor', label: 'Исполнитель', active: true }
-      // { name: 'sla', label: 'SLA', active: true }
+      { name: 'executor', label: 'Исполнитель', active: true },
+      { name: 'sla', label: 'SLA', active: true }
     ],
     filterChain: [],
     addNewFilterSelectorText: '',
@@ -850,14 +852,14 @@ export default {
     base64EncodeUnicode (str) {
       return btoa(
         encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
-          return String.fromCharCode('0x' + p1)
+          return String.fromCharCode(`0x${p1}`)
         })
       )
     },
 
     base64DecodeUnicode (str) {
       return decodeURIComponent(Array.prototype.map.call(atob(str), function (c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        return `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`
       }).join(''))
     },
 
@@ -951,17 +953,17 @@ export default {
       if (rawValue.length <= 2) {
         formattedValue = rawValue
       } else if (rawValue.length <= 4) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2)
+        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2)}`
       } else if (rawValue.length <= 6) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4)
+        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4)}`
       } else if (rawValue.length <= 8) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8)
+        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)}`
       } else if (rawValue.length <= 10) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8)
+        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8)}`
       } else if (rawValue.length <= 12) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10)
+        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10)}`
       } else {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
+        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
       }
       this.dialogTaskDeadline = formattedValue
     }
@@ -1086,7 +1088,7 @@ export default {
           source = this.executors
           options = Object.groupBy(tasks, ({ executor }) => {
             if (executor) {
-              return executor.firstname + ' ' + executor.lastname
+              return `${executor.firstname} ${executor.lastname}`
             } else {
               return ''
             }
@@ -1185,7 +1187,7 @@ export default {
     executors () {
       return this.store.users.filter(user => user !== null)
         .filter(user => user.roles !== 'OBSERVER')
-        .map(user => user.firstname + ' ' + user.lastname)
+        .map(user => `${user.firstname} ${user.lastname}`)
     },
 
     tags () {

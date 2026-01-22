@@ -875,6 +875,7 @@ export default {
 
   mounted () {
     this.getTaskField()
+    axios.post(`/api/v1/client/${this.client.id}/task/${this.task.id}/mark-message-read`, { userId: this.store.currentUser.id })
   },
 
   setup () {

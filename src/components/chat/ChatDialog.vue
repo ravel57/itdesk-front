@@ -4,14 +4,14 @@
       class="search-container no-shadow"
       style="background-color: #F0F0F0"
     >
-      <div class="search">
+      <div id="messageSearch" class="search">
         <q-input
           v-model="search"
           label="Поиск по сообщениям"
           dense
           borderless
           clearable
-          style="width: 100%;padding: 8px 4px 0 4px;"
+          style="width: 100%; padding: 8px 4px 0 4px;"
           @focus="this.isShowSearchResults = true"
           @blur="this.onBlur"
         >
@@ -19,6 +19,14 @@
             <q-icon name="search"/>
           </template>
         </q-input>
+        <q-btn
+          v-if="!this.isMobile"
+          icon="attach_file"
+          @click="this.showFiles"
+          flat
+          dense
+          class="q-ml-auto"
+        />
         <q-btn
           v-if="!this.isShowHelper & !this.isMobile"
           icon="support"
@@ -454,7 +462,7 @@
           id="choose-file-btn"
           type="file"
           @click="showListPinedFiles = true"
-          icon="attach_file"
+          icon="sym_o_attach_file_add"
           class="no-padding"
           flat
         />
@@ -472,6 +480,46 @@
           @keydown="this.handleKeyPressed"
           @input="this.textChanged"
         />
+
+        <q-menu
+          v-model="mentionMenu"
+          :target="mentionTargetEl"
+          anchor="top left"
+          self="bottom left"
+          :offset="[0, 8]"
+          fit
+          no-parent-event
+          auto-close="false"
+          no-focus
+          no-refocus
+        >
+          <q-list dense style="min-width: 260px; max-height: 220px; overflow: auto;">
+            <q-item
+              v-for="(u, i) in filteredMentionUsers"
+              :key="u.id || u.uuid || (u.username + '_' + i)"
+              clickable
+              :active="i === mentionIndex"
+              active-class="bg-grey-3"
+              @click="selectMention(u)"
+            >
+              <q-item-section>
+                <div class="text-body2">
+                  {{ `${u.lastname || ''} ${u.firstname || ''}` }}
+                </div>
+                <div class="text-caption text-grey-7">
+                  @{{ u.username || (u.email ? u.email.split('@')[0] : '') }}
+                </div>
+              </q-item-section>
+            </q-item>
+
+            <q-item v-if="filteredMentionUsers.length === 0">
+              <q-item-section class="text-grey-6 text-caption">
+                Нет совпадений
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+
         <div>
           <q-btn
             v-if="this.inputField.length > 0 || this.attachedFiles.length > 0"
@@ -545,8 +593,8 @@
             v-for="(file, index) in this.attachedFiles"
             :key="index"
           >
-            <div style="display: flex;align-items: center;padding: 4px;border: solid 1px rgba(108, 108, 108, 0.2);border-radius: 4px">
-              <div style="padding: 2px 8px 2px 8px;border-radius: 4px;background-color: rgba(255, 149, 0, 1);color: white;font-size: 12px;margin-right: 8px">
+            <div style="display: flex; align-items: center; padding: 4px; border: solid 1px rgba(108, 108, 108, 0.2); border-radius: 4px">
+              <div style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
                 {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
               </div>
               <div class="truncate">{{ file.name.split('.')[0] }}</div>
@@ -562,7 +610,7 @@
             </div>
           </div>
         </div>
-        <div style="font-size: 14px;margin-bottom: 16px">Добавлено {{ this.attachedFiles.length }} файлов</div>
+        <div style="font-size: 14px; margin-bottom: 16px">Добавлено {{ this.attachedFiles.length }} файлов</div>
         <q-file
           v-model="this.attachedFiles"
           label="Перетащите сюда файл"
@@ -577,6 +625,41 @@
             <q-icon name="attach_file"/>
           </template>
         </q-file>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
+  <q-dialog backdrop-filter="blur(4px)" v-model="this.isShowFileList">
+    <q-card class="dialog-width">
+      <q-toolbar class="justify-between">
+        <div class="text-h6" v-text="'Файлы'"/>
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          v-close-popup
+        />
+      </q-toolbar>
+      <q-card-section>
+        <div style="margin-bottom: 8px;">
+          <div
+            style="margin-bottom: 16px"
+            v-for="(file, index) in this.fileList"
+            :key="index"
+          >
+            <a
+              style="display: flex; align-items: center; padding: 4px; border: solid 1px rgba(108, 108, 108, 0.2); border-radius: 4px; text-decoration: none;"
+              :href="`/files/${file.type.split('/')[0]}s/${file.uuid}`"
+              target="_blank"
+            >
+              <div style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
+                {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
+              </div>
+              <div class="truncate">{{ file.name.split('.')[0] }}</div>
+              <q-space/>
+            </a>
+          </div>
+        </div>
       </q-card-section>
     </q-card>
   </q-dialog>
@@ -630,7 +713,14 @@ export default {
     replyFileUuid: null,
     replyFileType: null,
 
-    showListPinedFiles: false
+    showListPinedFiles: false,
+
+    mentionMenu: false,
+    mentionQuery: '',
+    mentionIndex: 0,
+    mentionTargetEl: null,
+    isShowFileList: false,
+    fileList: []
   }),
 
   updated () {
@@ -639,6 +729,7 @@ export default {
 
   mounted () {
     try {
+      this.mentionTargetEl = this.$refs.textInput
       this.scrollToBottom()
       this.$refs.textInput.focus()
     } catch (ignoredError) {
@@ -744,17 +835,6 @@ export default {
           this.textChanged()
         } catch (ignoredError) {}
       }
-    },
-
-    handleKeyPressed (event) {
-      if (event.keyCode === 13 && event.ctrlKey) {
-        this.sendMessage()
-      }
-    },
-
-    textChanged () {
-      this.$emit('keyPressed', this.$refs.textInput.value)
-      this.autoResize()
     },
 
     getStamp (message) {
@@ -1041,28 +1121,152 @@ export default {
       return `height: ${imgHeight}px; width: ${imgWidth}px;`
     },
 
+    textChanged () {
+      this.$emit('keyPressed', this.$refs.textInput.value)
+      this.autoResize()
+      this.updateMentionState()
+    },
+
     getTypingWatchingUsers () {
       const watchingNow = this.taskWatchingNow.filter(user =>
         user.id !== this.currentUser.id &&
         !this.typing.some(t => t.username === user.username)
       )
-
       const typingNow = this.typing.filter(t => t.username !== this.currentUser.username)
-
       return {
         typing: typingNow.map(t => `${t.lastname} ${t.firstname}`),
         watching: watchingNow.map(user => `${user.lastname} ${user.firstname}`)
       }
+    },
+
+    updateMentionState () {
+      const textarea = this.$refs.textInput
+      if (!textarea) return
+
+      // ВАЖНО: обновляем target каждый раз (на случай если компонент пересоздали)
+      this.mentionTargetEl = textarea
+
+      const caret = textarea.selectionStart ?? textarea.value.length
+      const before = textarea.value.slice(0, caret)
+
+      // Триггер: @ в начале или после пробела
+      const match = before.match(/(?:^|\s)@([^\s@]*)$/)
+
+      if (!match) {
+        this.mentionMenu = false
+        this.mentionQuery = ''
+        this.mentionIndex = 0
+        return
+      }
+
+      this.mentionQuery = match[1] || ''
+
+      // если просто "@" и юзер начал стирать — не держим меню открытым
+      if (this.mentionQuery.length === 0 && textarea.value.endsWith('@') === false) {
+        this.mentionMenu = false
+        return
+      }
+
+      this.mentionIndex = 0
+      this.$nextTick(() => { this.mentionMenu = true })
+
+      this.mentionQuery = match[1] || ''
+      this.mentionIndex = 0
+
+      // Открываем меню после обновления DOM
+      this.$nextTick(() => {
+        this.mentionMenu = true
+      })
+    },
+
+    selectMention (user) {
+      const textarea = this.$refs.textInput
+      if (!textarea) return
+
+      const caret = textarea.selectionStart ?? textarea.value.length
+      const before = textarea.value.slice(0, caret)
+      const after = textarea.value.slice(caret)
+
+      const atPos = before.lastIndexOf('@')
+      if (atPos === -1) return
+
+      const fullName = `${user.lastname || ''} ${user.firstname || ''}`.trim()
+      const handle = fullName
+        ? `[${fullName}]`
+        : (user.username || (user.email ? user.email.split('@')[0] : null) || 'user')
+      const inserted = `@${handle} `
+      const newText = before.slice(0, atPos) + inserted + after
+
+      textarea.value = newText
+      this.$emit('keyPressed', newText)
+      this.autoResize()
+
+      this.mentionMenu = false
+      this.mentionQuery = ''
+      this.mentionIndex = 0
+
+      this.$nextTick(() => {
+        const newCaret = atPos + inserted.length
+        textarea.setSelectionRange(newCaret, newCaret)
+        textarea.focus()
+      })
+    },
+
+    handleKeyPressed (event) {
+      if (this.mentionMenu) {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          this.mentionIndex = Math.min(this.mentionIndex + 1, this.filteredMentionUsers.length - 1)
+          return
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          this.mentionIndex = Math.max(this.mentionIndex - 1, 0)
+          return
+        }
+        if (event.key === 'Enter') {
+          const u = this.filteredMentionUsers[this.mentionIndex]
+          if (u) {
+            event.preventDefault()
+            this.selectMention(u)
+            return
+          }
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          this.mentionMenu = false
+          return
+        }
+      }
+      if (event.keyCode === 13 && event.ctrlKey) {
+        this.sendMessage()
+      }
+    },
+
+    showFiles () {
+      this.isShowFileList = true
+      axios.get(`/api/v1/client-files/${this.client.id}`)
+        .then(response => {
+          this.fileList = response.data
+        })
     }
   },
 
   computed: {
     typingUsers () {
-      return this.getTypingWatchingUsers().typing
+      if (this.getTypingWatchingUsers()) {
+        return this.getTypingWatchingUsers().typing
+      } else {
+        return []
+      }
     },
 
     watchUsers () {
-      return this.getTypingWatchingUsers().watching
+      if (this.getTypingWatchingUsers()) {
+        return this.getTypingWatchingUsers().watching
+      } else {
+        return []
+      }
     },
 
     renderShortcutPlaceholder () {
@@ -1102,6 +1306,18 @@ export default {
       } else {
         return this.client.lastname + ' ' + this.client.firstname
       }
+    },
+
+    filteredMentionUsers () {
+      const users = Array.isArray(this.store?.users) ? this.store.users : []
+      const q = (this.mentionQuery || '').trim().toLowerCase()
+      const toSearchString = (u) => (
+        `${u.firstname || ''} ${u.lastname || ''} ${u.username || ''} ${u.email || ''}`
+      ).toLowerCase()
+      const filtered = q.length === 0
+        ? users
+        : users.filter(u => toSearchString(u).includes(q))
+      return filtered.slice(0, 8)
     }
   },
 

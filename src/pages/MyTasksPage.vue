@@ -32,11 +32,12 @@
               class="task-card"
               :task="task"
               :descriptionRequire="false"
-              :slaRequire="false"
+              :slaRequire="true"
               :task-name-short="20"
               :selected-sorting="''"
               @onTaskClicked="this.onTaskClicked($event)"
             >
+              <!--:slaRequire="false"-->
               <template v-slot:chatLink>
                 <a :href="this.getChatLink(task.client.id)" @click.stop>
                   <div

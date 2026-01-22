@@ -50,9 +50,10 @@
             :task="task"
             :selectedSorting="this.selectedGroupType"
             :descriptionRequire="false"
-            :slaRequire="false"
+            :slaRequire="true"
             :taskNameShort="22"
           >
+            <!--:slaRequire="false"-->
             <template v-slot:checkBox>
               <label @click.stop class="custom-checkbox">
                 <input
