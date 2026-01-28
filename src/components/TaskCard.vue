@@ -119,15 +119,18 @@
               :track-color="isSlaExpired(task) ? 'negative-2' : 'grey-3'"
               class="sla-bar"
               size="12px"
+              :animation-speed="0"
             />
           </div>
-          <div v-if="false"><!--v-if="this.$route.path.includes('chat')"-->
+          <div v-if="this.$route.path.includes('chat')">
             <q-btn
               v-if="!this.slaIsPause"
               dense
               flat
               color="grey"
-              @click.stop="this.slaIsPause = !this.slaIsPause"
+              :loading="slaActionLoading"
+              :disable="slaActionLoading"
+              @click.stop="pauseSla()"
               icon="pause_circle"
             />
             <q-btn
@@ -135,7 +138,9 @@
               dense
               flat
               color="grey"
-              @click.stop="this.slaIsPause = !this.slaIsPause"
+              :loading="slaActionLoading"
+              :disable="slaActionLoading"
+              @click.stop="resumeSla()"
               icon="play_circle"
             />
           </div>
@@ -154,6 +159,7 @@
 import moment from 'moment/moment'
 import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
+import axios from 'axios'
 
 export default {
   name: 'TaskCard',
@@ -163,7 +169,9 @@ export default {
   components: { CircleCounter },
 
   data: () => ({
+    slaInfo: null,
     slaIsPause: false,
+    slaActionLoading: false,
     nowTs: Date.now(),
     slaTimer: null
   }),
@@ -193,16 +201,16 @@ export default {
     },
 
     getSlaHours (task) {
-      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const deadline = this.getSlaDeadlineMoment(task)
       const now = moment()
-      const duration = moment.duration(endDateTime.diff(now))
+      const duration = moment.duration(deadline.diff(now))
       return duration.days() * 24 + duration.hours() + duration.minutes() * 0.017
     },
 
     getSlaTime (task) {
-      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const deadline = this.getSlaDeadlineMoment(task)
       const now = moment(this.nowTs)
-      const left = moment.duration(endDateTime.diff(now))
+      const left = moment.duration(deadline.diff(now))
       if (left.asMilliseconds() <= 0) return '0 ч. 0 м.'
       const totalHours = Math.floor(left.asHours())
       const minutes = left.minutes()
@@ -212,9 +220,9 @@ export default {
     getSlaPercent (task) {
       const totalMs = task.sla.duration.asMilliseconds()
       if (!totalMs || totalMs <= 0) return 0
-      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const deadline = this.getSlaDeadlineMoment(task)
       const now = moment(this.nowTs)
-      const leftMs = Math.max(0, endDateTime.diff(now))
+      const leftMs = Math.max(0, deadline.diff(now))
       return leftMs / totalMs
     },
 
@@ -229,9 +237,9 @@ export default {
     },
 
     getSlaLeftMs (task) {
-      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const deadline = this.getSlaDeadlineMoment(task)
       const now = moment(this.nowTs)
-      return endDateTime.diff(now) // может быть < 0
+      return deadline.diff(now) // может быть < 0
     },
 
     isSlaExpired (task) {
@@ -251,6 +259,62 @@ export default {
         return task.unreadPingTasksMessages[this.store.currentUser.id]
       } else {
         return false
+      }
+    },
+
+    async loadSlaInfo () {
+      // Не дергаем API если SLA не требуется/отсутствует
+      if (!this.task?.sla || !this.slaRequire || this.task.completed) return
+
+      try {
+        const { data } = await axios.get(`/api/v1/task/${this.task.id}/sla/info`)
+        this.applySlaInfo(data)
+      } catch (e) {
+        // SLA не критичен для рендера карточки — можно молча
+      }
+    },
+
+    applySlaInfo (info) {
+      if (!info) return
+      this.slaInfo = info
+      this.slaIsPause = !!info.paused
+    },
+
+    getSlaDeadlineMoment (task) {
+      // Приоритет — дедлайн с бэка (учитывает паузы)
+      if (this.slaInfo?.deadline) {
+        return moment(this.slaInfo.deadline)
+      }
+      // Фоллбек — старый расчёт (startDate + duration)
+      return task.sla.startDate.clone().add(task.sla.duration)
+    },
+
+    async pauseSla (reason = null) {
+      if (this.slaActionLoading) return
+      this.slaActionLoading = true
+
+      try {
+        const { data } = await axios.post(
+          `/api/v1/task/${this.task.id}/sla/pause`,
+          null,
+          { params: reason ? { reason } : {} }
+        )
+        this.applySlaInfo(data)
+        this.nowTs = Date.now()
+      } finally {
+        this.slaActionLoading = false
+      }
+    },
+
+    async resumeSla () {
+      if (this.slaActionLoading) return
+      this.slaActionLoading = true
+      try {
+        const { data } = await axios.post(`/api/v1/task/${this.task.id}/sla/resume`)
+        this.applySlaInfo(data)
+        this.nowTs = Date.now() // ✅ возобновили тик
+      } finally {
+        this.slaActionLoading = false
       }
     }
   },
@@ -322,8 +386,11 @@ export default {
   },
 
   mounted () {
+    this.loadSlaInfo()
     this.slaTimer = setInterval(() => {
-      if (!this.slaIsPause) this.nowTs = Date.now()
+      if (!this.slaIsPause) {
+        this.nowTs = Date.now()
+      }
     }, 1000)
   },
 

@@ -71,16 +71,15 @@
                         :class="{ 'sla-pill--expired': isSlaExpired(this.getActualTasks(client)) }"
                       >
                         <q-linear-progress
-                          v-if="this.getActualTasks(client).some(t => t.sla !== null)"
-                          :value="this.getSlaPercent(this.getActualTasks(client))"
+                          :value="getClientSlaPercent(client) ?? 0"
                           :color="this.isSlaExpired(this.getActualTasks(client)) ? 'negative' : getSlaColor(this.getActualTasks(client))"
                           :track-color="isSlaExpired(this.getActualTasks(client)) ? 'negative-2' : 'grey-3'"
                           reverse
-                          stripe
                           rounded
                           class="sla-bar"
                           style="width: 80px; border: solid 1px darkgray"
                           size="12px"
+                          :animation-speed="0"
                         >
                           <q-tooltip
                             anchor="top middle"
@@ -152,6 +151,7 @@ import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import moment from 'moment'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
+import axios from 'axios'
 
 export default {
   name: 'DialogsPage',
@@ -161,7 +161,11 @@ export default {
   data: () => ({
     searchQuery: '',
     nowTs: Date.now(),
-    slaTimer: null
+    slaTimer: null,
+    // taskId -> SlaInfoDto
+    slaInfoByTaskId: {},
+    // taskId -> boolean (чтобы не спамить запросами)
+    slaInfoLoading: {}
   }),
 
   methods: {
@@ -204,12 +208,18 @@ export default {
     },
 
     getSlaLeftMs (task) {
-      if (!task?.sla?.startDate || !task?.sla?.duration) {
-        return null
+      if (!task?.id) return null
+      const info = this.getSlaInfo(task)
+      if (info) {
+        if (info.paused && typeof info.remainingSeconds === 'number') {
+          return Math.max(0, info.remainingSeconds * 1000)
+        }
+        if (info.deadline) {
+          const now = moment(this.nowTs)
+          return Math.max(0, moment(info.deadline).diff(now))
+        }
       }
-      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
-      const now = moment(this.nowTs)
-      return Math.max(0, endDateTime.diff(now))
+      return null
     },
 
     getSlaTotalMs (task) {
@@ -223,7 +233,7 @@ export default {
     isSlaExpired (tasks) {
       const task = this.getMinimalSlaTask(tasks)
       if (!task) return false
-      const leftMs = this.getSlaLeftMs(task)
+      const leftMs = this.getSlaLeftMsApprox(task)
       return leftMs !== null && leftMs <= 0
     },
 
@@ -234,8 +244,8 @@ export default {
       }
       // Берём самую “срочную” — с минимальным оставшимся временем
       return withSla.reduce((best, t) => {
-        const bestLeft = this.getSlaLeftMs(best)
-        const tLeft = this.getSlaLeftMs(t)
+        const bestLeft = this.getSlaLeftMsApprox(best)
+        const tLeft = this.getSlaLeftMsApprox(t)
         return (tLeft !== null && (bestLeft === null || tLeft < bestLeft)) ? t : best
       }, withSla[0])
     },
@@ -251,20 +261,17 @@ export default {
       }
       const leftMs = this.getSlaLeftMs(task)
       if (leftMs === null) {
-        return 0
+        return null
       }
       return leftMs / totalMs // 0..1
     },
 
     getSlaColor (tasks) {
       const p = this.getSlaPercent(tasks)
-      if (p > 0.5) {
-        return 'green'
-      } else if (p > 0.25) {
-        return 'orange'
-      } else {
-        return 'red'
-      }
+      if (p === null) return 'grey'
+      if (p > 0.5) return 'green'
+      else if (p > 0.25) return 'orange'
+      else return 'red'
     },
 
     getTimeLastMessage (client) {
@@ -342,6 +349,71 @@ export default {
       } else {
         return false
       }
+    },
+
+    getSlaInfo (task) {
+      if (!task?.id) return null
+      return this.slaInfoByTaskId[task.id] || null
+    },
+
+    async loadSlaInfoForTaskId (taskId) {
+      if (!taskId) return
+      if (this.slaInfoByTaskId[taskId]) return
+      if (this.slaInfoLoading[taskId]) return
+
+      this.slaInfoLoading[taskId] = true
+      try {
+        const { data } = await axios.get(`/api/v1/task/${taskId}/sla/info`)
+        this.slaInfoByTaskId[taskId] = data
+      } catch (e) {
+        // игнор
+      } finally {
+        this.slaInfoLoading[taskId] = false
+      }
+    },
+
+    async preloadSlaInfosForClients (clients) {
+      const ids = []
+      ;(clients || []).forEach(client => {
+        const tasks = this.getActualTasks(client)
+          .filter(t => t?.sla?.startDate && t?.sla?.duration)
+        if (tasks.length === 0) return
+        // Берём "самую срочную" по старой формуле (пока sla/info не загружен)
+        const minTask = tasks.reduce((best, t) => {
+          const bestEnd = best.sla.startDate.clone().add(best.sla.duration)
+          const tEnd = t.sla.startDate.clone().add(t.sla.duration)
+          return tEnd.isBefore(bestEnd) ? t : best
+        }, tasks[0])
+        ids.push(minTask.id)
+      })
+      const uniqIds = [...new Set(ids)]
+      await Promise.all(uniqIds.map(id => this.loadSlaInfoForTaskId(id)))
+    },
+
+    getSlaLeftMsApprox (task) {
+      if (!task?.sla?.startDate || !task?.sla?.duration) {
+        return null
+      }
+      // если sla/info уже есть — используем точный расчёт
+      const info = this.getSlaInfo(task)
+      if (info) {
+        if (info.paused && typeof info.remainingSeconds === 'number') {
+          return Math.max(0, info.remainingSeconds * 1000)
+        }
+        if (info.deadline) {
+          const now = moment(this.nowTs)
+          return Math.max(0, moment(info.deadline).diff(now))
+        }
+      }
+      // ✅ fallback для логики (чтобы минимальный SLA работал сразу)
+      const endDateTime = task.sla.startDate.clone().add(task.sla.duration)
+      const now = moment(this.nowTs)
+      return Math.max(0, endDateTime.diff(now))
+    },
+
+    getClientSlaPercent (client) {
+      const tasks = this.getActualTasks(client)
+      return this.getSlaPercent(tasks) // вернёт number или null
     }
   },
 
@@ -375,8 +447,23 @@ export default {
     }
   },
 
+  watch: {
+    searchQuery () {
+      this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
+    },
+
+    'store.clients': {
+      handler () {
+        this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
+      },
+      deep: true
+    }
+  },
+
   mounted () {
     document.title = 'ULDESK : Чаты'
+    // ✅ подтянуть SLA-инфу для задач на главной
+    this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)

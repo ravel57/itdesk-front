@@ -233,6 +233,7 @@
                   </q-item-section>
                 </q-item>
                 <q-item
+                  v-if="!message.deleted"
                   clickable
                   v-close-popup
                 >

@@ -22,9 +22,32 @@
         v-for="(priority, columnIndex) in this.store.priorities"
         :key="columnIndex"
       >
-        <input
-          v-model="tableData[rowIndex][columnIndex]"
-        />
+        <div class="sla-cell" style="display:flex; gap:8px; align-items:center;">
+          <q-input
+            v-model.number="tableData[rowIndex][columnIndex].value"
+            type="number"
+            dense outlined hide-bottom-space
+            placeholder="0"
+            class="sla-value"
+            :debounce="400"
+            @update:model-value="() => onCellEdited(rowIndex, columnIndex)"
+            @input="() => onCellEdited(rowIndex, columnIndex)"
+            @blur="() => onCellEdited(rowIndex, columnIndex)"
+          />
+          <q-select
+            v-model="tableData[rowIndex][columnIndex].unit"
+            :options="periodOptions"
+            emit-value
+            map-options
+            dense
+            outlined
+            hide-bottom-space
+            class="sla-unit"
+            style="width:120px;"
+            @update:model-value="() => onCellEdited(rowIndex, columnIndex)"
+            @input="() => onCellEdited(rowIndex, columnIndex)"
+          />
+        </div>
       </td>
     </tr>
     </tbody>
@@ -40,13 +63,26 @@ export default {
 
   data: () => ({
     tableData: [],
-    isPopulatingSla: false
+    isPopulatingSla: false,
+    lastSent: {},
+    periodOptions: [
+      { label: 'минуты', value: 'MINUTES' },
+      { label: 'часы', value: 'HOURS' },
+      { label: 'дни', value: 'DAYS' }
+    ]
   }),
+
+  computed: {
+    getOrganizations () {
+      // первая строка = дефолтный SLA
+      return [{ name: 'Стандартный SLA' }].concat(structuredClone(this.store.organizations))
+    }
+  },
 
   methods: {
     notifyError (e) {
       this.$q.notify({
-        message: e.message,
+        message: e?.response?.data?.message || e.message,
         type: 'negative',
         position: 'top-right',
         actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
@@ -56,7 +92,13 @@ export default {
     buildEmptyTable () {
       const rows = this.getOrganizations.length
       const cols = this.store.priorities.length
-      return Array.from({ length: rows }, () => Array.from({ length: cols }, () => ''))
+
+      return Array.from({ length: rows }, () =>
+        Array.from({ length: cols }, () => ({
+          value: '',
+          unit: 'HOURS'
+        }))
+      )
     },
 
     async loadSla () {
@@ -65,12 +107,16 @@ export default {
         this.tableData = this.buildEmptyTable()
 
         const { data } = await axios.get('/api/v1/sla')
-        // data: { [orgName: string]: { [priorityName: string]: number } }
+        // data: { [orgName]: { [priorityName]: { value, unit } } }
 
         this.getOrganizations.forEach((org, rowIndex) => {
           this.store.priorities.forEach((priority, colIndex) => {
-            const hours = data?.[org.name]?.[priority.name]
-            this.tableData[rowIndex][colIndex] = (hours === null || hours === undefined) ? '' : String(hours)
+            const cell = data?.[org.name]?.[priority.name]
+
+            this.tableData[rowIndex][colIndex] = {
+              value: cell?.value ?? '',
+              unit: cell?.unit ?? 'HOURS'
+            }
           })
         })
       } catch (e) {
@@ -80,31 +126,27 @@ export default {
       }
     },
 
-    onCellValueChange (newVal) {
-      // важно: не дергать POST во время первичного заполнения таблицы
+    async onCellEdited (rowIndex, colIndex) {
       if (this.isPopulatingSla) return
 
-      newVal.forEach((row, rowIndex) => {
-        row.forEach((cellValue, colIndex) => {
-          const organization = (rowIndex === 0) ? null : this.store.organizations[rowIndex - 1]
-          const priority = this.store.priorities[colIndex]
+      const organization = (rowIndex === 0) ? null : this.store.organizations[rowIndex - 1]
+      const priority = this.store.priorities[colIndex]
+      const cell = this.tableData[rowIndex][colIndex]
 
-          const hoursStr = String(cellValue ?? '').trim()
-          const hours = hoursStr === '' ? null : Number(hoursStr)
+      const valueStr = String(cell.value ?? '').trim()
+      const value = valueStr === '' ? null : Number(valueStr)
+      const unit = cell.unit || 'HOURS'
 
-          axios.post('/api/v1/sla', {
-            organization,
-            priority,
-            hours
-          }).catch(this.notifyError)
+      try {
+        await axios.post('/api/v1/sla', {
+          organization,
+          priority,
+          value,
+          unit
         })
-      })
-    }
-  },
-
-  computed: {
-    getOrganizations () {
-      return [{ name: 'Стандартный SLA' }].concat(structuredClone(this.store.organizations))
+      } catch (e) {
+        this.notifyError(e)
+      }
     }
   },
 
@@ -115,19 +157,13 @@ export default {
   setup () {
     const store = useStore()
     return { store }
-  },
-
-  watch: {
-    tableData: {
-      handler (newVal) {
-        this.onCellValueChange(newVal)
-      },
-      deep: true
-    }
   }
 }
 </script>
 
 <style scoped>
-
+.sla-cell {
+  display: flex;
+  width: 200px;
+}
 </style>
