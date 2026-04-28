@@ -81,14 +81,47 @@ function authenticatedUsersCallback (usersOnline) {
 }
 
 export function markRead (client) {
-  if (appConfig.useMocks) return
+  if (appConfig.useMocks) {
+    return
+  }
+  if (!client) {
+    return
+  }
+
+  if (!stompClient || !stompClient.connected) {
+    console.warn('STOMP is not connected, mark-read skipped')
+    return
+  }
+
   const user = useStore().currentUser
-  client.tasks.forEach(task => { delete task.client })
-  stompClient.send('/app/mark-read', {}, JSON.stringify({ client, user }))
+  if (!user) {
+    return
+  }
+
+  const cleanClient = removeCycles(client)
+  const cleanUser = removeCycles(user)
+
+  if (cleanClient.tasks) {
+    cleanClient.tasks.forEach(task => { delete task.client })
+  }
+
+  stompClient.send('/app/mark-read', {}, JSON.stringify({
+    clientId: cleanClient.id,
+    userId: cleanUser.id
+  }))
 }
 
 export function userOnline (user) {
-  if (appConfig.useMocks) return
+  if (appConfig.useMocks) {
+    return
+  }
+  if (!user) {
+    return
+  }
+  if (!stompClient || !stompClient.connected) {
+    console.warn('STOMP is not connected, user-online skipped')
+    return
+  }
   stompClient.send('/app/user-online', {}, JSON.stringify(user))
 }
 
