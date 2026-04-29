@@ -310,8 +310,7 @@ export default {
         completed: true,
         createdAt: task.createdAt,
         deadline: task.deadline,
-        linkedMessageId: task.linkedMessageId,
-        sla: task.sla
+        linkedMessageId: task.linkedMessageId
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, completedTask)
         .then(newTask => {

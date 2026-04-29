@@ -4,13 +4,6 @@
       <q-btn v-if="perm !== 'granted'" @click="ask">
         Разрешить уведомления
       </q-btn>
-      <q-btn v-else @click="remove">
-        Запретить уведомления
-      </q-btn>
-      <q-btn color="secondary" @click="notify">
-        Показать уведомление
-      </q-btn>
-      <div>Permission: {{ perm }}</div>
     </div>
 
     <q-separator class="q-mt-md q-mb-sm" />
@@ -19,22 +12,18 @@
       <q-checkbox
         v-model="notifyChatPing"
         label="Уведомлять при пинге в чате"
-        disable
       />
       <q-checkbox
         v-model="notifyTaskChatPing"
         label="Уведомлять при пинге в чате внутри заявки"
-        disable
       />
       <q-checkbox
         v-model="notifyNewAssignedTask"
         label="Уведомлять о новой заявке где вы назначены исполнителем"
-        disable
       />
       <q-checkbox
         v-model="notifyTaskNewMessageAssigned"
         label="Уведомлять при новом сообщении в чате внутри заявки, где вы назначены исполнителем"
-        disable
       />
     </div>
   </div>
@@ -73,10 +62,6 @@ export default {
       if (!n) {
         alert('Нет разрешения или браузер не поддерживает уведомления')
       }
-    },
-
-    remove () {
-      alert('Запрет уведомлений делается в настройках браузера/сайта (Site settings → Notifications).')
     }
   }
 }

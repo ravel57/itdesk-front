@@ -1,17 +1,21 @@
 import SockJS from 'sockjs-client/dist/sockjs'
-import { Stomp } from '@stomp/stompjs'
-import { useStore } from 'stores/store'
+import {Stomp} from '@stomp/stompjs'
+import {useStore} from 'stores/store'
 import moment from 'moment/moment'
-import { appConfig } from 'src/config/appConfig'
+import {appConfig} from 'src/config/appConfig'
+import {useSystemNotifications} from "src/composables/useSystemNotifications";
 
 let stompClient = null
 
-export function connect () {
+export function connect() {
   if (appConfig.useMocks) return
 
-  const socket = new SockJS('/ws', null, { transports: ['websocket'] })
-  stompClient = Stomp.over(() => { return socket })
-  stompClient.debug = () => {}
+  const socket = new SockJS('/ws', null, {transports: ['websocket']})
+  stompClient = Stomp.over(() => {
+    return socket
+  })
+  stompClient.debug = () => {
+  }
   stompClient.connect({}, () => {
     if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
       stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
@@ -30,10 +34,12 @@ export function connect () {
     stompClient.subscribe('/topic/client-messages/', message => clientMessageCallback(message))
     stompClient.subscribe('/topic/global-notifications/', message => globalAlertMessageCallback(message))
     stompClient.subscribe('/topic/client-message-edited/', message => editedMessageCallback(message))
+
+    stompClient.subscribe('/topic/user-notification/', message => userNotificationCallback(message))
   })
 }
 
-function clientsCallback (clients) {
+function clientsCallback(clients) {
   const parsedClients = JSON.parse(clients.body)
   parsedClients.forEach(client => {
     if (client.lastname === null) {
@@ -44,7 +50,8 @@ function clientsCallback (clients) {
     // })
     try {
       client.messages = useStore().clients.find(c => c.id === client.id).messages
-    } catch (ignoreError) {}
+    } catch (ignoreError) {
+    }
     client.tasks.forEach(task => {
       task.createdAt = new Date(task.createdAt)
       if (task.deadline) {
@@ -65,12 +72,14 @@ function clientsCallback (clients) {
         }
       })
     }
-    client.tasks.forEach(task => { task.client = client })
+    client.tasks.forEach(task => {
+      task.client = client
+    })
   })
   useStore().clients = parsedClients
 }
 
-function authenticatedUsersCallback (usersOnline) {
+function authenticatedUsersCallback(usersOnline) {
   const users = JSON.parse(usersOnline.body)
   users.forEach(user => {
     if (user.lastname === null) {
@@ -80,7 +89,7 @@ function authenticatedUsersCallback (usersOnline) {
   useStore().usersOnline = users
 }
 
-export function markRead (client) {
+export function markRead(client) {
   if (appConfig.useMocks) {
     return
   }
@@ -102,7 +111,9 @@ export function markRead (client) {
   const cleanUser = removeCycles(user)
 
   if (cleanClient.tasks) {
-    cleanClient.tasks.forEach(task => { delete task.client })
+    cleanClient.tasks.forEach(task => {
+      delete task.client
+    })
   }
 
   stompClient.send('/app/mark-read', {}, JSON.stringify({
@@ -111,7 +122,7 @@ export function markRead (client) {
   }))
 }
 
-export function userOnline (user) {
+export function userOnline(user) {
   if (appConfig.useMocks) {
     return
   }
@@ -122,13 +133,13 @@ export function userOnline (user) {
     console.warn('STOMP is not connected, user-online skipped')
     return
   }
-  stompClient.send('/app/user-online', {}, JSON.stringify(user))
+  stompClient.send('/app/user-online', {}, JSON.stringify({id: user.id, username: user.username}))
 }
 
-function removeCycles (obj) {
+function removeCycles(obj) {
   const seenObjects = new WeakMap()
 
-  function clone (obj) {
+  function clone(obj) {
     if (obj && typeof obj === 'object') {
       if (seenObjects.has(obj)) {
         return
@@ -158,22 +169,39 @@ function removeCycles (obj) {
   return clone(obj)
 }
 
-export function typing (client, user, text) {
-  if (appConfig.useMocks) return
-  const cleanClient = removeCycles(client)
-  const cleanUser = removeCycles(user)
-  const message = { client: cleanClient, user: cleanUser, text }
-  const messageString = JSON.stringify(message)
-  stompClient.send('/app/typing', {}, messageString)
+export function typing(client, user, text) {
+  if (appConfig.useMocks) {
+    return
+  }
+  if (!stompClient || !stompClient.connected) {
+    console.warn('STOMP is not connected, typing skipped')
+    return
+  }
+  if (!client || !user) {
+    return
+  }
+  stompClient.send('/app/typing', {}, JSON.stringify({
+    clientId: client.id,
+    userId: user.id,
+    text
+  }))
 }
 
-export function getClientsForObserver (user) {
-  if (appConfig.useMocks) return
-  // FIXME TODO
-  stompClient.send('/app/observer', {}, JSON.stringify(user))
+export function getClientsForObserver(user) {
+  if (appConfig.useMocks) {
+    return
+  }
+  if (!stompClient || !stompClient.connected) {
+    console.warn('STOMP is not connected, observer skipped')
+    return
+  }
+  if (!user) {
+    return
+  }
+  stompClient.send('/app/observer', {}, user.username)
 }
 
-function clientsForObserverCallback (message) {
+function clientsForObserverCallback(message) {
   const parsedClients = JSON.parse(message.body)
   parsedClients.forEach(it => {
     if (it.lastname === null) {
@@ -203,7 +231,7 @@ function clientsForObserverCallback (message) {
   useStore().clients = parsedClients
 }
 
-function currentClientCallback (message) {
+function currentClientCallback(message) {
   const binaryData = new Uint8Array(message._binaryBody)
   const textDecoder = new TextDecoder('utf-8')
   const decodedString = textDecoder.decode(binaryData)
@@ -227,7 +255,7 @@ function currentClientCallback (message) {
   useStore().currentClient = paredClient
 }
 
-function clientMessageCallback (message) {
+function clientMessageCallback(message) {
   const clientMessage = JSON.parse(message.body)
   clientMessage.message.date = new Date(clientMessage.message.date)
   if (!(useStore().clients.find(c => c.id === clientMessage.client.id))) {
@@ -236,10 +264,11 @@ function clientMessageCallback (message) {
   const client = useStore().clients.find(c => c.id === clientMessage.client.id)
   try {
     client.messages.push(clientMessage.message)
-  } catch (ignoredError) {}
+  } catch (ignoredError) {
+  }
 }
 
-function supportMessagesCallback (message) {
+function supportMessagesCallback(message) {
   const supportMessages = JSON.parse(message.body)
   supportMessages.forEach(message => {
     message.date = new Date(message.date)
@@ -247,15 +276,48 @@ function supportMessagesCallback (message) {
   useStore().supportMessages = supportMessages
 }
 
-function globalAlertMessageCallback (message) {
+function globalAlertMessageCallback(message) {
   useStore().globalAlertMessage = JSON.parse(message.body)
 }
 
-function editedMessageCallback (message) {
+function editedMessageCallback(message) {
   const clientMessage = JSON.parse(message.body)
   clientMessage.message.date = new Date(clientMessage.message.date)
   const client = useStore().clients.find(c => c.id === clientMessage.client.id)
   try {
     client.messages.find(m => m.id === clientMessage.message.id).text = clientMessage.message.text
-  } catch (ignoredError) {}
+  } catch (ignoredError) {
+  }
+}
+
+function userNotificationCallback(message) {
+  const {notify} = useSystemNotifications()
+  const parsedMessage = JSON.parse(message.body)
+  console.log(parsedMessage)
+  switch (parsedMessage.event) {
+    case 'MENTIONED_USER':
+      notify('ULDesk', {
+        body: `Вас упомянули в чате: ${parsedMessage.message}`,
+        tag: 'new-task'
+      })
+      break
+    case 'MENTIONED_USER_IN_TASK_CHAT':
+      notify('ULDesk', {
+        body: `Вас упомянули в заявке: ${parsedMessage.message}`,
+        tag: 'new-task'
+      })
+      break
+    case 'NEW_TASK':
+      notify('ULDesk', {
+        body: 'Новая заявка назначена на Вас',
+        tag: 'new-task'
+      })
+      break
+    case 'NEW_CHAT_MESSAGE':
+      notify('ULDesk', {
+        body: 'Новое сообщение в чате, где Вы назначены исполнителем',
+        tag: 'new-task'
+      })
+      break
+  }
 }

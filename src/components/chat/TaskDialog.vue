@@ -520,7 +520,6 @@ export default {
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,
-        sla: this.isNewTask ? null : this.task.sla,
         previusStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previusStatus,
         messages: this.isNewTask ? (this.getLinkedMessage ? this.getLinkedMessage : null) : this.task.messages
       }
@@ -568,10 +567,12 @@ export default {
 
     setTaskCompleted (task) {
       task.completed = true
-      task = Object.keys(task).filter(objKey => objKey !== 'client').reduce((newObj, client) => {
-        newObj[client] = task[client]
-        return newObj
-      }, {})
+      task = Object.keys(task)
+        .filter(objKey => objKey !== 'client' && objKey !== 'sla')
+        .reduce((newObj, client) => {
+          newObj[client] = task[client]
+          return newObj
+        }, {})
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
@@ -646,7 +647,6 @@ export default {
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,
-        sla: this.isNewTask ? null : this.task.sla,
         frozen: !this.task.frozen,
         frozenFrom: this.task.frozen ? null : new Date(),
         frozenUntil: this.task.frozen ? null : moment(this.dialogTaskFreezeUntil, 'DD.MM.YYYY HH:mm').format(),

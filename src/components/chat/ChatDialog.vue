@@ -104,11 +104,11 @@
               :id="`${this.isDialog ? 'modal_message' : 'message'}_${message.id}`"
               :avatar="message.avatar"
               :name="this.getName(message)"
-              :sent="message.sent"
+              :sent="message.isSent"
               text-color="black"
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
-              :bg-color="message.comment ? 'deep-purple-2' : message.sent ? '#e0e0e0' : 'white'"
+              :bg-color="message.comment ? 'deep-purple-2' : message.isSent ? '#e0e0e0' : 'white'"
             >
               <template v-slot:stamp>
               <span
@@ -797,9 +797,9 @@ export default {
           id: null,
           text: textarea.value,
           date: new Date(),
-          sent: true,
-          comment: this.isComment,
-          read: true,
+          isSent: true,
+          isComment: this.isComment,
+          isRead: true,
           replyMessageId: this.replyMessageId,
           replyUuid: this.replyFileUuid,
           replyFileType: this.replyFileType,

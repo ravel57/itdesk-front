@@ -25,7 +25,7 @@ export const useStore = defineStore('store', {
     templates: [],
     knowledgeBase: [],
     triggers: [],
-    triggerTypes: [
+    triggerTypes: [ // FIXME
       'MANUAL_MACRO_APPLIED',
       'MESSAGE_INCOMING',
       'MESSAGE_OUTGOING',
