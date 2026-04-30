@@ -108,7 +108,7 @@
               text-color="black"
               :class="message.deleted ? 'strikethrough' : ''"
               style="white-space: pre-wrap;"
-              :bg-color="message.comment ? 'deep-purple-2' : message.isSent ? '#e0e0e0' : 'white'"
+              :bg-color="message.isComment ? 'deep-purple-2' : message.isSent ? '#e0e0e0' : 'white'"
             >
               <template v-slot:stamp>
               <span
