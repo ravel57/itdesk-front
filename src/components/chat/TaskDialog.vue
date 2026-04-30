@@ -426,6 +426,10 @@ export default {
   }),
 
   methods: {
+    getCurrentTaskId () {
+      return this.taskId || this.dialogTaskId || this.task?.id || null
+    },
+
     dateOption (date) {
       const today = new Date()
       const year = today.getFullYear()
@@ -508,8 +512,20 @@ export default {
       }
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.store.tags.find(tag => tag.name === tagName)))
+      const currentTaskId = this.getCurrentTaskId()
+      if (!this.isNewTask && !currentTaskId) {
+        this.$q.notify({
+          message: 'Не найден id заявки для обновления',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       const task = {
-        id: this.isNewTask ? null : this.taskId,
+        id: this.isNewTask ? null : currentTaskId,
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
         status: this.store.statuses.find(status => status.name === this.dialogTaskStatus),
@@ -562,7 +578,6 @@ export default {
               }]
             }))
       }
-      this.taskId = null
     },
 
     setTaskCompleted (task) {
@@ -635,8 +650,20 @@ export default {
           return
         }
       }
+      const currentTaskId = this.getCurrentTaskId()
+      if (!currentTaskId) {
+        this.$q.notify({
+          message: 'Не найден id заявки для обновления',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       const task = {
-        id: this.isNewTask ? null : this.taskId,
+        id: currentTaskId,
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
         status: this.store.statuses.find(status => status.name === this.dialogTaskStatus),
@@ -757,6 +784,9 @@ export default {
 
     getBackgroundColor (statusLabel) {
       const status = this.store.statuses.find(status => status.name === statusLabel)
+      if (!status) {
+        return ''
+      }
       switch (status.name) {
         case 'Закрыта': {
           return 'background-color: rgba(16, 181, 92, 0.2);'
@@ -837,7 +867,11 @@ export default {
     },
 
     getClientName () {
-      return this.task.client.lastname + ' ' + this.task.client.firstname
+      const client = this.task?.client || this.client
+      if (!client) {
+        return ''
+      }
+      return `${client.lastname || ''} ${client.firstname || ''}`.trim()
     },
 
     getLinkedMessage () {
@@ -875,7 +909,10 @@ export default {
 
   mounted () {
     this.getTaskField()
-    axios.post(`/api/v1/client/${this.client.id}/task/${this.task.id}/mark-message-read`, { userId: this.store.currentUser.id })
+    const currentTaskId = this.getCurrentTaskId()
+    if (!this.isNewTask && currentTaskId) {
+      axios.post(`/api/v1/client/${this.client.id}/task/${currentTaskId}/mark-message-read`, { userId: this.store.currentUser.id })
+    }
   },
 
   setup () {
