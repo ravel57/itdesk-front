@@ -1248,7 +1248,7 @@ export default {
       this.isShowFileList = true
       axios.get(`/api/v1/client-files/${this.client.id}`)
         .then(response => {
-          this.fileList = response.data.map(el => el.name !== null ? el.name : el.uuid)
+          this.fileList = response.data.map(el => el.name !== null ? el.name : `${el.uuid}. `)
         })
     }
   },
