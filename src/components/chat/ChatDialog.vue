@@ -650,13 +650,13 @@
           >
             <a
               style="display: flex; align-items: center; padding: 4px; border: solid 1px rgba(108, 108, 108, 0.2); border-radius: 4px; text-decoration: none;"
-              :href="`/files/${file.type.split('/')[0]}s/${file.uuid}`"
+              :href="getFileUrl(file)"
               target="_blank"
             >
               <div style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
-                {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
+                {{ getFileExt(file) }}
               </div>
-              <div class="truncate">{{ file.name.split('.')[0] }}</div>
+              <div class="truncate">{{ getFileTitle(file) }}</div>
               <q-space/>
             </a>
           </div>
@@ -1248,9 +1248,35 @@ export default {
       this.isShowFileList = true
       axios.get(`/api/v1/client-files/${this.client.id}`)
         .then(response => {
-          this.fileList = response.data.map(el => el.name !== null ? el.name : `${el.uuid}. `)
+          this.fileList = response.data || []
         })
-    }
+    },
+
+    getFileName (file) {
+      return file?.name || file?.uuid || 'Файл'
+    },
+
+    getFileExt (file) {
+      const name = this.getFileName(file)
+      if (!name.includes('.')) {
+        return 'FILE'
+      }
+      return name.split('.').pop().toUpperCase()
+    },
+
+    getFileTitle (file) {
+      const name = this.getFileName(file)
+      if (!name.includes('.')) {
+        return name
+      }
+      return name.substring(0, name.lastIndexOf('.'))
+    },
+
+    getFileUrl (file) {
+      const type = file?.type || 'application/octet-stream'
+      const category = type.includes('/') ? type.split('/')[0] : 'application'
+      return `/files/${category}s/${file.uuid}`
+    },
   },
 
   computed: {
