@@ -211,7 +211,7 @@
     :isNewTask="this.isNewTask"
     @closeDialog="this.closeDialog"
     @addMessageToTask="this.addMessageToTask"
-    @updateTask="updateTask($event)"
+    @updateTask="updateTask"
   />
 </template>
 
@@ -222,6 +222,7 @@ import TaskDialog from 'components/chat/TaskDialog.vue'
 import TaskCard from 'components/TaskCard.vue'
 import { useStore } from 'stores/store'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
+import moment from "moment";
 
 export default {
 
@@ -271,6 +272,11 @@ export default {
     ],
     slaIsPause: false,
 
+    slaInfoByTaskId: {},
+    slaInfoLoadingByTaskId: {},
+    nowTs: Date.now(),
+    slaTimer: null,
+
     showSearch: false
   }),
 
@@ -310,7 +316,8 @@ export default {
         completed: true,
         createdAt: task.createdAt,
         deadline: task.deadline,
-        linkedMessageId: task.linkedMessageId
+        linkedMessageId: task.linkedMessageId,
+        sla: task.sla,
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, completedTask)
         .then(newTask => {
@@ -422,7 +429,132 @@ export default {
       }
 
       return `${count} ${form}`
-    }
+    },
+
+    getSlaDuration (duration) {
+      if (!duration) {
+        return moment.duration(0)
+      }
+      if (typeof duration.asMilliseconds === 'function') {
+        return duration
+      }
+      if (typeof duration === 'number') {
+        return moment.duration(duration, 'milliseconds')
+      }
+      return moment.duration(duration)
+    },
+
+    getSlaEndDate (task) {
+      if (!task?.sla?.startDate || !task?.sla?.duration) {
+        return null
+      }
+      return moment(task.sla.startDate).add(this.getSlaDuration(task.sla.duration))
+    },
+
+    async loadSlaInfoForTask (task) {
+      if (!task?.id) return
+      if (!task?.sla) return
+      if (this.slaInfoByTaskId[task.id]) return
+      if (this.slaInfoLoadingByTaskId[task.id]) return
+
+      this.slaInfoLoadingByTaskId[task.id] = true
+
+      try {
+        const response = await axios.get(`/api/v1/task/${task.id}/sla/info`)
+        this.slaInfoByTaskId = {
+          ...this.slaInfoByTaskId,
+          [task.id]: response.data
+        }
+      } catch (e) {
+        console.warn('SLA info load failed', task.id, e)
+      } finally {
+        this.slaInfoLoadingByTaskId[task.id] = false
+      }
+    },
+
+    loadSlaInfosForTasks () {
+      this.tasks
+        .filter(task => task?.sla)
+        .forEach(task => this.loadSlaInfoForTask(task))
+    },
+
+    getSlaInfo (task) {
+      return this.slaInfoByTaskId[task.id] || null
+    },
+
+    getSlaLeftSeconds (task) {
+      const info = this.getSlaInfo(task)
+
+      if (info) {
+        if (info.paused) {
+          return info.remainingSeconds
+        }
+
+        return Math.max(0, Math.floor((new Date(info.deadline).getTime() - this.nowTs) / 1000))
+      }
+
+      if (!task?.sla?.startDate || !task?.sla?.duration) {
+        return null
+      }
+
+      const startMs = new Date(task.sla.startDate).getTime()
+      const durationMs = this.parseIsoDurationToMs(task.sla.duration)
+      const deadlineMs = startMs + durationMs
+
+      return Math.max(0, Math.floor((deadlineMs - this.nowTs) / 1000))
+    },
+
+    parseIsoDurationToMs (duration) {
+      if (!duration) return 0
+
+      if (typeof duration === 'number') {
+        return duration
+      }
+
+      const match = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/)
+
+      if (!match) {
+        return 0
+      }
+
+      const hours = Number(match[1] || 0)
+      const minutes = Number(match[2] || 0)
+      const seconds = Number(match[3] || 0)
+
+      return ((hours * 3600) + (minutes * 60) + seconds) * 1000
+    },
+
+    getSlaText (task) {
+      if (!task?.sla) {
+        return ''
+      }
+      const secondsLeft = this.getSlaLeftSeconds(task)
+      if (secondsLeft === null) {
+        return ''
+      }
+      if (secondsLeft <= 0) {
+        return 'SLA просрочен'
+      }
+      const hours = Math.floor(secondsLeft / 3600)
+      const minutes = Math.floor((secondsLeft % 3600) / 60)
+      return `SLA: ${hours} ч ${minutes} мин`
+    },
+
+    isSlaExpired (task) {
+      const secondsLeft = this.getSlaLeftSeconds(task)
+      return secondsLeft !== null && secondsLeft <= 0
+    },
+
+    getSlaDeadlineMs (task) {
+      const info = this.getSlaInfo(task)
+      if (info?.deadline) {
+        return new Date(info.deadline).getTime()
+      }
+      if (!task?.sla?.startDate || !task?.sla?.duration) {
+        return Number.MAX_SAFE_INTEGER
+      }
+      return new Date(task.sla.startDate).getTime() + this.parseIsoDurationToMs(task.sla.duration)
+    },
   },
 
   computed: {
@@ -451,12 +583,20 @@ export default {
                 return new Date(a.createdAt) - new Date(b.createdAt)
               case 'priority':
                 return b.priority.orderNumber - a.priority.orderNumber
-              case 'sla':
-                if (a.sla && b.sla) {
-                  return b.sla.startDate.clone().add(b.sla.duration) - a.sla.startDate.clone().add(a.sla.duration)
-                } else {
-                  return b
+              case 'sla': {
+                const aEnd = this.getSlaEndDate(a)
+                const bEnd = this.getSlaEndDate(b)
+                if (!aEnd && !bEnd) {
+                  return 0
                 }
+                if (!aEnd) {
+                  return 1
+                }
+                if (!bEnd) {
+                  return -1
+                }
+                return aEnd.diff(bEnd)
+              }
               case 'status':
                 return b.status.orderNumber - a.status.orderNumber
               default:
@@ -473,11 +613,7 @@ export default {
               case 'priority':
                 return a.priority.orderNumber - b.priority.orderNumber
               case 'sla':
-                if (a.sla && b.sla) {
-                  return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
-                } else {
-                  return b
-                }
+                return this.getSlaDeadlineMs(b) - this.getSlaDeadlineMs(a)
               case 'status':
                 return a.status.orderNumber - b.status.orderNumber
               default:
@@ -509,11 +645,27 @@ export default {
 
     isShowCompletedTasks () {
       localStorage.setItem('isShowCompletedTasks', this.isShowCompletedTasks)
+    },
+
+    tasks: {
+      handler () {
+        this.loadSlaInfosForTasks()
+      },
+      deep: true
     }
   },
 
   mounted () {
-    setInterval(() => this.initializeTaskFromUrl(), 500)
+    this.initializeTaskTimer = setInterval(() => this.initializeTaskFromUrl(), 500)
+    this.loadSlaInfosForTasks()
+    this.slaTimer = setInterval(() => {
+      this.nowTs = Date.now()
+    }, 1000)
+  },
+
+  beforeUnmount () {
+    clearInterval(this.initializeTaskTimer)
+    clearInterval(this.slaTimer)
   },
 
   created () {

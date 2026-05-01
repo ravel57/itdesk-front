@@ -96,7 +96,7 @@
           v-text="this.getStamp(task.deadline)"
         />
       </tr>
-      <tr v-if="task.sla && task.sla.duration > 0 && !task.completed && this.slaRequire">
+      <tr v-if="isSlaVisible(task)">
         <th
           class="small-text text-grey"
           :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:#9e9e9e'"
@@ -124,7 +124,7 @@
           </div>
           <div v-if="this.$route.path.includes('chat')">
             <q-btn
-              v-if="!this.slaIsPause"
+              v-if="slaInfo && !slaInfo.paused"
               dense
               flat
               color="grey"
@@ -134,7 +134,7 @@
               icon="pause_circle"
             />
             <q-btn
-              v-if="this.slaIsPause"
+              v-if="slaInfo && slaInfo.paused"
               dense
               flat
               color="grey"
@@ -178,18 +178,21 @@ export default {
 
   methods: {
     getStamp (date) {
-      if (date) {
-        return date.toLocaleTimeString('ru-RU', {
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      } else {
+      if (!date) {
         return ''
       }
+      const parsedDate = date instanceof Date ? date : new Date(date)
+      if (Number.isNaN(parsedDate.getTime())) {
+        return ''
+      }
+      return parsedDate.toLocaleTimeString('ru-RU', {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     },
 
     getName (executor) {
@@ -208,22 +211,30 @@ export default {
     },
 
     getSlaTime (task) {
-      const deadline = this.getSlaDeadlineMoment(task)
-      const now = moment(this.nowTs)
-      const left = moment.duration(deadline.diff(now))
-      if (left.asMilliseconds() <= 0) return '0 ч. 0 м.'
-      const totalHours = Math.floor(left.asHours())
-      const minutes = left.minutes()
-      return `${totalHours} ч. ${minutes} м.`
+      const secondsLeft = this.getSlaLeftSeconds(task)
+      if (secondsLeft === null) {
+        return ''
+      }
+      if (secondsLeft <= 0) {
+        return '0 ч. 0 м.'
+      }
+      const hours = Math.floor(secondsLeft / 3600)
+      const minutes = Math.floor((secondsLeft % 3600) / 60)
+      return `${hours} ч. ${minutes} м.`
     },
 
     getSlaPercent (task) {
-      const totalMs = task.sla.duration.asMilliseconds()
-      if (!totalMs || totalMs <= 0) return 0
-      const deadline = this.getSlaDeadlineMoment(task)
-      const now = moment(this.nowTs)
-      const leftMs = Math.max(0, deadline.diff(now))
-      return leftMs / totalMs
+      const leftSeconds = this.getSlaLeftSeconds(task)
+      if (leftSeconds === null || !this.slaInfo?.deadline) {
+        return 0
+      }
+      const createdAtMs = new Date(task.createdAt).getTime()
+      const deadlineMs = new Date(this.slaInfo.deadline).getTime()
+      const totalMs = deadlineMs - createdAtMs
+      if (!Number.isFinite(totalMs) || totalMs <= 0) {
+        return 0
+      }
+      return Math.max(0, Math.min(1, (leftSeconds * 1000) / totalMs))
     },
 
     getSlaColor (task) {
@@ -243,7 +254,24 @@ export default {
     },
 
     isSlaExpired (task) {
-      return this.getSlaLeftMs(task) <= 0
+      const secondsLeft = this.getSlaLeftSeconds(task)
+      return secondsLeft !== null && secondsLeft <= 0
+    },
+
+    getSlaLeftSeconds (task) {
+      if (this.slaInfo) {
+        if (this.slaInfo.paused) {
+          return this.slaInfo.remainingSeconds
+        }
+
+        if (this.slaInfo.deadline) {
+          return Math.max(0, Math.floor((new Date(this.slaInfo.deadline).getTime() - this.nowTs) / 1000))
+        }
+
+        return this.slaInfo.remainingSeconds ?? null
+      }
+
+      return null
     },
 
     shortenLine (string) {
@@ -263,14 +291,15 @@ export default {
     },
 
     async loadSlaInfo () {
-      // Не дергаем API если SLA не требуется/отсутствует
-      if (!this.task?.sla || !this.slaRequire || this.task.completed) return
-
+      if (!this.task?.id || !this.task?.sla) {
+        return
+      }
       try {
-        const { data } = await axios.get(`/api/v1/task/${this.task.id}/sla/info`)
-        this.applySlaInfo(data)
+        const response = await axios.get(`/api/v1/task/${this.task.id}/sla/info`)
+        this.applySlaInfo(response.data)
       } catch (e) {
-        // SLA не критичен для рендера карточки — можно молча
+        this.slaInfo = null
+        this.slaIsPause = false
       }
     },
 
@@ -281,12 +310,53 @@ export default {
     },
 
     getSlaDeadlineMoment (task) {
-      // Приоритет — дедлайн с бэка (учитывает паузы)
       if (this.slaInfo?.deadline) {
         return moment(this.slaInfo.deadline)
       }
-      // Фоллбек — старый расчёт (startDate + duration)
-      return task.sla.startDate.clone().add(task.sla.duration)
+      if (!task?.sla?.startDate || !task?.sla?.duration) {
+        return moment.invalid()
+      }
+      return moment(task.sla.startDate).add(this.getSlaDuration(task))
+    },
+
+    getSlaDuration (task) {
+      const duration = task?.sla?.duration
+      if (!duration) {
+        return moment.duration(0)
+      }
+      if (typeof duration.asMilliseconds === 'function') {
+        const ms = duration.asMilliseconds()
+        if (Number.isFinite(ms) && ms > 0) {
+          return duration
+        }
+        return moment.duration(0)
+      }
+      if (typeof duration === 'number') {
+        return moment.duration(duration, 'milliseconds')
+      }
+      if (typeof duration === 'string') {
+        const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
+        if (match) {
+          const days = Number(match[1] || 0)
+          const hours = Number(match[2] || 0)
+          const minutes = Number(match[3] || 0)
+          const seconds = Number(match[4] || 0)
+          return moment.duration({
+            days,
+            hours,
+            minutes,
+            seconds
+          })
+        }
+      }
+      return moment.duration(0)
+    },
+
+    isSlaVisible (task) {
+      return this.slaRequire &&
+        !task?.completed &&
+        !!task?.sla &&
+        !!this.slaInfo
     },
 
     async pauseSla (reason = null) {
@@ -388,7 +458,7 @@ export default {
   mounted () {
     this.loadSlaInfo()
     this.slaTimer = setInterval(() => {
-      if (!this.slaIsPause) {
+      if (!this.slaInfo?.paused) {
         this.nowTs = Date.now()
       }
     }, 1000)
@@ -396,6 +466,12 @@ export default {
 
   beforeUnmount () {
     clearInterval(this.slaTimer)
+  },
+
+  watch: {
+    'task.id' () {
+      this.loadSlaInfo()
+    }
   },
 
   setup () {

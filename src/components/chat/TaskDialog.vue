@@ -536,8 +536,11 @@ export default {
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,
-        previusStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previusStatus,
+        previousStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previousStatus,
         messages: this.isNewTask ? (this.getLinkedMessage ? this.getLinkedMessage : null) : this.task.messages
+      }
+      if (!this.isNewTask) {
+        task.sla = this.task.sla
       }
       if (task.status.name === 'Закрыта') {
         task.completed = true
@@ -677,7 +680,10 @@ export default {
         frozen: !this.task.frozen,
         frozenFrom: this.task.frozen ? null : new Date(),
         frozenUntil: this.task.frozen ? null : moment(this.dialogTaskFreezeUntil, 'DD.MM.YYYY HH:mm').format(),
-        previusStatus: this.task.previusStatus
+        previousStatus: this.task.previousStatus
+      }
+      if (!this.isNewTask) {
+        task.sla = this.task.sla
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {

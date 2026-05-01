@@ -6,7 +6,7 @@
       </q-btn>
     </div>
 
-    <q-separator class="q-mt-md q-mb-sm" />
+    <q-separator v-if="perm !== 'granted'" class="q-mt-md q-mb-sm" />
 
     <div class="column q-gutter-y-sm">
       <q-checkbox

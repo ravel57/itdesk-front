@@ -293,31 +293,32 @@ function editedMessageCallback(message) {
 function userNotificationCallback(message) {
   const {notify} = useSystemNotifications()
   const parsedMessage = JSON.parse(message.body)
-  console.log(parsedMessage)
-  switch (parsedMessage.event) {
-    case 'MENTIONED_USER':
-      notify('ULDesk', {
-        body: `Вас упомянули в чате: ${parsedMessage.message}`,
-        tag: 'new-task'
-      })
-      break
-    case 'MENTIONED_USER_IN_TASK_CHAT':
-      notify('ULDesk', {
-        body: `Вас упомянули в заявке: ${parsedMessage.message}`,
-        tag: 'new-task'
-      })
-      break
-    case 'NEW_TASK':
-      notify('ULDesk', {
-        body: 'Новая заявка назначена на Вас',
-        tag: 'new-task'
-      })
-      break
-    case 'NEW_CHAT_MESSAGE':
-      notify('ULDesk', {
-        body: 'Новое сообщение в чате, где Вы назначены исполнителем',
-        tag: 'new-task'
-      })
-      break
+  if (parsedMessage.userId === useStore().currentUser.id) {
+    switch (parsedMessage.event) {
+      case 'MENTIONED_USER':
+        notify('ULDesk', {
+          body: `Вас упомянули в чате: ${parsedMessage.message}`,
+          tag: 'new-task'
+        })
+        break
+      case 'MENTIONED_USER_IN_TASK_CHAT':
+        notify('ULDesk', {
+          body: `Вас упомянули в заявке: ${parsedMessage.message}`,
+          tag: 'new-task'
+        })
+        break
+      case 'NEW_TASK':
+        notify('ULDesk', {
+          body: 'Новая заявка назначена на Вас',
+          tag: 'new-task'
+        })
+        break
+      case 'NEW_CHAT_MESSAGE':
+        notify('ULDesk', {
+          body: 'Новое сообщение в чате, где Вы назначены исполнителем',
+          tag: 'new-task'
+        })
+        break
+    }
   }
 }

@@ -87,6 +87,7 @@
             :priorities="this.store.priorities"
             :is-mobile="this.isMobile"
             @newTask="this.newTask"
+            @updateTask="this.updateTask"
             @scrollToElementById="this.getLinkedMessage($event)"
           />
         </div>
@@ -192,6 +193,14 @@ export default {
 
     newTask (task) {
       this.getClient.tasks.push(task.data)
+    },
+
+    updateTask (oldTask, newTask) {
+      const updatedTask = newTask.data ? newTask.data : newTask
+      const index = this.getClient.tasks.findIndex(task => task.id === updatedTask.id)
+      if (index !== -1) {
+        this.getClient.tasks[index] = updatedTask
+      }
     },
 
     pastToInputField (text) {

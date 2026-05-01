@@ -994,11 +994,7 @@ export default {
               case 'priority':
                 return b.priority.orderNumber - a.priority.orderNumber
               case 'sla':
-                if (a.sla && b.sla) {
-                  return b.sla.startDate.clone().add(b.sla.duration) - a.sla.startDate.clone().add(a.sla.duration)
-                } else {
-                  return b
-                }
+                return this.getSlaDeadlineMs(a) - this.getSlaDeadlineMs(b)
               case 'status':
                 return b.status.orderNumber - a.status.orderNumber
               default:
@@ -1015,11 +1011,7 @@ export default {
               case 'priority':
                 return a.priority.orderNumber - b.priority.orderNumber
               case 'sla':
-                if (a.sla && b.sla) {
-                  return a.sla.startDate.clone().add(a.sla.duration) - b.sla.startDate.clone().add(b.sla.duration)
-                } else {
-                  return b
-                }
+                return this.getSlaDeadlineMs(b) - this.getSlaDeadlineMs(a)
               case 'status':
                 return a.status.orderNumber - b.status.orderNumber
               default:
