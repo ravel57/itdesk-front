@@ -1326,7 +1326,6 @@ export default {
         this.currentExecutorLabel,
         ...this.store.users.filter(user => user !== null)
           .filter(user => user.roles !== 'OBSERVER')
-          .filter(user => this.store.currentUser?.id == null || Number(user.id) !== Number(this.store.currentUser.id))
           .map(user => `${user.firstname} ${user.lastname}`),
         this.unassignedExecutorLabel,
       ]
