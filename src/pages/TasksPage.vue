@@ -157,6 +157,9 @@
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                   ref="dialogNewFilterName"
                 />
+                <div style="margin-bottom: 8px">
+                  Условие между фильтрами: {{ this.filterJoinOperator === 'AND' ? 'И' : 'ИЛИ' }}
+                </div>
                 <div
                   style="white-space: pre-wrap"
                   v-for="(filter, index) in this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions}))"
@@ -197,6 +200,18 @@
           @update:model-value="this.onSavedFilterSelected"
           outlined
           clearable
+        />
+        <q-select
+          v-model="filterJoinOperator"
+          :options="filterJoinOptions"
+          label="Условие"
+          emit-value
+          map-options
+          outlined
+          dense
+          style="margin-right: 8px; width: 120px"
+          :style="this.isMobile ? 'width: 100%; margin-bottom: 8px' : 'margin-right: 8px; width: 120px'"
+          @update:model-value="updateUrlWithFilterJoinOperator"
         />
         <div
           v-if="this.isFilterSelected"
@@ -396,7 +411,7 @@
               <q-btn
                 icon="close"
                 color="primary"
-                @click="this.filterChain = [];this.searchRequest = ''"
+                @click="this.filterChain = []; this.filterJoinOperator = 'AND'; this.searchRequest = ''"
               >
                 Сбросить фильтры
               </q-btn>
@@ -653,7 +668,15 @@ export default {
 
     selectedSorting: [],
     sortMenuOpened: [],
-    filteredOptions: {}
+    filteredOptions: {},
+    isApplyingSavedFilter: false,
+    filterJoinOperator: 'AND',
+    filterJoinOptions: [
+      { label: 'И', value: 'AND' },
+      { label: 'ИЛИ', value: 'OR' }
+    ],
+    currentExecutorLabel: 'Вы',
+    unassignedExecutorLabel: 'Без исполнителя'
   }),
 
   methods: {
@@ -724,10 +747,8 @@ export default {
         const newFilter = {
           id: null,
           label: this.dialogNewFilterName,
-          selectedOptions: this.filterChain.map(it => ({
-            label: it.label,
-            selectedOptions: it.selectedOptions
-          }))
+          filterJoinOperator: this.filterJoinOperator,
+          selectedOptions: this.normalizeFiltersForSave(this.filterChain)
         }
         axios.post('/api/v1/filter', newFilter)
           .then(response => {
@@ -759,36 +780,46 @@ export default {
     onSavedFilterSelected () {
       const filterElement = this.savedFilters.find(el => this.selectedSavedFilter === el.label)
       if (filterElement !== undefined) {
-        this.filterChain = structuredClone(filterElement.selectedOptions)
+        this.isApplyingSavedFilter = true
+        this.filterJoinOperator = this.isValidFilterJoinOperator(filterElement.filterJoinOperator)
+          ? filterElement.filterJoinOperator
+          : 'AND'
+        this.filterChain = structuredClone(filterElement.selectedOptions || [])
         this.filterChain.forEach(it => {
-          const slug = this.filterTypes.filter(el => el.label === it.label)[0].slug
-          let options
-          switch (slug) {
+          const filterType = this.filterTypes.find(el => el.label === it.label)
+          if (!filterType) {
+            return
+          }
+          it.slug = filterType.slug
+          switch (it.slug) {
             case 'executor':
-              options = this.executors
+              it.options = this.executors
               break
             case 'tag':
-              options = this.tags
+              it.options = this.tags
               break
             case 'organization':
-              options = this.organizations
+              it.options = this.organizations
               break
             case 'priority':
-              options = this.priorities
+              it.options = this.priorities
               break
             case 'status':
-              options = this.statuses
+              it.options = this.statuses
               break
             case 'client':
-              options = this.clients
+              it.options = this.clients
               break
             default:
-              options = null
+              it.options = null
               break
           }
-          it.options = options
         })
         this.isFilterSelected = true
+        this.updateUrlWithFilterChain(this.filterChain)
+        this.$nextTick(() => {
+          this.isApplyingSavedFilter = false
+        })
       } else {
         this.selectedSavedFilter = ''
         this.filterChain = []
@@ -828,8 +859,9 @@ export default {
     changeFilterSelection () {
       this.isFilterSelected = !this.isFilterSelected
       const queryParams = new URLSearchParams(window.location.search)
-      if (queryParams.get('filterChain')) {
+      if (queryParams.get('filterChain') || queryParams.get('filterJoinOperator')) {
         queryParams.delete('filterChain')
+        queryParams.delete('filterJoinOperator')
         this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
       }
     },
@@ -846,6 +878,7 @@ export default {
 
     removeFilters () {
       this.selectedSavedFilter = ''
+      this.filterJoinOperator = 'AND'
       this.filterChain = []
     },
 
@@ -867,8 +900,10 @@ export default {
       const queryParams = new URLSearchParams(window.location.search)
       if (filterChain.length) {
         queryParams.set('filterChain', this.base64EncodeUnicode(JSON.stringify(filterChain)))
+        queryParams.set('filterJoinOperator', this.filterJoinOperator)
       } else {
         queryParams.delete('filterChain')
+        queryParams.delete('filterJoinOperator')
       }
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     },
@@ -876,10 +911,45 @@ export default {
     initializeFilterChainFromUrl () {
       const queryParams = new URLSearchParams(window.location.search)
       const filterChainFromUrl = queryParams.get('filterChain')
+      const filterJoinOperatorFromUrl = queryParams.get('filterJoinOperator')
+
+      this.filterJoinOperator = this.isValidFilterJoinOperator(filterJoinOperatorFromUrl)
+        ? filterJoinOperatorFromUrl
+        : 'AND'
 
       if (filterChainFromUrl) {
         try {
           this.filterChain = JSON.parse(this.base64DecodeUnicode(filterChainFromUrl))
+          this.filterChain.forEach(filter => {
+            const filterType = this.filterTypes.find(el => el.label === filter.label)
+            if (!filterType) {
+              return
+            }
+            filter.slug = filterType.slug
+            switch (filter.slug) {
+              case 'executor':
+                filter.options = this.executors
+                break
+              case 'tag':
+                filter.options = this.tags
+                break
+              case 'organization':
+                filter.options = this.organizations
+                break
+              case 'priority':
+                filter.options = this.priorities
+                break
+              case 'status':
+                filter.options = this.statuses
+                break
+              case 'client':
+                filter.options = this.clients
+                break
+              default:
+                filter.options = null
+                break
+            }
+          })
           this.isFilterSelected = true
         } catch (e) {
           console.error(e)
@@ -887,6 +957,41 @@ export default {
       } else {
         this.filterChain = []
       }
+    },
+
+    normalizeFilterForSave (filter) {
+      const normalizedFilter = {
+        label: filter.label,
+        selectedOptions: Array.isArray(filter.selectedOptions)
+          ? [...filter.selectedOptions]
+          : filter.selectedOptions
+      }
+      if (filter.isBeforeDeadline !== undefined) {
+        normalizedFilter.isBeforeDeadline = filter.isBeforeDeadline
+      }
+      return normalizedFilter
+    },
+
+    normalizeFiltersForSave (filters) {
+      return filters.map(filter => this.normalizeFilterForSave(filter))
+    },
+
+    isCurrentSavedFilterChanged () {
+      if (!this.selectedSavedFilter) {
+        return false
+      }
+      const savedFilter = this.savedFilters.find(filter => this.selectedSavedFilter === filter.label)
+      if (!savedFilter) {
+        return false
+      }
+      const savedJoinOperator = savedFilter.filterJoinOperator || 'AND'
+      const currentJoinOperator = this.filterJoinOperator || 'AND'
+      if (savedJoinOperator !== currentJoinOperator) {
+        return true
+      }
+      const savedFilters = this.normalizeFiltersForSave(savedFilter.selectedOptions || [])
+      const currentFilters = this.normalizeFiltersForSave(this.filterChain || [])
+      return JSON.stringify(savedFilters) !== JSON.stringify(currentFilters)
     },
 
     onTaskClicked (task) {
@@ -966,7 +1071,81 @@ export default {
         formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
       }
       this.dialogTaskDeadline = formattedValue
-    }
+    },
+
+    isCurrentUserExecutor (task) {
+      return task?.executor?.id != null &&
+        this.store.currentUser?.id != null &&
+        Number(task.executor.id) === Number(this.store.currentUser.id)
+    },
+
+    getExecutorName (task) {
+      if (!task?.executor) {
+        return this.unassignedExecutorLabel
+      }
+
+      if (this.isCurrentUserExecutor(task)) {
+        return this.currentExecutorLabel
+      }
+
+      return `${task.executor.firstname} ${task.executor.lastname}`
+    },
+
+    isValidFilterJoinOperator (value) {
+      return ['AND', 'OR'].includes(value)
+    },
+
+    updateUrlWithFilterJoinOperator () {
+      this.updateUrlWithFilterChain(this.filterChain)
+    },
+
+    isTaskMatchesFilter (task, filter) {
+      const slug = this.filterTypes.find(ft => ft.label === filter.label)?.slug
+
+      switch (slug) {
+        case 'executor': {
+          return filter.selectedOptions.includes(this.getExecutorName(task))
+        }
+
+        case 'tag': {
+          const taskTags = task.tags.map(tag => tag.name)
+          return filter.selectedOptions.some(selectedTag => taskTags.includes(selectedTag))
+        }
+
+        case 'priority': {
+          return filter.selectedOptions.includes(task.priority.name)
+        }
+
+        case 'organization': {
+          return task.client.organization != null &&
+            filter.selectedOptions.includes(task.client.organization.name)
+        }
+
+        case 'status': {
+          return filter.selectedOptions.includes(task.status.name)
+        }
+
+        case 'client': {
+          return filter.selectedOptions.includes(`${task.client.lastname} ${task.client.firstname}`)
+        }
+
+        case 'deadline': {
+          if (!filter.selectedOptions) {
+            return true
+          }
+
+          if (filter.isBeforeDeadline) {
+            return new Date(moment(filter.selectedOptions, 'DD.MM.YYYY HH:mm').format()) >= new Date(task.deadline)
+          }
+
+          return new Date(moment(filter.selectedOptions, 'DD.MM.YYYY HH:mm').format()) <= new Date(task.deadline)
+        }
+
+        default:
+          return true
+      }
+    },
+
   },
 
   computed: {
@@ -1020,52 +1199,24 @@ export default {
           })
         }
       }
-      this.filterChain.forEach(el => {
-        const slug = this.filterTypes.filter(ft => ft.label === el.label)[0].slug
-        switch (slug) {
-          case 'executor': {
-            tasks = tasks.filter(task => task.executor !== null)
-              .filter(task => el.selectedOptions.includes(`${task.executor.firstname} ${task.executor.lastname}`))
-            break
-          }
-          case 'tag': {
-            const set = new Set()
-            tasks.forEach(task => el.selectedOptions
-              .filter(e => task.tags.map(e => e.name).includes(e))
-              .forEach(() => set.add(task)))
-            tasks = Array.from(set)
-            break
-          }
-          case 'priority': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(task.priority.name))
-            break
-          }
-          case 'organization': {
-            tasks = tasks
-              .filter(task => task.client.organization != null)
-              .filter(task => el.selectedOptions.includes(task.client.organization.name))
-            break
-          }
-          case 'status': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(task.status.name))
-            break
-          }
-          case 'client': {
-            tasks = tasks.filter(task => el.selectedOptions.includes(`${task.client.lastname} ${task.client.firstname}`))
-            break
-          }
-          case 'deadline': {
-            tasks = tasks.filter(task => {
-              if (el.isBeforeDeadline) {
-                return new Date(moment(el.selectedOptions, 'DD.MM.YYYY HH:mm').format()) >= new Date(task.deadline)
-              } else {
-                return new Date(moment(el.selectedOptions, 'DD.MM.YYYY HH:mm').format()) <= new Date(task.deadline)
-              }
-            })
-            break
-          }
+      const activeFilters = this.filterChain.filter(filter => {
+        const slug = this.filterTypes.find(ft => ft.label === filter.label)?.slug
+        if (slug === 'deadline') {
+          return !!filter.selectedOptions
         }
+        return filter.selectedOptions && filter.selectedOptions.length > 0
       })
+      if (activeFilters.length > 0) {
+        if (this.filterJoinOperator === 'AND') {
+          tasks = tasks.filter(task =>
+            activeFilters.every(filter => this.isTaskMatchesFilter(task, filter))
+          )
+        } else {
+          tasks = tasks.filter(task =>
+            activeFilters.some(filter => this.isTaskMatchesFilter(task, filter))
+          )
+        }
+      }
       return tasks
     },
 
@@ -1078,13 +1229,7 @@ export default {
       switch (slug) {
         case 'executor': {
           source = this.executors
-          options = Object.groupBy(tasks, ({ executor }) => {
-            if (executor) {
-              return `${executor.firstname} ${executor.lastname}`
-            } else {
-              return ''
-            }
-          })
+          options = Object.groupBy(tasks, task => this.getExecutorName(task))
           break
         }
         case 'tag': {
@@ -1177,9 +1322,14 @@ export default {
     // },
 
     executors () {
-      return this.store.users.filter(user => user !== null)
-        .filter(user => user.roles !== 'OBSERVER')
-        .map(user => `${user.firstname} ${user.lastname}`)
+      return [
+        this.currentExecutorLabel,
+        ...this.store.users.filter(user => user !== null)
+          .filter(user => user.roles !== 'OBSERVER')
+          .filter(user => this.store.currentUser?.id == null || Number(user.id) !== Number(this.store.currentUser.id))
+          .map(user => `${user.firstname} ${user.lastname}`),
+        this.unassignedExecutorLabel,
+      ]
     },
 
     tags () {
@@ -1238,13 +1388,8 @@ export default {
             document.getElementById(`filter_${filters[filters.length - 1].slug}`).children[0].click()
           } catch (ignored) {
           }
-          if (this.selectedSavedFilter) {
-            const filters = structuredClone(this.filterChain)
-            filters.forEach(filter => {
-              delete filter.options
-            })
-            const isEqual = JSON.stringify(this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).selectedOptions) === JSON.stringify(filters)
-            if (!isEqual) {
+          if (this.selectedSavedFilter && !this.isApplyingSavedFilter) {
+            if (this.isCurrentSavedFilterChanged()) {
               this.selectedSavedFilter = ''
             }
           }
@@ -1294,7 +1439,19 @@ export default {
       handler () {
         localStorage.setItem('taskTableSettings', JSON.stringify(this.activeColumns))
       }
-    }
+    },
+
+    filterJoinOperator () {
+      if (this.isFilterSelected && this.filterChain.length > 0) {
+        this.updateUrlWithFilterChain(this.filterChain)
+      }
+
+      if (this.selectedSavedFilter && !this.isApplyingSavedFilter) {
+        if (this.isCurrentSavedFilterChanged()) {
+          this.selectedSavedFilter = ''
+        }
+      }
+    },
   },
 
   mounted () {
