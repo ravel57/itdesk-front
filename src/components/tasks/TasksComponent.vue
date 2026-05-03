@@ -229,20 +229,23 @@ export default {
         name: 'sla',
         label: 'SLA',
         align: 'left',
-        field: row => {
-          if (!row.sla || !row.sla.startDate || !row.sla.duration) {
-            return '0 ч. 0 м.'
+        field: row => row.sla || '',
+        sortable: true,
+        sort: (a, b, rowA, rowB) => {
+          const secondsA = Number(rowA.slaSecondsLeft)
+          const secondsB = Number(rowB.slaSecondsLeft)
+
+          if (!Number.isFinite(secondsA) && !Number.isFinite(secondsB)) {
+            return 0
           }
-          const endDateTime = moment(row.sla.startDate).clone().add(moment.duration(row.sla.duration))
-          const now = moment()
-          const duration = moment.duration(endDateTime.diff(now))
-          if (duration.asMilliseconds() < 0) {
-            return '0 ч. 0 м.'
-          } else {
-            return `${duration.days() * 24 + duration.hours()} ч. ${duration.minutes()} м.`
+          if (!Number.isFinite(secondsA)) {
+            return 1
           }
-        },
-        sortable: true
+          if (!Number.isFinite(secondsB)) {
+            return -1
+          }
+          return secondsA - secondsB
+        }
       }
     ],
     selectedTasks: [],

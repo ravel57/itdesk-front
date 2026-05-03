@@ -395,7 +395,7 @@
       <tasks-component
         :isShowTableMode="this.isShowTableMode"
         :isMobile="this.isMobile"
-        :tableRows="this.getTableRows"
+        :tableRows="getTableRows"
         :isFilterSelected="this.isFilterSelected"
         :groupedTasks="this.getGroupedTasks"
         :selectedGroupType="this.selectedGroupType"
@@ -612,8 +612,8 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
-import { useRoute } from 'vue-router'
+import {useStore} from 'stores/store'
+import {useRoute} from 'vue-router'
 import axios from 'axios'
 import TasksComponent from 'components/tasks/TasksComponent.vue'
 import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
@@ -622,35 +622,35 @@ import moment from 'moment/moment'
 import draggable from 'vuedraggable'
 
 export default {
-  components: { draggable, NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent },
+  components: {draggable, NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent},
   data: () => ({
     filterTypes: [
-      { label: 'Исполнитель', slug: 'executor' },
-      { label: 'Тег', slug: 'tag' },
-      { label: 'Организация', slug: 'organization' },
-      { label: 'Приоритет', slug: 'priority' },
-      { label: 'Статус', slug: 'status' },
-      { label: 'Клиент', slug: 'client' },
-      { label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false }
+      {label: 'Исполнитель', slug: 'executor'},
+      {label: 'Тег', slug: 'tag'},
+      {label: 'Организация', slug: 'organization'},
+      {label: 'Приоритет', slug: 'priority'},
+      {label: 'Статус', slug: 'status'},
+      {label: 'Клиент', slug: 'client'},
+      {label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false}
     ],
-    selectedGroupType: { label: 'Исполнитель', slug: 'executor' },
+    selectedGroupType: {label: 'Исполнитель', slug: 'executor'},
     sortingTypes: [
-      { label: 'По дедлайну', slug: 'deadline' },
-      { label: 'По дате создания', slug: 'creating' },
-      { label: 'Приоритету', slug: 'priority' },
-      { label: 'SLA', slug: 'sla' },
-      { label: 'По статусу', slug: 'status' }
+      {label: 'По дедлайну', slug: 'deadline'},
+      {label: 'По дате создания', slug: 'creating'},
+      {label: 'Приоритету', slug: 'priority'},
+      {label: 'SLA', slug: 'sla'},
+      {label: 'По статусу', slug: 'status'}
     ],
     activeColumns: [
-      { name: 'id', label: 'ID', active: true },
-      { name: 'name', label: 'Название', active: true },
-      { name: 'tags', label: 'Теги', active: true },
-      { name: 'priority', label: 'Приоритет', active: true },
-      { name: 'createdAt', label: 'Создана', active: true },
-      { name: 'status', label: 'Статус', active: true },
-      { name: 'deadline', label: 'Дедлайн', active: true },
-      { name: 'executor', label: 'Исполнитель', active: true },
-      { name: 'sla', label: 'SLA', active: true }
+      {name: 'id', label: 'ID', active: true},
+      {name: 'name', label: 'Название', active: true},
+      {name: 'tags', label: 'Теги', active: true},
+      {name: 'priority', label: 'Приоритет', active: true},
+      {name: 'createdAt', label: 'Создана', active: true},
+      {name: 'status', label: 'Статус', active: true},
+      {name: 'deadline', label: 'Дедлайн', active: true},
+      {name: 'executor', label: 'Исполнитель', active: true},
+      {name: 'sla', label: 'SLA', active: true}
     ],
     filterChain: [],
     addNewFilterSelectorText: '',
@@ -680,18 +680,21 @@ export default {
     selectedSorting: [],
     sortMenuOpened: [],
     filteredOptions: {},
-    isApplyingSavedFilter: false,
     filterJoinOperator: 'AND',
     filterJoinOptions: [
-      { label: 'И', value: 'AND' },
-      { label: 'ИЛИ', value: 'OR' }
+      {label: 'И', value: 'AND'},
+      {label: 'ИЛИ', value: 'OR'}
     ],
     currentExecutorLabel: 'Вы',
-    unassignedExecutorLabel: 'Без исполнителя'
+    unassignedExecutorLabel: 'Без исполнителя',
+    slaInfoByTaskId: {},
+    slaInfoLoadingByTaskId: {},
+    nowTs: Date.now(),
+    slaTimer: null
   }),
 
   methods: {
-    dateOption (date) {
+    dateOption(date) {
       const today = new Date()
       const year = today.getFullYear()
       const month = String(today.getMonth() + 1).padStart(2, '0')
@@ -699,9 +702,7 @@ export default {
       return date >= `${year}/${month}/${day}`
     },
 
-    filterFn (filter, input) {
-      console.log(input.target.value)
-      console.log(filter)
+    filterFn(filter, input) {
       const value = input.target.value.toLowerCase()
       if (value) {
         this.filteredOptions[filter] = filter.options.filter(option =>
@@ -712,11 +713,11 @@ export default {
       }
     },
 
-    onFilterFocused (filter) {
+    onFilterFocused(filter) {
       this.filteredOptions[filter] = filter.options
     },
 
-    handleNewFilterSelection (label) {
+    handleNewFilterSelection(label) {
       this.isMenuActive = false
       const slug = this.filterTypes.filter(el => el.label === label)[0].slug
       let options
@@ -743,17 +744,17 @@ export default {
           options = null
           break
       }
-      this.filterChain.push({ label, options, selectedOptions: [], slug })
+      this.filterChain.push({label, options, selectedOptions: [], slug})
       this.addNewFilterSelectorText = ''
       this.isFilterOpen = false
     },
 
-    deleteFilter (index) {
+    deleteFilter(index) {
       this.filterChain.splice(index, 1)
       this.selectedSavedFilter = ''
     },
 
-    saveFilter () {
+    saveFilter() {
       if (this.dialogNewFilterName.length > 0) {
         const newFilter = {
           id: null,
@@ -788,7 +789,7 @@ export default {
       }
     },
 
-    onSavedFilterSelected () {
+    onSavedFilterSelected() {
       const filterElement = this.savedFilters.find(el => this.selectedSavedFilter === el.label)
       if (filterElement !== undefined) {
         this.isApplyingSavedFilter = true
@@ -837,17 +838,17 @@ export default {
       }
     },
 
-    dialogSaveFilter () {
+    dialogSaveFilter() {
       this.dialogSaveFilterVisible = true
       this.dialogNewFilterName = ''
       setTimeout(() => this.$refs.dialogNewFilterName.focus(), 250)
     },
 
-    dialogSaveFilterClose () {
+    dialogSaveFilterClose() {
       this.dialogSaveFilterVisible = false
     },
 
-    deleteSavedFilter () {
+    deleteSavedFilter() {
       const filterId = this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).id
       axios.delete(`/api/v1/filter/${filterId}`)
         .then(() => {
@@ -867,17 +868,17 @@ export default {
           }))
     },
 
-    changeFilterSelection () {
+    changeFilterSelection() {
       this.isFilterSelected = !this.isFilterSelected
       const queryParams = new URLSearchParams(window.location.search)
       if (queryParams.get('filterChain') || queryParams.get('filterJoinOperator')) {
         queryParams.delete('filterChain')
         queryParams.delete('filterJoinOperator')
-        this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+        this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
       }
     },
 
-    getOrganizationName (task) {
+    getOrganizationName(task) {
       if (task) {
         return task.client.organization
           ? task.client.organization.name
@@ -887,13 +888,13 @@ export default {
       }
     },
 
-    removeFilters () {
+    removeFilters() {
       this.selectedSavedFilter = ''
       this.filterJoinOperator = 'AND'
       this.filterChain = []
     },
 
-    base64EncodeUnicode (str) {
+    base64EncodeUnicode(str) {
       return btoa(
         encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
           return String.fromCharCode(`0x${p1}`)
@@ -901,13 +902,13 @@ export default {
       )
     },
 
-    base64DecodeUnicode (str) {
+    base64DecodeUnicode(str) {
       return decodeURIComponent(Array.prototype.map.call(atob(str), function (c) {
         return `%${(`00${c.charCodeAt(0).toString(16)}`).slice(-2)}`
       }).join(''))
     },
 
-    updateUrlWithFilterChain (filterChain) {
+    updateUrlWithFilterChain(filterChain) {
       const queryParams = new URLSearchParams(window.location.search)
       if (filterChain.length) {
         queryParams.set('filterChain', this.base64EncodeUnicode(JSON.stringify(filterChain)))
@@ -916,10 +917,10 @@ export default {
         queryParams.delete('filterChain')
         queryParams.delete('filterJoinOperator')
       }
-      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+      this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
     },
 
-    initializeFilterChainFromUrl () {
+    initializeFilterChainFromUrl() {
       const queryParams = new URLSearchParams(window.location.search)
       const filterChainFromUrl = queryParams.get('filterChain')
       const filterJoinOperatorFromUrl = queryParams.get('filterJoinOperator')
@@ -970,7 +971,7 @@ export default {
       }
     },
 
-    normalizeFilterForSave (filter) {
+    normalizeFilterForSave(filter) {
       const normalizedFilter = {
         label: filter.label,
         selectedOptions: Array.isArray(filter.selectedOptions)
@@ -983,11 +984,11 @@ export default {
       return normalizedFilter
     },
 
-    normalizeFiltersForSave (filters) {
+    normalizeFiltersForSave(filters) {
       return filters.map(filter => this.normalizeFilterForSave(filter))
     },
 
-    isCurrentSavedFilterChanged () {
+    isCurrentSavedFilterChanged() {
       if (!this.selectedSavedFilter) {
         return false
       }
@@ -1005,27 +1006,27 @@ export default {
       return JSON.stringify(savedFilters) !== JSON.stringify(currentFilters)
     },
 
-    onTaskClicked (task) {
+    onTaskClicked(task) {
       this.isTaskDialogShow = true
       this.selectedTask = task
       this.updateUrlWithTask(task.id)
     },
 
-    closeDialog () {
+    closeDialog() {
       const queryParams = new URLSearchParams(window.location.search)
       queryParams.delete('task')
-      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+      this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
     },
 
-    updateUrlWithTask (openedTaskId) {
+    updateUrlWithTask(openedTaskId) {
       const queryParams = new URLSearchParams(window.location.search)
       queryParams.set('task', openedTaskId)
-      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+      this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
     },
 
-    initializeTaskFromUrl () {
+    initializeTaskFromUrl() {
       const queryParams = new URLSearchParams(window.location.search)
       const taskIdFromUrl = queryParams.get('task')
       if (!taskIdFromUrl && this.isTaskDialogShow) {
@@ -1042,28 +1043,300 @@ export default {
       }
     },
 
-    updateTask (task, newTask) {
+    updateTask(task, newTask) {
       this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
     },
 
-    openBulkModal (action) {
+    openBulkModal(action) {
       this.action = action
       this.isModalForBulkActions = true
     },
 
-    addMessageToTask (event) {
+    addMessageToTask(event) {
       this.selectedTask.messages.push(event.message)
     },
 
-    setSortVariable (sort) {
+    getTaskSla(task) {
+      const originalSla = task?.originalSla
+      if (originalSla && typeof originalSla === 'object') {
+        return originalSla
+      }
+      const sla = task?.sla
+      if (sla && typeof sla === 'object') {
+        return sla
+      }
+      return null
+    },
+
+    getSlaInfo(task) {
+      if (!task?.id) {
+        return null
+      }
+      if (Object.prototype.hasOwnProperty.call(this.slaInfoByTaskId, task.id)) {
+        return this.slaInfoByTaskId[task.id]
+      }
+      return task?.slaInfo || null
+    },
+
+    async loadSlaInfoForTask(task) {
+      const sourceSla = this.getTaskSla(task)
+      if (
+        !task?.id ||
+        !sourceSla ||
+        task.completed ||
+        this.slaInfoLoadingByTaskId[task.id] ||
+        Object.prototype.hasOwnProperty.call(this.slaInfoByTaskId, task.id)
+      ) {
+        return
+      }
+      this.slaInfoLoadingByTaskId = {
+        ...this.slaInfoLoadingByTaskId,
+        [task.id]: true
+      }
+      try {
+        const response = await axios.get(`/api/v1/task/${task.id}/sla/info`)
+        this.slaInfoByTaskId = {
+          ...this.slaInfoByTaskId,
+          [task.id]: response.data
+        }
+      } catch (e) {
+        this.slaInfoByTaskId = {
+          ...this.slaInfoByTaskId,
+          [task.id]: null
+        }
+      } finally {
+        const loading = {...this.slaInfoLoadingByTaskId}
+        delete loading[task.id]
+        this.slaInfoLoadingByTaskId = loading
+      }
+    },
+
+    loadSlaInfoForTasks(tasks) {
+      tasks
+        .filter(task => this.getTaskSla(task) && !task.completed)
+        .forEach(task => this.loadSlaInfoForTask(task))
+    },
+
+    getSlaTime(task) {
+      const secondsLeft = this.getSlaLeftSeconds(task)
+      if (secondsLeft === null) {
+        return ''
+      }
+      if (secondsLeft <= 0) {
+        return '0 ч. 0 м.'
+      }
+      const hours = Math.floor(secondsLeft / 3600)
+      const minutes = Math.floor((secondsLeft % 3600) / 60)
+      return `${hours} ч. ${minutes} м.`
+    },
+
+    getSlaLeftSeconds(task) {
+      const slaInfo = this.getSlaInfo(task)
+      if (!slaInfo) {
+        return null
+      }
+      if (slaInfo.paused) {
+        const remainingSeconds = Number(slaInfo.remainingSeconds)
+        return Number.isFinite(remainingSeconds)
+          ? Math.max(0, remainingSeconds)
+          : null
+      }
+      const remainingSeconds = Number(slaInfo.remainingSeconds)
+      if (Number.isFinite(remainingSeconds) && remainingSeconds > 0) {
+        return Math.max(0, remainingSeconds)
+      }
+      if (slaInfo.deadline) {
+        const deadlineMs = new Date(slaInfo.deadline).getTime()
+
+        if (Number.isFinite(deadlineMs)) {
+          return Math.max(0, Math.floor((deadlineMs - this.nowTs) / 1000))
+        }
+      }
+      return Number.isFinite(remainingSeconds)
+        ? Math.max(0, remainingSeconds)
+        : null
+    },
+
+    getSlaPercent(task) {
+      const leftSeconds = this.getSlaLeftSeconds(task)
+      if (leftSeconds === null) {
+        return 0
+      }
+
+      let totalSeconds = this.getSlaTotalSeconds(task)
+      if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+        totalSeconds = this.getSlaTotalSecondsFromInfo(task)
+      }
+      if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+        return 0
+      }
+      return Math.max(0, Math.min(1, leftSeconds / totalSeconds))
+    },
+
+    getSlaTotalSecondsFromInfo(task) {
+      const slaInfo = this.getSlaInfo(task)
+      if (!slaInfo?.deadline) {
+        return 0
+      }
+      const deadlineMs = new Date(slaInfo.deadline).getTime()
+      const createdAtMs = new Date(task.createdAt).getTime()
+      if (!Number.isFinite(deadlineMs) || !Number.isFinite(createdAtMs)) {
+        return 0
+      }
+      const remainingSeconds = Number(slaInfo.remainingSeconds)
+      const pausedSeconds = Number(slaInfo.pausedSeconds || 0)
+      if (!Number.isFinite(remainingSeconds)) {
+        return 0
+      }
+      const nowMs = slaInfo.paused
+        ? deadlineMs - remainingSeconds * 1000
+        : this.nowTs
+      const elapsedSeconds = Math.max(0, Math.floor((nowMs - createdAtMs) / 1000))
+
+      return Math.max(remainingSeconds, remainingSeconds + elapsedSeconds - pausedSeconds)
+    },
+
+    getSlaTotalSeconds(task) {
+      const duration = this.getTaskSla(task)?.duration
+      if (!duration) {
+        return 0
+      }
+      if (typeof duration.asSeconds === 'function') {
+        const seconds = duration.asSeconds()
+        return Number.isFinite(seconds) && seconds > 0 ? seconds : 0
+      }
+      if (typeof duration === 'number') {
+        return duration > 0 ? duration : 0
+      }
+      if (typeof duration === 'string') {
+        const parsed = Number(duration)
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return parsed
+        }
+        const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
+        if (match) {
+          const days = Number(match[1] || 0)
+          const hours = Number(match[2] || 0)
+          const minutes = Number(match[3] || 0)
+          const seconds = Number(match[4] || 0)
+          return days * 86400 + hours * 3600 + minutes * 60 + seconds
+        }
+        return 0
+      }
+
+      if (typeof duration === 'object') {
+        if (Number.isFinite(duration.seconds) && duration.seconds > 0) {
+          return duration.seconds
+        }
+        if (Number.isFinite(duration._milliseconds) && duration._milliseconds > 0) {
+          return Math.floor(duration._milliseconds / 1000)
+        }
+        if (Number.isFinite(duration.milliseconds) && duration.milliseconds > 0) {
+          return Math.floor(duration.milliseconds / 1000)
+        }
+      }
+      return 0
+    },
+
+    getSlaDuration(task) {
+      const duration = this.getTaskSla(task)?.duration
+      if (!duration) {
+        return moment.duration(0)
+      }
+
+      if (typeof duration.asMilliseconds === 'function') {
+        const ms = duration.asMilliseconds()
+        return Number.isFinite(ms) && ms > 0 ? duration : moment.duration(0)
+      }
+
+      if (typeof duration === 'number') {
+        return moment.duration(duration, 'seconds')
+      }
+
+      if (typeof duration === 'string') {
+        const parsed = Number(duration)
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return moment.duration(parsed, 'seconds')
+        }
+
+        const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
+        if (match) {
+          return moment.duration({
+            days: Number(match[1] || 0),
+            hours: Number(match[2] || 0),
+            minutes: Number(match[3] || 0),
+            seconds: Number(match[4] || 0)
+          })
+        }
+      }
+
+      if (typeof duration === 'object') {
+        if (Number.isFinite(duration.seconds) && duration.seconds > 0) {
+          return moment.duration(duration.seconds, 'seconds')
+        }
+        if (Number.isFinite(duration._milliseconds) && duration._milliseconds > 0) {
+          return moment.duration(duration._milliseconds, 'milliseconds')
+        }
+        if (Number.isFinite(duration.milliseconds) && duration.milliseconds > 0) {
+          return moment.duration(duration.milliseconds, 'milliseconds')
+        }
+      }
+
+      return moment.duration(0)
+    },
+
+    getSlaDeadlineMoment(task) {
+      const sourceSla = this.getTaskSla(task)
+      if (sourceSla?.startDate && sourceSla?.duration) {
+        return moment(sourceSla.startDate).add(this.getSlaDuration({
+          ...task,
+          sla: sourceSla,
+          originalSla: sourceSla
+        }))
+      }
+      const slaInfo = this.getSlaInfo(task)
+      if (slaInfo?.deadline) {
+        return moment(slaInfo.deadline)
+      }
+      return moment.invalid()
+    },
+
+    getSlaDeadlineMs(task) {
+      const deadline = this.getSlaDeadlineMoment(task)
+      if (!deadline.isValid()) {
+        return Number.MAX_SAFE_INTEGER
+      }
+      return deadline.valueOf()
+    },
+
+    isSlaExpired(task) {
+      const secondsLeft = this.getSlaLeftSeconds(task)
+      return secondsLeft !== null && secondsLeft <= 0
+    },
+
+    isSlaVisibleInTable(task) {
+      return !task?.completed &&
+        !!this.getTaskSla(task) &&
+        !!this.getSlaInfo(task)
+    },
+
+    getSlaTableValue(task) {
+      if (!this.isSlaVisibleInTable(task)) {
+        return ''
+      }
+      const slaTime = this.getSlaTime(task)
+      return slaTime ? `Осталось: ${slaTime}` : ''
+    },
+
+    setSortVariable(sort) {
       this.selectedSorting = sort
     },
 
-    changeSortingAsc () {
+    changeSortingAsc() {
       this.ascendingSort = !this.ascendingSort
     },
 
-    formatDateTime () {
+    formatDateTime() {
       const rawValue = this.dialogTaskDeadline.replace(/\D/g, '')
       let formattedValue = ''
       if (rawValue.length <= 2) {
@@ -1084,13 +1357,13 @@ export default {
       this.dialogTaskDeadline = formattedValue
     },
 
-    isCurrentUserExecutor (task) {
+    isCurrentUserExecutor(task) {
       return task?.executor?.id != null &&
         this.store.currentUser?.id != null &&
         Number(task.executor.id) === Number(this.store.currentUser.id)
     },
 
-    getExecutorName (task) {
+    getExecutorName(task) {
       if (!task?.executor) {
         return this.unassignedExecutorLabel
       }
@@ -1102,15 +1375,15 @@ export default {
       return `${task.executor.firstname} ${task.executor.lastname}`
     },
 
-    isValidFilterJoinOperator (value) {
+    isValidFilterJoinOperator(value) {
       return ['AND', 'OR'].includes(value)
     },
 
-    updateUrlWithFilterJoinOperator () {
+    updateUrlWithFilterJoinOperator() {
       this.updateUrlWithFilterChain(this.filterChain)
     },
 
-    isTaskMatchesFilter (task, filter) {
+    isTaskMatchesFilter(task, filter) {
       const slug = this.filterTypes.find(ft => ft.label === filter.label)?.slug
 
       switch (slug) {
@@ -1160,16 +1433,16 @@ export default {
   },
 
   computed: {
-    getFilteredTasks () {
+    getFilteredTasks() {
       let tasks = this.store.getTasks.filter(task => {
         let matchesSearchRequest = true
         if (this.searchRequest) {
           matchesSearchRequest = task.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-          task.id.toString().toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-          task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-          // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-          task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
-        // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
+            task.id.toString().toLowerCase().includes(this.searchRequest.toLowerCase()) ||
+            task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
+            // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
+            task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
+          // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
         }
         return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
       })
@@ -1231,7 +1504,7 @@ export default {
       return tasks
     },
 
-    getGroupedTasks () {
+    getGroupedTasks() {
       let options
       let source
       const tasks = this.getFilteredTasks
@@ -1245,17 +1518,17 @@ export default {
         }
         case 'tag': {
           source = this.tags
-          options = Object.groupBy(tasks, ({ tags }) => tags.map(tag => tag.name).join(','))
+          options = Object.groupBy(tasks, ({tags}) => tags.map(tag => tag.name).join(','))
           break
         }
         case 'priority': {
           source = this.priorities
-          options = Object.groupBy(tasks, ({ priority }) => priority.name)
+          options = Object.groupBy(tasks, ({priority}) => priority.name)
           break
         }
         case 'organization': {
           source = this.organizations
-          options = Object.groupBy(tasks, ({ organization }) => {
+          options = Object.groupBy(tasks, ({organization}) => {
             if (organization) {
               return organization.name
             } else {
@@ -1266,12 +1539,12 @@ export default {
         }
         case 'status': {
           source = this.statuses
-          options = Object.groupBy(tasks, ({ status }) => status.name)
+          options = Object.groupBy(tasks, ({status}) => status.name)
           break
         }
         case 'client': {
           source = this.clients
-          options = Object.groupBy(tasks, ({ client }) => `${client.lastname} ${client.firstname}`)
+          options = Object.groupBy(tasks, ({client}) => `${client.lastname} ${client.firstname}`)
         }
       }
 
@@ -1320,19 +1593,36 @@ export default {
       return groupedCards
     },
 
-    getTableRows () {
+    getTableRows() {
       try {
-        return this.getFilteredTasks
+        const tasks = this.getFilteredTasks
+        this.loadSlaInfoForTasks(tasks)
+
+        return tasks.map(task => {
+          const slaInfo = this.slaInfoByTaskId[task.id] || null
+
+          const row = {
+            ...task,
+            originalSla: task.sla,
+            slaInfo
+          }
+
+          const secondsLeft = this.getSlaLeftSeconds(row)
+
+          return {
+            ...row,
+            sla: secondsLeft !== null ? this.getSlaTime(row) : '',
+            slaSecondsLeft: secondsLeft,
+            slaPercent: slaInfo ? this.getSlaPercent(row) : 0,
+            slaExpired: secondsLeft !== null && secondsLeft <= 0
+          }
+        })
       } catch (e) {
         return []
       }
     },
 
-    // showMode () {
-    //   return this.router.query['show-mode']
-    // },
-
-    executors () {
+    executors() {
       return [
         this.currentExecutorLabel,
         ...this.store.users.filter(user => user !== null)
@@ -1342,50 +1632,50 @@ export default {
       ]
     },
 
-    tags () {
+    tags() {
       return this.store.tags.map(tag => tag.name)
     },
 
-    priorities () {
+    priorities() {
       return this.store.priorities.map(priority => priority.name)
     },
 
-    organizations () {
+    organizations() {
       return this.store.organizations.map(organization => organization.name)
     },
 
-    statuses () {
+    statuses() {
       return this.store.statuses.map(status => status.name)
     },
 
-    clients () {
+    clients() {
       return this.store.clients.map(client => `${client.lastname} ${client.firstname}`)
     },
 
-    isMobile () {
+    isMobile() {
       return this.$q.screen.width < 1023
     },
 
-    urlFilterChain () {
+    urlFilterChain() {
       return new URLSearchParams(window.location.search).get('filterChain')
     },
 
-    showBulkActionsMenu () {
+    showBulkActionsMenu() {
       return this.store.checkedTasks.length > 0
     },
 
-    showOpenTaskBtn () {
+    showOpenTaskBtn() {
       return this.store.checkedTasks.every(task => task.completed === true)
     },
 
-    getFilterType () {
+    getFilterType() {
       return this.filterTypes.filter(filter => filter.slug !== 'deadline')
     }
   },
 
   watch: {
     filterChain: {
-      handler (newVal) {
+      handler(newVal) {
         try {
           if (this.isFilterSelected) {
             this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
@@ -1403,36 +1693,37 @@ export default {
               this.selectedSavedFilter = ''
             }
           }
-        } catch (e) {}
+        } catch (e) {
+        }
       },
       deep: true
     },
 
-    isShowTableMode (newValue) {
+    isShowTableMode(newValue) {
       localStorage.setItem('isShowListMode', newValue ? 'true' : 'false')
     },
 
     selectedSavedFilter: {
-      handler (newVal) {
+      handler(newVal) {
         this.isShowDelFilterPreset = newVal !== ''
       },
       deep: true
     },
 
-    '$route' (to) {
+    '$route'(to) {
       this.initializeFilterChainFromUrl()
       this.initializeTaskFromUrl()
     },
 
-    selectedGroupType () {
+    selectedGroupType() {
       localStorage.setItem('GroupType', `{ "label": "${this.selectedGroupType.label}", "slug": "${this.selectedGroupType.slug}" }`)
     },
 
-    isShowCompletedTasks () {
+    isShowCompletedTasks() {
       localStorage.setItem('isShowCompletedTasks', this.isShowCompletedTasks)
     },
 
-    showBulkActionsMenu () {
+    showBulkActionsMenu() {
       if (this.showBulkActionsMenu) {
         this.isShowBulkActionsMenu = true
       } else {
@@ -1446,12 +1737,12 @@ export default {
 
     activeColumns: {
       deep: true,
-      handler () {
+      handler() {
         localStorage.setItem('taskTableSettings', JSON.stringify(this.activeColumns))
       }
     },
 
-    filterJoinOperator () {
+    filterJoinOperator() {
       if (this.isFilterSelected && this.filterChain.length > 0) {
         this.updateUrlWithFilterChain(this.filterChain)
       }
@@ -1464,9 +1755,12 @@ export default {
     },
   },
 
-  mounted () {
+  mounted() {
     document.title = 'ULDESK : Заявки'
     this.store.checkedTasks = []
+    this.slaTimer = setInterval(() => {
+      this.nowTs = Date.now()
+    }, 1000)
     setTimeout(() => this.initializeTaskFromUrl(), 300)
     setTimeout(() => this.initializeFilterChainFromUrl(), 300)
     axios.get('/api/v1/filters')
@@ -1484,7 +1778,7 @@ export default {
         }))
   },
 
-  created () {
+  created() {
     this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
     this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
     if (localStorage.getItem('taskTableSettings')) {
@@ -1496,11 +1790,15 @@ export default {
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
     const router = useRoute()
-    return { store, router }
-  }
+    return {store, router}
+  },
+
+  beforeUnmount() {
+    clearInterval(this.slaTimer)
+  },
 }
 </script>
 
