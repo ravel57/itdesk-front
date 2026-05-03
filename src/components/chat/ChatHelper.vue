@@ -335,9 +335,13 @@ export default {
 
   computed: {
     aiResponseHtml () {
-      const rawMd = typeof this.aiResponse === 'string'
+      const rawMd = (typeof this.aiResponse === 'string'
         ? this.aiResponse
         : JSON.stringify(this.aiResponse, null, 2)
+      )
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
       const html = DOMPurify.sanitize(marked.parse(rawMd || ''))
       const root = document.createElement('div')
       root.innerHTML = html
@@ -391,26 +395,32 @@ h1, h2, h3, h4, h5, h6, p {
 
 .kb-ai-response {
   font-size: 14px;
-  white-space: pre-wrap;
+  white-space: normal;
   max-height: 260px;
   overflow: auto;
 }
 
-.ai-md p {
-  margin: 0;          /* убираем “пустые строки” между абзацами */
+.ai-md :deep(p) {
+  margin: 0;
+  padding: 0;
 }
 
-.ai-md p + p {
-  margin-top: 6px;    /* если хочешь небольшой аккуратный интервал */
+.ai-md :deep(p + p) {
+  margin-top: 4px;
 }
 
-.ai-md ul,
-.ai-md ol {
-  margin: 6px 0;
+.ai-md :deep(ul),
+.ai-md :deep(ol) {
+  margin: 4px 0;
   padding-left: 18px;
 }
 
-.ai-md li {
-  margin: 2px 0;
+.ai-md :deep(li) {
+  margin: 0;
+  padding: 0;
+}
+
+.ai-md :deep(li + li) {
+  margin-top: 4px;
 }
 </style>
