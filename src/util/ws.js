@@ -59,7 +59,7 @@ function clientsCallback(clients) {
       }
       if (task.sla) {
         task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-        task.sla.duration = moment.duration(task.sla.duration * 1000)
+        task.sla.duration = normalizeSlaDuration(task.sla.duration)
       }
       task.messages.forEach(message => {
         message.date = new Date(message.date)
@@ -77,6 +77,31 @@ function clientsCallback(clients) {
     })
   })
   useStore().clients = parsedClients
+}
+
+function normalizeSlaDuration (duration) {
+  if (!duration) {
+    return moment.duration(0)
+  }
+  if (typeof duration === 'number') {
+    return moment.duration(duration, 'seconds')
+  }
+  if (typeof duration === 'string') {
+    const parsed = Number(duration)
+    if (Number.isFinite(parsed)) {
+      return moment.duration(parsed, 'seconds')
+    }
+    return moment.duration(duration)
+  }
+  if (typeof duration === 'object') {
+    if (Number.isFinite(duration.seconds)) {
+      return moment.duration(duration.seconds, 'seconds')
+    }
+    if (Number.isFinite(duration._milliseconds)) {
+      return moment.duration(duration._milliseconds, 'milliseconds')
+    }
+  }
+  return moment.duration(0)
 }
 
 function authenticatedUsersCallback(usersOnline) {

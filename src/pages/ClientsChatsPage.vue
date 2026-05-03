@@ -223,17 +223,8 @@ export default {
     },
 
     getSlaTotalMs (task) {
-      if (!task?.sla?.startDate || !task?.sla?.duration) {
+      if (!task?.sla?.duration) {
         return 0
-      }
-      const info = this.getSlaInfo(task)
-      if (info?.deadline && task.createdAt) {
-        const createdAtMs = new Date(task.createdAt).getTime()
-        const deadlineMs = new Date(info.deadline).getTime()
-        const totalMs = deadlineMs - createdAtMs
-        if (Number.isFinite(totalMs) && totalMs > 0) {
-          return totalMs
-        }
       }
       return this.parseIsoDurationToMs(task.sla.duration)
     },
@@ -242,23 +233,41 @@ export default {
       if (!duration) {
         return 0
       }
-      if (typeof duration === 'number') {
-        return duration
-      }
+
       if (typeof duration.asMilliseconds === 'function') {
         const ms = duration.asMilliseconds()
         return Number.isFinite(ms) && ms > 0 ? ms : 0
       }
-      const durationText = String(duration)
-      const match = durationText.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
-      if (!match) {
-        return 0
+
+      if (typeof duration === 'number') {
+        return duration * 1000
       }
-      const days = Number(match[1] || 0)
-      const hours = Number(match[2] || 0)
-      const minutes = Number(match[3] || 0)
-      const seconds = Number(match[4] || 0)
-      return (((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000
+      if (typeof duration === 'object') {
+        if (Number.isFinite(duration.seconds)) {
+          return duration.seconds * 1000
+        }
+        if (Number.isFinite(duration._milliseconds)) {
+          return duration._milliseconds
+        }
+        if (Number.isFinite(duration.milliseconds)) {
+          return duration.milliseconds
+        }
+      }
+      if (typeof duration === 'string') {
+        const parsed = Number(duration)
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return parsed * 1000
+        }
+        const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
+        if (match) {
+          const days = Number(match[1] || 0)
+          const hours = Number(match[2] || 0)
+          const minutes = Number(match[3] || 0)
+          const seconds = Number(match[4] || 0)
+          return (((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000
+        }
+      }
+      return 0
     },
 
     isSlaExpired (tasks) {
@@ -288,7 +297,7 @@ export default {
       }
       const totalMs = this.getSlaTotalMs(task)
       const leftMs = this.getSlaLeftMsApprox(task)
-      if (!totalMs || leftMs === null) {
+      if (!Number.isFinite(totalMs) || totalMs <= 0 || leftMs === null) {
         return null
       }
       return Math.max(0, Math.min(1, leftMs / totalMs))
@@ -422,11 +431,15 @@ export default {
       }
       const info = this.getSlaInfo(task)
       if (info) {
-        if (info.paused && typeof info.remainingSeconds === 'number') {
-          return Math.max(0, info.remainingSeconds * 1000)
+        const remainingSeconds = Number(info.remainingSeconds)
+        if (info.paused && Number.isFinite(remainingSeconds)) {
+          return Math.max(0, remainingSeconds * 1000)
         }
         if (info.deadline) {
-          return Math.max(0, new Date(info.deadline).getTime() - this.nowTs)
+          const deadlineMs = new Date(info.deadline).getTime()
+          if (Number.isFinite(deadlineMs)) {
+            return Math.max(0, deadlineMs - this.nowTs)
+          }
         }
       }
       const startMs = new Date(task.sla.startDate).getTime()
@@ -446,7 +459,15 @@ export default {
         return duration
       }
       if (typeof duration === 'number') {
-        return moment.duration(duration, 'milliseconds')
+        return moment.duration(duration, 'seconds')
+      }
+      if (typeof duration === 'object') {
+        if (Number.isFinite(duration.seconds)) {
+          return moment.duration(duration.seconds, 'seconds')
+        }
+        if (Number.isFinite(duration._milliseconds)) {
+          return moment.duration(duration._milliseconds, 'milliseconds')
+        }
       }
       return moment.duration(duration)
     },

@@ -225,16 +225,79 @@ export default {
 
     getSlaPercent (task) {
       const leftSeconds = this.getSlaLeftSeconds(task)
-      if (leftSeconds === null || !this.slaInfo?.deadline) {
+      if (leftSeconds === null) {
         return 0
       }
-      const createdAtMs = new Date(task.createdAt).getTime()
+      let totalSeconds = this.getSlaTotalSeconds(task)
+      if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+        totalSeconds = this.getSlaTotalSecondsFromInfo()
+      }
+      if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
+        return 0
+      }
+      return Math.max(0, Math.min(1, leftSeconds / totalSeconds))
+    },
+
+    getSlaTotalSecondsFromInfo () {
+      if (!this.slaInfo?.remainingSeconds || !this.slaInfo?.deadline) {
+        return 0
+      }
       const deadlineMs = new Date(this.slaInfo.deadline).getTime()
-      const totalMs = deadlineMs - createdAtMs
-      if (!Number.isFinite(totalMs) || totalMs <= 0) {
+      if (!Number.isFinite(deadlineMs)) {
         return 0
       }
-      return Math.max(0, Math.min(1, (leftSeconds * 1000) / totalMs))
+      const remainingSeconds = Number(this.slaInfo.remainingSeconds)
+      const pausedSeconds = Number(this.slaInfo.pausedSeconds || 0)
+      if (!Number.isFinite(remainingSeconds)) {
+        return 0
+      }
+      const nowMs = this.slaInfo.paused
+        ? deadlineMs - remainingSeconds * 1000
+        : this.nowTs
+      const elapsedSeconds = Math.max(0, Math.floor((nowMs - new Date(this.task.createdAt).getTime()) / 1000))
+      return Math.max(remainingSeconds, remainingSeconds + elapsedSeconds - pausedSeconds)
+    },
+
+    getSlaTotalSeconds (task) {
+      const duration = task?.sla?.duration
+      if (!duration) {
+        return 0
+      }
+      if (typeof duration.asSeconds === 'function') {
+        const seconds = duration.asSeconds()
+        return Number.isFinite(seconds) && seconds > 0 ? seconds : 0
+      }
+      if (typeof duration === 'number') {
+        return duration > 0 ? duration : 0
+      }
+
+      if (typeof duration === 'string') {
+        const parsed = Number(duration)
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return parsed
+        }
+        const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
+        if (match) {
+          const days = Number(match[1] || 0)
+          const hours = Number(match[2] || 0)
+          const minutes = Number(match[3] || 0)
+          const seconds = Number(match[4] || 0)
+          return days * 86400 + hours * 3600 + minutes * 60 + seconds
+        }
+        return 0
+      }
+      if (typeof duration === 'object') {
+        if (Number.isFinite(duration.seconds)) {
+          return duration.seconds
+        }
+        if (Number.isFinite(duration._milliseconds)) {
+          return Math.floor(duration._milliseconds / 1000)
+        }
+        if (Number.isFinite(duration.milliseconds)) {
+          return Math.floor(duration.milliseconds / 1000)
+        }
+      }
+      return 0
     },
 
     getSlaColor (task) {
@@ -332,7 +395,7 @@ export default {
         return moment.duration(0)
       }
       if (typeof duration === 'number') {
-        return moment.duration(duration, 'milliseconds')
+        return moment.duration(duration, 'seconds')
       }
       if (typeof duration === 'string') {
         const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
