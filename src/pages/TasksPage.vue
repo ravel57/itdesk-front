@@ -1363,6 +1363,13 @@ export default {
         Number(task.executor.id) === Number(this.store.currentUser.id)
     },
 
+    getExecutorGroupName(task) {
+      if (!task?.executor) {
+        return this.unassignedExecutorLabel
+      }
+      return `${task.executor.firstname} ${task.executor.lastname}`
+    },
+
     getExecutorName(task) {
       if (!task?.executor) {
         return this.unassignedExecutorLabel
@@ -1512,8 +1519,8 @@ export default {
       const groupedCards = []
       switch (slug) {
         case 'executor': {
-          source = this.executors
-          options = Object.groupBy(tasks, task => this.getExecutorName(task))
+          source = this.groupExecutors
+          options = Object.groupBy(tasks, task => this.getExecutorGroupName(task))
           break
         }
         case 'tag': {
@@ -1625,6 +1632,15 @@ export default {
     executors() {
       return [
         this.currentExecutorLabel,
+        ...this.store.users.filter(user => user !== null)
+          .filter(user => user.roles !== 'OBSERVER')
+          .map(user => `${user.firstname} ${user.lastname}`),
+        this.unassignedExecutorLabel,
+      ]
+    },
+
+    groupExecutors() {
+      return [
         ...this.store.users.filter(user => user !== null)
           .filter(user => user.roles !== 'OBSERVER')
           .map(user => `${user.firstname} ${user.lastname}`),
