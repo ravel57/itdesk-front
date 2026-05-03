@@ -107,47 +107,47 @@
                 bordered
                 class="kb-ai-card"
               >
-<!--                <q-card-section class="q-pb-sm">-->
-<!--                  <q-input-->
-<!--                    v-model="this.aiQuery"-->
-<!--                    label="Спросить ИИ (β-функция)"-->
-<!--                    dense-->
-<!--                    outlined-->
-<!--                    :readonly="this.aiLoading"-->
-<!--                    :clearable="!this.aiLoading"-->
-<!--                    class="full-width"-->
-<!--                    @clear="aiQuery = ''"-->
-<!--                    @keyup.enter="aiQueryRequest"-->
-<!--                  >-->
-<!--                    <template #append>-->
-<!--                      <q-spinner-->
-<!--                        v-if="aiLoading"-->
-<!--                        size="18px"-->
-<!--                        class="q-ml-sm"-->
-<!--                      />-->
-<!--                        <q-btn-->
-<!--                          v-else-->
-<!--                          flat-->
-<!--                          dense-->
-<!--                          round-->
-<!--                          icon="sym_o_network_intel_node"-->
-<!--                          :disable="!this.aiQuery?.trim()"-->
-<!--                          @click="aiQueryRequest"-->
-<!--                        >-->
-<!--                        <q-tooltip>Отправить</q-tooltip>-->
-<!--                      </q-btn>-->
-<!--                    </template>-->
-<!--                  </q-input>-->
-<!--                </q-card-section>-->
-<!--                <q-separator/>-->
-<!--                <q-card-section class="q-pt-sm">-->
-<!--                  <div-->
-<!--                    v-if="this.aiResponse.length > 0"-->
-<!--                    class="markdown kb-ai-response ai-md"-->
-<!--                    v-html="this.aiResponseHtml"-->
-<!--                  />-->
-<!--                </q-card-section>-->
-<!--                <q-separator/>-->
+                <q-card-section class="q-pb-sm">
+                  <q-input
+                    v-model="this.aiQuery"
+                    label="Спросить ИИ (β-функция)"
+                    dense
+                    outlined
+                    :readonly="this.aiLoading"
+                    :clearable="!this.aiLoading"
+                    class="full-width"
+                    @clear="aiQuery = ''"
+                    @keyup.enter="aiQueryRequest"
+                  >
+                    <template #append>
+                      <q-spinner
+                        v-if="aiLoading"
+                        size="18px"
+                        class="q-ml-sm"
+                      />
+                        <q-btn
+                          v-else
+                          flat
+                          dense
+                          round
+                          icon="sym_o_network_intel_node"
+                          :disable="!this.aiQuery?.trim()"
+                          @click="aiQueryRequest"
+                        >
+                        <q-tooltip>Отправить</q-tooltip>
+                      </q-btn>
+                    </template>
+                  </q-input>
+                </q-card-section>
+                <q-separator/>
+                <q-card-section class="q-pt-sm">
+                  <div
+                    v-if="this.aiResponse.length > 0"
+                    class="markdown kb-ai-response ai-md"
+                    v-html="this.aiResponseHtml"
+                  />
+                </q-card-section>
+                <q-separator/>
                 <div style="max-height: 60vh;overflow: auto">
                   <q-item
                     v-for="(item, index) in this.filteredKnowledgeBase"
