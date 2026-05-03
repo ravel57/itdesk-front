@@ -61,49 +61,71 @@
                 {{ this.isFilterSelected ? "Деактивировать фильтр" : "Активировать фильтр" }}
               </q-tooltip>
             </q-btn>
-            <q-btn
-              v-if="!this.isShowTableMode"
-              icon="sort"
-              flat
-              color="dark"
-              style="margin-right: 8px;"
-            >
-              <q-tooltip>
-                <div v-if="this.selectedSorting.label">
-                  Сортировка: {{ this.selectedSorting.label }}
-                </div>
-                <div v-else>
-                  Сортировка
-                </div>
-              </q-tooltip>
-              <q-menu
-                anchor="bottom middle" self="top middle"
-                v-model="this.sortMenuOpened"
-                content-class="menu-content"
-              >
-                <q-list>
-                  <q-item
-                    v-for="sorting in this.sortingTypes"
-                    :key="sorting.slug"
-                    clickable
-                    v-close-popup
-                    @click="this.setSortVariable(sorting)"
+            <div class="task-toolbar-action-slot">
+              <template v-if="!this.isShowTableMode">
+                <q-btn
+                  icon="sort"
+                  flat
+                  color="dark"
+                >
+                  <q-tooltip>
+                    <div v-if="this.selectedSorting.label">
+                      Сортировка: {{ this.selectedSorting.label }}
+                    </div>
+                    <div v-else>
+                      Сортировка
+                    </div>
+                  </q-tooltip>
+
+                  <q-menu
+                    anchor="bottom middle"
+                    self="top middle"
+                    v-model="this.sortMenuOpened"
+                    content-class="menu-content"
                   >
-                    <q-item-section>
-                      {{ sorting.label }}
-                    </q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-btn>
-            <q-btn
-              v-if="!this.isShowTableMode && this.selectedSorting.label"
-              @click="this.changeSortingAsc"
-              flat
-              class="text-grey-7"
-              style="width: 20px"
-              :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
-            />
+                    <q-list>
+                      <q-item
+                        v-for="sorting in this.sortingTypes"
+                        :key="sorting.slug"
+                        clickable
+                        v-close-popup
+                        @click="this.setSortVariable(sorting)"
+                      >
+                        <q-item-section>
+                          {{ sorting.label }}
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-menu>
+                </q-btn>
+
+                <q-btn
+                  v-if="this.selectedSorting.label"
+                  @click="this.changeSortingAsc"
+                  flat
+                  class="text-grey-7"
+                  style="width: 20px"
+                  :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
+                >
+                  <q-tooltip>
+                    {{ this.ascendingSort ? 'По возрастанию' : 'По убыванию' }}
+                  </q-tooltip>
+                </q-btn>
+              </template>
+
+              <q-btn
+                v-else
+                icon="settings"
+                flat
+                class="text-grey-7"
+                @click="this.isShowTableSettings = true"
+              >
+                <q-tooltip>
+                  Настройки таблицы
+                </q-tooltip>
+              </q-btn>
+            </div>
+
             <q-toggle
               v-model="this.isShowTableMode"
               color="grey"
@@ -128,17 +150,6 @@
                 Закрытые заявки: {{ this.isShowCompletedTasks ? "Показаны" : "Скрыты" }}
               </q-tooltip>
             </q-toggle>
-            <q-btn
-              v-if="this.isShowTableMode"
-              icon="settings"
-              flat
-              class="text-grey-7"
-              @click="this.isShowTableSettings = true"
-            >
-              <q-tooltip>
-                Настройки таблицы
-              </q-tooltip>
-            </q-btn>
           </div>
           <q-dialog
             v-model="dialogSaveFilterVisible"
@@ -1555,6 +1566,15 @@ export default {
   to {
     bottom: -150px;
   }
+}
+
+.task-toolbar-action-slot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 72px;
+  min-width: 72px;
+  margin-right: 8px;
 }
 
 </style>
