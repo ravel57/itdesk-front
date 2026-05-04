@@ -4,7 +4,7 @@
     style="border-radius: 0;border-left: 1px solid #0000001f;"
   >
     <div
-      style="overflow: auto"
+      class="chat-helper-root"
       :style="this.isMobile ? 'height: calc(100vh - 89px)' : 'height: 100vh;'"
     >
       <div style="width: 100%; display: flex; justify-content: space-between;padding: 8px;">
@@ -22,8 +22,11 @@
           class="q-ml-auto flex justify-end"
         />
       </div>
-      <q-card-section style="padding: 0">
-        <q-card class="no-shadow" style="margin-bottom: 8px">
+      <q-card-section class="helper-sections">
+        <q-card
+          class="no-shadow helper-card helper-templates-card"
+          :style="{ height: this.isMobile ? 'auto' : templatesBlockHeight + 'px' }"
+        >
           <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
             <q-input
               v-model="this.templateSearch"
@@ -37,7 +40,10 @@
                 <q-icon name="search"/>
               </template>
             </q-input>
-            <div style="height: 60vh; padding-top: 0;overflow-y: scroll">
+            <div
+              class="templates-list"
+              :style="{ height: this.isMobile ? '60vh' : templatesListHeight }"
+            >
               <q-item
                 v-for="(item, index) in this.filteredTemplates"
                 :key="index"
@@ -64,7 +70,12 @@
             </div>
           </q-expansion-item>
         </q-card>
-        <q-card class="no-shadow" style="margin-bottom: 8px">
+        <div
+          v-if="!this.isMobile"
+          class="helper-resizer"
+          @mousedown="startTemplatesResize"
+        />
+        <q-card class="no-shadow helper-card helper-knowledge-card">
           <q-expansion-item label="База знаний" class="spoiler">
             <div
               class="row q-col-gutter-md items-start"
@@ -253,7 +264,12 @@ export default {
     filteredTags: [],
     aiQuery: '',
     aiLoading: false,
-    aiResponse: ''
+    aiResponse: '',
+    templatesBlockHeight: 720,
+    templatesBlockHeightStorageKey: 'chatHelper.templatesBlockHeight',
+    resizingTemplates: false,
+    resizeStartY: 0,
+    resizeStartHeight: 0
   }),
 
   methods: {
@@ -308,7 +324,52 @@ export default {
           this.aiResponse = ''
           this.aiLoading = false
         })
-    }
+    },
+
+    startTemplatesResize (event) {
+      if (this.isMobile) {
+        return
+      }
+
+      this.resizingTemplates = true
+      this.resizeStartY = event.clientY
+      this.resizeStartHeight = this.templatesBlockHeight
+
+      document.body.style.userSelect = 'none'
+      document.body.style.cursor = 'row-resize'
+
+      window.addEventListener('mousemove', this.resizeTemplates)
+      window.addEventListener('mouseup', this.stopTemplatesResize)
+    },
+
+    resizeTemplates (event) {
+      if (!this.resizingTemplates) {
+        return
+      }
+      const delta = event.clientY - this.resizeStartY
+      const nextHeight = this.resizeStartHeight + delta
+      const minHeight = 180
+      const maxHeight = window.innerHeight - 220
+      this.templatesBlockHeight = Math.min(Math.max(nextHeight, minHeight), maxHeight)
+      localStorage.setItem(
+        this.templatesBlockHeightStorageKey,
+        String(this.templatesBlockHeight)
+      )
+    },
+
+    stopTemplatesResize () {
+      if (this.resizingTemplates) {
+        localStorage.setItem(
+          this.templatesBlockHeightStorageKey,
+          String(this.templatesBlockHeight)
+        )
+      }
+      this.resizingTemplates = false
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      window.removeEventListener('mousemove', this.resizeTemplates)
+      window.removeEventListener('mouseup', this.stopTemplatesResize)
+    },
   },
 
   watch: {
@@ -351,6 +412,19 @@ export default {
         }
       })
       return root.innerHTML
+    },
+
+    templatesListHeight () {
+      return `${Math.max(this.templatesBlockHeight - 122, 80)}px`
+    },
+  },
+
+  mounted () {
+    const savedHeight = Number(localStorage.getItem(this.templatesBlockHeightStorageKey))
+    if (savedHeight && !Number.isNaN(savedHeight)) {
+      const minHeight = 180
+      const maxHeight = window.innerHeight - 220
+      this.templatesBlockHeight = Math.min(Math.max(savedHeight, minHeight), maxHeight)
     }
   },
 
@@ -369,7 +443,11 @@ export default {
     const store = useStore()
     const router = useRoute()
     return { store, router }
-  }
+  },
+
+  beforeUnmount () {
+    this.stopTemplatesResize()
+  },
 
 }
 </script>
@@ -422,5 +500,62 @@ h1, h2, h3, h4, h5, h6, p {
 
 .ai-md :deep(li + li) {
   margin-top: 4px;
+}
+
+.chat-helper-root {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.helper-sections {
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.helper-card {
+  margin-bottom: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.helper-templates-card {
+  flex-shrink: 0;
+}
+
+.helper-knowledge-card {
+  flex: 1;
+  min-height: 160px;
+  overflow: auto;
+}
+
+.templates-list {
+  padding-top: 0;
+  overflow-y: auto;
+}
+
+.helper-resizer {
+  height: 8px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  position: relative;
+}
+
+.helper-resizer::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 3px;
+  height: 2px;
+  background: #0000001f;
+  border-radius: 2px;
+}
+
+.helper-resizer:hover::before {
+  background: var(--q-primary);
 }
 </style>
