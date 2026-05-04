@@ -27,7 +27,11 @@
           class="no-shadow helper-card helper-templates-card"
           :style="{ height: this.isMobile ? 'auto' : templatesBlockHeight + 'px' }"
         >
-          <q-expansion-item label="Шаблоны" class="spoiler" default-opened>
+          <q-expansion-item
+            v-model="templatesOpened"
+            label="Шаблоны"
+            class="spoiler"
+          >
             <q-input
               v-model="this.templateSearch"
               label="Поиск по шаблонам"
@@ -76,7 +80,11 @@
           @mousedown="startTemplatesResize"
         />
         <q-card class="no-shadow helper-card helper-knowledge-card">
-          <q-expansion-item label="База знаний" class="spoiler">
+          <q-expansion-item
+            v-model="knowledgeBaseOpened"
+            label="База знаний"
+            class="spoiler"
+          >
             <div
               class="row q-col-gutter-md items-start"
               style="padding: 0 16px;"
@@ -267,6 +275,10 @@ export default {
     aiResponse: '',
     templatesBlockHeight: 720,
     templatesBlockHeightStorageKey: 'chatHelper.templatesBlockHeight',
+    templatesOpened: true,
+    knowledgeBaseOpened: false,
+    templatesOpenedStorageKey: 'chatHelper.templatesOpened',
+    knowledgeBaseOpenedStorageKey: 'chatHelper.knowledgeBaseOpened',
     resizingTemplates: false,
     resizeStartY: 0,
     resizeStartHeight: 0
@@ -391,7 +403,21 @@ export default {
     templateSearch (newValue) {
       this.filteredTemplates = this.templates
         .filter(template => template.text.toLowerCase().includes(newValue.toLowerCase()) || template.shortcut.toLowerCase().includes(newValue.toLowerCase()))
-    }
+    },
+
+    templatesOpened (newValue) {
+      localStorage.setItem(
+        this.templatesOpenedStorageKey,
+        String(newValue)
+      )
+    },
+
+    knowledgeBaseOpened (newValue) {
+      localStorage.setItem(
+        this.knowledgeBaseOpenedStorageKey,
+        String(newValue)
+      )
+    },
   },
 
   computed: {
@@ -429,6 +455,14 @@ export default {
   },
 
   created () {
+    const savedTemplatesOpened = localStorage.getItem(this.templatesOpenedStorageKey)
+    const savedKnowledgeBaseOpened = localStorage.getItem(this.knowledgeBaseOpenedStorageKey)
+    if (savedTemplatesOpened !== null) {
+      this.templatesOpened = savedTemplatesOpened === 'true'
+    }
+    if (savedKnowledgeBaseOpened !== null) {
+      this.knowledgeBaseOpened = savedKnowledgeBaseOpened === 'true'
+    }
     this.filteredKnowledgeBase = this.knowledgeBase
     this.filteredTemplates = this.templates
   },
