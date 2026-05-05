@@ -1,104 +1,108 @@
 <template>
-  <div class="clientInfo">
+  <div class="client-info-header-row">
     <div
-      style="display: flex"
-    >
-      <div
-        class="text-h6"
-        v-text="this.getClientName"
-      />
-      <q-btn
-        class="editClientBtn"
-        icon="edit"
-        @click="dialogShow"
-        dense
-        flat
-        size="xs"
-      />
-      <!--        <q-toggle-->
-      <!--          v-model="this.isNotificationEnabled"-->
-      <!--          icon="notifications_active"-->
-      <!--          color="primary"-->
-      <!--          class="element q-position-absolute q-right-0"-->
-      <!--          @mouseover="this.showTooltipNotifications = true"-->
-      <!--          @mouseup="this.showTooltipNotifications = false"-->
-      <!--        >-->
-      <!--          <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
-      <!--        </q-toggle>-->
-      <!--    <q-btn-->
-      <!--      icon="expand_circle_down"-->
-      <!--      flat-->
-      <!--      dense-->
-      <!--      class="q-ml-auto"-->
-      <!--      color="grey"-->
-      <!--    >-->
-      <!--      <q-menu v-model="this.menuOpened" content-class="menu-content">-->
-      <!--        <q-list>-->
-      <!--          <q-item clickable v-close-popup>-->
-      <!--            <q-item-section>rPCSMT</q-item-section>-->
-      <!--          </q-item>-->
-      <!--          <q-item clickable v-close-popup>-->
-      <!--            <q-item-section>new user generator</q-item-section>-->
-      <!--          </q-item>-->
-      <!--          <q-item clickable v-close-popup>-->
-      <!--            <q-item-section>check-adminpc</q-item-section>-->
-      <!--          </q-item>-->
-      <!--        </q-list>-->
-      <!--      </q-menu>-->
-      <!--    </q-btn>-->
-    </div>
-    <div
-      v-if="this.getOrganization"
-      style="display: flex;flex-direction: row;flex-wrap: nowrap;align-items: center"
-    >
-      <q-icon
-        name="store"
-        style="margin-right: 8px;color: black !important"
-      />
-      <div
-        class="text-subtitle2"
-        style="overflow: hidden;display: -webkit-box;-webkit-line-clamp: 1;-webkit-box-orient: vertical;"
-        v-text="this.getOrganization"
-      />
-    </div>
-    <div
-      class="truncate text-subtitle2"
-      style="margin-top: 4px"
-      v-text="this.client.moreInfo"
+      class="text-h6 client-info-name"
+      v-text="this.getClientName"
     />
-    <div
-      class="text-subtitle2"
-      style="align-items: center; display: flex;margin-top: 4px"
-    >
-      <img
-        v-if="client.messageFrom === 'TELEGRAM'"
-        src="/telegram.png"
-        alt="tg"
-        style="width: 16px;margin-right: 8px"
-      >
-      <img
-        v-else-if="client.messageFrom === 'WHATSAPP'"
-        src="/whatsapp.png"
-        alt="wa"
-        style="width: 16px;margin-right: 8px"
-      >
-      <img
-        v-else-if="client.messageFrom === 'EMAIL'"
-        src="/email.png"
-        alt="email"
-        style="width: 16px;margin-right: 8px"
-      >
-      {{ this.client.sourceChannel }}
-    </div>
+    <q-btn
+      class="editClientBtn"
+      icon="edit"
+      @click="dialogShow"
+      dense
+      flat
+      size="xs"
+    />
+    <!--    <q-toggle-->
+    <!--      v-model="this.isNotificationEnabled"-->
+    <!--      icon="notifications_active"-->
+    <!--      color="primary"-->
+    <!--      class="element q-position-absolute q-right-0"-->
+    <!--      @mouseover="this.showTooltipNotifications = true"-->
+    <!--      @mouseup="this.showTooltipNotifications = false"-->
+    <!--    >-->
+    <!--      <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
+    <!--    </q-toggle>-->
+    <!--<q-btn-->
+    <!--  icon="expand_circle_down"-->
+    <!--  flat-->
+    <!--  dense-->
+    <!--  class="q-ml-auto"-->
+    <!--  color="grey"-->
+    <!-- >-->
+    <!--  <q-menu v-model="this.menuOpened" content-class="menu-content">-->
+    <!--    <q-list>-->
+    <!--      <q-item clickable v-close-popup>-->
+    <!--        <q-item-section>rPCSMT</q-item-section>-->
+    <!--      </q-item>-->
+    <!--      <q-item clickable v-close-popup>-->
+    <!--        <q-item-section>new user generator</q-item-section>-->
+    <!--      </q-item>-->
+    <!--      <q-item clickable v-close-popup>-->
+    <!--        <q-item-section>check-adminpc</q-item-section>-->
+    <!--      </q-item>-->
+    <!--    </q-list>-->
+    <!--  </q-menu>-->
+    <!--</q-btn>-->
 
     <PluginExtensionPoint
-      point="CLIENT_CARD_INFO"
+      class="client-header-plugin"
+      point="CLIENT_CARD_HEADER_RIGHT"
       entity-type="CLIENT"
       :entity="client"
       :context="{ client }"
     />
-
   </div>
+  <div
+    v-if="this.getOrganization"
+    style="display: flex;flex-direction: row;flex-wrap: nowrap;align-items: center"
+  >
+    <q-icon
+      name="store"
+      style="margin-right: 8px;color: black !important"
+    />
+    <div
+      class="text-subtitle2"
+      style="overflow: hidden;display: -webkit-box;-webkit-line-clamp: 1;-webkit-box-orient: vertical;"
+      v-text="this.getOrganization"
+    />
+  </div>
+  <div
+    class="truncate text-subtitle2"
+    style="margin-top: 4px"
+    v-text="this.client.moreInfo"
+  />
+  <div
+    class="text-subtitle2"
+    style="align-items: center; display: flex;margin-top: 4px"
+  >
+    <img
+      v-if="client.messageFrom === 'TELEGRAM'"
+      src="/telegram.png"
+      alt="tg"
+      style="width: 16px;margin-right: 8px"
+    >
+    <img
+      v-else-if="client.messageFrom === 'WHATSAPP'"
+      src="/whatsapp.png"
+      alt="wa"
+      style="width: 16px;margin-right: 8px"
+    >
+    <img
+      v-else-if="client.messageFrom === 'EMAIL'"
+      src="/email.png"
+      alt="email"
+      style="width: 16px;margin-right: 8px"
+    >
+    {{ this.client.sourceChannel }}
+  </div>
+
+  <PluginExtensionPoint
+    point="CLIENT_CARD_INFO"
+    entity-type="CLIENT"
+    :entity="client"
+    :context="{ client }"
+  />
+
   <q-dialog
     v-model="this.dialogVisible"
     persistent
@@ -150,6 +154,7 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
   <q-dialog
     v-model="this.openSubmitDeleteModal"
     persistent
@@ -186,7 +191,7 @@ import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
 export default {
   name: 'ChatClientInfo',
 
-  components: { PluginExtensionPoint },
+  components: {PluginExtensionPoint},
 
   props: ['client', 'organizations', 'isMobile'],
 
@@ -208,7 +213,7 @@ export default {
 
   methods: {
 
-    dialogShow () {
+    dialogShow() {
       this.dialogVisible = true
       this.dialogLastName = this.client.lastname
       this.dialogFirstName = this.client.firstname
@@ -216,11 +221,11 @@ export default {
       this.dialogAnotherInfo = this.client.moreInfo
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogSave () {
+    dialogSave() {
       const client = {
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
@@ -245,7 +250,7 @@ export default {
       this.dialogVisible = false
     },
 
-    dialogDeleteClient () {
+    dialogDeleteClient() {
       axios.delete(`/api/v1/client/${this.client.id}`)
         .then(() => {
           this.$emit('deleteClient', this.client)
@@ -263,13 +268,13 @@ export default {
         })
     },
 
-    openSubmitDeleteClientWindow () {
+    openSubmitDeleteClientWindow() {
       this.openSubmitDeleteModal = true
     }
   },
 
   computed: {
-    getOrganizations () {
+    getOrganizations() {
       if (this.organizations) {
         return this.organizations.map(o => o.name)
       } else {
@@ -277,7 +282,7 @@ export default {
       }
     },
 
-    getOrganization () {
+    getOrganization() {
       if (this.client && this.client.organization) {
         return this.client.organization.name
       } else {
@@ -285,7 +290,7 @@ export default {
       }
     },
 
-    getClientName () {
+    getClientName() {
       return `${this.client.lastname ? this.client.lastname : ''} ${this.client.firstname ? this.client.firstname : ''}`
     }
   },
@@ -293,7 +298,7 @@ export default {
   watch: {
     client: {
       immediate: true,
-      handler (newVal) {
+      handler(newVal) {
         if (newVal !== undefined) {
           if ((newVal.firstname || newVal.lastname) !== undefined) {
             document.title = `Чат: ${this.client.firstname} ${this.client.lastname !== null ? this.client.lastname : ''}`
@@ -327,14 +332,73 @@ export default {
   word-wrap: anywhere;
 }
 
-.editClientBtn {
-  margin-left: 8px;
-  display: none;
+.client-info-header-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
 }
 
-.clientInfo:hover {
-  .editClientBtn {
-    display: unset;
-  }
+.client-info-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editClientBtn {
+  flex: 0 0 auto;
+  margin-left: 4px;
+
+  visibility: hidden;
+  opacity: 0;
+
+  transition: opacity 120ms ease;
+}
+
+.clientInfo:hover .editClientBtn {
+  visibility: visible;
+  opacity: 1;
+}
+
+.client-header-plugin {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-left: 4px;
+}
+
+.client-header-plugin :deep(.plugin-extension-point) {
+  display: flex;
+  align-items: center;
+  margin-top: 0;
+}
+
+.client-header-plugin :deep(.plugin-renderer) {
+  display: flex;
+  align-items: center;
+  margin-top: 0;
+}
+
+.client-header-plugin :deep(.plugin-button) {
+  margin-top: 0;
+  padding: 0 4px;
+  min-height: 24px;
+}
+
+.client-info-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.client-info-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

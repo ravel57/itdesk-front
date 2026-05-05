@@ -52,15 +52,22 @@
     </div>
 
     <q-btn
-        v-else-if="schema.component === 'button'"
-        dense
-        outline
-        no-caps
-        class="plugin-button"
-        :icon="schema.props.icon"
-        :label="schema.props.label"
-        @click="executeAction"
-    />
+      v-else-if="schema.component === 'button'"
+      class="plugin-button"
+      :dense="schema.props.dense !== false"
+      :flat="schema.props.flat === true"
+      :round="schema.props.round === true"
+      :outline="schema.props.outline === true"
+      :no-caps="schema.props.noCaps !== false"
+      :color="schema.props.color || 'primary'"
+      :icon="schema.props.icon"
+      :label="schema.props.round ? undefined : schema.props.label"
+      @click="executeAction"
+    >
+      <q-tooltip v-if="schema.props.tooltip">
+        {{ schema.props.tooltip }}
+      </q-tooltip>
+    </q-btn>
 
     <q-badge
         v-else-if="schema.component === 'badge'"
@@ -141,21 +148,33 @@ export default {
       this.$q.notify({
         message: 'Скопировано',
         type: 'positive',
-        position: 'top-right'
+        position: 'top-right',
+        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
       })
     },
 
     async executeAction () {
       try {
-        const response = await pluginNativeBridge.execute(this.schema.props.action, this.context)
+        const action = this.schema.props?.action
+        if (!action) {
+          return
+        }
+        if (action.type === 'open-url') {
+          const url = this.resolveActionUrl(action)
+          if (url) {
+            window.location.href = url
+          }
+          return
+        }
+        const response = await pluginNativeBridge.execute(action, this.context)
         const results = response?.data?.results || []
-
         this.handlePluginResults(results)
       } catch (e) {
         this.$q.notify({
           message: 'Ошибка выполнения действия плагина',
           type: 'negative',
-          position: 'top-right'
+          position: 'top-right',
+          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
         })
       }
     },
@@ -175,7 +194,8 @@ export default {
         this.$q.notify({
           message: command.payload?.message || '',
           type: command.payload?.type || 'info',
-          position: 'top-right'
+          position: 'top-right',
+          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
         })
       }
 
@@ -190,8 +210,40 @@ export default {
       if (command.type === 'REFRESH_PAGE') {
         window.location.reload()
       }
-    }
-  }
+    },
+
+    resolveActionUrl (action) {
+      if (!action?.url) {
+        return null
+      }
+      if (typeof action.url === 'string') {
+        return action.url
+      }
+      if (action.url.template) {
+        return this.resolveTemplate(action.url.template)
+      }
+      return null
+    },
+
+    resolveTemplate (template) {
+      if (!template) {
+        return ''
+      }
+      return template.replace(/\$\{([^}]+)}/g, (_, path) => {
+        const value = this.getByPathForTemplate(path.trim())
+        return value !== null && value !== undefined ? encodeURIComponent(String(value)) : ''
+      })
+    },
+
+    getByPathForTemplate (path) {
+      return path.split('.').reduce((current, part) => {
+        if (current === null || current === undefined) {
+          return undefined
+        }
+        return current[part]
+      }, this.context)
+    },
+  },
 }
 </script>
 
