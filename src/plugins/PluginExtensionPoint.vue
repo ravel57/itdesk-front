@@ -59,7 +59,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 .plugin-extension-point {
   margin-top: 8px;
 }

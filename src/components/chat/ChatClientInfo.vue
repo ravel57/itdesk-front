@@ -1,17 +1,28 @@
 <template>
   <div class="client-info-header-row">
-    <div
-      class="text-h6 client-info-name"
-      v-text="this.getClientName"
+    <div class="client-name-edit-row">
+      <div
+        class="text-h6 client-info-name"
+        v-text="this.getClientName"
+      />
+      <q-btn
+        class="edit-client-btn"
+        icon="edit"
+        @click="dialogShow"
+        dense
+        flat
+        size="xs"
+      />
+    </div>
+
+    <PluginExtensionPoint
+      class="client-header-plugin"
+      point="CLIENT_CARD_HEADER_RIGHT"
+      entity-type="CLIENT"
+      :entity="client"
+      :context="{ client }"
     />
-    <q-btn
-      class="editClientBtn"
-      icon="edit"
-      @click="dialogShow"
-      dense
-      flat
-      size="xs"
-    />
+
     <!--    <q-toggle-->
     <!--      v-model="this.isNotificationEnabled"-->
     <!--      icon="notifications_active"-->
@@ -43,14 +54,6 @@
     <!--    </q-list>-->
     <!--  </q-menu>-->
     <!--</q-btn>-->
-
-    <PluginExtensionPoint
-      class="client-header-plugin"
-      point="CLIENT_CARD_HEADER_RIGHT"
-      entity-type="CLIENT"
-      :entity="client"
-      :context="{ client }"
-    />
   </div>
   <div
     v-if="this.getOrganization"
@@ -335,9 +338,17 @@ export default {
 .client-info-header-row {
   display: flex;
   align-items: center;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+}
+
+.client-name-edit-row {
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
   min-width: 0;
-  width: 100%;
+  flex: 0 1 auto;
 }
 
 .client-info-name {
@@ -347,52 +358,68 @@ export default {
   white-space: nowrap;
 }
 
-.editClientBtn {
+.edit-client-btn {
   flex: 0 0 auto;
-  margin-left: 4px;
-
+  margin-left: 2px;
   visibility: hidden;
   opacity: 0;
-
   transition: opacity 120ms ease;
 }
 
-.clientInfo:hover .editClientBtn {
+.client-name-edit-row:hover .edit-client-btn,
+.edit-client-btn:hover {
   visibility: visible;
   opacity: 1;
 }
 
 .client-header-plugin {
   display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  margin-left: 4px;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  gap: 2px;
 }
 
 .client-header-plugin :deep(.plugin-extension-point) {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: 100%;
   margin-top: 0;
+  gap: 2px;
 }
 
 .client-header-plugin :deep(.plugin-renderer) {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: 100%;
   margin-top: 0;
+  gap: 2px;
 }
 
 .client-header-plugin :deep(.plugin-button) {
+  display: flex;
+  justify-content: flex-end;
+  width: max-content;
+  max-width: 100%;
   margin-top: 0;
   padding: 0 4px;
-  min-height: 24px;
+  min-height: 20px;
+  line-height: 20px;
 }
 
 .client-info-header-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   width: 100%;
+  min-width: 0;
+  gap: 8px;
 }
 
 .client-info-name {
