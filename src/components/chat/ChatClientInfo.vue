@@ -90,6 +90,14 @@
       >
       {{ this.client.sourceChannel }}
     </div>
+
+    <PluginExtensionPoint
+      point="CLIENT_CARD_INFO"
+      entity-type="CLIENT"
+      :entity="client"
+      :context="{ client }"
+    />
+
   </div>
   <q-dialog
     v-model="this.dialogVisible"
@@ -173,9 +181,12 @@
 
 <script>
 import axios from 'axios'
+import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
 
 export default {
   name: 'ChatClientInfo',
+
+  components: { PluginExtensionPoint },
 
   props: ['client', 'organizations', 'isMobile'],
 

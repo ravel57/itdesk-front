@@ -95,6 +95,16 @@
                   <q-item-label
                     caption
                   >
+                    <PluginExtensionPoint
+                      point="CHAT_CLIENT_ROW_INFO"
+                      entity-type="CLIENT"
+                      :entity="client"
+                      :context="{ client }"
+                    />
+                  </q-item-label>
+                  <q-item-label
+                    caption
+                  >
                     {{ this.getOrganization(client) }}
                   </q-item-label>
                   <q-item-label
@@ -152,11 +162,12 @@ import CircleCounter from 'components/CircleCounter.vue'
 import moment from 'moment'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import axios from 'axios'
+import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
 
 export default {
   name: 'DialogsPage',
 
-  components: { NoTasksPlaceholder, CircleCounter },
+  components: { NoTasksPlaceholder, CircleCounter, PluginExtensionPoint },
 
   data: () => ({
     searchQuery: '',

@@ -121,6 +121,10 @@ const routes = [
             component: () => import('pages/settings/LicensePage.vue')
           },
           {
+            path: 'plugins',
+            component: () => import('pages/settings/PluginsPage.vue')
+          },
+          {
             path: 'ai-agent',
             component: () => import('pages/settings/AiAgent.vue')
           },

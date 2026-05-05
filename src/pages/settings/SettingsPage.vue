@@ -125,6 +125,12 @@ export default {
         roles: ['ADMIN']
       },
       {
+        title: 'Плагины',
+        link: '/settings/plugins',
+        slug: 'plugins',
+        roles: ['ADMIN']
+      },
+      {
         title: 'Лицензия',
         link: '/settings/license',
         slug: 'license',

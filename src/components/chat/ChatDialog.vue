@@ -1273,8 +1273,8 @@ export default {
     },
 
     getFileUrl (file) {
-      const type = file?.type || 'application/octet-stream'
-      const category = type.includes('/') ? type.split('/')[0] : 'application'
+      const type = file?.type || 'files/other'
+      const category = type.includes('/') ? type.split('/')[0] : 'files'
       return `/files/${category}s/${file.uuid}`
     },
   },
