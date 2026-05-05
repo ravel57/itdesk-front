@@ -64,7 +64,11 @@
           class="chat-page-column-resizer"
           @mousedown="startColumnResize('chat-helper', $event)"
         />
-
+        <div
+          v-if="!this.isMobile && !isHelperVisible"
+          class="chat-page-column-resizer"
+          @mousedown="startColumnResize('chat-tasks', $event)"
+        />
         <div
           class="chat-page-column no-shadow"
           v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
@@ -85,7 +89,7 @@
         />
 
         <div
-          class="chat-page-column no-shadow"
+          class="chat-page-column chat-page-tasks-column no-shadow"
           v-if="!this.isMobile || this.tab === 'tab3'"
         >
           <chat-tasks
@@ -306,6 +310,9 @@ export default {
       this.isShowHelper = false
       this.tab = 'tab1'
       localStorage.setItem('isShowHelper', 'false')
+      this.$nextTick(() => {
+        this.applyColumnWidthsFromRatios()
+      })
     },
 
     getMessagePage (pageCounter = 0) {
@@ -386,23 +393,22 @@ export default {
       if (this.isMobile) {
         return
       }
-
       this.resizingColumn = resizeType
       this.resizeStartX = event.clientX
-
       if (resizeType === 'chat-helper') {
         this.resizeStartLeftWidth = this.chatColumnWidth
         this.resizeStartRightWidth = this.helperColumnWidth
       }
-
       if (resizeType === 'helper-tasks') {
         this.resizeStartLeftWidth = this.helperColumnWidth
         this.resizeStartRightWidth = this.tasksColumnWidth
       }
-
+      if (resizeType === 'chat-tasks') {
+        this.resizeStartLeftWidth = this.chatColumnWidth
+        this.resizeStartRightWidth = this.tasksColumnWidth
+      }
       document.body.style.userSelect = 'none'
       document.body.style.cursor = 'col-resize'
-
       window.addEventListener('mousemove', this.resizeColumns)
       window.addEventListener('mouseup', this.stopColumnResize)
     },
@@ -445,6 +451,21 @@ export default {
         this.helperColumnWidth = nextHelperWidth
         this.tasksColumnWidth = nextTasksWidth
       }
+      if (this.resizingColumn === 'chat-tasks') {
+        const totalWidth = this.resizeStartLeftWidth + this.resizeStartRightWidth
+        let nextChatWidth = this.resizeStartLeftWidth + delta
+        let nextTasksWidth = this.resizeStartRightWidth - delta
+        if (nextChatWidth < minChatWidth) {
+          nextChatWidth = minChatWidth
+          nextTasksWidth = totalWidth - nextChatWidth
+        }
+        if (nextTasksWidth < minTasksWidth) {
+          nextTasksWidth = minTasksWidth
+          nextChatWidth = totalWidth - nextTasksWidth
+        }
+        this.chatColumnWidth = nextChatWidth
+        this.tasksColumnWidth = nextTasksWidth
+      }
     },
 
     stopColumnResize () {
@@ -462,16 +483,29 @@ export default {
     },
 
     saveColumnWidths () {
-      const totalWidth = this.chatColumnWidth + this.helperColumnWidth + this.tasksColumnWidth
-      if (totalWidth <= 0) {
-        return
+      if (this.isHelperVisible) {
+        const totalWidth = this.chatColumnWidth + this.helperColumnWidth + this.tasksColumnWidth
+        if (totalWidth <= 0) {
+          return
+        }
+        this.columnWidthRatios = {
+          chat: this.chatColumnWidth / totalWidth,
+          helper: this.helperColumnWidth / totalWidth,
+          tasks: this.tasksColumnWidth / totalWidth
+        }
+      } else {
+        const totalWidth = this.chatColumnWidth + this.tasksColumnWidth
+        if (totalWidth <= 0) {
+          return
+        }
+        const helperRatio = this.columnWidthRatios.helper || 0.22
+        const availableRatio = 1 - helperRatio
+        this.columnWidthRatios = {
+          chat: availableRatio * (this.chatColumnWidth / totalWidth),
+          helper: helperRatio,
+          tasks: availableRatio * (this.tasksColumnWidth / totalWidth)
+        }
       }
-      this.columnWidthRatios = {
-        chat: this.chatColumnWidth / totalWidth,
-        helper: this.helperColumnWidth / totalWidth,
-        tasks: this.tasksColumnWidth / totalWidth
-      }
-
       localStorage.setItem(
         this.columnResizeStorageKey,
         JSON.stringify(this.columnWidthRatios)
@@ -482,15 +516,12 @@ export default {
       if (this.isMobile || !this.$refs.chatPageLayout) {
         return
       }
-
       const layoutWidth = this.$refs.chatPageLayout.clientWidth
       const resizersWidth = this.isHelperVisible ? 16 : 8
       const availableWidth = layoutWidth - resizersWidth
-
       if (availableWidth <= 0) {
         return
       }
-
       if (this.isHelperVisible) {
         const widths = this.calculateColumnsByRatios(
           availableWidth,
@@ -501,7 +532,6 @@ export default {
             tasks: this.minTasksColumnWidth
           }
         )
-
         this.chatColumnWidth = widths.chat
         this.helperColumnWidth = widths.helper
         this.tasksColumnWidth = widths.tasks
@@ -514,7 +544,6 @@ export default {
             tasks: this.minTasksColumnWidth
           }
         )
-
         this.chatColumnWidth = widths.chat
         this.tasksColumnWidth = widths.tasks
       }
@@ -596,17 +625,31 @@ export default {
       if (this.isMobile) {
         return ''
       }
+      const chatWidth = Math.max(this.chatColumnWidth, this.minChatColumnWidth)
+      const helperWidth = Math.max(this.helperColumnWidth, this.minHelperColumnWidth)
+      const tasksWidth = Math.max(this.tasksColumnWidth, this.minTasksColumnWidth)
       if (this.isHelperVisible) {
         return {
           height: '100vh',
-          gridTemplateColumns: `${this.chatColumnWidth}px 8px ${this.helperColumnWidth}px 8px ${this.tasksColumnWidth}px`
+          gridTemplateColumns: `minmax(${this.minChatColumnWidth}px, ${chatWidth}px) 8px minmax(${this.minHelperColumnWidth}px, ${helperWidth}px) 8px minmax(${this.minTasksColumnWidth}px, ${tasksWidth}px)`
         }
       }
       return {
         height: '100vh',
-        gridTemplateColumns: `${this.chatColumnWidth}px 8px ${this.tasksColumnWidth}px`
+        gridTemplateColumns: `minmax(${this.minChatColumnWidth}px, ${chatWidth}px) 8px minmax(${this.minTasksColumnWidth}px, ${tasksWidth}px)`
       }
     },
+  },
+
+  watch: {
+    isShowHelper () {
+      this.$nextTick(() => {
+        this.applyColumnWidthsFromRatios()
+        requestAnimationFrame(() => {
+          this.applyColumnWidthsFromRatios()
+        })
+      })
+    }
   },
 
   mounted () {
@@ -687,5 +730,9 @@ export default {
 
 .chat-page-column-resizer:hover::before {
   background: var(--q-primary);
+}
+
+.chat-page-tasks-column {
+  min-width: 452px;
 }
 </style>
