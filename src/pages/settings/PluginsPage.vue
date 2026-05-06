@@ -392,21 +392,11 @@ export default {
     },
 
     confirmDeletePlugin (plugin) {
-      this.$q.dialog({
-        title: 'Удалить плагин?',
-        message: `Плагин "${plugin.name || plugin.key}" будет удален из хранилища plugins.`,
-        persistent: true,
-        ok: {
-          label: 'Удалить',
-          color: 'negative'
-        },
-        cancel: {
-          label: 'Отмена',
-          flat: true
-        }
-      }).onOk(() => {
-        this.deletePlugin(plugin)
-      })
+      const pluginName = plugin.name || plugin.key
+      if (!window.confirm(`Удалить плагин "${pluginName}"?`)) {
+        return
+      }
+      this.deletePlugin(plugin)
     },
 
     async deletePlugin (plugin) {
