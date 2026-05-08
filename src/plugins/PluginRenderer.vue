@@ -1,69 +1,69 @@
 <template>
   <div v-if="isVisible" class="plugin-renderer">
     <div
-      v-if="schema.component === 'field'"
-      class="plugin-field"
-      :class="{ 'plugin-field-inline': isInlineField }"
+        v-if="schema.component === 'field'"
+        class="plugin-field"
+        :class="{ 'plugin-field-inline': isInlineField }"
     >
       <div class="plugin-field-label">
         <q-icon
-          v-if="schema.props && schema.props.icon"
-          :name="schema.props.icon"
-          size="16px"
-          class="plugin-field-icon"
+            v-if="schema.props && schema.props.icon"
+            :name="schema.props.icon"
+            size="16px"
+            class="plugin-field-icon"
         />
 
         <span>{{ schema.props.label }}</span>
       </div>
 
       <div
-        v-if="schema.props.type === 'copyable-text'"
-        class="plugin-field-value plugin-copyable"
-        @click="copyToClipboard(resolvedValue)"
+          v-if="schema.props.type === 'copyable-text'"
+          class="plugin-field-value plugin-copyable"
+          @click="copyToClipboard(resolvedValue)"
       >
         {{ resolvedValue }}
       </div>
 
       <div
-        v-else
-        class="plugin-field-value"
+          v-else
+          class="plugin-field-value"
       >
         {{ resolvedValue }}
       </div>
     </div>
 
     <div
-      v-else-if="schema.component === 'section'"
-      class="plugin-section"
-      :class="{ 'plugin-section-inline': schema.props?.layout === 'inline' }"
+        v-else-if="schema.component === 'section'"
+        class="plugin-section"
+        :class="{ 'plugin-section-inline': schema.props?.layout === 'inline' }"
     >
       <div
-        v-if="schema.props && schema.props.title"
-        class="plugin-section-title"
+          v-if="schema.props && schema.props.title"
+          class="plugin-section-title"
       >
         {{ schema.props.title }}
       </div>
 
       <PluginRenderer
-        v-for="(child, index) in schema.props.children || []"
-        :key="index"
-        :schema="child"
-        :context="context"
+          v-for="(child, index) in schema.props.children || []"
+          :key="index"
+          :schema="child"
+          :context="context"
       />
     </div>
 
     <q-btn
-      v-else-if="schema.component === 'button'"
-      class="plugin-button"
-      :dense="schema.props.dense !== false"
-      :flat="schema.props.flat === true"
-      :round="schema.props.round === true"
-      :outline="schema.props.outline === true"
-      :no-caps="schema.props.noCaps !== false"
-      :color="schema.props.color || 'primary'"
-      :icon="schema.props.icon"
-      :label="schema.props.round ? undefined : schema.props.label"
-      @click="executeAction"
+        v-else-if="schema.component === 'button'"
+        class="plugin-button"
+        :dense="schema.props.dense !== false"
+        :flat="schema.props.flat === true"
+        :round="schema.props.round === true"
+        :outline="schema.props.outline === true"
+        :no-caps="schema.props.noCaps !== false"
+        :color="schema.props.color || 'primary'"
+        :icon="schema.props.icon"
+        :label="schema.props.round ? undefined : schema.props.label"
+        @click="executeAction"
     >
       <q-tooltip v-if="schema.props.tooltip">
         {{ schema.props.tooltip }}
@@ -71,47 +71,47 @@
     </q-btn>
 
     <q-badge
-      v-else-if="schema.component === 'badge'"
-      class="plugin-badge"
-      :color="schema.props.color || 'primary'"
+        v-else-if="schema.component === 'badge'"
+        class="plugin-badge"
+        :color="schema.props.color || 'primary'"
     >
       {{ resolvedLabel }}
     </q-badge>
 
     <div
-      v-else-if="schema.component === 'text'"
-      class="plugin-text"
+        v-else-if="schema.component === 'text'"
+        class="plugin-text"
     >
       {{ resolvedValue }}
     </div>
 
     <div
-      v-else-if="schema.component === 'remote-text'"
-      class="plugin-remote-text"
-    >
-      {{ remoteText }}
-    </div>
+        v-else-if="schema.component === 'remote-text'"
+        class="plugin-remote-text"
+        :class="remoteTextClasses"
+        v-text="remoteText"
+    />
 
     <a
-      v-else-if="schema.component === 'link'"
-      class="plugin-link"
-      :href="resolvedHref"
-      target="_blank"
-      rel="noopener noreferrer"
+        v-else-if="schema.component === 'link'"
+        class="plugin-link"
+        :href="resolvedHref"
+        target="_blank"
+        rel="noopener noreferrer"
     >
       {{ resolvedLabel }}
     </a>
 
     <q-separator
-      v-else-if="schema.component === 'divider'"
-      class="plugin-divider"
+        v-else-if="schema.component === 'divider'"
+        class="plugin-divider"
     />
   </div>
 </template>
 
 <script>
-import {evaluateVisible, resolveValue} from './pluginUtils'
-import {pluginNativeBridge} from './pluginNativeBridge'
+import { evaluateVisible, resolveValue } from './pluginUtils'
+import { pluginNativeBridge } from './pluginNativeBridge'
 
 const remoteTextCache = new Map()
 const DEFAULT_REMOTE_TEXT_TTL_MS = 5000
@@ -137,40 +137,54 @@ export default {
   }),
 
   computed: {
-    isVisible() {
+    isVisible () {
       return evaluateVisible(this.schema.props?.visible, this.context)
     },
 
-    resolvedValue() {
+    resolvedValue () {
       return resolveValue(this.schema.props?.value, this.context)
     },
 
-    resolvedLabel() {
+    resolvedLabel () {
       return resolveValue(this.schema.props?.label, this.context)
     },
 
-    resolvedHref() {
+    resolvedHref () {
       return resolveValue(this.schema.props?.href, this.context)
     },
 
     isInlineField() {
       return this.schema.component === 'field' && this.schema.props?.layout === 'inline'
     },
+
+    remoteTextClasses() {
+      const layout = this.schema.props?.layout || 'column'
+
+      return {
+        'plugin-remote-text-inline': layout === 'inline',
+        'plugin-remote-text-column': layout === 'column'
+      }
+    },
   },
 
   methods: {
-    async copyToClipboard(value) {
+    async copyToClipboard (value) {
       await navigator.clipboard.writeText(String(value))
 
       this.$q.notify({
         message: 'Скопировано',
         type: 'positive',
         position: 'top-right',
-        actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        actions: [{
+          icon: 'close',
+          color: 'white',
+          dense: true,
+          handler: () => undefined
+        }]
       })
     },
 
-    async executeAction() {
+    async executeAction () {
       try {
         const action = this.schema.props?.action
         if (!action) {
@@ -191,12 +205,17 @@ export default {
           message: 'Ошибка выполнения действия плагина',
           type: 'negative',
           position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          actions: [{
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }]
         })
       }
     },
 
-    handlePluginResults(results) {
+    handlePluginResults (results) {
       results.forEach(result => {
         const commands = result?.commands || []
 
@@ -206,13 +225,18 @@ export default {
       })
     },
 
-    handlePluginCommand(command) {
+    handlePluginCommand (command) {
       if (command.type === 'SHOW_TOAST') {
         this.$q.notify({
           message: command.payload?.message || '',
           type: command.payload?.type || 'info',
           position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          actions: [{
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }]
         })
       }
 
@@ -229,7 +253,7 @@ export default {
       }
     },
 
-    resolveActionUrl(action) {
+    resolveActionUrl (action) {
       if (!action?.url) {
         return null
       }
@@ -242,7 +266,7 @@ export default {
       return null
     },
 
-    resolveTemplate(template) {
+    resolveTemplate (template) {
       if (!template) {
         return ''
       }
@@ -252,7 +276,7 @@ export default {
       })
     },
 
-    getByPathForTemplate(path) {
+    getByPathForTemplate (path) {
       return path.split('.').reduce((current, part) => {
         if (current === null || current === undefined) {
           return undefined
@@ -273,22 +297,17 @@ export default {
       if (this.schema.component !== 'remote-text') {
         return
       }
-
       if (!this.isVisible) {
         return
       }
-
       const hook = this.schema.props?.hook
-
       if (!hook) {
         return
       }
-
       const cacheKey = this.getRemoteTextCacheKey()
       const cached = remoteTextCache.get(cacheKey)
       const now = Date.now()
       const ttl = this.getRemoteTextCacheTtlMs()
-
       if (cached && cached.text !== undefined && now - cached.time < ttl) {
         this.remoteText = cached.text
         return
@@ -305,13 +324,12 @@ export default {
             this.remoteText = this.schema.props?.errorText || ''
           }
         }
-
         return
       }
 
       const hasOldText = this.remoteText !== null &&
-        this.remoteText !== undefined &&
-        this.remoteText !== ''
+          this.remoteText !== undefined &&
+          this.remoteText !== ''
 
       if (!hasOldText && cached?.text) {
         this.remoteText = cached.text
@@ -330,7 +348,7 @@ export default {
         .then(response => {
           const results = response?.data?.results || []
           const firstResult = results[0]
-          const text = firstResult?.text || ''
+          const text = this.resolveRemoteTextResult(firstResult)
           remoteTextCache.set(cacheKey, {
             text,
             time: Date.now(),
@@ -414,24 +432,40 @@ export default {
       this.stopRemoteTextInterval()
       this.startRemoteTextInterval()
     },
+
+    resolveRemoteTextResult(result) {
+      if (result === null || result === undefined) {
+        return ''
+      }
+      if (typeof result === 'string') {
+        return result
+      }
+      if (typeof result === 'object') {
+        if (result.text !== null && result.text !== undefined) {
+          return String(result.text)
+        }
+        return ''
+      }
+      return String(result)
+    },
   },
 
   watch: {
     context: {
       deep: true,
-      handler() {
+      handler () {
         this.loadRemoteText()
         this.restartRemoteTextInterval()
       }
     }
   },
 
-  mounted() {
+  mounted () {
     this.loadRemoteText()
     this.startRemoteTextInterval()
   },
 
-  beforeUnmount() {
+  beforeUnmount () {
     this.stopRemoteTextInterval()
   },
 }
@@ -544,7 +578,20 @@ export default {
   margin-top: 0;
   font-size: 13px;
   color: var(--q-primary);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.plugin-remote-text-inline {
+  display: inline;
+  width: auto;
   white-space: nowrap;
+}
+
+.plugin-remote-text-column {
+  display: block;
+  width: 100%;
+  white-space: pre-line;
 }
 
 .plugin-section-inline {
@@ -561,6 +608,17 @@ export default {
 .plugin-section-inline .plugin-text,
 .plugin-section-inline .plugin-remote-text {
   margin-top: 0;
+}
+
+.plugin-section-inline .plugin-remote-text-column {
+  display: block;
+  width: 100%;
+  white-space: pre-line;
+}
+
+.plugin-section-inline .plugin-remote-text-inline {
+  display: inline;
+  width: auto;
   white-space: nowrap;
 }
 </style>
