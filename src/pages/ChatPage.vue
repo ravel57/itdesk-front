@@ -57,6 +57,7 @@
             @showHelper="this.showHelper"
             @getMessagePage="this.getMessagePage"
             @scrollToMessageAfterSearch="this.getMessageOnSearch($event)"
+            @setAnswerRequired="setAnswerRequired"
           />
         </div>
         <div
@@ -157,17 +158,17 @@ export default {
   }),
 
   methods: {
-    onTemplateClick (text) {
+    onTemplateClick(text) {
       this.inputField += ' ' + text
     },
 
-    sendMessage (event) {
+    sendMessage(event) {
       if (event.attachedFiles && event.attachedFiles.length > 0) {
         const formData = new FormData()
         event.attachedFiles.forEach(file => {
           formData.append('files', file)
         })
-        axios.post('/files/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+        axios.post('/files/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
           .then(response => {
             response.data.map((fileUuid, index) => ({
               fileUuid,
@@ -191,7 +192,7 @@ export default {
       }
     },
 
-    sendTextMessage (message) {
+    sendTextMessage(message) {
       axios.post(`/api/v1/client/${this.getClient.id}/message`, message)
         .then(() => {
           this.isSending = false
@@ -212,26 +213,26 @@ export default {
           }))
     },
 
-    keyPressed (text) {
+    keyPressed(text) {
       this.inputField = text
       typing(this.getClient, this.store.currentUser, text)
     },
 
-    markMessagesRead () {
+    markMessagesRead() {
       if (this.getClient.id) {
         markRead(this.getClient)
       }
     },
 
-    updateClient (newClient) {
+    updateClient(newClient) {
       this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
     },
 
-    newTask (task) {
+    newTask(task) {
       this.getClient.tasks.push(task.data)
     },
 
-    updateTask (oldTask, newTask) {
+    updateTask(oldTask, newTask) {
       const updatedTask = newTask.data ? newTask.data : newTask
       const index = this.getClient.tasks.findIndex(task => task.id === updatedTask.id)
       if (index !== -1) {
@@ -239,12 +240,12 @@ export default {
       }
     },
 
-    pastToInputField (text) {
+    pastToInputField(text) {
       this.inputField = text
       typing(this.getClient, this.store.currentUser, text)
     },
 
-    linkToTask (message, oldTask) {
+    linkToTask(message, oldTask) {
       const task = {
         id: oldTask.id,
         name: oldTask.name,
@@ -259,7 +260,7 @@ export default {
         linkedMessageId: oldTask.linkedMessageId,
         sla: oldTask.sla
       }
-      axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, { message, task })
+      axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, {message, task})
         .then(() => {
           if (this.getClient.messages.find(msg => msg.id === oldTask.linkedMessageId)) {
             this.getClient.messages.find(msg => msg.id === oldTask.linkedMessageId).linkedTaskId = null
@@ -278,11 +279,11 @@ export default {
         })
     },
 
-    clearLinkedMessageId () {
+    clearLinkedMessageId() {
       this.linkedMessageId = null
     },
 
-    deleteMessage (message) {
+    deleteMessage(message) {
       axios.delete(`/api/v1/client/${this.getClient.id}/delete-message/${message.id}`)
         .catch(e => {
           this.$q.notify({
@@ -296,17 +297,17 @@ export default {
         })
     },
 
-    deleteClient () {
+    deleteClient() {
       this.store.clients = this.store.clients.filter(client => client.id !== this.getClient.id)
       this.$router.push('/')
     },
 
-    showHelper () {
+    showHelper() {
       this.isShowHelper = true
       localStorage.setItem('isShowHelper', 'true')
     },
 
-    hideHelper () {
+    hideHelper() {
       this.isShowHelper = false
       this.tab = 'tab1'
       localStorage.setItem('isShowHelper', 'false')
@@ -315,7 +316,7 @@ export default {
       })
     },
 
-    getMessagePage (pageCounter = 0) {
+    getMessagePage(pageCounter = 0) {
       this.pageCounter += pageCounter
       if (this.pageCounter <= 1) {
         this.getClient.messages = this.store.currentChatMessageData.messages
@@ -325,24 +326,28 @@ export default {
           .then(response => {
             const messages = response.data.messages
             this.isEnd = response.data.isEnd
-            messages.forEach(message => { message.date = new Date(message.date) })
+            messages.forEach(message => {
+              message.date = new Date(message.date)
+            })
             this.getClient.messages = messages.concat(this.getClient.messages)
           })
       }
     },
 
-    getMessageOnSearch (messageId) {
+    getMessageOnSearch(messageId) {
       axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${messageId}`)
         .then(response => {
           const messages = response.data.messages
           this.pageCounter = response.data.page
           this.isEnd = response.data.isEnd
-          messages.forEach(message => { message.date = new Date(message.date) })
+          messages.forEach(message => {
+            message.date = new Date(message.date)
+          })
           this.getClient.messages = messages
         })
     },
 
-    getLinkedMessage (task) {
+    getLinkedMessage(task) {
       const taskWithLinkedMessage = this.getClient.messages.filter(m => m.id === task.linkedMessageId)
       if (taskWithLinkedMessage.length > 0) {
         this.linkedMessageId = task.linkedMessageId
@@ -352,14 +357,18 @@ export default {
             const messages = response.data.messages
             this.pageCounter = response.data.page
             this.isEnd = response.data.isEnd
-            messages.forEach(message => { message.date = new Date(message.date) })
+            messages.forEach(message => {
+              message.date = new Date(message.date)
+            })
             this.getClient.messages = messages
-            setTimeout(() => { this.linkedMessageId = task.linkedMessageId }, 100)
+            setTimeout(() => {
+              this.linkedMessageId = task.linkedMessageId
+            }, 100)
           })
       }
     },
 
-    initColumnWidths () {
+    initColumnWidths() {
       if (this.isMobile || !this.$refs.chatPageLayout) {
         return
       }
@@ -389,7 +398,7 @@ export default {
       this.applyColumnWidthsFromRatios()
     },
 
-    startColumnResize (resizeType, event) {
+    startColumnResize(resizeType, event) {
       if (this.isMobile) {
         return
       }
@@ -413,7 +422,7 @@ export default {
       window.addEventListener('mouseup', this.stopColumnResize)
     },
 
-    resizeColumns (event) {
+    resizeColumns(event) {
       if (!this.resizingColumn) {
         return
       }
@@ -468,7 +477,7 @@ export default {
       }
     },
 
-    stopColumnResize () {
+    stopColumnResize() {
       if (this.resizingColumn) {
         this.saveColumnWidths()
       }
@@ -482,7 +491,7 @@ export default {
       window.removeEventListener('mouseup', this.stopColumnResize)
     },
 
-    saveColumnWidths () {
+    saveColumnWidths() {
       if (this.isHelperVisible) {
         const totalWidth = this.chatColumnWidth + this.helperColumnWidth + this.tasksColumnWidth
         if (totalWidth <= 0) {
@@ -512,7 +521,7 @@ export default {
       )
     },
 
-    applyColumnWidthsFromRatios () {
+    applyColumnWidthsFromRatios() {
       if (this.isMobile || !this.$refs.chatPageLayout) {
         return
       }
@@ -549,7 +558,7 @@ export default {
       }
     },
 
-    calculateColumnsByRatios (availableWidth, columns, minWidths) {
+    calculateColumnsByRatios(availableWidth, columns, minWidths) {
       const result = {}
       let remainingWidth = availableWidth
       let remainingColumns = [...columns]
@@ -589,11 +598,84 @@ export default {
       return result
     },
 
-    handleWindowResize () {
+    handleWindowResize() {
       if (this.resizingColumn) {
         return
       }
       this.applyColumnWidthsFromRatios()
+    },
+
+    setAnswerRequired({messageId, clientId, answerRequired}) {
+      axios.patch(`/api/v1/client/${clientId}/message/${messageId}/answer-required`, answerRequired, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+        .then(() => {
+          const clientIndex = this.store.clients.findIndex(c => c.id === clientId)
+          if (clientIndex === -1) {
+            return
+          }
+          const client = this.store.clients[clientIndex]
+          const message = client.messages?.find(m => m.id === messageId)
+          if (message) {
+            message.answerRequired = answerRequired
+          }
+          client.firstUnansweredMessageDate = this.calculateFirstUnansweredMessageDate(client)
+          this.store.clients.splice(clientIndex, 1, {
+            ...client,
+            messages: client.messages ? [...client.messages] : []
+          })
+          this.store.clients = [...this.store.clients]
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
+    },
+
+    calculateFirstUnansweredMessageDate(client) {
+      const messages = [...(client.messages || [])]
+        .filter(message => message?.date && message.deleted !== true)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      if (messages.length === 0) {
+        return null
+      }
+      let lastOperatorAnswerMs = 0
+      messages.forEach(message => {
+        if (message.isSent === true && message.isComment !== true) {
+          const dateMs = new Date(message.date).getTime()
+          if (Number.isFinite(dateMs)) {
+            lastOperatorAnswerMs = Math.max(lastOperatorAnswerMs, dateMs)
+          }
+        }
+      })
+      const unansweredIncomingMessages = messages.filter(message => {
+        const dateMs = new Date(message.date).getTime()
+        return message.isSent === false &&
+          message.isComment !== true &&
+          Number.isFinite(dateMs) &&
+          dateMs > lastOperatorAnswerMs
+      })
+      if (unansweredIncomingMessages.length === 0) {
+        return null
+      }
+      const lastMarkedMessage = [...unansweredIncomingMessages]
+        .reverse()
+        .find(message =>
+          message.answerRequired === 'ANSWER_REQUIRED' ||
+          message.answerRequired === 'ANSWER_NOT_REQUIRED'
+        )
+      if (!lastMarkedMessage || lastMarkedMessage.answerRequired !== 'ANSWER_REQUIRED') {
+        return null
+      }
+      return unansweredIncomingMessages[0].date
     },
   },
 

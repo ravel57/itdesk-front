@@ -56,9 +56,14 @@
           style="width: 100%; background-color: white;display: flex;align-items: center;flex-direction: row"
         >
           <div style="display: flex;align-items: center;flex-direction: row;">
-            <svg v-if="this.getName(message) !== ''" style="margin-right: 8px" width="20" height="20" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M0.432193 13.8757L0.431791 13.8559C0.437263 12.5425 0.362052 10.9444 0.51429 9.66617C1.06099 5.07597 4.92198 1.43399 9.45856 0.824872C10.0584 0.744332 10.6484 0.734517 11.2522 0.727173C12.3729 0.765053 13.548 0.731395 14.6729 0.731472C15.1618 0.731511 15.6521 0.720803 16.1402 0.754104C21.141 1.09531 25.3184 5.12436 25.7314 10.1578C25.8281 11.336 25.7552 12.6767 25.7802 13.8774C25.4588 13.8779 25.1373 13.8802 24.816 13.878C23.6035 13.8695 23.7398 14.187 23.6417 15.1379C23.4215 17.2716 21.7225 19.0301 19.5986 19.2937C16.8784 19.6314 14.6321 17.7307 14.2997 15.0622C14.1904 14.3026 13.7317 14.331 13.088 14.3284C12.8906 14.3276 12.6797 14.314 12.4843 14.3404L12.4599 14.344C11.8538 14.4297 11.902 15.1759 11.8179 15.6173C11.6462 16.5188 11.1154 17.4321 10.4586 18.0691C8.6007 19.8706 5.50491 19.7156 3.77619 17.8344C2.88113 16.8603 2.5745 15.8253 2.51764 14.5544C2.49943 14.1473 2.29021 13.9334 1.86357 13.8928C1.39407 13.848 0.903897 13.8781 0.432193 13.8757ZM10.4889 2.59808C10.0687 2.62214 9.65763 2.65184 9.24287 2.7282C5.65091 3.38958 2.67168 6.45736 2.30341 10.1203C2.24564 10.695 2.26972 11.2677 2.26031 11.8437C2.46677 11.8715 2.67354 11.8647 2.88131 11.8648C6.11031 11.8677 9.33938 11.8658 12.5684 11.8651C13.5999 11.8648 14.6353 11.8838 15.6664 11.8617L23.9181 11.8683C23.8932 11.2614 23.9378 10.6511 23.8734 10.0459C23.4533 6.10394 20.1418 2.9601 16.2125 2.62219C15.8112 2.58767 15.414 2.58956 15.0117 2.58928C13.5372 2.58826 11.9722 2.53594 10.5044 2.59741L10.4889 2.59808Z" fill="#5C35F9"/>
-              <path d="M3.28256 20.9081C3.25071 20.9952 3.24359 21.0725 3.25285 21.1649C3.35083 22.1429 4.28927 22.7426 5.21264 22.7422C6.33634 22.7418 7.38908 21.9149 8.16315 21.1642C8.94619 20.4048 9.6329 19.521 10.7899 19.4021C11.7216 19.3352 12.535 19.7171 13.0983 20.4742C13.8216 19.5609 14.8809 19.1131 16.0314 19.5488C17.0697 19.942 17.7451 21.0013 18.593 21.6765C19.3357 22.2678 20.3057 22.8524 21.2961 22.7329C22.2772 22.6145 22.9066 21.9226 22.9402 20.9309C23.5593 21.316 23.4454 22.2953 23.2011 22.8673C22.8143 23.7731 21.9196 24.3741 21.0332 24.7231C19.2485 25.4256 16.6283 25.4431 14.8396 24.6671C14.0788 24.3285 13.5003 23.7834 13.0739 23.0728C12.586 24.1746 11.4709 24.743 10.3497 25.0053C8.2852 25.4884 5.0117 25.328 3.53295 23.6711C2.8457 22.9011 2.39219 21.6978 3.28256 20.9081Z" fill="#5C35F9"/>
+            <svg v-if="this.getName(message) !== ''" style="margin-right: 8px" width="20" height="20"
+                 viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M0.432193 13.8757L0.431791 13.8559C0.437263 12.5425 0.362052 10.9444 0.51429 9.66617C1.06099 5.07597 4.92198 1.43399 9.45856 0.824872C10.0584 0.744332 10.6484 0.734517 11.2522 0.727173C12.3729 0.765053 13.548 0.731395 14.6729 0.731472C15.1618 0.731511 15.6521 0.720803 16.1402 0.754104C21.141 1.09531 25.3184 5.12436 25.7314 10.1578C25.8281 11.336 25.7552 12.6767 25.7802 13.8774C25.4588 13.8779 25.1373 13.8802 24.816 13.878C23.6035 13.8695 23.7398 14.187 23.6417 15.1379C23.4215 17.2716 21.7225 19.0301 19.5986 19.2937C16.8784 19.6314 14.6321 17.7307 14.2997 15.0622C14.1904 14.3026 13.7317 14.331 13.088 14.3284C12.8906 14.3276 12.6797 14.314 12.4843 14.3404L12.4599 14.344C11.8538 14.4297 11.902 15.1759 11.8179 15.6173C11.6462 16.5188 11.1154 17.4321 10.4586 18.0691C8.6007 19.8706 5.50491 19.7156 3.77619 17.8344C2.88113 16.8603 2.5745 15.8253 2.51764 14.5544C2.49943 14.1473 2.29021 13.9334 1.86357 13.8928C1.39407 13.848 0.903897 13.8781 0.432193 13.8757ZM10.4889 2.59808C10.0687 2.62214 9.65763 2.65184 9.24287 2.7282C5.65091 3.38958 2.67168 6.45736 2.30341 10.1203C2.24564 10.695 2.26972 11.2677 2.26031 11.8437C2.46677 11.8715 2.67354 11.8647 2.88131 11.8648C6.11031 11.8677 9.33938 11.8658 12.5684 11.8651C13.5999 11.8648 14.6353 11.8838 15.6664 11.8617L23.9181 11.8683C23.8932 11.2614 23.9378 10.6511 23.8734 10.0459C23.4533 6.10394 20.1418 2.9601 16.2125 2.62219C15.8112 2.58767 15.414 2.58956 15.0117 2.58928C13.5372 2.58826 11.9722 2.53594 10.5044 2.59741L10.4889 2.59808Z"
+                fill="#5C35F9"/>
+              <path
+                d="M3.28256 20.9081C3.25071 20.9952 3.24359 21.0725 3.25285 21.1649C3.35083 22.1429 4.28927 22.7426 5.21264 22.7422C6.33634 22.7418 7.38908 21.9149 8.16315 21.1642C8.94619 20.4048 9.6329 19.521 10.7899 19.4021C11.7216 19.3352 12.535 19.7171 13.0983 20.4742C13.8216 19.5609 14.8809 19.1131 16.0314 19.5488C17.0697 19.942 17.7451 21.0013 18.593 21.6765C19.3357 22.2678 20.3057 22.8524 21.2961 22.7329C22.2772 22.6145 22.9066 21.9226 22.9402 20.9309C23.5593 21.316 23.4454 22.2953 23.2011 22.8673C22.8143 23.7731 21.9196 24.3741 21.0332 24.7231C19.2485 25.4256 16.6283 25.4431 14.8396 24.6671C14.0788 24.3285 13.5003 23.7834 13.0739 23.0728C12.586 24.1746 11.4709 24.743 10.3497 25.0053C8.2852 25.4884 5.0117 25.328 3.53295 23.6711C2.8457 22.9011 2.39219 21.6978 3.28256 20.9081Z"
+                fill="#5C35F9"/>
             </svg>
             <div
               v-else
@@ -72,7 +77,7 @@
             </div>
           </div>
           <div class="">
-            {{ this.getTimeLastMessage(message)}}
+            {{ this.getTimeLastMessage(message) }}
           </div>
         </q-item-section>
       </q-item>
@@ -166,8 +171,14 @@
                   </video>
                 </div>
                 <div style="margin-left: 10px;display: flex; flex-direction: column;justify-content: center">
-                  <div class="">От: {{ message.user ? message.user.lastname + ' ' + message.user.firstname : this.client.lastname + ' ' + this.client.username }}</div>
-                  <div class="">{{ message.replyMessageText ? message.replyMessageText : (message.replyFileType.startsWith('image/') ? 'Изображение' : (message.replyFileType.startsWith('video/') ? 'Видео' : 'Файл')) }}</div>
+                  <div class="">От: {{
+                      message.user ? message.user.lastname + ' ' + message.user.firstname : this.client.lastname + ' ' + this.client.username
+                    }}
+                  </div>
+                  <div class="">{{
+                      message.replyMessageText ? message.replyMessageText : (message.replyFileType.startsWith('image/') ? 'Изображение' : (message.replyFileType.startsWith('video/') ? 'Видео' : 'Файл'))
+                    }}
+                  </div>
                 </div>
               </div>
               <div>
@@ -216,6 +227,34 @@
                 />
               </div>
             </q-chat-message>
+
+            <div
+              v-if="isLastMessage(message) && isIncomingMessage(message)"
+              class="answer-required-actions"
+            >
+              <q-btn
+                dense
+                flat
+                no-caps
+                size="12px"
+                icon="priority_high"
+                label="Требует ответа"
+                :color="isAnswerRequired(message) ? 'primary' : 'grey'"
+                @click="setAnswerRequired(message, true)"
+              />
+
+              <q-btn
+                dense
+                flat
+                no-caps
+                size="12px"
+                icon="done"
+                label="Не требует ответа"
+                :color="isAnswerNotRequired(message) ? 'positive' : 'grey'"
+                @click="setAnswerRequired(message, false)"
+              />
+            </div>
+
             <q-menu
               v-if="this.isShowCustomContextMenu"
               touch-position
@@ -334,7 +373,8 @@
         style="width: 100%;height: 50px;display: flex;flex-direction: row;border-radius: 0;border-top: 1px solid #0000001f"
       >
         <div ref="replyContainer" style="display: flex;width: 100%;max-height: 50px;align-items: center">
-          <div style="height: 50px;width: 50px;display: flex;justify-content: center;align-items: center;margin-left: 5px;margin-right: 10px">
+          <div
+            style="height: 50px;width: 50px;display: flex;justify-content: center;align-items: center;margin-left: 5px;margin-right: 10px">
             <img
               v-if="this.getReplayed.fileUuid && this.getReplayed.fileType.startsWith('image/')"
               :src="`/files/images/${this.getReplayed.fileUuid}`"
@@ -566,7 +606,8 @@
     </div>
   </q-page>
   <q-dialog v-model="this.isShowMaxSizePhoto">
-    <q-card style="overflow: hidden;" :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw;' : 'max-height: 90vh; max-width: 80vw;'">
+    <q-card style="overflow: hidden;"
+            :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw;' : 'max-height: 90vh; max-width: 80vw;'">
       <div style="overflow-x: auto">
         <img
           :style="this.getScaledImageStyle()"
@@ -594,8 +635,10 @@
             v-for="(file, index) in this.attachedFiles"
             :key="index"
           >
-            <div style="display: flex; align-items: center; padding: 4px; border: solid 1px rgba(108, 108, 108, 0.2); border-radius: 4px">
-              <div style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
+            <div
+              style="display: flex; align-items: center; padding: 4px; border: solid 1px rgba(108, 108, 108, 0.2); border-radius: 4px">
+              <div
+                style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
                 {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
               </div>
               <div class="truncate">{{ file.name.split('.')[0] }}</div>
@@ -653,7 +696,8 @@
               :href="getFileUrl(file)"
               target="_blank"
             >
-              <div style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
+              <div
+                style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
                 {{ getFileExt(file) }}
               </div>
               <div class="truncate">{{ getFileTitle(file) }}</div>
@@ -667,30 +711,30 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
-import { useResizeObserver } from '@vueuse/core'
-import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import {useResizeObserver} from '@vueuse/core'
+import {onMounted, ref} from 'vue'
+import {useRoute} from 'vue-router'
 
 export default {
   name: 'ChatDialog',
   props: {
-    messages: { type: Array },
-    inputField: { type: String },
-    templates: { type: Array },
-    isSending: { type: Boolean },
-    typing: { default: () => [], type: Array },
-    currentUser: { type: Object },
-    linkedMessageId: { type: Number },
-    tasks: { type: Array },
-    taskWatchingNow: { default: () => [], type: Array },
-    isShowHelper: { type: Boolean },
-    isMobile: { type: Boolean },
-    isDialog: { default: false, type: Boolean },
-    client: { type: Object },
-    isEnd: { type: Boolean },
-    comments: { default: true, type: Boolean }
+    messages: {type: Array},
+    inputField: {type: String},
+    templates: {type: Array},
+    isSending: {type: Boolean},
+    typing: {default: () => [], type: Array},
+    currentUser: {type: Object},
+    linkedMessageId: {type: Number},
+    tasks: {type: Array},
+    taskWatchingNow: {default: () => [], type: Array},
+    isShowHelper: {type: Boolean},
+    isMobile: {type: Boolean},
+    isDialog: {default: false, type: Boolean},
+    client: {type: Object},
+    isEnd: {type: Boolean},
+    comments: {default: true, type: Boolean}
   },
 
   data: () => ({
@@ -724,11 +768,13 @@ export default {
     fileList: []
   }),
 
-  updated () {
-    setTimeout(() => { this.$emit('updated') }, 150)
+  updated() {
+    setTimeout(() => {
+      this.$emit('updated')
+    }, 150)
   },
 
-  mounted () {
+  mounted() {
     try {
       this.mentionTargetEl = this.$refs.textInput
       this.scrollToBottom()
@@ -738,7 +784,7 @@ export default {
   },
 
   methods: {
-    nameToPastelHex (name) {
+    nameToPastelHex(name) {
       let hash = 0
       for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -757,21 +803,21 @@ export default {
       return pastelHex
     },
 
-    getAbbreviation (client) {
+    getAbbreviation(client) {
       const lastname = client.lastname ? client.lastname[0].toUpperCase() : ''
       const firstname = client.firstname ? client.firstname[0].toUpperCase() : ''
       return `${lastname}${firstname}`
     },
 
-    copyToClipboard (text) {
+    copyToClipboard(text) {
       navigator.clipboard.writeText(text)
     },
 
-    pastToInputField (text) {
+    pastToInputField(text) {
       this.$emit('pastToInputField', text)
     },
 
-    scrollToBottom (timeout = 0) {
+    scrollToBottom(timeout = 0) {
       setTimeout(() => {
         let scrollArea = document.querySelector('#chat-dialog > div > div')
         if (this.isDialog) {
@@ -781,15 +827,15 @@ export default {
       }, timeout)
     },
 
-    smoothScrollToBottom () {
+    smoothScrollToBottom() {
       let scrollArea = document.querySelector('#chat-dialog > div > div')
       if (this.isDialog) {
         scrollArea = document.querySelector('#chat-dialog-pop-up > div > div')
       }
-      scrollArea.scrollTo({ top: scrollArea.scrollHeight, left: 0, behavior: 'smooth' })
+      scrollArea.scrollTo({top: scrollArea.scrollHeight, left: 0, behavior: 'smooth'})
     },
 
-    sendMessage () {
+    sendMessage() {
       const textarea = this.$refs.textInput
       if (textarea.value || this.attachedFiles.length > 0) {
         this.$emit('isSending', true)
@@ -805,7 +851,7 @@ export default {
           replyFileType: this.replyFileType,
           user: this.currentUser
         }
-        this.$emit('sendMessage', { message, attachedFiles: this.attachedFiles, clientId: this.client.id })
+        this.$emit('sendMessage', {message, attachedFiles: this.attachedFiles, clientId: this.client.id})
         this.attachedFiles = []
         this.replyMessageId = null
         this.replyFileType = null
@@ -823,7 +869,7 @@ export default {
       this.scrollToBottom(500)
     },
 
-    handleTabPressed (event) {
+    handleTabPressed(event) {
       if (this.$refs.textInput.value) {
         try {
           const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
@@ -834,11 +880,12 @@ export default {
             this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
           }
           this.textChanged()
-        } catch (ignoredError) {}
+        } catch (ignoredError) {
+        }
       }
     },
 
-    getStamp (message) {
+    getStamp(message) {
       return message.date.toLocaleTimeString('ru-RU', {
         timeZone: 'Europe/Moscow',
         year: 'numeric',
@@ -849,7 +896,7 @@ export default {
       })
     },
 
-    getTimeLastMessage (message) {
+    getTimeLastMessage(message) {
       if (message) {
         const dateFormatted = new Date(message.date)
         const currentDate = new Date()
@@ -862,8 +909,10 @@ export default {
 
         const declension = (number, words) => {
           return words[
-            (number % 10 === 1 && number % 100 !== 11) ? 0
-              : (number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 10 || number % 100 >= 20)) ? 1
+            (number % 10 === 1 && number % 100 !== 11)
+              ? 0
+              : (number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 10 || number % 100 >= 20))
+                  ? 1
                   : 2
           ]
         }
@@ -882,7 +931,7 @@ export default {
       }
     },
 
-    getName (message) {
+    getName(message) {
       if (message.user) {
         return message.user.firstname + ' ' + (message.user.lastname !== null ? message.user.lastname : '')
       } else {
@@ -890,7 +939,7 @@ export default {
       }
     },
 
-    attachFile () {
+    attachFile() {
       const fileInput = document.getElementById('fileInput')
       fileInput.click()
       fileInput.addEventListener('change', () => {
@@ -906,18 +955,18 @@ export default {
       })
     },
 
-    findLinks (message) {
+    findLinks(message) {
       const urlRegex = /(https?:\/\/\S+)/g
       const decodedText = document.createElement('textarea')
       decodedText.innerHTML = message
       return decodedText.value.replace(urlRegex, '<a href="$&" target="_blank">$&</a>')
     },
 
-    scrollToElementById (id) {
+    scrollToElementById(id) {
       const el = document.querySelector(`#${id} > div > div:last-child`)
       const element = el.children[el.children.length - 1]
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth' })
+        element.scrollIntoView({behavior: 'smooth'})
         const currentColor = element.style.backgroundColor
         element.style.backgroundColor = 'lightcoral'
         setTimeout(() => {
@@ -927,24 +976,26 @@ export default {
       }
     },
 
-    scrollToMessageAfterSearch (messageId) {
+    scrollToMessageAfterSearch(messageId) {
       if (this.messages.filter(m => m.id === messageId).length > 0) {
         this.goToMessage(messageId)
       } else {
         this.$emit('scrollToMessageAfterSearch', messageId)
-        setTimeout(() => { this.goToMessage(messageId) }, 300)
+        setTimeout(() => {
+          this.goToMessage(messageId)
+        }, 300)
       }
     },
 
-    linkToTask (message, task) {
+    linkToTask(message, task) {
       this.$emit('linkToTask', message, task)
     },
 
-    deleteMessage (message) {
+    deleteMessage(message) {
       this.$emit('deleteMessage', message)
     },
 
-    invertContextMenu () {
+    invertContextMenu() {
       if (this.rightClickCounter > 0) {
         this.isShowCustomContextMenu = false
         setTimeout(() => {
@@ -955,13 +1006,13 @@ export default {
       this.rightClickCounter++
     },
 
-    setReplyMessage (message) {
+    setReplyMessage(message) {
       this.replyMessageId = message.id
       this.replyFileUuid = message.fileUuid
       this.replyFileType = message.fileType
     },
 
-    onSearch () {
+    onSearch() {
       if (this.search) {
         let requestUri = `/api/v1/client/${this.client.id}/search-messages`
         if (this.isDialog) {
@@ -969,7 +1020,7 @@ export default {
           const taskId = queryParams.get('task')
           requestUri = `/api/v1/client/${this.client.id}/task/${taskId}/search-messages`
         }
-        axios.post(requestUri, { text: this.search })
+        axios.post(requestUri, {text: this.search})
           .then(response => {
             this.searchResults = response.data
           })
@@ -991,32 +1042,32 @@ export default {
       }
     },
 
-    goToMessage (messageId) {
+    goToMessage(messageId) {
       const id = this.isDialog ? `modal_message_${messageId}` : `message_${messageId}`
       this.scrollToElementById(id)
     },
 
-    onBlur () {
+    onBlur() {
       setTimeout(() => {
         this.isShowSearchResults = false
       }, 300)
     },
 
-    showHelper () {
+    showHelper() {
       this.$emit('showHelper')
     },
 
-    createNewTask (message) {
+    createNewTask(message) {
       const queryParams = new URLSearchParams(window.location.search)
       queryParams.set('newTaskFromMessage', message.id)
-      this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
+      this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
     },
 
-    switchToComment () {
+    switchToComment() {
       this.isComment = !this.isComment
     },
 
-    shortenLine (string, offset = 25) {
+    shortenLine(string, offset = 25) {
       if (string.length > 25) {
         return string.substring(0, 25) + '...'
       } else {
@@ -1024,7 +1075,7 @@ export default {
       }
     },
 
-    getReplyMessage (message) {
+    getReplyMessage(message) {
       if (message.text) {
         return this.shortenLine(message.text, 50)
       } else {
@@ -1040,7 +1091,7 @@ export default {
       }
     },
 
-    autoResize () {
+    autoResize() {
       this.$nextTick(() => {
         let replyContainer = 0
         let chat = document.getElementById('chat-dialog')
@@ -1059,7 +1110,7 @@ export default {
       })
     },
 
-    getPortionMessages () {
+    getPortionMessages() {
       let scrollZone = null
       const chatDialog = document.getElementById('chat-dialog')
       const chatPopUp = document.getElementById('chat-dialog-pop-up')
@@ -1085,7 +1136,7 @@ export default {
       }
     },
 
-    getSearchTitle (message) {
+    getSearchTitle(message) {
       if (this.getName(message) !== '') {
         return `${this.getName(message)} : ${message.text}`
       } else {
@@ -1095,12 +1146,12 @@ export default {
       }
     },
 
-    openPhoto (photo) {
+    openPhoto(photo) {
       this.isShowMaxSizePhoto = true
       this.selectedPhoto = photo
     },
 
-    getScaledImageStyle () {
+    getScaledImageStyle() {
       const maxWidth = this.isMobile ? window.innerWidth * 0.9 : window.innerWidth * 0.8
       const maxHeight = this.isMobile ? window.innerHeight * 0.6 : window.innerHeight * 0.9
 
@@ -1122,13 +1173,13 @@ export default {
       return `height: ${imgHeight}px; width: ${imgWidth}px;`
     },
 
-    textChanged () {
+    textChanged() {
       this.$emit('keyPressed', this.$refs.textInput.value)
       this.autoResize()
       this.updateMentionState()
     },
 
-    getTypingWatchingUsers () {
+    getTypingWatchingUsers() {
       const watchingNow = this.taskWatchingNow.filter(user =>
         user.id !== this.currentUser.id &&
         !this.typing.some(t => t.username === user.username)
@@ -1140,7 +1191,7 @@ export default {
       }
     },
 
-    updateMentionState () {
+    updateMentionState() {
       const textarea = this.$refs.textInput
       if (!textarea) return
 
@@ -1169,7 +1220,9 @@ export default {
       }
 
       this.mentionIndex = 0
-      this.$nextTick(() => { this.mentionMenu = true })
+      this.$nextTick(() => {
+        this.mentionMenu = true
+      })
 
       this.mentionQuery = match[1] || ''
       this.mentionIndex = 0
@@ -1180,7 +1233,7 @@ export default {
       })
     },
 
-    selectMention (user) {
+    selectMention(user) {
       const textarea = this.$refs.textInput
       if (!textarea) return
 
@@ -1213,7 +1266,7 @@ export default {
       })
     },
 
-    handleKeyPressed (event) {
+    handleKeyPressed(event) {
       if (this.mentionMenu) {
         if (event.key === 'ArrowDown') {
           event.preventDefault()
@@ -1244,7 +1297,7 @@ export default {
       }
     },
 
-    showFiles () {
+    showFiles() {
       this.isShowFileList = true
       axios.get(`/api/v1/client-files/${this.client.id}`)
         .then(response => {
@@ -1252,11 +1305,11 @@ export default {
         })
     },
 
-    getFileName (file) {
+    getFileName(file) {
       return file?.name || file?.uuid || 'Файл'
     },
 
-    getFileExt (file) {
+    getFileExt(file) {
       const name = this.getFileName(file)
       if (!name.includes('.')) {
         return 'FILE'
@@ -1264,7 +1317,7 @@ export default {
       return name.split('.').pop().toUpperCase()
     },
 
-    getFileTitle (file) {
+    getFileTitle(file) {
       const name = this.getFileName(file)
       if (!name.includes('.')) {
         return name
@@ -1272,15 +1325,44 @@ export default {
       return name.substring(0, name.lastIndexOf('.'))
     },
 
-    getFileUrl (file) {
+    getFileUrl(file) {
       const type = file?.type || 'files/other'
       const category = type.includes('/') ? type.split('/')[0] : 'files'
       return `/files/${category}s/${file.uuid}`
     },
+
+    isLastMessage(message) {
+      const visibleMessages = this.messages.filter(m => !m.deleted)
+      return visibleMessages.length > 0 && visibleMessages[visibleMessages.length - 1].id === message.id
+    },
+
+    isIncomingMessage(message) {
+      return message && !message.isSent && !message.isComment && !message.deleted
+    },
+
+    isAnswerRequired (message) {
+      return message.answerRequired === 'ANSWER_REQUIRED'
+    },
+
+    isAnswerNotRequired (message) {
+      return message.answerRequired === 'ANSWER_NOT_REQUIRED'
+    },
+
+    setAnswerRequired (message, value) {
+      const answerRequired = value
+        ? 'ANSWER_REQUIRED'
+        : 'ANSWER_NOT_REQUIRED'
+      message.answerRequired = answerRequired
+      this.$emit('setAnswerRequired', {
+        messageId: message.id,
+        clientId: this.client.id,
+        answerRequired
+      })
+    },
   },
 
   computed: {
-    typingUsers () {
+    typingUsers() {
       if (this.getTypingWatchingUsers()) {
         return this.getTypingWatchingUsers().typing
       } else {
@@ -1288,7 +1370,7 @@ export default {
       }
     },
 
-    watchUsers () {
+    watchUsers() {
       if (this.getTypingWatchingUsers()) {
         return this.getTypingWatchingUsers().watching
       } else {
@@ -1296,11 +1378,11 @@ export default {
       }
     },
 
-    renderShortcutPlaceholder () {
+    renderShortcutPlaceholder() {
       return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
     },
 
-    chatStyle () {
+    chatStyle() {
       return {
         height: this.isDialog ? 'calc(100% - 93px)' : (this.isMobile ? 'calc(100vh - 181px)' : 'calc(100vh - 95px)'),
         'border-radius': '0',
@@ -1309,7 +1391,7 @@ export default {
       }
     },
 
-    textareaStyle () {
+    textareaStyle() {
       return {
         borderStyle: 'unset',
         margin: '0 8px',
@@ -1323,11 +1405,11 @@ export default {
       }
     },
 
-    getReplayed () {
+    getReplayed() {
       return this.messages.find(m => m.id === this.replyMessageId)
     },
 
-    getMessageSender () {
+    getMessageSender() {
       if (this.getReplayed.user) {
         return this.getReplayed.user.lastname + ' ' + this.getReplayed.user.firstname
       } else {
@@ -1335,7 +1417,7 @@ export default {
       }
     },
 
-    filteredMentionUsers () {
+    filteredMentionUsers() {
       const users = Array.isArray(this.store?.users) ? this.store.users : []
       const q = (this.mentionQuery || '').trim().toLowerCase()
       const toSearchString = (u) => (
@@ -1345,23 +1427,23 @@ export default {
         ? users
         : users.filter(u => toSearchString(u).includes(q))
       return filtered.slice(0, 8)
-    }
+    },
   },
 
   watch: {
-    linkedMessageId () {
+    linkedMessageId() {
       if (this.linkedMessageId) {
         this.scrollToElementById(`message_${this.linkedMessageId}`)
       }
     },
 
-    search (newVal) {
+    search(newVal) {
       this.onSearch(newVal)
     },
 
     messages: {
       immediate: true,
-      handler (newVal, oldVal) {
+      handler(newVal, oldVal) {
         try {
           if (document.getElementById('chat-dialog').children[0].children[0]) {
             const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
@@ -1369,17 +1451,18 @@ export default {
               this.scrollToBottom(0)
             }
           }
-        } catch (ignoreError) {}
+        } catch (ignoreError) {
+        }
       },
       deep: true
     },
 
-    replyMessageId () {
+    replyMessageId() {
       this.autoResize()
     }
   },
 
-  setup (props) {
+  setup(props) {
     const store = useStore()
     const router = useRoute()
     const chatDialog = ref(null)
@@ -1423,7 +1506,7 @@ export default {
     onMounted(() => {
       useResizeObserver(chatDialog, (entries) => {
         const entry = entries[0]
-        const { width, height } = entry.contentRect
+        const {width, height} = entry.contentRect
         containerHeight.value = height
         containerWidth.value = width
       })
@@ -1471,7 +1554,8 @@ export default {
   padding: 2px 8px 2px 8px;
   border-radius: 4px;
   background-color: rgba(255, 149, 0, 1);
-  color: white;font-size: 12px;
+  color: white;
+  font-size: 12px;
   margin-right: 8px
 }
 
@@ -1580,4 +1664,10 @@ textarea:focus {
   text-overflow: ellipsis;
 }
 
+.answer-required-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: -8px 0 8px 0px;
+}
 </style>

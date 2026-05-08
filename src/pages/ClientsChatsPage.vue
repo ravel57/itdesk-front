@@ -136,9 +136,22 @@
                     :image="'/at.svg'"
                     style="margin-right: 8px;"
                   />
-                  <circle-counter
-                    :counter="client.unreadMessagesCount"
-                  />
+                  <div
+                    v-if="client.unreadMessagesCount || hasAnswerRequiredUnansweredMessages(client)"
+                    class="unread-with-timer"
+                  >
+                    <span
+                      v-if="hasAnswerRequiredUnansweredMessages(client)"
+                      class="unanswered-timer"
+                    >
+                      {{ getAnswerRequiredTimerText(client) }}
+                    </span>
+
+                    <circle-counter
+                      v-if="client.unreadMessagesCount"
+                      :counter="client.unreadMessagesCount"
+                    />
+                  </div>
                 </q-item-section>
               </router-link>
             </q-item-section>
@@ -363,6 +376,100 @@ export default {
       }
     },
 
+    hasAnswerRequiredUnansweredMessages (client) {
+      return !!this.getLastAnswerRequiredUnansweredMessageDate(client)
+    },
+
+    getAnswerRequiredTimerText (client) {
+      const date = this.getLastAnswerRequiredUnansweredMessageDate(client)
+      if (!date) {
+        return ''
+      }
+      const startMs = new Date(date).getTime()
+      if (!Number.isFinite(startMs)) {
+        return ''
+      }
+      const diffMs = Math.max(0, this.nowTs - startMs)
+      const totalMinutes = Math.floor(diffMs / 60000)
+      const days = Math.floor(totalMinutes / 1440)
+      const hours = Math.floor((totalMinutes % 1440) / 60)
+      const minutes = totalMinutes % 60
+      if (days > 0) {
+        return `${days}д ${hours}ч`
+      }
+      if (hours > 0) {
+        return `${hours}ч ${minutes}м`
+      }
+      return `${minutes}м`
+    },
+
+    getClientMessages (client) {
+      return client?.messages || client?.clientMessages || []
+    },
+
+    isIncomingMessage (message) {
+      return message &&
+        message.isSent === false &&
+        message.isComment !== true &&
+        message.deleted !== true
+    },
+
+    isOutgoingOperatorMessage (message) {
+      return message &&
+        message.isSent === true &&
+        message.isComment !== true &&
+        message.deleted !== true
+    },
+
+    getLastAnswerRequiredUnansweredMessageDate (client) {
+      const messages = [...this.getClientMessages(client)]
+        .filter(message => message?.date && message.deleted !== true)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      if (messages.length === 0) {
+        return client.firstUnansweredMessageDate || null
+      }
+      let lastOperatorAnswerMs = 0
+      messages.forEach(message => {
+        if (this.isOutgoingOperatorMessage(message)) {
+          const dateMs = new Date(message.date).getTime()
+          if (Number.isFinite(dateMs)) {
+            lastOperatorAnswerMs = Math.max(lastOperatorAnswerMs, dateMs)
+          }
+        }
+      })
+      const unansweredIncomingMessages = messages.filter(message => {
+        const dateMs = new Date(message.date).getTime()
+        return this.isIncomingMessage(message) &&
+          Number.isFinite(dateMs) &&
+          dateMs > lastOperatorAnswerMs
+      })
+      if (unansweredIncomingMessages.length === 0) {
+        return null
+      }
+      const lastMarkedMessage = [...unansweredIncomingMessages]
+        .reverse()
+        .find(message =>
+          message.answerRequired === 'ANSWER_REQUIRED' ||
+          message.answerRequired === 'ANSWER_NOT_REQUIRED'
+        )
+      if (!lastMarkedMessage || lastMarkedMessage.answerRequired !== 'ANSWER_REQUIRED') {
+        return null
+      }
+      return unansweredIncomingMessages[0].date
+    },
+
+    getAnswerRequiredWaitMs (client) {
+      const date = this.getLastAnswerRequiredUnansweredMessageDate(client)
+      if (!date) {
+        return 0
+      }
+      const startMs = new Date(date).getTime()
+      if (!Number.isFinite(startMs)) {
+        return 0
+      }
+      return Math.max(0, this.nowTs - startMs)
+    },
+
     getLastMessage (client) {
       if (client.lastMessage) {
         if (client.lastMessage.text) {
@@ -505,32 +612,37 @@ export default {
 
   computed: {
     getSortedAndFilteredClients () {
-      let clients = this.store.clients
+      let clients = this.store.clients || []
+
       if (this.searchQuery !== '') {
+        const query = this.searchQuery.toLowerCase()
         clients = clients.filter(client => {
-          if (!client.firstname) client.firstname = ''
-          if (!client.lastname) client.lastname = ''
-          const searchString = this.searchQuery.toLowerCase()
-          return (`${client.lastname.toLowerCase()} ${client.firstname.toLowerCase()}`).includes(searchString) ||
-          (client.organization
-            ? client.organization.name.toLowerCase().includes(searchString)
-            : false
-          )
+          const firstname = client.firstname || ''
+          const lastname = client.lastname || ''
+          const organization = client.organization?.name || ''
+          const sourceChannel = client.sourceChannel || ''
+          return `${firstname} ${lastname} ${organization} ${sourceChannel}`
+            .toLowerCase()
+            .includes(query)
         })
-      } else {
-        // clients = clients.filter(client => {
-        //   return this.getActualTasks(client).length > 0
-        // })
       }
-      try {
-        clients = clients.sort((b, a) => {
-          const maxB = b.lastMessage.date
-          const maxA = a.lastMessage.date
-          return maxA < maxB ? -1 : maxA > maxB ? 1 : 0
-        })
-      } catch (ignoreError) {}
+      clients = [...clients].sort((a, b) => {
+        const waitA = this.getAnswerRequiredWaitMs(a)
+        const waitB = this.getAnswerRequiredWaitMs(b)
+        const hasRequiredA = waitA > 0
+        const hasRequiredB = waitB > 0
+        if (hasRequiredA !== hasRequiredB) {
+          return hasRequiredB ? 1 : -1
+        }
+        if (waitA !== waitB) {
+          return waitB - waitA
+        }
+        const lastA = new Date(a.lastMessage?.date || 0).getTime()
+        const lastB = new Date(b.lastMessage?.date || 0).getTime()
+        return lastB - lastA
+      })
       return clients
-    }
+    },
   },
 
   watch: {
@@ -594,5 +706,19 @@ export default {
 
 .sla-bar {
   width: 100%;
+}
+
+.unread-with-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unanswered-timer {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--q-primary);
+  white-space: nowrap;
+  font-weight: 600;
 }
 </style>
