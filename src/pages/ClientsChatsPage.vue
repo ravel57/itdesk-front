@@ -25,7 +25,7 @@
             <q-item-section style="display: flow-root">
               <router-link
                 :to="`/chats/${client.id}`"
-                style="text-decoration: none; display: flex"
+                style="text-decoration: none; display: flex; width: 100%;"
                 class="text-primary"
               >
                 <q-item-section side style="padding-right: 8px">
@@ -36,7 +36,7 @@
                     {{ this.getAbbreviation(client) }}
                   </div>
                 </q-item-section>
-                <q-item-section>
+                <q-item-section class="client-info-section">
                   <q-item-label style="align-items: center;display: flex;">
                     <img
                       v-if="client.messageFrom === 'TELEGRAM'"
@@ -114,32 +114,27 @@
                     {{ this.getTimeLastMessage(client) +' : ' + this.getLastMessage(client) }}
                   </q-item-label>
                 </q-item-section>
-                <q-item-section
-                  side
-                  style="flex-direction: row; align-content: center;"
+                <div
+                  v-if="client.unreadMessagesCount || hasAnswerRequiredUnansweredMessages(client) || hasCriticalTasks(client) || isHavePing(client)"
+                  class="client-row-alerts"
                 >
-                  <q-icon
-                    v-if="client.tasks.filter(task => task.priority.critical && !task.completed).length > 0"
-                    name="priority_high"
-                    class="text-red"
-                  >
-                    <q-tooltip
-                      anchor="center left"
-                      self="center right"
-                      :offset="[10, 10]"
+                  <q-separator vertical class="client-row-alerts__separator" />
+
+                  <div class="client-row-alerts__content">
+                    <q-icon
+                      v-if="hasCriticalTasks(client)"
+                      name="priority_high"
+                      class="text-red client-critical-icon"
                     >
-                      Критическая заявка
-                    </q-tooltip>
-                  </q-icon>
-                  <circle-counter
-                    v-if="isHavePing(client)"
-                    :image="'/at.svg'"
-                    style="margin-right: 8px;"
-                  />
-                  <div
-                    v-if="client.unreadMessagesCount || hasAnswerRequiredUnansweredMessages(client)"
-                    class="unread-with-timer"
-                  >
+                      <q-tooltip
+                        anchor="center left"
+                        self="center right"
+                        :offset="[10, 10]"
+                      >
+                        Критическая заявка
+                      </q-tooltip>
+                    </q-icon>
+
                     <span
                       v-if="hasAnswerRequiredUnansweredMessages(client)"
                       class="unanswered-timer"
@@ -151,8 +146,14 @@
                       v-if="client.unreadMessagesCount"
                       :counter="client.unreadMessagesCount"
                     />
+
+                    <circle-counter
+                      v-if="isHavePing(client)"
+                      :image="'/at.svg'"
+                      class="client-ping-counter"
+                    />
                   </div>
-                </q-item-section>
+                </div>
               </router-link>
             </q-item-section>
           </q-item>
@@ -608,6 +609,10 @@ export default {
         !!task?.sla?.duration
       )
     },
+
+    hasCriticalTasks (client) {
+      return client.tasks?.some(task => task.priority?.critical && !task.completed) === true
+    },
   },
 
   computed: {
@@ -708,10 +713,37 @@ export default {
   width: 100%;
 }
 
-.unread-with-timer {
+.client-row-alerts {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  flex: 0 0 auto;
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.client-row-alerts__separator {
+  align-self: stretch;
+  height: auto;
+  margin-right: 12px;
+}
+
+.client-row-alerts__content {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+}
+
+.client-info-section {
+  flex: 0 0 300px;
+  width: 300px;
+  min-width: 0;
+  max-width: 300px;
+}
+
+.client-critical-icon {
+  font-size: 20px;
 }
 
 .unanswered-timer {
@@ -720,5 +752,9 @@ export default {
   color: var(--q-primary);
   white-space: nowrap;
   font-weight: 600;
+}
+
+.client-ping-counter {
+  margin-right: 0;
 }
 </style>
