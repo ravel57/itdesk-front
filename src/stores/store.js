@@ -75,9 +75,20 @@ export const useStore = defineStore('store', {
       },
     checkedTasks: [],
     supportMessages: [],
+    analyticsSummary: {
+      newAppeals: 0,
+      openTasks: 0,
+      overdueSla: 0,
+      avgFirstResponseSeconds: 0,
+      avgCloseTimeSeconds: 0,
+      unassignedTasks: 0,
+      closedTasks: 0,
+      closedByPeriod: [],
+      operatorLoad: []
+    },
 
     miniState: false,
-    globalAlertMessage: []
+    globalAlertMessage: [],
   }),
 
   getters: {
@@ -180,6 +191,28 @@ export const useStore = defineStore('store', {
         .catch(error => {
           console.error(error)
           throw error
+        })
+    },
+
+    fetchAnalyticsSummary (params = {}) {
+      const query = new URLSearchParams()
+
+      if (params.from) {
+        query.set('from', params.from)
+      }
+
+      if (params.to) {
+        query.set('to', params.to)
+      }
+
+      if (params.groupBy) {
+        query.set('groupBy', params.groupBy)
+      }
+
+      return axios.get(`/api/v1/analytics/summary?${query.toString()}`)
+        .then(response => {
+          this.analyticsSummary = response.data
+          return response.data
         })
     }
   }

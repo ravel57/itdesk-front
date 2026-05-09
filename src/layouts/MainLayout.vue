@@ -207,23 +207,24 @@ export default {
         link: '/tasks',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
       },
-      // {
-      //   title: 'Поиск',
-      //   icon: 'search',
-      //   link: '/search',
-      //   roles: ['ADMIN', 'OPERATOR']
-      // },
+      {
+        title: 'Поиск',
+        icon: 'search',
+        link: '/search',
+        roles: ['ADMIN', 'OPERATOR']
+      },
       // {
       //   title: 'История',
       //   icon: 'history',
-      //   link: '/history'
-      // },
-      // {
-      //   title: 'Аналитика',
-      //   icon: 'data_usage',
-      //   link: '/analytics',
+      //   link: '/history',
       //   roles: ['ADMIN', 'OPERATOR']
       // },
+      {
+        title: 'Аналитика',
+        icon: 'data_usage',
+        link: '/analytics',
+        roles: ['ADMIN', 'OPERATOR']
+      },
       // {
       //   title: 'Телефония',
       //   icon: 'phone',

@@ -232,29 +232,93 @@
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.isNewTask"
             id="chat-section"
-            class="flex-item"
+            class="flex-item task-right-panel"
             style="border: 1px solid #0000001f;overflow: hidden;border-radius: 16px"
             :style="this.isMobile ? 'height: 541px' : ''"
           >
-            <chat-dialog
-              :is-mobile="this.isMobile"
-              :messages="this.task.messages"
-              :input-field="this.inputField"
-              :templates="this.store.templates"
-              :isSending="this.isSending"
-              :current-user="this.store.currentUser"
-              :linkedMessageId="this.linkedMessageId"
-              :client-id="this.client.id"
-              :client="this.client"
-              :is-show-helper="true"
-              :taskWatchingNow="[]"
-              :typing="[]"
-              :isDialog="true"
-              :comments="false"
-              @sendMessage="this.sendMessage"
-              @isSending="this.isSending = true"
-              @keyPressed="this.keyPressed"
-            />
+            <q-tabs
+              v-model="taskRightTab"
+              dense
+              align="left"
+              active-color="primary"
+              indicator-color="primary"
+              class="text-grey-8 task-right-tabs"
+            >
+              <q-tab name="messages" label="Сообщения" />
+              <q-tab name="history" label="История изменений" />
+            </q-tabs>
+
+            <q-separator />
+
+            <q-tab-panels
+              v-model="taskRightTab"
+              animated
+              class="task-right-panels"
+            >
+              <q-tab-panel name="messages" class="q-pa-none task-messages-panel">
+                <chat-dialog
+                  :is-mobile="this.isMobile"
+                  :messages="this.task.messages"
+                  :input-field="this.inputField"
+                  :templates="this.store.templates"
+                  :isSending="this.isSending"
+                  :current-user="this.store.currentUser"
+                  :linkedMessageId="this.linkedMessageId"
+                  :client-id="this.client.id"
+                  :client="this.client"
+                  :is-show-helper="true"
+                  :taskWatchingNow="[]"
+                  :typing="[]"
+                  :isDialog="true"
+                  :comments="false"
+                  @sendMessage="this.sendMessage"
+                  @isSending="this.isSending = true"
+                  @keyPressed="this.keyPressed"
+                />
+              </q-tab-panel>
+
+              <q-tab-panel name="history" class="q-pa-md task-history-panel">
+                <q-inner-loading :showing="taskHistoryLoading">
+                  <q-spinner size="32px" />
+                </q-inner-loading>
+                <div
+                  v-if="!taskHistoryLoading && taskHistory.length === 0"
+                  class="text-grey-7"
+                >
+                  История изменений пустая
+                </div>
+                <q-timeline
+                  v-else
+                  color="primary"
+                >
+                  <q-timeline-entry
+                    v-for="item in taskHistory"
+                    :key="item.id"
+                    :title="item.title"
+                    :subtitle="formatHistoryDate(item.createdAt)"
+                    :icon="getHistoryIcon(item.triggerType)"
+                  >
+                    <div class="text-grey-8">
+                      {{ item.description }}
+                    </div>
+
+                    <div
+                      v-if="item.actorDisplayName"
+                      class="text-caption text-grey-7 q-mt-xs"
+                    >
+                      Изменил: {{ item.actorDisplayName }}
+                    </div>
+
+                    <div
+                      v-else
+                      class="text-caption text-grey-7 q-mt-xs"
+                    >
+                      Изменил: неизвестно
+                    </div>
+                  </q-timeline-entry>
+                </q-timeline>
+              </q-tab-panel>
+            </q-tab-panels>
           </div>
         </div>
       </q-card-section>
@@ -398,6 +462,10 @@ export default {
 
   data: () => ({
     dialogTab: 'tab1',
+
+    taskRightTab: 'messages',
+    taskHistory: [],
+    taskHistoryLoading: false,
 
     dialogTaskId: '',
     dialogTaskName: '',
@@ -864,7 +932,74 @@ export default {
         formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
       }
       this.dialogTaskDeadline = formattedValue
-    }
+    },
+
+    loadTaskHistory () {
+      const taskId = this.getCurrentTaskId()
+
+      if (!taskId) {
+        this.taskHistory = []
+        return
+      }
+
+      this.taskHistoryLoading = true
+
+      axios.get(`/api/v1/task/${taskId}/history`)
+        .then(response => {
+          this.taskHistory = response.data || []
+        })
+        .catch(error => {
+          console.error(error)
+          this.taskHistory = []
+          this.$q.notify({
+            type: 'negative',
+            message: 'Не удалось загрузить историю заявки'
+          })
+        })
+        .finally(() => {
+          this.taskHistoryLoading = false
+        })
+    },
+
+    formatHistoryDate (value) {
+      if (!value) {
+        return ''
+      }
+
+      return new Date(value).toLocaleString('ru-RU', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    },
+
+    getHistoryIcon (type) {
+      switch (type) {
+        case 'TASK_CREATED':
+          return 'add_circle'
+        case 'TASK_STATUS_CHANGED':
+          return 'published_with_changes'
+        case 'TASK_PRIORITY_CHANGED':
+          return 'priority_high'
+        case 'TASK_ASSIGNEE_CHANGED':
+        case 'TASK_EXECUTOR_CHANGED':
+          return 'person'
+        case 'TASK_DUE_DATE_CHANGED':
+          return 'event'
+        case 'TASK_CLOSED':
+        case 'TASK_COMPLETED':
+          return 'check_circle'
+        case 'TASK_REOPENED':
+          return 'restart_alt'
+        case 'TASK_TAG_ADDED':
+        case 'TASK_TAG_REMOVED':
+          return 'sell'
+        default:
+          return 'history'
+      }
+    },
   },
 
   computed: {
@@ -910,6 +1045,19 @@ export default {
           }
         }
       }
+    },
+
+    taskRightTab (value) {
+      if (value === 'history') {
+        this.loadTaskHistory()
+      }
+    },
+
+    'task.id' () {
+      this.taskHistory = []
+      if (this.taskRightTab === 'history') {
+        this.loadTaskHistory()
+      }
     }
   },
 
@@ -918,6 +1066,9 @@ export default {
     const currentTaskId = this.getCurrentTaskId()
     if (!this.isNewTask && currentTaskId) {
       axios.post(`/api/v1/client/${this.client.id}/task/${currentTaskId}/mark-message-read`, { userId: this.store.currentUser.id })
+    }
+    if (this.taskRightTab === 'history') {
+      this.loadTaskHistory()
     }
   },
 
@@ -954,5 +1105,30 @@ th {
 
 .custom-select .q-field__label {
   font-size: 16px;
+}
+
+.task-right-panel {
+  display: block;
+}
+
+.task-right-tabs {
+  min-height: 40px;
+}
+
+.task-right-panels {
+  height: auto;
+  max-height: 510px;
+  overflow: hidden;
+}
+
+.task-messages-panel {
+  height: 510px;
+  padding: 0;
+}
+
+.task-history-panel {
+  position: relative;
+  max-height: 470px;
+  overflow-y: auto;
 }
 </style>

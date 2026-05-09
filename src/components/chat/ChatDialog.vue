@@ -752,6 +752,7 @@ export default {
     isShowMaxSizePhoto: false,
     selectedPhoto: '',
     scrollToBottomKey: false,
+    routeMessageIdToScroll: null,
 
     chatWindowWidth: 500,
 
@@ -777,7 +778,11 @@ export default {
   mounted() {
     try {
       this.mentionTargetEl = this.$refs.textInput
-      this.scrollToBottom()
+      if (this.getRouteMessageId()) {
+        this.scrollToRouteMessage()
+      } else {
+        this.scrollToBottom()
+      }
       this.$refs.textInput.focus()
     } catch (ignoredError) {
     }
@@ -963,28 +968,40 @@ export default {
     },
 
     scrollToElementById(id) {
-      const el = document.querySelector(`#${id} > div > div:last-child`)
-      const element = el.children[el.children.length - 1]
-      if (element) {
-        element.scrollIntoView({behavior: 'smooth'})
-        const currentColor = element.style.backgroundColor
-        element.style.backgroundColor = 'lightcoral'
-        setTimeout(() => {
-          element.style.backgroundColor = currentColor
-          this.$emit('clearLinkedMessageId')
-        }, 2500)
+      const root = document.getElementById(id)
+      if (!root) {
+        return false
       }
+      const messageBubble = root.querySelector('.q-message-text') || root
+      messageBubble.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      })
+      const currentColor = messageBubble.style.backgroundColor
+      messageBubble.style.backgroundColor = 'lightcoral'
+      setTimeout(() => {
+        messageBubble.style.backgroundColor = currentColor
+        this.$emit('clearLinkedMessageId')
+      }, 2500)
+      return true
     },
 
     scrollToMessageAfterSearch(messageId) {
-      if (this.messages.filter(m => m.id === messageId).length > 0) {
-        this.goToMessage(messageId)
-      } else {
-        this.$emit('scrollToMessageAfterSearch', messageId)
-        setTimeout(() => {
-          this.goToMessage(messageId)
-        }, 300)
+      const id = Number(messageId)
+      if (!id) {
+        return
       }
+      this.routeMessageIdToScroll = id
+      if (this.messages.some(m => Number(m.id) === id)) {
+        this.$nextTick(() => {
+          this.goToMessage(id)
+        })
+        return
+      }
+      this.$emit('scrollToMessageAfterSearch', id)
+      setTimeout(() => {
+        this.goToMessage(id)
+      }, 500)
     },
 
     linkToTask(message, task) {
@@ -1044,7 +1061,7 @@ export default {
 
     goToMessage(messageId) {
       const id = this.isDialog ? `modal_message_${messageId}` : `message_${messageId}`
-      this.scrollToElementById(id)
+      return this.scrollToElementById(id)
     },
 
     onBlur() {
@@ -1359,6 +1376,23 @@ export default {
         answerRequired
       })
     },
+
+    getRouteMessageId() {
+      const rawMessageId = this.$route?.query?.messageId
+      if (Array.isArray(rawMessageId)) {
+        return Number(rawMessageId[0])
+      }
+      const messageId = Number(rawMessageId)
+      return Number.isFinite(messageId) && messageId > 0 ? messageId : null
+    },
+
+    scrollToRouteMessage() {
+      const messageId = this.getRouteMessageId()
+      if (!messageId) {
+        return
+      }
+      this.scrollToMessageAfterSearch(messageId)
+    },
   },
 
   computed: {
@@ -1445,8 +1479,22 @@ export default {
       immediate: true,
       handler(newVal, oldVal) {
         try {
-          if (document.getElementById('chat-dialog').children[0].children[0]) {
-            const scrollZone = document.getElementById('chat-dialog').children[0].children[0]
+          if (this.routeMessageIdToScroll) {
+            const messageId = this.routeMessageIdToScroll
+            if (this.messages.some(m => Number(m.id) === Number(messageId))) {
+              this.$nextTick(() => {
+                const scrolled = this.goToMessage(messageId)
+
+                if (scrolled) {
+                  this.routeMessageIdToScroll = null
+                }
+              })
+            }
+            return
+          }
+          const chatDialog = document.getElementById('chat-dialog')
+          if (chatDialog && chatDialog.children[0].children[0]) {
+            const scrollZone = chatDialog.children[0].children[0]
             if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
               this.scrollToBottom(0)
             }
@@ -1459,7 +1507,11 @@ export default {
 
     replyMessageId() {
       this.autoResize()
-    }
+    },
+
+    '$route.query.messageId'() {
+      this.scrollToRouteMessage()
+    },
   },
 
   setup(props) {

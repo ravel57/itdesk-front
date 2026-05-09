@@ -132,6 +132,7 @@ export default {
     isNotificationEnabled: true,
     isSending: false,
     linkedMessageId: null,
+    routeMessageIdHandled: false,
     isShowHelper: true,
     isEnd: false,
     pageCounter: 0,
@@ -335,15 +336,24 @@ export default {
     },
 
     getMessageOnSearch(messageId) {
-      axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${messageId}`)
+      const id = Number(messageId)
+      if (!id || !this.getClient.id) {
+        return
+      }
+      axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${id}`)
         .then(response => {
-          const messages = response.data.messages
+          const messages = response.data.messages || []
           this.pageCounter = response.data.page
           this.isEnd = response.data.isEnd
           messages.forEach(message => {
             message.date = new Date(message.date)
           })
           this.getClient.messages = messages
+          this.$nextTick(() => {
+            setTimeout(() => {
+              this.linkedMessageId = id
+            }, 100)
+          })
         })
     },
 
@@ -677,6 +687,34 @@ export default {
       }
       return unansweredIncomingMessages[0].date
     },
+
+    getRouteMessageId() {
+      const raw = this.router.query.messageId
+      if (Array.isArray(raw)) {
+        return Number(raw[0])
+      }
+      const id = Number(raw)
+      return Number.isFinite(id) && id > 0 ? id : null
+    },
+
+    handleRouteMessageId() {
+      const messageId = this.getRouteMessageId()
+      if (!messageId || this.routeMessageIdHandled) {
+        return
+      }
+      this.routeMessageIdHandled = true
+      const alreadyLoaded = this.getClient.messages
+        ?.some(message => Number(message.id) === Number(messageId))
+      if (alreadyLoaded) {
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.linkedMessageId = messageId
+          }, 100)
+        })
+        return
+      }
+      this.getMessageOnSearch(messageId)
+    },
   },
 
   computed: {
@@ -731,7 +769,12 @@ export default {
           this.applyColumnWidthsFromRatios()
         })
       })
-    }
+    },
+
+    'router.query.messageId'() {
+      this.routeMessageIdHandled = false
+      this.handleRouteMessageId()
+    },
   },
 
   mounted () {
@@ -749,6 +792,11 @@ export default {
     if (typingMessageTextElement.typingMessageText[this.store.currentUser.id]) {
       this.inputField = typingMessageTextElement.typingMessageText[this.store.currentUser.id]
     }
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.handleRouteMessageId()
+      }, 300)
+    })
   },
 
   created () {

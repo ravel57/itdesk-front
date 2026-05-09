@@ -44,10 +44,10 @@ const routes = [
         path: 'tasks',
         component: () => import('pages/TasksPage.vue')
       },
-      // {
-      //   path: 'history',
-      //   component: () => import('pages/HistoryPage.vue')
-      // },
+      {
+        path: 'history',
+        component: () => import('pages/HistoryPage.vue')
+      },
       {
         path: 'search',
         component: () => import('pages/SearchPage.vue')
