@@ -1,20 +1,36 @@
 <template>
   <q-page padding style="min-width: 0;overflow-x: hidden;">
-    <q-input
+    <div
       v-if="this.store.clients.length > 0"
-      v-model="searchQuery"
-      dense
-      placeholder="Поиск..."
-      @input="search"
-      clearable
-      @clear="searchQuery = ''"
+      class="search-sort-row"
     >
-      <template v-slot:append>
-        <q-icon
-          name="search"
-        />
-      </template>
-    </q-input>
+      <q-input
+        v-model="searchQuery"
+        dense
+        placeholder="Поиск..."
+        @input="search"
+        clearable
+        class="search-sort-row__search"
+        @clear="searchQuery = ''"
+      >
+        <template v-slot:append>
+          <q-icon
+            name="search"
+          />
+        </template>
+      </q-input>
+
+      <q-select
+        v-model="sortType"
+        :options="sortOptions"
+        dense
+        outlined
+        emit-value
+        map-options
+        options-dense
+        class="search-sort-row__sort"
+      />
+    </div>
     <div v-if="this.getSortedAndFilteredClients.length > 0">
       <q-list>
         <div
@@ -185,6 +201,15 @@ export default {
 
   data: () => ({
     searchQuery: '',
+    sortType: 'ANSWER_WAIT',
+    sortOptions: [
+      { label: 'По времени неответа', value: 'ANSWER_WAIT' },
+      { label: 'По минимальному SLA среди заявок', value: 'MIN_SLA' },
+      { label: 'По времени последнего сообщения', value: 'LAST_MESSAGE' },
+      { label: 'Пинги', value: 'PINGS' },
+      { label: 'Непрочитанные сообщения', value: 'UNREAD_MESSAGES' },
+      { label: 'Заявки без исполнителя', value: 'TASKS_WITHOUT_ASSIGNEE' }
+    ],
     nowTs: Date.now(),
     slaTimer: null,
     // taskId -> SlaInfoDto
@@ -471,6 +496,129 @@ export default {
       return Math.max(0, this.nowTs - startMs)
     },
 
+    getLastMessageDateMs (client) {
+      const dateMs = new Date(client?.lastMessage?.date || 0).getTime()
+      return Number.isFinite(dateMs) ? dateMs : 0
+    },
+
+    getClientMinimalSlaLeftMs (client) {
+      const task = this.getMinimalSlaTask(this.getActualTasks(client))
+      if (!task) {
+        return null
+      }
+      return this.getSlaLeftMsApprox(task)
+    },
+
+    sortByAnswerWait (a, b) {
+      const waitA = this.getAnswerRequiredWaitMs(a)
+      const waitB = this.getAnswerRequiredWaitMs(b)
+      const hasRequiredA = waitA > 0
+      const hasRequiredB = waitB > 0
+      if (hasRequiredA !== hasRequiredB) {
+        return hasRequiredB ? 1 : -1
+      }
+      if (waitA !== waitB) {
+        return waitB - waitA
+      }
+      return this.sortByLastMessage(a, b)
+    },
+
+    sortByMinimalSla (a, b) {
+      const slaA = this.getClientMinimalSlaLeftMs(a)
+      const slaB = this.getClientMinimalSlaLeftMs(b)
+      const hasSlaA = slaA !== null
+      const hasSlaB = slaB !== null
+      if (hasSlaA !== hasSlaB) {
+        return hasSlaB ? 1 : -1
+      }
+      if (hasSlaA && slaA !== slaB) {
+        return slaA - slaB
+      }
+      return this.sortByLastMessage(a, b)
+    },
+
+    getUnreadMessagesCount (client) {
+      return Number(client?.unreadMessagesCount || 0)
+    },
+
+    getClientPingScore (client) {
+      const userId = this.store.currentUser?.id
+      if (!userId || !client) {
+        return 0
+      }
+      let count = 0
+      const clientPing = client.unreadPingMessages?.[userId]
+      if (typeof clientPing === 'number') {
+        count += clientPing
+      } else if (clientPing) {
+        count += 1
+      }
+      ;(client.tasks || []).forEach(task => {
+        const taskPing = task.unreadPingTasksMessages?.[userId]
+        if (typeof taskPing === 'number') {
+          count += taskPing
+        } else if (taskPing) {
+          count += 1
+        }
+      })
+      return count
+    },
+
+    isTaskWithoutAssignee (task) {
+      if (!task || task.completed) {
+        return false
+      }
+      return !task.executor &&
+        !task.executorId &&
+        !task.assignee &&
+        !task.assigneeId &&
+        !task.assignedUser &&
+        !task.assignedUserId &&
+        !task.performer &&
+        !task.performerId &&
+        !task.responsible &&
+        !task.responsibleId &&
+        !task.user &&
+        !task.userId &&
+        !task.operator &&
+        !task.operatorId
+    },
+
+    getTasksWithoutAssigneeCount (client) {
+      return this.getActualTasks(client).filter(task => this.isTaskWithoutAssignee(task)).length
+    },
+
+    sortByPings (a, b) {
+      const pingA = this.getClientPingScore(a)
+      const pingB = this.getClientPingScore(b)
+      if (pingA !== pingB) {
+        return pingB - pingA
+      }
+      return this.sortByLastMessage(a, b)
+    },
+
+    sortByUnreadMessages (a, b) {
+      const unreadA = this.getUnreadMessagesCount(a)
+      const unreadB = this.getUnreadMessagesCount(b)
+      if (unreadA !== unreadB) {
+        return unreadB - unreadA
+      }
+      return this.sortByLastMessage(a, b)
+    },
+
+    sortByTasksWithoutAssignee (a, b) {
+      const countA = this.getTasksWithoutAssigneeCount(a)
+      const countB = this.getTasksWithoutAssigneeCount(b)
+      if (countA !== countB) {
+        return countB - countA
+      }
+      return this.sortByLastMessage(a, b)
+    },
+
+    sortByLastMessage (a, b) {
+      return this.getLastMessageDateMs(b) - this.getLastMessageDateMs(a)
+    },
+
     getLastMessage (client) {
       if (client.lastMessage) {
         if (client.lastMessage.text) {
@@ -632,19 +780,22 @@ export default {
         })
       }
       clients = [...clients].sort((a, b) => {
-        const waitA = this.getAnswerRequiredWaitMs(a)
-        const waitB = this.getAnswerRequiredWaitMs(b)
-        const hasRequiredA = waitA > 0
-        const hasRequiredB = waitB > 0
-        if (hasRequiredA !== hasRequiredB) {
-          return hasRequiredB ? 1 : -1
+        if (this.sortType === 'MIN_SLA') {
+          return this.sortByMinimalSla(a, b)
         }
-        if (waitA !== waitB) {
-          return waitB - waitA
+        if (this.sortType === 'LAST_MESSAGE') {
+          return this.sortByLastMessage(a, b)
         }
-        const lastA = new Date(a.lastMessage?.date || 0).getTime()
-        const lastB = new Date(b.lastMessage?.date || 0).getTime()
-        return lastB - lastA
+        if (this.sortType === 'PINGS') {
+          return this.sortByPings(a, b)
+        }
+        if (this.sortType === 'UNREAD_MESSAGES') {
+          return this.sortByUnreadMessages(a, b)
+        }
+        if (this.sortType === 'TASKS_WITHOUT_ASSIGNEE') {
+          return this.sortByTasksWithoutAssignee(a, b)
+        }
+        return this.sortByAnswerWait(a, b)
       })
       return clients
     },
@@ -652,6 +803,10 @@ export default {
 
   watch: {
     searchQuery () {
+      this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
+    },
+
+    sortType () {
       this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
     },
 
@@ -685,6 +840,23 @@ export default {
 </script>
 
 <style scoped>
+.search-sort-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.search-sort-row__search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search-sort-row__sort {
+  flex: 0 0 300px;
+  width: 300px;
+}
+
 .shorten-text {
   white-space: nowrap;
   overflow: hidden;
