@@ -1,11 +1,11 @@
 <template>
-  <div id="task-card" class="task-card">
+  <div id="task-card" class="task-card" :data-tour="this.isOnboardingDemo ? 'tasks-task-card-inner' : null">
     <slot name="chatLink"></slot>
     <div class="task-card-header">
       <div class="task-card-header-left">
         <slot name="checkBox"></slot>
-        <div class="task-id">№{{ this.task.id }}</div>
-        <div id="task-card-name" class="text-body2 task-card-name">{{ task.name }}</div>
+        <div class="task-id" data-tour="tasks-task-id">№{{ this.task.id }}</div>
+        <div id="task-card-name" class="text-body2 task-card-name" data-tour="tasks-task-title">{{ task.name }}</div>
       </div>
       <div class="task-card-status-container" style="display: flex;">
         <circle-counter
@@ -15,6 +15,7 @@
         />
         <div
           id="task-card-status"
+          data-tour="tasks-task-status"
           :class="taskStatusClass"
         >
           <div v-if="this.task.frozen">
@@ -30,21 +31,21 @@
       </div>
     </div>
     <table @click="this.$emit('onTaskClicked', this.task)">
-      <tr v-if="task.description.length !== 0">
+      <tr v-if="task.description.length !== 0" data-tour="tasks-task-description">
         <th class="small-text text-grey row-label" v-text="'Описание: '" />
         <th
           :class="descriptionClass"
           v-text="task.description"
         />
       </tr>
-      <tr v-if="task.tags.map(tag => tag.name).length !== 0">
+      <tr v-if="task.tags.map(tag => tag.name).length !== 0" data-tour="tasks-task-tags">
         <th class="small-text text-grey row-label" v-text="'Теги: '" />
         <th
           :class="tagsClass"
           v-text="task.tags.map(tag => tag.name).join(', ')"
         />
       </tr>
-      <tr>
+      <tr data-tour="tasks-task-priority">
         <th
           class="small-text text-grey row-label"
           :class="{'highlighted': this.selectedSorting.slug === 'priority'}"
@@ -55,14 +56,14 @@
           v-text="task.priority.name"
         />
       </tr>
-      <tr v-if="task.executor">
+      <tr v-if="task.executor" data-tour="tasks-task-executor">
         <th class="small-text text-grey row-label" v-text="'Исполнитель: '" />
         <th
           :class="executorClass"
           v-text="getName(task.executor)"
         />
       </tr>
-      <tr>
+      <tr data-tour="tasks-task-created">
         <th
           class="small-text text-grey row-label"
           :class="{'highlighted': this.selectedSorting.slug === 'creating'}"
@@ -84,7 +85,7 @@
 <!--          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"-->
 <!--          v-text="task.status.name"/>-->
 <!--      </tr>-->
-      <tr v-if="task.deadline">
+      <tr v-if="task.deadline" data-tour="tasks-task-deadline">
         <th
           class="small-text text-grey row-label"
           :class="{'highlighted': this.selectedSorting.slug === 'deadline'}"
@@ -96,7 +97,7 @@
           v-text="this.getStamp(task.deadline)"
         />
       </tr>
-      <tr v-if="isSlaVisible(task)">
+      <tr v-if="isSlaVisible(task)" data-tour="tasks-task-sla">
         <th
           class="small-text text-grey"
           :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:#9e9e9e'"
@@ -146,7 +147,7 @@
           </div>
         </th>
       </tr>
-      <tr v-if="!this.$route.path.includes('chat')"> <!--TODO может быть сделать везде, не помню почему ограничели отображение-->
+      <tr v-if="!this.$route.path.includes('chat')" data-tour="tasks-task-last-activity"> <!--TODO может быть сделать везде, не помню почему ограничели отображение-->
         <th class="small-text text-grey row-label" v-text="'Последняя активность: '" />
         <th :class="lastActivityClass" v-text="this.getStamp(new Date(task.client.lastMessage.date))" />
       </tr>
@@ -164,7 +165,7 @@ import axios from 'axios'
 export default {
   name: 'TaskCard',
 
-  props: ['task', 'selectedSorting', 'descriptionRequire', 'slaRequire', 'taskNameShort'],
+  props: ['task', 'selectedSorting', 'descriptionRequire', 'slaRequire', 'taskNameShort', 'isOnboardingDemo'],
 
   components: { CircleCounter },
 
@@ -346,14 +347,26 @@ export default {
     },
 
     isHaveInTaskPing (task) {
-      if (task.unreadPingTasksMessages) {
-        return task.unreadPingTasksMessages[this.store.currentUser.id]
-      } else {
+      if (!task.unreadPingTasksMessages) {
         return false
       }
+      const currentUserId = this.store.currentUser?.id
+      if (currentUserId) {
+        return !!task.unreadPingTasksMessages[currentUserId]
+      }
+      return Object.values(task.unreadPingTasksMessages).some(Boolean)
     },
 
     async loadSlaInfo () {
+      if (this.task?.__onboardingDemo) {
+        this.applySlaInfo(this.task.__onboardingSlaInfo || {
+          deadline: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+          remainingSeconds: 2 * 60 * 60,
+          pausedSeconds: 0,
+          paused: false
+        })
+        return
+      }
       if (!this.task?.id || !this.task?.sla) {
         return
       }

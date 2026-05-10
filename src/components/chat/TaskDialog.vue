@@ -5,15 +5,29 @@
     backdrop-filter="blur(4px)"
   >
     <q-card
+      data-tour="task-dialog-card"
       :class="this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask ? 'dialog-width' : 'large-dialog-width'"
     >
       <q-toolbar class="justify-between">
         <!--FIXME-->
-        <div v-if="this.isNewTask" class="text-h6">Новая заявка</div>
-        <div v-else class="text-h6">Заявка № {{ this.task.id }}</div>
+        <div v-if="this.isNewTask" class="text-h6" data-tour="task-dialog-title">Новая заявка</div>
+        <div v-else class="text-h6" data-tour="task-dialog-title">Заявка № {{ this.task.id }}</div>
         <div class="">
           <q-btn
+            flat
+            round
+            dense
+            icon="help_outline"
+            data-tour="task-dialog-help"
+            @click="this.startTaskDialogOnboarding(true)"
+          >
+            <q-tooltip>
+              Обучение по заявке
+            </q-tooltip>
+          </q-btn>
+          <q-btn
             v-if="!(this.$route.path.includes('chats'))"
+            data-tour="task-dialog-open-chat"
             flat
             round
             dense
@@ -74,6 +88,7 @@
               >
                 <q-input
                   id="task-name"
+                  data-tour="task-dialog-name"
                   v-model="this.dialogTaskName"
                   ref="taskName"
                   label="Название *"
@@ -81,6 +96,7 @@
                 />
                 <div
                   id="task-controls"
+                  data-tour="task-dialog-status-controls"
                   class="flex"
                   style="display: flex;flex-wrap: nowrap;align-items: center;max-height: 40px"
                 >
@@ -160,12 +176,14 @@
                 </div>
                 <q-input
                   id="task-description"
+                  data-tour="task-dialog-description"
                   type="textarea"
                   v-model="this.dialogTaskDescription"
                   label="Описание"
                 />
                 <q-select
                   id="task-priority"
+                  data-tour="task-dialog-priority"
                   v-model="this.dialogTaskPriority"
                   :options="this.store.priorities.map(priority => priority.name)"
                   label="Приоритет *"
@@ -173,6 +191,7 @@
                 />
                 <q-select
                   id="task-executor"
+                  data-tour="task-dialog-executor"
                   v-model="this.dialogTaskExecutor"
                   :options="this.filteredUsers"
                   label="Исполнитель"
@@ -181,6 +200,7 @@
                 />
                 <q-select
                   id="task-tags"
+                  data-tour="task-dialog-tags"
                   style="padding-top: 16px"
                   class="custom-select"
                   v-model="this.dialogTaskTags"
@@ -194,6 +214,7 @@
                 />
                 <q-input
                   id="task-deadline"
+                  data-tour="task-dialog-deadline"
                   v-model="this.dialogTaskDeadline"
                   clearable
                   label="Дедлайн"
@@ -232,6 +253,7 @@
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.isNewTask"
             id="chat-section"
+            data-tour="task-dialog-right-panel"
             class="flex-item task-right-panel"
             style="border: 1px solid #0000001f;overflow: hidden;border-radius: 16px"
             :style="this.isMobile ? 'height: 541px' : ''"
@@ -243,9 +265,10 @@
               active-color="primary"
               indicator-color="primary"
               class="text-grey-8 task-right-tabs"
+              data-tour="task-dialog-right-tabs"
             >
-              <q-tab name="messages" label="Сообщения" />
-              <q-tab name="history" label="История изменений" />
+              <q-tab name="messages" label="Сообщения" data-tour="task-dialog-messages-tab" />
+              <q-tab name="history" label="История изменений" data-tour="task-dialog-history-tab" />
             </q-tabs>
 
             <q-separator />
@@ -255,7 +278,7 @@
               animated
               class="task-right-panels"
             >
-              <q-tab-panel name="messages" class="q-pa-none task-messages-panel">
+              <q-tab-panel name="messages" class="q-pa-none task-messages-panel" data-tour="task-dialog-messages-panel">
                 <chat-dialog
                   :is-mobile="this.isMobile"
                   :messages="this.task.messages"
@@ -277,7 +300,7 @@
                 />
               </q-tab-panel>
 
-              <q-tab-panel name="history" class="q-pa-md task-history-panel">
+              <q-tab-panel name="history" class="q-pa-md task-history-panel" data-tour="task-dialog-history-panel">
                 <q-inner-loading :showing="taskHistoryLoading">
                   <q-spinner size="32px" />
                 </q-inner-loading>
@@ -324,6 +347,7 @@
       </q-card-section>
       <q-card-actions
         align="right"
+        data-tour="task-dialog-actions"
         style="margin-right: 7px;margin-bottom: 8px;margin-top: 8px"
       >
         <q-btn
@@ -438,6 +462,60 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <teleport to="body">
+    <div
+      v-if="this.taskDialogOnboardingActive"
+      class="task-dialog-onboarding-layer"
+    >
+      <div
+        class="task-dialog-onboarding-spotlight"
+        :style="this.taskDialogOnboardingSpotlightStyle"
+      />
+      <q-card
+        class="task-dialog-onboarding-tooltip"
+        :style="this.taskDialogOnboardingTooltipStyle"
+      >
+        <q-card-section class="q-pb-xs">
+          <div class="task-dialog-onboarding-progress text-caption text-grey-7">
+            {{ this.taskDialogOnboardingStepIndex + 1 }} / {{ this.visibleTaskDialogOnboardingSteps.length }}
+          </div>
+          <div class="text-subtitle1 text-weight-bold q-mt-xs">
+            {{ this.currentTaskDialogOnboardingStep.title }}
+          </div>
+          <div class="text-body2 q-mt-sm">
+            {{ this.currentTaskDialogOnboardingStep.text }}
+          </div>
+        </q-card-section>
+        <q-card-actions align="between" class="q-pt-none">
+          <q-btn
+            flat
+            dense
+            color="grey"
+            label="Пропустить"
+            @click="this.finishTaskDialogOnboarding"
+          />
+          <div>
+            <q-btn
+              flat
+              dense
+              color="primary"
+              label="Назад"
+              :disable="this.taskDialogOnboardingStepIndex === 0"
+              @click="this.prevTaskDialogOnboardingStep"
+            />
+            <q-btn
+              unelevated
+              dense
+              color="primary"
+              :label="this.isLastTaskDialogOnboardingStep ? 'Готово' : 'Далее'"
+              @click="this.nextTaskDialogOnboardingStep"
+            />
+          </div>
+        </q-card-actions>
+      </q-card>
+    </div>
+  </teleport>
 </template>
 
 <script>
@@ -490,10 +568,264 @@ export default {
     isSubmitModal: false,
 
     filteredUsers: [],
-    filteredTags: []
+    filteredTags: [],
+
+    taskDialogOnboardingKey: 'task-dialog-onboarding-v1',
+    taskDialogOnboardingActive: false,
+    taskDialogOnboardingStepIndex: 0,
+    taskDialogOnboardingTooltipStyle: {},
+    taskDialogOnboardingSpotlightStyle: {},
+    taskDialogOnboardingRefreshHandler: null,
+    taskDialogOnboardingSteps: [
+      {
+        target: 'task-dialog-title',
+        title: 'Номер и заголовок заявки',
+        text: 'Здесь видно, какую заявку вы открыли. Для новой заявки вместо номера отображается заголовок создания.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-name',
+        title: 'Название заявки',
+        text: 'Коротко сформулируйте проблему или запрос. Хорошее название помогает быстро найти заявку в общем списке.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-status-controls',
+        title: 'Статус и закрытие',
+        text: 'Статус показывает этап обработки. Рядом доступны быстрые действия: закрыть заявку, вернуть в работу или заморозить выполнение.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-description',
+        title: 'Описание',
+        text: 'В описании фиксируются детали обращения: что произошло, какие действия уже выполнены и какой результат ожидается.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-priority',
+        title: 'Приоритет',
+        text: 'Приоритет помогает понять срочность. Критичные и высокие заявки легче поднять в очереди и контролировать по SLA.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-executor',
+        title: 'Исполнитель',
+        text: 'Исполнитель отвечает за решение заявки. Если поле пустое, заявка может попасть в очередь без ответственного.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-tags',
+        title: 'Теги',
+        text: 'Теги нужны для классификации: тип проблемы, продукт, отдел, канал или причина обращения.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-deadline',
+        title: 'Дедлайн',
+        text: 'Дедлайн задаёт ожидаемый срок решения. Его удобно использовать для сортировки и контроля просрочек.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-open-chat',
+        title: 'Переход в чат клиента',
+        text: 'Кнопка открывает чат клиента, чтобы посмотреть полный контекст общения и продолжить диалог.',
+        dialogTab: 'tab1',
+        requiresExistingTask: true,
+        skipOnChatRoute: true
+      },
+      {
+        target: 'task-dialog-right-panel',
+        title: 'Связанные сообщения и история',
+        text: 'Правая часть заявки показывает переписку по этой заявке и историю изменений. На мобильном экране этот блок открывается отдельной вкладкой.',
+        dialogTab: 'tab2',
+        rightTab: 'messages',
+        requiresExistingTask: true,
+        requiresOperator: true
+      },
+      {
+        target: 'task-dialog-messages-panel',
+        title: 'Сообщения по заявке',
+        text: 'Здесь видна переписка, связанная именно с этой заявкой. Можно отвечать клиенту, не выходя из карточки заявки.',
+        dialogTab: 'tab2',
+        rightTab: 'messages',
+        requiresExistingTask: true,
+        requiresOperator: true
+      },
+      {
+        target: 'task-dialog-history-tab',
+        title: 'История изменений',
+        text: 'На вкладке истории можно проверить, кто менял статус, приоритет, исполнителя, дедлайн и другие поля заявки.',
+        dialogTab: 'tab2',
+        rightTab: 'history',
+        requiresExistingTask: true,
+        requiresOperator: true
+      },
+      {
+        target: 'task-dialog-actions',
+        title: 'Сохранение изменений',
+        text: 'После редактирования нажмите «Сохранить». Если закрыть окно с несохранёнными изменениями, система попросит подтвердить действие.',
+        dialogTab: 'tab1'
+      }
+    ]
   }),
 
   methods: {
+
+    startTaskDialogOnboarding (force = false) {
+      if (!force && localStorage.getItem(this.taskDialogOnboardingKey)) {
+        return
+      }
+      if (!this.getPossibilityToOpenDialogTask) {
+        return
+      }
+      this.taskDialogOnboardingActive = true
+      this.taskDialogOnboardingStepIndex = 0
+      this.addTaskDialogOnboardingListeners()
+      this.applyTaskDialogOnboardingStep()
+    },
+
+    finishTaskDialogOnboarding () {
+      this.taskDialogOnboardingActive = false
+      localStorage.setItem(this.taskDialogOnboardingKey, 'done')
+      this.taskDialogOnboardingTooltipStyle = {}
+      this.taskDialogOnboardingSpotlightStyle = {}
+      this.removeTaskDialogOnboardingListeners()
+    },
+
+    stopTaskDialogOnboarding () {
+      this.taskDialogOnboardingActive = false
+      this.taskDialogOnboardingTooltipStyle = {}
+      this.taskDialogOnboardingSpotlightStyle = {}
+      this.removeTaskDialogOnboardingListeners()
+    },
+
+    nextTaskDialogOnboardingStep () {
+      if (this.isLastTaskDialogOnboardingStep) {
+        this.finishTaskDialogOnboarding()
+        return
+      }
+      this.taskDialogOnboardingStepIndex += 1
+      this.applyTaskDialogOnboardingStep()
+    },
+
+    prevTaskDialogOnboardingStep () {
+      if (this.taskDialogOnboardingStepIndex === 0) {
+        return
+      }
+      this.taskDialogOnboardingStepIndex -= 1
+      this.applyTaskDialogOnboardingStep()
+    },
+
+    applyTaskDialogOnboardingStep () {
+      const steps = this.visibleTaskDialogOnboardingSteps
+      if (this.taskDialogOnboardingStepIndex >= steps.length) {
+        this.taskDialogOnboardingStepIndex = Math.max(steps.length - 1, 0)
+      }
+      const step = this.currentTaskDialogOnboardingStep
+      if (step.dialogTab) {
+        this.dialogTab = step.dialogTab
+      }
+      if (step.rightTab) {
+        this.taskRightTab = step.rightTab
+      }
+      this.$nextTick(() => {
+        setTimeout(() => this.updateTaskDialogOnboardingPosition(), 120)
+      })
+    },
+
+    updateTaskDialogOnboardingPosition () {
+      if (!this.taskDialogOnboardingActive) {
+        return
+      }
+      const step = this.currentTaskDialogOnboardingStep
+      const target = this.getTaskDialogOnboardingTarget(step)
+      if (!target) {
+        this.taskDialogOnboardingSpotlightStyle = {
+          top: '96px',
+          left: '96px',
+          width: '1px',
+          height: '1px',
+          opacity: 0
+        }
+        this.taskDialogOnboardingTooltipStyle = {
+          top: '96px',
+          left: '96px'
+        }
+        return
+      }
+
+      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' })
+
+      setTimeout(() => {
+        if (!this.taskDialogOnboardingActive) {
+          return
+        }
+        const rect = target.getBoundingClientRect()
+        const padding = 8
+        const tooltipWidth = Math.min(380, window.innerWidth - 24)
+        const tooltipEstimatedHeight = 190
+        const gap = 14
+
+        const spotlightTop = Math.max(rect.top - padding, 8)
+        const spotlightLeft = Math.max(rect.left - padding, 8)
+        const spotlightWidth = Math.min(rect.width + padding * 2, window.innerWidth - spotlightLeft - 8)
+        const spotlightHeight = Math.min(rect.height + padding * 2, window.innerHeight - spotlightTop - 8)
+
+        let tooltipTop = rect.bottom + gap
+        if (tooltipTop + tooltipEstimatedHeight > window.innerHeight - 12) {
+          tooltipTop = rect.top - tooltipEstimatedHeight - gap
+        }
+        if (tooltipTop < 12) {
+          tooltipTop = 12
+        }
+
+        let tooltipLeft = rect.left
+        if (tooltipLeft + tooltipWidth > window.innerWidth - 12) {
+          tooltipLeft = window.innerWidth - tooltipWidth - 12
+        }
+        if (tooltipLeft < 12) {
+          tooltipLeft = 12
+        }
+
+        this.taskDialogOnboardingSpotlightStyle = {
+          top: `${spotlightTop}px`,
+          left: `${spotlightLeft}px`,
+          width: `${spotlightWidth}px`,
+          height: `${spotlightHeight}px`
+        }
+        this.taskDialogOnboardingTooltipStyle = {
+          top: `${tooltipTop}px`,
+          left: `${tooltipLeft}px`,
+          width: `${tooltipWidth}px`
+        }
+      }, 120)
+    },
+
+    getTaskDialogOnboardingTarget (step) {
+      if (!step?.target) {
+        return document.querySelector('[data-tour="task-dialog-card"]')
+      }
+      return document.querySelector(`[data-tour="${step.target}"]`) || document.querySelector('[data-tour="task-dialog-card"]')
+    },
+
+    addTaskDialogOnboardingListeners () {
+      if (this.taskDialogOnboardingRefreshHandler) {
+        return
+      }
+      this.taskDialogOnboardingRefreshHandler = () => this.updateTaskDialogOnboardingPosition()
+      window.addEventListener('resize', this.taskDialogOnboardingRefreshHandler)
+      window.addEventListener('scroll', this.taskDialogOnboardingRefreshHandler, true)
+    },
+
+    removeTaskDialogOnboardingListeners () {
+      if (!this.taskDialogOnboardingRefreshHandler) {
+        return
+      }
+      window.removeEventListener('resize', this.taskDialogOnboardingRefreshHandler)
+      window.removeEventListener('scroll', this.taskDialogOnboardingRefreshHandler, true)
+      this.taskDialogOnboardingRefreshHandler = null
+    },
+
     getCurrentTaskId () {
       return this.taskId || this.dialogTaskId || this.task?.id || null
     },
@@ -1007,6 +1339,33 @@ export default {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     },
 
+    isTaskDialogOperator () {
+      return ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])
+    },
+
+    visibleTaskDialogOnboardingSteps () {
+      return this.taskDialogOnboardingSteps.filter(step => {
+        if (step.requiresExistingTask && this.isNewTask) {
+          return false
+        }
+        if (step.requiresOperator && !this.isTaskDialogOperator) {
+          return false
+        }
+        if (step.skipOnChatRoute && this.$route.path.includes('chats')) {
+          return false
+        }
+        return true
+      })
+    },
+
+    currentTaskDialogOnboardingStep () {
+      return this.visibleTaskDialogOnboardingSteps[this.taskDialogOnboardingStepIndex] || this.visibleTaskDialogOnboardingSteps[0] || {}
+    },
+
+    isLastTaskDialogOnboardingStep () {
+      return this.taskDialogOnboardingStepIndex >= this.visibleTaskDialogOnboardingSteps.length - 1
+    },
+
     getClientName () {
       const client = this.task?.client || this.client
       if (!client) {
@@ -1036,6 +1395,16 @@ export default {
   },
 
   watch: {
+    getPossibilityToOpenDialogTask (value) {
+      if (value) {
+        this.$nextTick(() => {
+          setTimeout(() => this.startTaskDialogOnboarding(false), 450)
+        })
+      } else {
+        this.stopTaskDialogOnboarding()
+      }
+    },
+
     dialogTaskStatus: {
       deep: true,
       handler (oldVal, newVal) {
@@ -1070,6 +1439,13 @@ export default {
     if (this.taskRightTab === 'history') {
       this.loadTaskHistory()
     }
+    this.$nextTick(() => {
+      setTimeout(() => this.startTaskDialogOnboarding(false), 450)
+    })
+  },
+
+  beforeUnmount () {
+    this.removeTaskDialogOnboardingListeners()
   },
 
   setup () {
@@ -1130,5 +1506,35 @@ th {
   position: relative;
   max-height: 470px;
   overflow-y: auto;
+}
+
+.task-dialog-onboarding-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+.task-dialog-onboarding-spotlight {
+  position: fixed;
+  z-index: 10001;
+  border: 2px solid var(--q-primary);
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  transition: top 0.18s ease, left 0.18s ease, width 0.18s ease, height 0.18s ease;
+}
+
+.task-dialog-onboarding-tooltip {
+  position: fixed;
+  z-index: 10002;
+  max-width: calc(100vw - 24px);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.24);
+  pointer-events: auto;
+}
+
+.task-dialog-onboarding-progress {
+  text-align: right;
 }
 </style>

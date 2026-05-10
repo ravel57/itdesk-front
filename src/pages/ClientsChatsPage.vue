@@ -1,12 +1,13 @@
 <template>
   <q-page padding style="min-width: 0;overflow-x: hidden;">
     <div
-      v-if="this.store.clients.length > 0"
+      v-if="shouldShowChatsToolbar"
       class="search-sort-row"
     >
       <q-input
         v-model="searchQuery"
         dense
+        data-tour="chat-search"
         placeholder="Поиск..."
         @input="search"
         clearable
@@ -22,6 +23,7 @@
 
       <q-select
         v-model="sortType"
+        data-tour="chat-sort"
         :options="sortOptions"
         dense
         outlined
@@ -30,6 +32,17 @@
         options-dense
         class="search-sort-row__sort"
       />
+
+      <q-btn
+        flat
+        dense
+        round
+        icon="help_outline"
+        color="primary"
+        @click="startOnboarding(true)"
+      >
+        <q-tooltip>Показать обучение</q-tooltip>
+      </q-btn>
     </div>
     <div v-if="this.getSortedAndFilteredClients.length > 0">
       <q-list>
@@ -37,11 +50,15 @@
           v-for="client in this.getSortedAndFilteredClients"
           :key="client.id"
         >
-          <q-item clickable>
+          <q-item
+            clickable
+            :data-tour="isFirstClient(client) ? 'client-row' : null"
+          >
             <q-item-section style="display: flow-root">
               <router-link
-                :to="`/chats/${client.id}`"
+                :to="getClientChatRoute(client)"
                 style="text-decoration: none; display: flex; width: 100%;"
+                @click="preventOnboardingDemoNavigation(client, $event)"
                 class="text-primary"
               >
                 <q-item-section side style="padding-right: 8px">
@@ -53,7 +70,10 @@
                   </div>
                 </q-item-section>
                 <q-item-section class="client-info-section">
-                  <q-item-label style="align-items: center;display: flex;">
+                  <q-item-label
+                    style="align-items: center;display: flex;"
+                    :data-tour="isFirstClient(client) ? 'client-name' : null"
+                  >
                     <img
                       v-if="client.messageFrom === 'TELEGRAM'"
                       src="/telegram.png"
@@ -73,7 +93,10 @@
                       style="width: 16px;margin-right: 8px;filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);"
                     >
                     {{ client.lastname }} {{ client.firstname }}
-                    <div style="color: var(--q-primary);display: flex;align-items: center;margin-left: 8px;">
+                    <div
+                      style="color: var(--q-primary);display: flex;align-items: center;margin-left: 8px;"
+                      :data-tour="isFirstClient(client) ? 'client-tasks-count' : null"
+                    >
                       <q-icon
                         color="primary"
                         name="description"
@@ -85,6 +108,7 @@
                         v-if="hasClientSla(client)"
                         class="sla-pill q-ml-sm"
                         :class="{ 'sla-pill--expired': isSlaExpired(this.getActualTasks(client)) }"
+                        :data-tour="isFirstClient(client) ? 'client-sla' : null"
                       >
                         <q-linear-progress
                           :value="getClientSlaPercent(client) ?? 0"
@@ -126,6 +150,7 @@
                   <q-item-label
                     class="shorten-text"
                     caption
+                    :data-tour="isFirstClient(client) ? 'client-last-message' : null"
                   >
                     {{ this.getTimeLastMessage(client) +' : ' + this.getLastMessage(client) }}
                   </q-item-label>
@@ -133,6 +158,7 @@
                 <div
                   v-if="client.unreadMessagesCount || hasAnswerRequiredUnansweredMessages(client) || hasCriticalTasks(client) || isHavePing(client)"
                   class="client-row-alerts"
+                  :data-tour="isFirstClient(client) ? 'client-alerts' : null"
                 >
                   <q-separator vertical class="client-row-alerts__separator" />
 
@@ -177,11 +203,67 @@
         </div>
       </q-list>
     </div>
-    <div v-else class="absolute-center">
+    <div v-else class="absolute-center" data-tour="empty-state">
       <div style="text-align: center;font-size: 20px">
         Чатов нет
         <no-tasks-placeholder/>
       </div>
+    </div>
+
+    <div
+      v-if="isOnboardingVisible && currentOnboardingStep"
+      class="onboarding-overlay"
+    >
+      <div
+        v-if="onboardingHighlightStyle"
+        class="onboarding-highlight"
+        :style="onboardingHighlightStyle"
+      />
+
+      <q-card
+        class="onboarding-card"
+        :style="onboardingCardStyle"
+      >
+        <q-card-section class="q-pb-sm">
+          <div class="onboarding-card__step">
+            Шаг {{ getCurrentOnboardingStepNumber() }} из {{ getAvailableOnboardingStepsCount() }}
+          </div>
+          <div class="onboarding-card__title">
+            {{ currentOnboardingStep.title }}
+          </div>
+          <div class="onboarding-card__text">
+            {{ currentOnboardingStep.text }}
+          </div>
+        </q-card-section>
+
+        <q-card-actions align="between" class="q-pt-none">
+          <q-btn
+            flat
+            dense
+            color="grey-7"
+            label="Пропустить"
+            @click="skipOnboarding"
+          />
+
+          <div class="row items-center q-gutter-xs">
+            <q-btn
+              flat
+              dense
+              color="primary"
+              label="Назад"
+              :disable="!hasPreviousOnboardingStep()"
+              @click="previousOnboardingStep"
+            />
+            <q-btn
+              unelevated
+              dense
+              color="primary"
+              :label="hasNextOnboardingStep() ? 'Далее' : 'Готово'"
+              @click="nextOnboardingStep"
+            />
+          </div>
+        </q-card-actions>
+      </q-card>
     </div>
   </q-page>
 </template>
@@ -215,10 +297,400 @@ export default {
     // taskId -> SlaInfoDto
     slaInfoByTaskId: {},
     // taskId -> boolean (чтобы не спамить запросами)
-    slaInfoLoading: {}
+    slaInfoLoading: {},
+
+    isOnboardingVisible: false,
+    currentOnboardingStepIndex: 0,
+    onboardingCardStyle: {},
+    onboardingHighlightStyle: null,
+    onboardingStorageKey: 'clients-chats-onboarding-v3',
+    onboardingDemoClients: [
+      {
+        id: '__onboarding_demo_client_1__',
+        isOnboardingDemoClient: true,
+        firstname: 'Иван',
+        lastname: 'Петров',
+        messageFrom: 'TELEGRAM',
+        sourceChannel: 'Telegram',
+        organization: {
+          name: 'ООО «Северный офис»'
+        },
+        unreadMessagesCount: 2,
+        demoPingCount: 1,
+        lastMessage: {
+          date: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+          text: 'Здравствуйте! Не получается подключиться к рабочему VPN.'
+        },
+        messages: [
+          {
+            id: '__onboarding_demo_message_1_1__',
+            date: new Date(Date.now() - 48 * 60 * 1000).toISOString(),
+            text: 'Здравствуйте! Не получается подключиться к рабочему VPN.',
+            isSent: false,
+            isComment: false,
+            deleted: false,
+            answerRequired: 'ANSWER_REQUIRED'
+          },
+          {
+            id: '__onboarding_demo_message_1_2__',
+            date: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+            text: 'Подскажите, пожалуйста, когда сможете посмотреть?',
+            isSent: false,
+            isComment: false,
+            deleted: false,
+            answerRequired: 'ANSWER_REQUIRED'
+          }
+        ],
+        tasks: [
+          {
+            id: null,
+            title: 'Проверить доступ к VPN',
+            completed: false,
+            priority: {
+              critical: true
+            },
+            sla: {
+              startDate: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
+              duration: 'PT45M'
+            },
+            unreadPingTasksMessages: {
+              onboarding: 1
+            }
+          }
+        ]
+      },
+      {
+        id: '__onboarding_demo_client_2__',
+        isOnboardingDemoClient: true,
+        firstname: 'Мария',
+        lastname: 'Смирнова',
+        messageFrom: 'EMAIL',
+        sourceChannel: 'Email',
+        organization: {
+          name: 'ИП Смирнова'
+        },
+        unreadMessagesCount: 1,
+        demoPingCount: 0,
+        lastMessage: {
+          date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          text: 'Прикладываю скриншот ошибки при входе в личный кабинет.'
+        },
+        messages: [
+          {
+            id: '__onboarding_demo_message_2_1__',
+            date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            text: 'Прикладываю скриншот ошибки при входе в личный кабинет.',
+            isSent: false,
+            isComment: false,
+            deleted: false,
+            answerRequired: 'ANSWER_REQUIRED'
+          }
+        ],
+        tasks: [
+          {
+            id: null,
+            title: 'Восстановить доступ к личному кабинету',
+            completed: false,
+            priority: {
+              critical: false
+            },
+            sla: {
+              startDate: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+              duration: 'PT6H'
+            }
+          },
+          {
+            id: null,
+            title: 'Назначить исполнителя по обращению',
+            completed: false,
+            priority: {
+              critical: false
+            }
+          }
+        ]
+      },
+      {
+        id: '__onboarding_demo_client_3__',
+        isOnboardingDemoClient: true,
+        firstname: 'Алексей',
+        lastname: 'Орлов',
+        messageFrom: 'WHATSAPP',
+        sourceChannel: 'WhatsApp',
+        organization: {
+          name: 'ООО «Ромашка»'
+        },
+        unreadMessagesCount: 0,
+        demoPingCount: 0,
+        lastMessage: {
+          date: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+          text: 'Спасибо, всё заработало.'
+        },
+        messages: [
+          {
+            id: '__onboarding_demo_message_3_1__',
+            date: new Date(Date.now() - 28 * 60 * 60 * 1000).toISOString(),
+            text: 'Добрый день, принтер не печатает.',
+            isSent: false,
+            isComment: false,
+            deleted: false,
+            answerRequired: 'ANSWER_REQUIRED'
+          },
+          {
+            id: '__onboarding_demo_message_3_2__',
+            date: new Date(Date.now() - 27 * 60 * 60 * 1000).toISOString(),
+            text: 'Проверьте, пожалуйста, очередь печати и перезапустите службу.',
+            isSent: true,
+            isComment: false,
+            deleted: false
+          },
+          {
+            id: '__onboarding_demo_message_3_3__',
+            date: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
+            text: 'Спасибо, всё заработало.',
+            isSent: false,
+            isComment: false,
+            deleted: false,
+            answerRequired: 'ANSWER_NOT_REQUIRED'
+          }
+        ],
+        tasks: []
+      }
+    ],
+    onboardingSteps: [
+      {
+        selector: '[data-tour="chat-search"]',
+        placement: 'bottom',
+        title: 'Поиск по клиентам',
+        text: 'Здесь можно быстро найти чат по имени клиента, организации или каналу обращения.'
+      },
+      {
+        selector: '[data-tour="chat-sort"]',
+        placement: 'bottom',
+        title: 'Сортировка очереди',
+        text: 'Переключайте порядок списка: по времени неответа, SLA, последнему сообщению, пингам, непрочитанным или заявкам без исполнителя.'
+      },
+      {
+        selector: '[data-tour="client-row"]',
+        placement: 'bottom',
+        title: 'Строка клиента',
+        text: 'Каждая строка — это клиентский диалог. Нажмите на строку, чтобы открыть чат и карточку клиента.'
+      },
+      {
+        selector: '[data-tour="client-name"]',
+        placement: 'right',
+        title: 'Канал и имя клиента',
+        text: 'Иконка показывает источник обращения, рядом отображается имя клиента.'
+      },
+      {
+        selector: '[data-tour="client-tasks-count"]',
+        placement: 'right',
+        title: 'Активные заявки',
+        text: 'Число рядом с иконкой заявки показывает, сколько открытых задач связано с этим клиентом.'
+      },
+      {
+        selector: '[data-tour="client-sla"]',
+        placement: 'right',
+        title: 'Минимальный SLA',
+        text: 'Полоса показывает самый срочный SLA среди открытых заявок клиента. Чем меньше осталось времени, тем тревожнее цвет.'
+      },
+      {
+        selector: '[data-tour="client-alerts"]',
+        placement: 'left',
+        title: 'Индикаторы внимания',
+        text: 'Здесь отображаются критичность, время ожидания ответа, непрочитанные сообщения и пинги.'
+      },
+      {
+        selector: '[data-tour="client-last-message"]',
+        placement: 'top',
+        title: 'Последнее сообщение',
+        text: 'Эта строка помогает быстро понять, когда клиент писал последний раз и о чём было сообщение.'
+      },
+      {
+        selector: '[data-tour="empty-state"]',
+        placement: 'top',
+        title: 'Пока чатов нет',
+        text: 'Когда появятся обращения клиентов, они будут отображаться на этом экране списком.'
+      }
+    ]
   }),
 
   methods: {
+    isOnboardingDemoClient (client) {
+      return client?.isOnboardingDemoClient === true
+    },
+
+    getClientChatRoute (client) {
+      if (this.isOnboardingDemoClient(client)) {
+        return this.$route?.fullPath || '/chats'
+      }
+      return `/chats/${client.id}`
+    },
+
+    preventOnboardingDemoNavigation (client, event) {
+      if (!this.isOnboardingDemoClient(client)) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+    },
+
+    isFirstClient (client) {
+      return this.getSortedAndFilteredClients[0]?.id === client?.id
+    },
+
+    startOnboarding (force = false) {
+      if (!force && localStorage.getItem(this.onboardingStorageKey) === 'skipped') {
+        return
+      }
+      this.isOnboardingVisible = true
+      this.currentOnboardingStepIndex = 0
+      this.$nextTick(() => this.normalizeOnboardingStep())
+    },
+
+    skipOnboarding () {
+      localStorage.setItem(this.onboardingStorageKey, 'skipped')
+      this.isOnboardingVisible = false
+      this.onboardingHighlightStyle = null
+    },
+
+    getOnboardingTarget (step = this.currentOnboardingStep) {
+      if (!step?.selector) {
+        return null
+      }
+      return document.querySelector(step.selector)
+    },
+
+    findAvailableOnboardingStepIndex (startIndex, direction) {
+      let index = startIndex
+      while (index >= 0 && index < this.onboardingSteps.length) {
+        if (this.getOnboardingTarget(this.onboardingSteps[index])) {
+          return index
+        }
+        index += direction
+      }
+      return null
+    },
+
+    normalizeOnboardingStep () {
+      if (!this.isOnboardingVisible) {
+        return
+      }
+
+      if (!this.getOnboardingTarget()) {
+        const nextIndex = this.findAvailableOnboardingStepIndex(this.currentOnboardingStepIndex, 1)
+        const previousIndex = this.findAvailableOnboardingStepIndex(this.currentOnboardingStepIndex, -1)
+        const firstIndex = this.findAvailableOnboardingStepIndex(0, 1)
+        const index = nextIndex ?? previousIndex ?? firstIndex
+
+        if (index === null) {
+          this.isOnboardingVisible = false
+          return
+        }
+        this.currentOnboardingStepIndex = index
+      }
+
+      this.updateOnboardingPosition()
+    },
+
+    updateOnboardingPosition () {
+      if (!this.isOnboardingVisible || !this.currentOnboardingStep) {
+        return
+      }
+
+      const target = this.getOnboardingTarget()
+      if (!target) {
+        this.normalizeOnboardingStep()
+        return
+      }
+
+      const rect = target.getBoundingClientRect()
+      const gap = 12
+      const padding = 8
+      const cardWidth = Math.min(360, window.innerWidth - 24)
+      let top = rect.bottom + gap
+      let left = rect.left
+
+      if (this.currentOnboardingStep.placement === 'right') {
+        top = rect.top + rect.height / 2 - 90
+        left = rect.right + gap
+      }
+
+      if (this.currentOnboardingStep.placement === 'left') {
+        top = rect.top + rect.height / 2 - 90
+        left = rect.left - cardWidth - gap
+      }
+
+      if (this.currentOnboardingStep.placement === 'top') {
+        top = rect.top - 190
+        left = rect.left
+      }
+
+      if (left + cardWidth + 12 > window.innerWidth) {
+        left = window.innerWidth - cardWidth - 12
+      }
+      if (left < 12) {
+        left = 12
+      }
+      if (top < 12) {
+        top = rect.bottom + gap
+      }
+      if (top > window.innerHeight - 210) {
+        top = Math.max(12, window.innerHeight - 210)
+      }
+
+      this.onboardingCardStyle = {
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${cardWidth}px`
+      }
+
+      this.onboardingHighlightStyle = {
+        top: `${Math.max(4, rect.top - padding)}px`,
+        left: `${Math.max(4, rect.left - padding)}px`,
+        width: `${rect.width + padding * 2}px`,
+        height: `${rect.height + padding * 2}px`
+      }
+    },
+
+    hasNextOnboardingStep () {
+      return this.findAvailableOnboardingStepIndex(this.currentOnboardingStepIndex + 1, 1) !== null
+    },
+
+    hasPreviousOnboardingStep () {
+      return this.findAvailableOnboardingStepIndex(this.currentOnboardingStepIndex - 1, -1) !== null
+    },
+
+    nextOnboardingStep () {
+      const nextIndex = this.findAvailableOnboardingStepIndex(this.currentOnboardingStepIndex + 1, 1)
+      if (nextIndex === null) {
+        this.skipOnboarding()
+        return
+      }
+      this.currentOnboardingStepIndex = nextIndex
+      this.$nextTick(() => this.updateOnboardingPosition())
+    },
+
+    previousOnboardingStep () {
+      const previousIndex = this.findAvailableOnboardingStepIndex(this.currentOnboardingStepIndex - 1, -1)
+      if (previousIndex === null) {
+        return
+      }
+      this.currentOnboardingStepIndex = previousIndex
+      this.$nextTick(() => this.updateOnboardingPosition())
+    },
+
+    getAvailableOnboardingStepsCount () {
+      return this.onboardingSteps.filter(step => this.getOnboardingTarget(step)).length || 1
+    },
+
+    getCurrentOnboardingStepNumber () {
+      const availableIndexes = this.onboardingSteps
+        .map((step, index) => this.getOnboardingTarget(step) ? index : null)
+        .filter(index => index !== null)
+      const currentIndex = availableIndexes.indexOf(this.currentOnboardingStepIndex)
+      return currentIndex === -1 ? 1 : currentIndex + 1
+    },
+
     nameToPastelHex (name) {
       let hash = 0
       for (let i = 0; i < name.length; i++) {
@@ -542,6 +1014,9 @@ export default {
     },
 
     getClientPingScore (client) {
+      if (this.isOnboardingDemoClient(client)) {
+        return Number(client.demoPingCount || 0)
+      }
       const userId = this.store.currentUser?.id
       if (!userId || !client) {
         return 0
@@ -648,6 +1123,9 @@ export default {
     },
 
     isHavePing (client) {
+      if (this.isOnboardingDemoClient(client)) {
+        return Number(client.demoPingCount || 0) > 0
+      }
       const userId = this.store.currentUser?.id
       if (!userId || !client) {
         return false
@@ -764,8 +1242,23 @@ export default {
   },
 
   computed: {
+    shouldShowChatsToolbar () {
+      return this.getSortedAndFilteredClients.length > 0 || this.isOnboardingVisible
+    },
+
+    clientsForChatsList () {
+      if (this.isOnboardingVisible) {
+        return this.onboardingDemoClients
+      }
+      return this.store.clients || []
+    },
+
+    currentOnboardingStep () {
+      return this.onboardingSteps[this.currentOnboardingStepIndex] || null
+    },
+
     getSortedAndFilteredClients () {
-      let clients = this.store.clients || []
+      let clients = this.clientsForChatsList || []
 
       if (this.searchQuery !== '') {
         const query = this.searchQuery.toLowerCase()
@@ -813,6 +1306,7 @@ export default {
     'store.clients': {
       handler () {
         this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
+        this.$nextTick(() => this.normalizeOnboardingStep())
       },
       deep: true
     }
@@ -824,10 +1318,16 @@ export default {
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)
+
+    window.addEventListener('resize', this.updateOnboardingPosition)
+    window.addEventListener('scroll', this.updateOnboardingPosition, true)
+    this.$nextTick(() => this.startOnboarding(false))
   },
 
   beforeUnmount () {
     clearInterval(this.slaTimer)
+    window.removeEventListener('resize', this.updateOnboardingPosition)
+    window.removeEventListener('scroll', this.updateOnboardingPosition, true)
   },
 
   setup () {
@@ -929,4 +1429,48 @@ export default {
 .client-ping-counter {
   margin-right: 0;
 }
+
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  pointer-events: none;
+}
+
+.onboarding-highlight {
+  position: fixed;
+  z-index: 6001;
+  border: 2px solid var(--q-primary);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.32);
+  pointer-events: none;
+  transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease;
+}
+
+.onboarding-card {
+  position: fixed;
+  z-index: 6002;
+  border-radius: 14px;
+  pointer-events: auto;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+}
+
+.onboarding-card__step {
+  margin-bottom: 4px;
+  color: #777;
+  font-size: 12px;
+}
+
+.onboarding-card__title {
+  margin-bottom: 8px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.onboarding-card__text {
+  color: #555;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
 </style>

@@ -1,7 +1,7 @@
 <template>
-  <q-card style="min-width: 440px;min-height: 150px; position: relative">
+  <q-card style="min-width: 440px;min-height: 150px; position: relative" data-tour="tasks-bulk-actions-modal">
     <q-card-section style="display: flex; flex-direction: row; justify-content: space-between">
-      <div class="text-h5">{{ this.getHeader }}</div>
+      <div class="text-h5" data-tour="tasks-bulk-actions-title">{{ this.getHeader }}</div>
       <q-btn
         flat
         round
@@ -19,6 +19,7 @@
 <!--      </div>-->
       <q-input
         v-if="this.action === 'freeze'"
+        data-tour="tasks-bulk-actions-field"
         v-model="this.tasksFreezeUntil"
         clearable
         label="Заморозить до"
@@ -53,6 +54,7 @@
       </q-input>
       <q-select
         v-if="this.action === 'executor'"
+        data-tour="tasks-bulk-actions-field"
         v-model="this.tasksExecutor"
         :options="this.store.users.filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0])).map(user => this.getUserName(user))"
         label="Исполнитель"
@@ -61,6 +63,7 @@
       />
       <q-select
         v-if="this.action === 'status'"
+        data-tour="tasks-bulk-actions-field"
         v-model="this.tasksStatus"
         :options="this.store.statuses.map(s => s.name)"
         label="Статус"
@@ -69,6 +72,7 @@
       />
       <q-select
         v-if="this.action === 'priority'"
+        data-tour="tasks-bulk-actions-field"
         v-model="this.tasksPriority"
         :options="this.store.priorities.map(priority => priority.name)"
         style="width: 100%;"
@@ -77,6 +81,7 @@
       />
       <q-select
         v-if="this.action === 'tags'"
+        data-tour="tasks-bulk-actions-field"
         v-model="this.tasksTags"
         :options="this.store.tags.map(t => t.name)"
         multiple
@@ -88,6 +93,7 @@
       />
       <q-input
         v-if="this.action === 'deadline'"
+        data-tour="tasks-bulk-actions-field"
         v-model="this.tasksDeadline"
         clearable
         label="Дедлайн"
@@ -120,11 +126,11 @@
           </q-icon>
         </template>
       </q-input>
-      <div class="text-h7" style="padding-top: 20px">
+      <div class="text-h7" style="padding-top: 20px" data-tour="tasks-bulk-actions-count">
         {{ this.getDeclension(this.store.checkedTasks.length) }}
       </div>
     </q-card-section>
-    <q-card-actions style="position: absolute;bottom: 0;width: 100%" align="right">
+    <q-card-actions style="position: absolute;bottom: 0;width: 100%" align="right" data-tour="tasks-bulk-actions-buttons">
       <q-btn flat label="Отменить" text-color="primary" v-close-popup />
       <q-btn label="Применить" color="primary" v-close-popup @click="this.doAction()"/>
     </q-card-actions>

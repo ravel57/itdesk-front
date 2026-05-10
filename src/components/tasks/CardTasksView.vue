@@ -3,19 +3,26 @@
     v-for="(taskList, index) in this.groupedTasks"
     :key="index"
     class="list"
+    :data-tour="index === 0 ? 'tasks-board-column' : null"
   >
     <div
       class="list-header sticky-tabs"
+      :data-tour="index === 0 ? 'tasks-column-header' : null"
       style="display: flex;align-content: center;align-items: center"
       :style="`background-color: hsl(${360 / this.groupedTasks.length * (this.groupedTasks.length - index)}deg 85% 40%);`"
     >
-      <label v-if="taskList.taskCards" class="custom-checkbox">
+      <label
+        v-if="taskList.taskCards"
+        class="custom-checkbox"
+        :data-tour="index === 0 ? 'tasks-group-select' : null"
+      >
         <input
           v-if="taskList.taskCards"
           :id="`col-checkbox-${index}`"
           class="hidden-checkbox"
           type="checkbox"
           :checked="isGroupChecked(taskList.taskCards)"
+          :disabled="this.isOnboardingDemo"
           @click.stop="toggleGroupTasks(taskList.taskCards, $event.target.checked)"
         >
         <span class="checkmark"></span>
@@ -39,11 +46,12 @@
          overflow: hidden
         "
         class="no-padding"
+        :data-tour="index === 0 && taskIndex === 0 ? 'tasks-task-card' : null"
       >
         <q-item
           clickable
           style="padding: 8px;max-width: 420px;width: 420px;"
-          @click="this.$emit('onTaskClicked', task)"
+          @click="handleTaskClick(task)"
         >
           <task-card
             class="task-card"
@@ -52,26 +60,37 @@
             :descriptionRequire="false"
             :slaRequire="true"
             :taskNameShort="22"
+            :isOnboardingDemo="this.isOnboardingDemo"
           >
             <!--:slaRequire="false"-->
             <template v-slot:checkBox>
-              <label @click.stop class="custom-checkbox">
+              <label
+                @click.stop
+                class="custom-checkbox"
+                :data-tour="index === 0 && taskIndex === 0 ? 'tasks-task-select' : null"
+              >
                 <input
                   :id="`radio_${task.id}_${taskIndex}`"
                   class="hidden-checkbox"
                   type="checkbox"
                   style="margin-left: 4px;height: 20px;width: 20px;margin-right: 8px;"
                   v-model="checkedTasks[task.id]"
+                  :disabled="this.isOnboardingDemo || task.__onboardingDemo"
                   @click.stop
                 >
                 <span class="checkmark"></span>
               </label>
             </template>
             <template v-slot:chatLink>
-              <a :href="this.getChatLink(task.client.id)" @click.stop>
+              <a
+                :href="this.getChatLink(task.client.id)"
+                @click.stop="handleChatLinkClick($event, task)"
+              >
                 <div
                   :id="`link_to_chat_${task.id}_${taskIndex}`"
                   class="link-to-chat-container"
+                  :class="{ 'link-to-chat-container--visible': this.isOnboardingDemo || task.__onboardingDemo }"
+                  :data-tour="index === 0 && taskIndex === 0 ? 'tasks-chat-link' : null"
                 >
                   <div class="link-container">
                     <q-icon class="link" color="white" name="open_in_new"/>
@@ -96,7 +115,7 @@ export default {
 
   name: 'CardTasksView',
 
-  props: ['groupedTasks', 'selectedGroupType'],
+  props: ['groupedTasks', 'selectedGroupType', 'isOnboardingDemo'],
 
   data: () => ({
     checkedTasks: {},
@@ -123,6 +142,9 @@ export default {
 
   methods: {
     toggleGroupTasks (taskCards, isChecked) {
+      if (this.isOnboardingDemo) {
+        return
+      }
       taskCards.forEach(task => {
         this.checkedTasks[task.id] = isChecked
       })
@@ -130,6 +152,9 @@ export default {
     },
 
     updateSelectedTasks () {
+      if (this.isOnboardingDemo) {
+        return
+      }
       this.store.checkedTasks = Object.entries(this.checkedTasks)
         .filter(([id, checked]) => checked)
         .map(([id]) => {
@@ -143,6 +168,19 @@ export default {
     getChatLink (id) {
       const origin = window.location.origin
       return `${origin}/chats/${id}`
+    },
+
+    handleTaskClick (task) {
+      if (this.isOnboardingDemo || task?.__onboardingDemo) {
+        return
+      }
+      this.$emit('onTaskClicked', task)
+    },
+
+    handleChatLinkClick (event, task) {
+      if (this.isOnboardingDemo || task?.__onboardingDemo) {
+        event.preventDefault()
+      }
     }
   },
 
@@ -295,6 +333,10 @@ export default {
 
 .link-to-chat-container:hover {
   transform: rotate(45deg) scale(1.2);
+}
+
+.link-to-chat-container--visible {
+  display: unset;
 }
 
 .task-card:hover {

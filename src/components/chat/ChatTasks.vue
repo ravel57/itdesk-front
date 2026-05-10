@@ -1,12 +1,13 @@
 <template>
   <q-card
+    data-tour="chat-client-tasks-column"
     id="taskColumn"
     bordered
     class="no-shadow"
     style="overflow: hidden;border-radius: 0;display: flex;flex-direction: column;padding: 16px 16px 0;"
     :style="this.isMobile ? 'height: calc(100vh - 89px)' : 'height: 100vh;'"
   >
-    <div style="margin-bottom: 3px">
+    <div data-tour="chat-client-card" style="margin-bottom: 3px">
       <chat-info
         style="z-index: 1"
         :isMobile="this.isMobile"
@@ -16,7 +17,7 @@
       />
     </div>
     <q-separator/>
-    <div class="flex" style="margin-bottom: 8px;">
+    <div data-tour="chat-task-toolbar" class="flex" style="margin-bottom: 8px;">
       <div>
         <div class="flex">
           <span
@@ -38,6 +39,7 @@
           </div>
         </div>
         <q-btn
+          data-tour="chat-create-task"
           v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
           id="create-task"
           class="text-primary cursor-pointer"
@@ -125,6 +127,7 @@
           <q-card-section style="padding: 0">
             <q-card class="my-card no-shadow">
               <q-card-section
+                data-tour="chat-task-card"
                 v-for="task in this.getActualTasks"
                 :key="task.id"
                 :id="`task_${task.id}`"
@@ -473,6 +476,9 @@ export default {
     },
 
     loadSlaInfosForTasks () {
+      if (this.client?.id === -100500) {
+        return
+      }
       this.tasks
         .filter(task => task?.sla)
         .forEach(task => this.loadSlaInfoForTask(task))

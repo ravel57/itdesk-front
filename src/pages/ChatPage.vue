@@ -26,6 +26,7 @@
         :style="this.isMobile ? 'height: calc(100vh - 90px)' : desktopGridStyle"
       >
         <div
+          data-tour="chat-dialog-column"
           v-if="!this.isMobile || this.tab === 'tab1'"
           id="chatColumn"
           class="chat-page-column no-shadow"
@@ -34,7 +35,7 @@
             :isMobile="this.isMobile"
             :messages="this.getClient.messages"
             :inputField="this.inputField"
-            :templates="this.store.templates"
+            :templates="this.activeTemplates"
             :isSending="this.isSending"
             :clientId="this.getClient.id"
             :typing="this.getClient.typingUsers"
@@ -71,13 +72,14 @@
           @mousedown="startColumnResize('chat-tasks', $event)"
         />
         <div
+          data-tour="chat-helper-wrapper"
           class="chat-page-column no-shadow"
-          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser?.authorities?.[0])"
         >
           <chat-helper
             :isMobile="this.isMobile"
-            :templates="this.store.templates"
-            :knowledgeBase="this.store.knowledgeBase"
+            :templates="this.activeTemplates"
+            :knowledgeBase="this.activeKnowledgeBase"
             @onTemplateClick="onTemplateClick"
             @hideHelper="this.hideHelper"
           />
@@ -90,18 +92,19 @@
         />
 
         <div
+          data-tour="chat-tasks-wrapper"
           class="chat-page-column chat-page-tasks-column no-shadow"
           v-if="!this.isMobile || this.tab === 'tab3'"
         >
           <chat-tasks
             :tasks="this.getClient.tasks"
             :isNotificationEnabled="isNotificationEnabled"
-            :tags="this.store.tags"
-            :users="this.store.users"
-            :organizations="this.store.organizations"
+            :tags="this.activeTags"
+            :users="this.activeUsers"
+            :organizations="this.activeOrganizations"
             :client="this.getClient"
-            :statuses="this.store.statuses"
-            :priorities="this.store.priorities"
+            :statuses="this.activeStatuses"
+            :priorities="this.activePriorities"
             :is-mobile="this.isMobile"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
@@ -110,6 +113,68 @@
         </div>
       </div>
     </q-page>
+    <q-btn
+      v-if="!isChatOnboardingActive"
+      class="chat-onboarding-launch-btn"
+      round
+      dense
+      color="primary"
+      icon="help_outline"
+      @click="startChatOnboarding(true)"
+    >
+      <q-tooltip>Показать обучение по экрану чата</q-tooltip>
+    </q-btn>
+
+    <div
+      v-if="isChatOnboardingActive"
+      class="chat-onboarding-backdrop"
+    />
+    <div
+      v-if="isChatOnboardingActive && chatOnboardingTargetRect"
+      class="chat-onboarding-highlight"
+      :style="chatOnboardingHighlightStyle"
+    />
+    <q-card
+      v-if="isChatOnboardingActive && currentChatOnboardingStep"
+      class="chat-onboarding-card no-shadow"
+      :style="chatOnboardingCardStyle"
+    >
+      <div class="chat-onboarding-step-counter">
+        Шаг {{ chatOnboardingStepIndex + 1 }} из {{ chatOnboardingSteps.length }}
+      </div>
+      <div class="text-subtitle1 chat-onboarding-title">
+        {{ currentChatOnboardingStep.title }}
+      </div>
+      <div class="text-body2 chat-onboarding-text">
+        {{ currentChatOnboardingStep.text }}
+      </div>
+      <div class="chat-onboarding-actions">
+        <q-btn
+          flat
+          dense
+          no-caps
+          label="Пропустить"
+          @click="finishChatOnboarding"
+        />
+        <q-space/>
+        <q-btn
+          flat
+          dense
+          no-caps
+          label="Назад"
+          :disable="chatOnboardingStepIndex === 0"
+          @click="prevChatOnboardingStep"
+        />
+        <q-btn
+          color="primary"
+          dense
+          no-caps
+          :label="isLastChatOnboardingStep ? 'Готово' : 'Далее'"
+          @click="nextChatOnboardingStep"
+        />
+      </div>
+    </q-card>
+
   </div>
 </template>
 
@@ -136,6 +201,116 @@ export default {
     isShowHelper: true,
     isEnd: false,
     pageCounter: 0,
+    messagesLoadedForCurrentChat: false,
+
+    chatOnboardingStorageKey: 'chat-page-onboarding-v1',
+    isChatOnboardingActive: typeof localStorage !== 'undefined' && localStorage.getItem('chat-page-onboarding-v1') !== 'done',
+    chatOnboardingStepIndex: 0,
+    chatOnboardingTargetRect: null,
+    chatOnboardingCardStyle: {},
+    chatOnboardingMoveDirection: 1,
+    chatOnboardingPreviousInputField: '',
+    chatOnboardingPreviousIsShowHelper: true,
+    chatOnboardingDemoClient: {
+      id: -100500,
+      firstname: 'Иван',
+      lastname: 'Петров',
+      username: 'ivan.petrov',
+      messageFrom: 'TELEGRAM',
+      sourceChannel: 'Telegram / Поддержка',
+      moreInfo: 'VIP-клиент, договор № 42, нужен быстрый первый ответ',
+      organization: {
+        id: -100500,
+        name: 'ООО Демо-Сервис'
+      },
+      typingUsers: [],
+      watchingUsers: [],
+      typingMessageText: {},
+      messages: [
+        {
+          id: -100501,
+          text: 'Добрый день! Не получается войти в личный кабинет, пишет ошибку авторизации.',
+          date: new Date(Date.now() - 1000 * 60 * 35),
+          isSent: false,
+          isComment: false,
+          isRead: false,
+          deleted: false,
+          answerRequired: 'ANSWER_NOT_REQUIRED'
+        },
+        {
+          id: -100502,
+          text: 'Здравствуйте! Проверю доступ и подскажу, что нужно сделать.',
+          date: new Date(Date.now() - 1000 * 60 * 28),
+          isSent: true,
+          isComment: false,
+          isRead: true,
+          deleted: false,
+          user: {
+            id: -100501,
+            firstname: 'Оператор',
+            lastname: 'Поддержки',
+            username: 'operator'
+          }
+        },
+        {
+          id: -100503,
+          text: 'Сейчас еще появилась ошибка при восстановлении пароля. Нужно ответить клиенту.',
+          date: new Date(Date.now() - 1000 * 60 * 9),
+          isSent: false,
+          isComment: false,
+          isRead: false,
+          deleted: false,
+          answerRequired: 'ANSWER_REQUIRED'
+        }
+      ],
+      tasks: [
+        {
+          id: -100501,
+          name: 'Проверить доступ клиента',
+          description: 'Клиент не может войти в личный кабинет. Нужно проверить учетную запись и отправить инструкцию.',
+          status: { id: -100501, name: 'В работе', orderNumber: 2 },
+          priority: { id: -100501, name: 'Высокий', critical: true, orderNumber: 3 },
+          executor: { id: -100501, firstname: 'Оператор', lastname: 'Поддержки' },
+          tags: [{ id: -100501, name: 'Доступ' }, { id: -100502, name: 'VIP' }],
+          completed: false,
+          frozen: false,
+          createdAt: new Date(Date.now() - 1000 * 60 * 35),
+          deadline: new Date(Date.now() + 1000 * 60 * 90),
+          linkedMessageId: -100503,
+          sla: {
+            startDate: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
+            duration: 'PT2H'
+          }
+        }
+      ]
+    },
+    chatOnboardingDemoTemplates: [
+      { id: -100501, shortcut: 'hello', text: 'Здравствуйте! Уже проверяю ваш вопрос и скоро вернусь с ответом.' },
+      { id: -100502, shortcut: 'access', text: 'Попробуйте восстановить пароль по ссылке. Если ошибка повторится, пришлите скриншот.' }
+    ],
+    chatOnboardingDemoKnowledgeBase: [
+      { id: -100501, title: 'Проблемы со входом в личный кабинет', text: 'Проверить статус пользователя, блокировку, актуальность email и историю попыток входа.', tags: [{ id: -100501, name: 'Доступ' }] },
+      { id: -100502, title: 'Инструкция по восстановлению пароля', text: 'Попросить клиента открыть страницу восстановления пароля и проверить письмо во входящих и спаме.', tags: [{ id: -100502, name: 'Пароль' }] }
+    ],
+    chatOnboardingDemoTags: [
+      { id: -100501, name: 'Доступ' },
+      { id: -100502, name: 'VIP' },
+      { id: -100503, name: 'Пароль' }
+    ],
+    chatOnboardingDemoUsers: [
+      { id: -100501, firstname: 'Оператор', lastname: 'Поддержки', username: 'operator' }
+    ],
+    chatOnboardingDemoOrganizations: [
+      { id: -100500, name: 'ООО Демо-Сервис' }
+    ],
+    chatOnboardingDemoStatuses: [
+      { id: -100501, name: 'Новая', orderNumber: 1 },
+      { id: -100502, name: 'В работе', orderNumber: 2 }
+    ],
+    chatOnboardingDemoPriorities: [
+      { id: -100501, name: 'Обычный', critical: false, orderNumber: 1 },
+      { id: -100502, name: 'Высокий', critical: true, orderNumber: 3 }
+    ],
 
     chatColumnWidth: 0,
     helperColumnWidth: 0,
@@ -159,11 +334,176 @@ export default {
   }),
 
   methods: {
+    getRealClientByRoute() {
+      const clientId = Number(this.router.params.clientId)
+      return this.store.clients.find(client => client.id === clientId)
+    },
+
+    loadCurrentChatData() {
+      const client = this.getRealClientByRoute()
+      if (!client || this.messagesLoadedForCurrentChat) {
+        return
+      }
+      this.getMessagePage()
+      this.markMessagesRead()
+      this.initCurrentChatDraft()
+      this.messagesLoadedForCurrentChat = true
+    },
+
+    initCurrentChatDraft() {
+      const client = this.getRealClientByRoute()
+      const currentUserId = this.store.currentUser?.id
+      const draft = client?.typingMessageText?.[currentUserId]
+      if (draft) {
+        this.inputField = draft
+      }
+    },
+
+    startChatOnboarding(force = false) {
+      if (!force && localStorage.getItem(this.chatOnboardingStorageKey) === 'done') {
+        return
+      }
+      this.chatOnboardingPreviousInputField = this.inputField
+      this.chatOnboardingPreviousIsShowHelper = this.isShowHelper
+      this.isChatOnboardingActive = true
+      this.chatOnboardingStepIndex = 0
+      this.inputField = 'Здравствуйте! Уже проверяю ваш вопрос.'
+      this.isShowHelper = true
+      this.$nextTick(() => {
+        this.goToChatOnboardingStep(0, 1)
+      })
+    },
+
+    finishChatOnboarding() {
+      localStorage.setItem(this.chatOnboardingStorageKey, 'done')
+      this.isChatOnboardingActive = false
+      this.chatOnboardingTargetRect = null
+      this.chatOnboardingCardStyle = {}
+      this.inputField = this.chatOnboardingPreviousInputField
+      this.isShowHelper = this.chatOnboardingPreviousIsShowHelper
+      this.$nextTick(() => {
+        this.loadCurrentChatData()
+        this.applyColumnWidthsFromRatios()
+      })
+    },
+
+    nextChatOnboardingStep() {
+      if (this.isLastChatOnboardingStep) {
+        this.finishChatOnboarding()
+        return
+      }
+      this.goToChatOnboardingStep(this.chatOnboardingStepIndex + 1, 1)
+    },
+
+    prevChatOnboardingStep() {
+      if (this.chatOnboardingStepIndex === 0) {
+        return
+      }
+      this.goToChatOnboardingStep(this.chatOnboardingStepIndex - 1, -1)
+    },
+
+    goToChatOnboardingStep(index, direction = 1) {
+      this.chatOnboardingMoveDirection = direction
+      this.chatOnboardingStepIndex = Math.max(0, Math.min(index, this.chatOnboardingSteps.length - 1))
+      this.prepareCurrentChatOnboardingStep()
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.updateChatOnboardingPosition(direction)
+        }, 120)
+      })
+    },
+
+    prepareCurrentChatOnboardingStep() {
+      const step = this.currentChatOnboardingStep
+      if (!step) {
+        return
+      }
+      if (step.tab && this.isMobile) {
+        this.tab = step.tab
+      }
+      if (step.requiresHelper) {
+        this.isShowHelper = true
+      }
+      if (!this.isMobile) {
+        this.$nextTick(() => {
+          this.applyColumnWidthsFromRatios()
+        })
+      }
+    },
+
+    updateChatOnboardingPosition(direction = this.chatOnboardingMoveDirection, attempts = 0) {
+      if (!this.isChatOnboardingActive || !this.currentChatOnboardingStep) {
+        return
+      }
+
+      const target = document.querySelector(`[data-tour="${this.currentChatOnboardingStep.target}"]`)
+
+      if (!target) {
+        if (attempts < 4) {
+          setTimeout(() => this.updateChatOnboardingPosition(direction, attempts + 1), 120)
+          return
+        }
+        const nextIndex = this.chatOnboardingStepIndex + (direction >= 0 ? 1 : -1)
+        if (nextIndex >= 0 && nextIndex < this.chatOnboardingSteps.length) {
+          this.goToChatOnboardingStep(nextIndex, direction)
+        } else {
+          this.finishChatOnboarding()
+        }
+        return
+      }
+
+      const rect = target.getBoundingClientRect()
+      const padding = 8
+      const cardWidth = Math.min(360, window.innerWidth - 32)
+      const cardHeight = 230
+      let top = rect.bottom + 14
+      let left = rect.left
+
+      if (top + cardHeight > window.innerHeight - 16) {
+        top = rect.top - cardHeight - 14
+      }
+      if (top < 16) {
+        top = 16
+      }
+      if (left + cardWidth > window.innerWidth - 16) {
+        left = window.innerWidth - cardWidth - 16
+      }
+      if (left < 16) {
+        left = 16
+      }
+
+      this.chatOnboardingTargetRect = {
+        top: rect.top - padding,
+        left: rect.left - padding,
+        width: rect.width + padding * 2,
+        height: rect.height + padding * 2
+      }
+      this.chatOnboardingCardStyle = {
+        top: `${top}px`,
+        left: `${left}px`,
+        width: `${cardWidth}px`
+      }
+    },
+
+    onChatOnboardingWindowChange() {
+      if (!this.isChatOnboardingActive) {
+        return
+      }
+      this.$nextTick(() => {
+        this.updateChatOnboardingPosition()
+      })
+    },
+
     onTemplateClick(text) {
       this.inputField += ' ' + text
     },
 
     sendMessage(event) {
+      if (this.isChatOnboardingActive) {
+        this.isSending = false
+        this.inputField = ''
+        return
+      }
       if (event.attachedFiles && event.attachedFiles.length > 0) {
         const formData = new FormData()
         event.attachedFiles.forEach(file => {
@@ -194,6 +534,10 @@ export default {
     },
 
     sendTextMessage(message) {
+      if (this.isChatOnboardingActive) {
+        this.isSending = false
+        return
+      }
       axios.post(`/api/v1/client/${this.getClient.id}/message`, message)
         .then(() => {
           this.isSending = false
@@ -216,10 +560,16 @@ export default {
 
     keyPressed(text) {
       this.inputField = text
+      if (this.isChatOnboardingActive) {
+        return
+      }
       typing(this.getClient, this.store.currentUser, text)
     },
 
     markMessagesRead() {
+      if (this.isChatOnboardingActive) {
+        return
+      }
       if (this.getClient.id) {
         markRead(this.getClient)
       }
@@ -318,6 +668,9 @@ export default {
     },
 
     getMessagePage(pageCounter = 0) {
+      if (this.isChatOnboardingActive) {
+        return
+      }
       this.pageCounter += pageCounter
       if (this.pageCounter <= 1) {
         this.getClient.messages = this.store.currentChatMessageData.messages
@@ -336,6 +689,9 @@ export default {
     },
 
     getMessageOnSearch(messageId) {
+      if (this.isChatOnboardingActive) {
+        return
+      }
       const id = Number(messageId)
       if (!id || !this.getClient.id) {
         return
@@ -358,6 +714,10 @@ export default {
     },
 
     getLinkedMessage(task) {
+      if (this.isChatOnboardingActive) {
+        this.linkedMessageId = task.linkedMessageId
+        return
+      }
       const taskWithLinkedMessage = this.getClient.messages.filter(m => m.id === task.linkedMessageId)
       if (taskWithLinkedMessage.length > 0) {
         this.linkedMessageId = task.linkedMessageId
@@ -616,6 +976,13 @@ export default {
     },
 
     setAnswerRequired({messageId, clientId, answerRequired}) {
+      if (this.isChatOnboardingActive) {
+        const message = this.chatOnboardingDemoClient.messages.find(m => m.id === messageId)
+        if (message) {
+          message.answerRequired = answerRequired
+        }
+        return
+      }
       axios.patch(`/api/v1/client/${clientId}/message/${messageId}/answer-required`, answerRequired, {
         headers: {
           'Content-Type': 'application/json'
@@ -719,6 +1086,9 @@ export default {
 
   computed: {
     getClient () {
+      if (this.isChatOnboardingActive) {
+        return this.chatOnboardingDemoClient
+      }
       const clientId = Number(this.router.params.clientId)
       const client = this.store.clients.find(client => client.id === clientId)
       if (client) {
@@ -727,8 +1097,139 @@ export default {
         return {
           messages: [],
           tasks: [],
+          typingMessageText: {},
+          typingUsers: [],
+          watchingUsers: [],
           id: clientId
         }
+      }
+    },
+
+    activeTemplates () {
+      return this.isChatOnboardingActive ? this.chatOnboardingDemoTemplates : this.store.templates
+    },
+
+    activeKnowledgeBase () {
+      return this.isChatOnboardingActive ? this.chatOnboardingDemoKnowledgeBase : this.store.knowledgeBase
+    },
+
+    activeTags () {
+      return this.isChatOnboardingActive ? this.chatOnboardingDemoTags : this.store.tags
+    },
+
+    activeUsers () {
+      return this.isChatOnboardingActive ? this.chatOnboardingDemoUsers : this.store.users
+    },
+
+    activeOrganizations () {
+      return this.isChatOnboardingActive ? this.chatOnboardingDemoOrganizations : this.store.organizations
+    },
+
+    activeStatuses () {
+      return this.isChatOnboardingActive ? this.chatOnboardingDemoStatuses : this.store.statuses
+    },
+
+    activePriorities () {
+      return this.isChatOnboardingActive ? this.chatOnboardingDemoPriorities : this.store.priorities
+    },
+
+    chatOnboardingSteps () {
+      return [
+        {
+          target: 'chat-dialog-column',
+          tab: 'tab1',
+          title: 'Диалог с клиентом',
+          text: 'Здесь идет основная переписка. Во время обучения показан тестовый чат; после завершения он заменится реальными данными.'
+        },
+        {
+          target: 'chat-message-search',
+          tab: 'tab1',
+          title: 'Поиск по сообщениям',
+          text: 'Используйте поиск, чтобы быстро найти старое сообщение, файл, номер заявки или фразу клиента.'
+        },
+        {
+          target: 'chat-message-list',
+          tab: 'tab1',
+          title: 'История переписки',
+          text: 'В центре отображаются входящие сообщения клиента, ответы оператора, комментарии и вложения.'
+        },
+        {
+          target: 'chat-answer-required',
+          tab: 'tab1',
+          title: 'Нужно ли отвечать',
+          text: 'Последнее входящее сообщение можно пометить как требующее ответа или не требующее ответа. От этого зависит очередь внимания и таймер ожидания.'
+        },
+        {
+          target: 'chat-message-composer',
+          tab: 'tab1',
+          title: 'Поле ответа',
+          text: 'Здесь оператор пишет ответ клиенту, прикладывает файлы и может использовать быстрые шаблоны.'
+        },
+        {
+          target: 'chat-comment-mode',
+          tab: 'tab1',
+          title: 'Внутренний комментарий',
+          text: 'Режим комментария нужен для заметок команды. Клиент такие сообщения не увидит.'
+        },
+        {
+          target: 'chat-helper-column',
+          tab: 'tab2',
+          requiresHelper: true,
+          title: 'Помощник оператора',
+          text: 'В этой колонке собраны шаблоны ответов, база знаний и ИИ-поиск по материалам поддержки.'
+        },
+        {
+          target: 'chat-helper-templates',
+          tab: 'tab2',
+          requiresHelper: true,
+          title: 'Шаблоны ответов',
+          text: 'Шаблоны ускоряют типовые ответы. Можно найти нужный текст и вставить его в сообщение.'
+        },
+        {
+          target: 'chat-helper-kb',
+          tab: 'tab2',
+          requiresHelper: true,
+          title: 'База знаний',
+          text: 'База знаний помогает оператору быстро найти инструкцию, регламент или готовый порядок действий.'
+        },
+        {
+          target: 'chat-client-card',
+          tab: 'tab3',
+          title: 'Карточка клиента',
+          text: 'Справа отображаются имя клиента, организация, канал обращения и дополнительные сведения.'
+        },
+        {
+          target: 'chat-create-task',
+          tab: 'tab3',
+          title: 'Создание заявки',
+          text: 'Если переписку нужно превратить в контролируемую работу, создайте заявку с исполнителем, приоритетом, дедлайном и SLA.'
+        },
+        {
+          target: 'chat-task-card',
+          tab: 'tab3',
+          title: 'Активная заявка',
+          text: 'В заявке видны статус, приоритет, срок, SLA и привязка к сообщению. По клику открывается подробная карточка.'
+        }
+      ]
+    },
+
+    currentChatOnboardingStep () {
+      return this.chatOnboardingSteps[this.chatOnboardingStepIndex]
+    },
+
+    isLastChatOnboardingStep () {
+      return this.chatOnboardingStepIndex >= this.chatOnboardingSteps.length - 1
+    },
+
+    chatOnboardingHighlightStyle () {
+      if (!this.chatOnboardingTargetRect) {
+        return {}
+      }
+      return {
+        top: `${this.chatOnboardingTargetRect.top}px`,
+        left: `${this.chatOnboardingTargetRect.left}px`,
+        width: `${this.chatOnboardingTargetRect.width}px`,
+        height: `${this.chatOnboardingTargetRect.height}px`
       }
     },
 
@@ -737,8 +1238,8 @@ export default {
     },
 
     isHelperVisible () {
-      return this.isShowHelper &&
-        ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])
+      const role = this.store.currentUser?.authorities?.[0]
+      return this.isShowHelper && ['ADMIN', 'OPERATOR'].includes(role)
     },
 
     desktopGridStyle () {
@@ -778,20 +1279,22 @@ export default {
   },
 
   mounted () {
-    this.isShowHelper = localStorage.getItem('isShowHelper') !== 'false'
+    this.isShowHelper = this.isChatOnboardingActive || localStorage.getItem('isShowHelper') !== 'false'
     this.$nextTick(() => {
       this.initColumnWidths()
       window.addEventListener('resize', this.handleWindowResize)
+      window.addEventListener('resize', this.onChatOnboardingWindowChange)
+      window.addEventListener('scroll', this.onChatOnboardingWindowChange, true)
     })
     if (this.isMobile) {
-      this.tab = 'tab3'
+      this.tab = this.isChatOnboardingActive ? 'tab1' : 'tab3'
+    }
+    if (this.isChatOnboardingActive) {
+      this.startChatOnboarding()
+      return
     }
     this.markMessagesRead()
-    const typingMessageTextElement = this.store.clients
-      .find(client => client.id === this.getClient.id)
-    if (typingMessageTextElement.typingMessageText[this.store.currentUser.id]) {
-      this.inputField = typingMessageTextElement.typingMessageText[this.store.currentUser.id]
-    }
+    this.initCurrentChatDraft()
     this.$nextTick(() => {
       setTimeout(() => {
         this.handleRouteMessageId()
@@ -800,12 +1303,10 @@ export default {
   },
 
   created () {
-    this.getMessagePage()
-    const typingMessageTextElement = this.store.clients
-      .find(client => client.id === this.getClient.id)
-      .typingMessageText[this.store.currentUser.id]
-    if (typingMessageTextElement) {
-      this.inputField = typingMessageTextElement
+    if (!this.isChatOnboardingActive) {
+      this.getMessagePage()
+      this.messagesLoadedForCurrentChat = true
+      this.initCurrentChatDraft()
     }
   },
 
@@ -818,6 +1319,8 @@ export default {
   beforeUnmount () {
     this.stopColumnResize()
     window.removeEventListener('resize', this.handleWindowResize)
+    window.removeEventListener('resize', this.onChatOnboardingWindowChange)
+    window.removeEventListener('scroll', this.onChatOnboardingWindowChange, true)
   },
 }
 </script>
@@ -864,5 +1367,61 @@ export default {
 
 .chat-page-tasks-column {
   min-width: 452px;
+}
+
+.chat-onboarding-launch-btn {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 3000;
+}
+
+.chat-onboarding-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.chat-onboarding-highlight {
+  position: fixed;
+  z-index: 9001;
+  border: 2px solid var(--q-primary);
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.42), 0 0 0 6px rgba(92, 53, 249, 0.16);
+  pointer-events: none;
+  transition: top 0.18s ease, left 0.18s ease, width 0.18s ease, height 0.18s ease;
+}
+
+.chat-onboarding-card {
+  position: fixed;
+  z-index: 9002;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.chat-onboarding-step-counter {
+  color: #757575;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.chat-onboarding-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.chat-onboarding-text {
+  color: #424242;
+  line-height: 1.45;
+}
+
+.chat-onboarding-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
 }
 </style>

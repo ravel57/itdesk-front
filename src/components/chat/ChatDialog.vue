@@ -1,6 +1,7 @@
 <template>
   <div style="position: relative">
     <q-card
+      data-tour="chat-message-search"
       class="search-container no-shadow"
       style="background-color: #F0F0F0"
     >
@@ -84,6 +85,7 @@
     </q-list>
   </div>
   <q-layout
+    data-tour="chat-message-list"
     container
     :id="this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog'"
     ref="chatDialog"
@@ -229,6 +231,7 @@
             </q-chat-message>
 
             <div
+              data-tour="chat-answer-required"
               v-if="isLastMessage(message) && isIncomingMessage(message)"
               class="answer-required-actions"
             >
@@ -414,6 +417,7 @@
         </div>
       </q-card>
       <q-card
+        data-tour="chat-message-composer"
         class="input-item no-shadow"
         style="border-bottom: 1px solid #0000001f;"
         :style="'background-color: ' +  (this.isComment ? '#d1c4e9;' : '') + 'border-top: ' + (this.replyMessageId ? '' : '1px solid #0000001f;')"
@@ -499,6 +503,7 @@
           </div>
         </div>
         <q-btn
+          data-tour="chat-attach-file"
           style="margin-bottom: 6px"
           id="choose-file-btn"
           type="file"
@@ -513,6 +518,7 @@
           style="display: none"
         />
         <textarea
+          data-tour="chat-message-input"
           ref="textInput"
           :value="this.inputField"
           :placeholder="this.renderShortcutPlaceholder"
@@ -587,6 +593,7 @@
           v-if="this.comments"
         >
           <q-btn
+            data-tour="chat-comment-mode"
             id="comment-mode-btn"
             style="margin-bottom: 6px"
             @click="this.switchToComment"

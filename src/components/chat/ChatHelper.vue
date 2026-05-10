@@ -1,5 +1,6 @@
 <template>
   <q-card
+    data-tour="chat-helper-column"
     class="my-card no-shadow"
     style="border-radius: 0;border-left: 1px solid #0000001f;"
   >
@@ -24,6 +25,7 @@
       </div>
       <q-card-section class="helper-sections">
         <q-card
+          data-tour="chat-helper-templates"
           class="no-shadow helper-card helper-templates-card"
           :style="{ height: this.isMobile ? 'auto' : templatesBlockHeight + 'px' }"
         >
@@ -79,7 +81,7 @@
           class="helper-resizer"
           @mousedown="startTemplatesResize"
         />
-        <q-card class="no-shadow helper-card helper-knowledge-card">
+        <q-card data-tour="chat-helper-kb" class="no-shadow helper-card helper-knowledge-card">
           <q-expansion-item
             v-model="knowledgeBaseOpened"
             label="База знаний"
@@ -122,6 +124,7 @@
             </div>
             <div class="q-px-md q-pb-md">
               <q-card
+                data-tour="chat-helper-ai"
                 flat
                 bordered
                 class="kb-ai-card"
@@ -276,7 +279,7 @@ export default {
     templatesBlockHeight: 720,
     templatesBlockHeightStorageKey: 'chatHelper.templatesBlockHeight',
     templatesOpened: true,
-    knowledgeBaseOpened: false,
+    knowledgeBaseOpened: true,
     templatesOpenedStorageKey: 'chatHelper.templatesOpened',
     knowledgeBaseOpenedStorageKey: 'chatHelper.knowledgeBaseOpened',
     resizingTemplates: false,

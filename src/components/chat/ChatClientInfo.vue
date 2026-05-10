@@ -1,6 +1,6 @@
 <template>
   <div class="client-info-header-row">
-    <div class="client-name-edit-row">
+    <div data-tour="chat-client-name" class="client-name-edit-row">
       <div
         class="text-h6 client-info-name"
         v-text="this.getClientName"
@@ -56,6 +56,7 @@
     <!--</q-btn>-->
   </div>
   <div
+    data-tour="chat-client-organization"
     v-if="this.getOrganization"
     style="display: flex;flex-direction: row;flex-wrap: nowrap;align-items: center"
   >
@@ -75,6 +76,7 @@
     v-text="this.client.moreInfo"
   />
   <div
+    data-tour="chat-client-channel"
     class="text-subtitle2"
     style="align-items: center; display: flex;margin-top: 4px"
   >
