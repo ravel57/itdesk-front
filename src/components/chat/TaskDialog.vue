@@ -6,7 +6,12 @@
   >
     <q-card
       data-tour="task-dialog-card"
-      :class="this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask ? 'dialog-width' : 'large-dialog-width'"
+      :class="[
+        'task-dialog-card',
+        this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask
+          ? 'dialog-width'
+          : 'large-dialog-width'
+  ]"
     >
       <q-toolbar class="justify-between">
         <!--FIXME-->
@@ -49,6 +54,7 @@
         </div>
       </q-toolbar>
       <q-card-section
+        class="task-dialog-body"
         style="padding: 0 16px"
       >
         <div
@@ -77,8 +83,7 @@
         >
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab1')"
-            class="flex-item"
-            style="max-height: 100%"
+            class="flex-item task-left-panel"
           >
             <q-card
               class="no-border-card"
@@ -92,6 +97,14 @@
                   v-model="this.dialogTaskName"
                   ref="taskName"
                   label="Название *"
+                  :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                />
+                <q-select
+                  id="task-type"
+                  data-tour="task-dialog-type"
+                  v-model="this.dialogTaskType"
+                  :options="this.taskTypes.map(t => t.type)"
+                  label="Тип *"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                 />
                 <div
@@ -268,7 +281,8 @@
               data-tour="task-dialog-right-tabs"
             >
               <q-tab name="messages" label="Сообщения" data-tour="task-dialog-messages-tab" />
-              <q-tab name="history" label="История изменений" data-tour="task-dialog-history-tab" />
+              <q-tab name="checklist" label="Чек-лист" data-tour="task-dialog-checklist-tab" />
+              <q-tab name="history" label="История" data-tour="task-dialog-history-tab" />
             </q-tabs>
 
             <q-separator />
@@ -300,6 +314,78 @@
                 />
               </q-tab-panel>
 
+              <q-tab-panel
+                name="checklist"
+                class="q-pa-md task-checklist-panel"
+                data-tour="task-dialog-checklist-panel"
+              >
+                <div class="row q-col-gutter-sm items-center q-mb-md">
+                  <div class="col">
+                    <q-input
+                      v-model="this.newChecklistItemText"
+                      dense
+                      outlined
+                      label="Новый пункт чек-листа"
+                      @keyup.enter="this.addChecklistItem"
+                    />
+                  </div>
+
+                  <div class="col-auto">
+                    <q-btn
+                      dense
+                      round
+                      color="primary"
+                      icon="add"
+                      @click="this.addChecklistItem"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  v-if="this.dialogTaskChecklist.length === 0"
+                  class="text-grey-7"
+                >
+                  Чек-лист пустой
+                </div>
+
+                <q-list
+                  v-else
+                  bordered
+                  separator
+                  class="rounded-borders"
+                >
+                  <q-item
+                    v-for="item in this.dialogTaskChecklist"
+                    :key="item.id"
+                    class="task-checklist-item"
+                  >
+                    <q-item-section side>
+                      <q-checkbox v-model="item.completed" />
+                    </q-item-section>
+
+                    <q-item-section>
+                      <q-input
+                        v-model="item.text"
+                        dense
+                        borderless
+                        placeholder="Пункт чек-листа"
+                      />
+                    </q-item-section>
+
+                    <q-item-section side>
+                      <q-btn
+                        flat
+                        dense
+                        round
+                        icon="delete"
+                        color="negative"
+                        @click="this.removeChecklistItem(item.id)"
+                      />
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </q-tab-panel>
+
               <q-tab-panel name="history" class="q-pa-md task-history-panel" data-tour="task-dialog-history-panel">
                 <q-inner-loading :showing="taskHistoryLoading">
                   <q-spinner size="32px" />
@@ -321,10 +407,35 @@
                     :subtitle="formatHistoryDate(item.createdAt)"
                     :icon="getHistoryIcon(item.triggerType)"
                   >
-                    <div class="text-grey-8">
+                    <div class="text-grey-8 task-history-description">
                       {{ item.description }}
                     </div>
+                    <q-list
+                      v-if="item.changes && item.changes.length > 0"
+                      dense
+                      bordered
+                      separator
+                      class="q-mt-sm rounded-borders"
+                    >
+                      <q-item
+                        v-for="change in item.changes"
+                        :key="change.field"
+                      >
+                        <q-item-section>
+                          <div class="text-caption text-weight-medium">
+                            {{ change.label || change.field }}
+                          </div>
 
+                          <div class="text-caption text-grey-7">
+                            Было: {{ change.oldValue || '—' }}
+                          </div>
+
+                          <div class="text-caption text-grey-7">
+                            Стало: {{ change.newValue || '—' }}
+                          </div>
+                        </q-item-section>
+                      </q-item>
+                    </q-list>
                     <div
                       v-if="item.actorDisplayName"
                       class="text-caption text-grey-7 q-mt-xs"
@@ -347,8 +458,8 @@
       </q-card-section>
       <q-card-actions
         align="right"
+        class="task-dialog-actions"
         data-tour="task-dialog-actions"
-        style="margin-right: 7px;margin-bottom: 8px;margin-top: 8px"
       >
         <q-btn
           color="white"
@@ -569,6 +680,12 @@ export default {
 
     filteredUsers: [],
     filteredTags: [],
+
+    taskTypes: [],
+
+    dialogTaskType: '',
+    dialogTaskChecklist: [],
+    newChecklistItemText: '',
 
     taskDialogOnboardingKey: 'task-dialog-onboarding-v1',
     taskDialogOnboardingActive: false,
@@ -850,6 +967,8 @@ export default {
       } else if (
         this.dialogTaskName !== this.task.name || this.dialogTaskDescription !== this.task.description ||
         this.dialogTaskPriority !== this.task.priority.name ||
+        this.dialogTaskType !== (this.task.type?.type || '') ||
+        JSON.stringify(this.normalizeChecklist(this.dialogTaskChecklist)) !== JSON.stringify(this.normalizeChecklist(this.task.checklist)) ||
         this.dialogTaskExecutor !== this.getUserName(this.task.executor) ||
         JSON.stringify(this.dialogTaskTags) !== JSON.stringify(this.task.tags.map(tag => tag.name)) ||
         // this.dialogTaskTags !== this.task.tags.map(tag => tag.name) ||
@@ -876,6 +995,9 @@ export default {
         this.dialogTaskTags = []
         this.dialogTaskDeadline = ''
         this.dialogTaskStatus = this.store.statuses.find(status => status.defaultSelection === true).name
+        this.dialogTaskType = this.taskTypes.find(taskType => taskType.type === 'Запрос')?.type || this.taskTypes[0]?.type || ''
+        this.dialogTaskChecklist = []
+        this.newChecklistItemText = ''
         setTimeout(() => this.$refs.taskName.focus(), 300)
       } else {
         this.dialogTaskId = this.task.id
@@ -890,11 +1012,14 @@ export default {
         this.taskCreatedAt = this.task.createdAt
         this.dialogTaskComplete = this.task.completed
         this.linkedMessageId = this.task.linkedMessageId
+        this.dialogTaskType = this.task.type?.type || ''
+        this.dialogTaskChecklist = this.normalizeChecklist(this.task.checklist)
+        this.newChecklistItemText = ''
       }
     },
 
     saveNewOrUpdateTask () {
-      if (!this.dialogTaskName || !this.dialogTaskPriority || !this.dialogTaskStatus) {
+      if (!this.dialogTaskName || !this.dialogTaskType || !this.dialogTaskPriority || !this.dialogTaskStatus) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
           type: 'negative',
@@ -928,6 +1053,8 @@ export default {
         id: this.isNewTask ? null : currentTaskId,
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
+        type: this.getSelectedTaskType(),
+        checklist: this.normalizeChecklist(this.dialogTaskChecklist),
         status: this.store.statuses.find(status => status.name === this.dialogTaskStatus),
         priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
         executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
@@ -1073,6 +1200,8 @@ export default {
         priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
         executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
+        type: this.getSelectedTaskType(),
+        checklist: this.normalizeChecklist(this.dialogTaskChecklist),
         completed: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
@@ -1332,6 +1461,64 @@ export default {
           return 'history'
       }
     },
+
+    normalizeChecklist (checklist) {
+      if (!Array.isArray(checklist)) {
+        return []
+      }
+
+      return checklist
+        .filter(item => item && item.text !== undefined && item.text !== null)
+        .map(item => ({
+          id: item.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          text: String(item.text).trim(),
+          completed: Boolean(item.completed)
+        }))
+        .filter(item => item.text.length > 0)
+    },
+
+    addChecklistItem () {
+      const text = this.newChecklistItemText.trim()
+
+      if (!text) {
+        return
+      }
+
+      this.dialogTaskChecklist.push({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        text,
+        completed: false
+      })
+
+      this.newChecklistItemText = ''
+    },
+
+    removeChecklistItem (id) {
+      this.dialogTaskChecklist = this.dialogTaskChecklist.filter(item => item.id !== id)
+    },
+
+    getSelectedTaskType () {
+      return this.taskTypes.find(taskType => taskType.type === this.dialogTaskType) || null
+    },
+
+    loadTaskTypes () {
+      return axios.get('/api/v1/task-types')
+        .then(response => {
+          this.taskTypes = response.data || []
+          if (!this.dialogTaskType && this.taskTypes.length > 0) {
+            this.dialogTaskType = this.taskTypes.find(taskType => taskType.type === 'Запрос')?.type || this.taskTypes[0].type
+          }
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+    },
   },
 
   computed: {
@@ -1431,17 +1618,24 @@ export default {
   },
 
   mounted () {
-    this.getTaskField()
-    const currentTaskId = this.getCurrentTaskId()
-    if (!this.isNewTask && currentTaskId) {
-      axios.post(`/api/v1/client/${this.client.id}/task/${currentTaskId}/mark-message-read`, { userId: this.store.currentUser.id })
-    }
-    if (this.taskRightTab === 'history') {
-      this.loadTaskHistory()
-    }
-    this.$nextTick(() => {
-      setTimeout(() => this.startTaskDialogOnboarding(false), 450)
-    })
+    this.loadTaskTypes()
+      .finally(() => {
+        this.getTaskField()
+
+        const currentTaskId = this.getCurrentTaskId()
+
+        if (!this.isNewTask && currentTaskId) {
+          axios.post(`/api/v1/client/${this.client.id}/task/${currentTaskId}/mark-message-read`, { userId: this.store.currentUser.id })
+        }
+
+        if (this.taskRightTab === 'history') {
+          this.loadTaskHistory()
+        }
+
+        this.$nextTick(() => {
+          setTimeout(() => this.startTaskDialogOnboarding(false), 450)
+        })
+      })
   },
 
   beforeUnmount () {
@@ -1465,13 +1659,111 @@ th {
   text-align: left;
 }
 
+.flex-item {
+  flex: 0 0 48%;
+  min-height: 0;
+}
+
+.task-dialog-card {
+  display: flex;
+  flex-direction: column;
+  height: min(720px, calc(100vh - 96px));
+  max-height: calc(100vh - 96px);
+  overflow: hidden;
+}
+
+.task-dialog-card.large-dialog-width {
+  height: min(800px, calc(100vh - 96px));
+}
+
+.task-dialog-card.dialog-width {
+  height: auto;
+  max-height: calc(100vh - 96px);
+}
+
+.task-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.task-dialog-actions {
+  flex: 0 0 auto;
+  margin: 8px 7px 8px 0;
+  background: white;
+  z-index: 2;
+}
+
 .flex-container {
   display: flex;
   justify-content: space-between;
+  align-items: stretch;
+  height: 100%;
+  min-height: 0;
 }
 
-.flex-item {
-  flex: 0 0 48%;
+.task-left-panel {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.task-left-panel > .q-card {
+  min-height: 100%;
+}
+
+.task-right-panel {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+}
+
+.task-right-tabs {
+  flex: 0 0 auto;
+  min-height: 40px;
+}
+
+.task-right-panels {
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.task-right-panels :deep(.q-panel) {
+  height: 100%;
+  min-height: 0;
+}
+
+.task-right-panels :deep(.q-tab-panel) {
+  height: 100%;
+  min-height: 0;
+}
+
+.task-messages-panel {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.task-checklist-panel {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.task-history-panel {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.task-history-description {
+  white-space: pre-line;
 }
 
 .no-border-card {
@@ -1481,31 +1773,6 @@ th {
 
 .custom-select .q-field__label {
   font-size: 16px;
-}
-
-.task-right-panel {
-  display: block;
-}
-
-.task-right-tabs {
-  min-height: 40px;
-}
-
-.task-right-panels {
-  height: auto;
-  max-height: 510px;
-  overflow: hidden;
-}
-
-.task-messages-panel {
-  height: 510px;
-  padding: 0;
-}
-
-.task-history-panel {
-  position: relative;
-  max-height: 470px;
-  overflow-y: auto;
 }
 
 .task-dialog-onboarding-layer {
@@ -1536,5 +1803,9 @@ th {
 
 .task-dialog-onboarding-progress {
   text-align: right;
+}
+
+.task-checklist-item {
+  padding: 4px 8px;
 }
 </style>
