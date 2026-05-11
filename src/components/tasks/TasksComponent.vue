@@ -19,16 +19,16 @@
         data-tour="tasks-table"
         virtual-scroll
         :rows="this.displayedTableRows"
-      :columns="this.filterTableColumns"
-      :rows-per-page-options="[10, 20, 40, 60, 100]"
-      :sortable="true"
-      row-key="id"
-      bordered
-      style="margin-top: 8px;margin-bottom: 16px;width: 100%;"
-      selection="multiple"
-      v-model:selected="this.store.checkedTasks"
-      :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
-      rows-per-page-label="Строк на странице"
+        :columns="this.filterTableColumns"
+        :rows-per-page-options="[10, 20, 40, 60, 100]"
+        :sortable="true"
+        row-key="id"
+        bordered
+        style="margin-top: 8px;margin-bottom: 16px;width: 100%;"
+        selection="multiple"
+        v-model:selected="this.store.checkedTasks"
+        :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
+        rows-per-page-label="Строк на странице"
     >
       <!-- кастомный хедер -->
       <template v-slot:header="props">
@@ -79,6 +79,41 @@
               :style="`color: ${ this.parseStrToDate(col.value) < Date.now() ? 'red' : 'black' }`"
             >
               {{ col.value }}
+            </div>
+
+            <div
+              v-else-if="col.name === 'type'"
+            >
+              <q-badge
+                dense
+                outline
+                color="primary"
+                :label="col.value || 'Не указан'"
+              />
+            </div>
+
+            <div
+              v-else-if="col.name === 'checklist'"
+              class="task-table-checklist-cell"
+            >
+              <span v-if="props.row.checklistTotal > 0">
+                {{ props.row.checklistCompleted }} / {{ props.row.checklistTotal }}
+              </span>
+              <span
+                v-else
+                class="text-grey-6"
+                v-text="'—'"
+              />
+              <q-linear-progress
+                v-if="props.row.checklistTotal > 0"
+                rounded
+                :value="props.row.checklistTotal > 0 ? props.row.checklistCompleted / props.row.checklistTotal : 0"
+                color="primary"
+                track-color="grey-3"
+                size="7px"
+                class="task-table-checklist-progress"
+                :animation-speed="0"
+              />
             </div>
 
             <!-- обведённый бейдж для статуса -->
@@ -218,6 +253,10 @@ export default {
       __onboardingDemo: true,
       name: 'Не работает доступ к корпоративной почте',
       description: 'Пользователь не может войти в почту после смены пароля. Нужно проверить учетную запись и MFA.',
+      type: 'Инцидент',
+      checklist: '2 / 4',
+      checklistCompleted: 2,
+      checklistTotal: 4,
       completed: false,
       frozen: false,
       createdAt: new Date(Date.now() - 35 * 60 * 1000),
@@ -317,6 +356,36 @@ export default {
         sortable: true
       },
       {
+        name: 'type',
+        label: 'Тип',
+        align: 'left',
+        field: row => row.type || 'Не указан',
+        sortable: true
+      },
+      {
+        name: 'checklist',
+        label: 'Чек-лист',
+        align: 'left',
+        field: row => row.checklist || '—',
+        sortable: true,
+        sort: (a, b, rowA, rowB) => {
+          const totalA = Number(rowA.checklistTotal || 0)
+          const totalB = Number(rowB.checklistTotal || 0)
+          const completedA = Number(rowA.checklistCompleted || 0)
+          const completedB = Number(rowB.checklistCompleted || 0)
+          if (totalA === 0 && totalB === 0) {
+            return 0
+          }
+          if (totalA === 0) {
+            return 1
+          }
+          if (totalB === 0) {
+            return -1
+          }
+          return completedA / totalA - completedB / totalB
+        }
+      },
+      {
         name: 'tags',
         label: 'Теги',
         align: 'left',
@@ -346,8 +415,8 @@ export default {
         }),
         sortable: true,
         sort: (a, b, rowA, rowB) => {
-          const dateA = new Date(rowA.deadline)
-          const dateB = new Date(rowB.deadline)
+          const dateA = new Date(rowA.createdAt)
+          const dateB = new Date(rowB.createdAt)
           return dateA - dateB
         }
       },
@@ -599,11 +668,14 @@ export default {
 <style lang="scss" scoped>
 .flex-container {
   display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   max-width: none;
   flex-wrap: nowrap;
   align-items: stretch;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .tasks-table-full-width {
@@ -642,9 +714,14 @@ export default {
 
 .tasks-onboarding-root {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
-  min-height: 100%;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .tasks-onboarding-help {
@@ -684,5 +761,17 @@ export default {
   top: 12px;
   color: #777;
   font-size: 12px;
+}
+
+.task-table-checklist-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.task-table-checklist-progress {
+  width: 72px;
+  flex: 0 0 72px;
 }
 </style>

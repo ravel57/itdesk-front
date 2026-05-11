@@ -38,6 +38,35 @@
           v-text="task.description"
         />
       </tr>
+      <tr data-tour="tasks-task-type">
+        <th class="small-text text-grey row-label" v-text="'Тип: '" />
+        <th
+          :class="typeClass"
+          v-text="getTaskTypeName(task)"
+        />
+      </tr>
+      <tr
+        v-if="getChecklistTotalCount(task) > 0"
+        data-tour="tasks-task-checklist"
+      >
+        <th class="small-text text-grey row-label" v-text="'Чек-лист: '" />
+        <th :class="checklistClass">
+          <div class="task-card-checklist-progress-row">
+      <span>
+        {{ getChecklistCompletedCount(task) }} / {{ getChecklistTotalCount(task) }}
+      </span>
+            <q-linear-progress
+              rounded
+              :value="getChecklistProgress(task)"
+              color="primary"
+              track-color="grey-3"
+              class="task-card-checklist-progress"
+              size="8px"
+              :animation-speed="0"
+            />
+          </div>
+        </th>
+      </tr>
       <tr v-if="task.tags.map(tag => tag.name).length !== 0" data-tour="tasks-task-tags">
         <th class="small-text text-grey row-label" v-text="'Теги: '" />
         <th
@@ -462,7 +491,39 @@ export default {
       } finally {
         this.slaActionLoading = false
       }
-    }
+    },
+
+    getTaskTypeName (task) {
+      return task?.type?.type || 'Не указан'
+    },
+
+    getChecklistItems (task) {
+      if (!Array.isArray(task?.checklist)) {
+        return []
+      }
+
+      return task.checklist.filter(item => item && item.text !== undefined && item.text !== null)
+    },
+
+    getChecklistTotalCount (task) {
+      return this.getChecklistItems(task).length
+    },
+
+    getChecklistCompletedCount (task) {
+      return this.getChecklistItems(task)
+        .filter(item => Boolean(item.completed))
+        .length
+    },
+
+    getChecklistProgress (task) {
+      const total = this.getChecklistTotalCount(task)
+
+      if (total === 0) {
+        return 0
+      }
+
+      return this.getChecklistCompletedCount(task) / total
+    },
   },
 
   computed: {
@@ -475,6 +536,7 @@ export default {
         return 'status-active'
       }
     },
+
     descriptionClass () {
       return {
         'text-body2': true,
@@ -482,6 +544,7 @@ export default {
         truncate: true
       }
     },
+
     tagsClass () {
       return {
         'text-body2': true,
@@ -489,6 +552,7 @@ export default {
         truncate: true
       }
     },
+
     priorityClass () {
       return {
         'text-body2': true,
@@ -496,6 +560,7 @@ export default {
         highlighted: this.selectedSorting.slug === 'priority'
       }
     },
+
     executorClass () {
       return {
         'text-body2': true, // small size for executor text
@@ -503,6 +568,7 @@ export default {
         executor: true
       }
     },
+
     createdAtClass () {
       return {
         'text-body2': true,
@@ -510,6 +576,7 @@ export default {
         highlighted: this.selectedSorting.slug === 'creating'
       }
     },
+
     deadlineClass () {
       return {
         'text-body2': true,
@@ -517,18 +584,35 @@ export default {
         highlighted: this.selectedSorting.slug === 'deadline'
       }
     },
+
     lastActivityClass () {
       return {
         'text-body2': true,
         'text-grey': this.task.completed
       }
     },
+
     deadlineStyle () {
       return {
         color: this.task.deadline && this.task.deadline < Date.now() ? 'red' : 'black',
         fontWeight: this.selectedSorting.slug === 'deadline' ? '600' : 'normal'
       }
-    }
+    },
+
+    typeClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        truncate: true
+      }
+    },
+
+    checklistClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed
+      }
+    },
   },
 
   mounted () {
@@ -696,4 +780,15 @@ th {
   width: 100%;
 }
 
+.task-card-checklist-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.task-card-checklist-progress {
+  width: 70px;
+  flex: 0 0 70px;
+}
 </style>

@@ -89,6 +89,12 @@ export default {
         roles: ['ADMIN']
       },
       {
+        title: 'Типы заявок и чек-листы',
+        link: '/settings/task-types',
+        slug: 'playlist_add_check',
+        roles: ['ADMIN']
+      },
+      {
         title: 'Уведомления',
         link: '/settings/notifications',
         slug: 'notifications',

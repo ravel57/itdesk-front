@@ -390,9 +390,10 @@
     </div>
     <div
       v-if="getFilteredTasks.length > 0"
-      style="display: flex;overflow: hidden;height: 100%"
+      class="tasks-page-content"
     >
       <tasks-component
+        class="tasks-page-component"
         :isShowTableMode="this.isShowTableMode"
         :isMobile="this.isMobile"
         :tableRows="getTableRows"
@@ -644,6 +645,8 @@ export default {
     activeColumns: [
       {name: 'id', label: 'ID', active: true},
       {name: 'name', label: 'Название', active: true},
+      {name: 'type', label: 'Тип', active: true},
+      {name: 'checklist', label: 'Чек-лист', active: true},
       {name: 'tags', label: 'Теги', active: true},
       {name: 'priority', label: 'Приоритет', active: true},
       {name: 'createdAt', label: 'Создана', active: true},
@@ -1374,12 +1377,71 @@ export default {
       if (!task?.executor) {
         return this.unassignedExecutorLabel
       }
-
       if (this.isCurrentUserExecutor(task)) {
         return this.currentExecutorLabel
       }
-
       return `${task.executor.firstname} ${task.executor.lastname}`
+    },
+
+    getTaskTypeName (task) {
+      return task?.type?.type || 'Не указан'
+    },
+
+    getChecklistItems (task) {
+      if (!Array.isArray(task?.checklist)) {
+        return []
+      }
+
+      return task.checklist.filter(item => item && item.text !== undefined && item.text !== null)
+    },
+
+    getChecklistTotalCount (task) {
+      return this.getChecklistItems(task).length
+    },
+
+    getChecklistCompletedCount (task) {
+      return this.getChecklistItems(task)
+        .filter(item => Boolean(item.completed))
+        .length
+    },
+
+    getChecklistTableValue (task) {
+      const total = this.getChecklistTotalCount(task)
+
+      if (total === 0) {
+        return ''
+      }
+
+      return `${this.getChecklistCompletedCount(task)} / ${total}`
+    },
+
+    mergeActiveColumns (savedColumns) {
+      const defaultColumns = [
+        {name: 'id', label: 'ID', active: true},
+        {name: 'name', label: 'Название', active: true},
+        {name: 'type', label: 'Тип', active: true},
+        {name: 'checklist', label: 'Чек-лист', active: true},
+        {name: 'tags', label: 'Теги', active: true},
+        {name: 'priority', label: 'Приоритет', active: true},
+        {name: 'createdAt', label: 'Создана', active: true},
+        {name: 'status', label: 'Статус', active: true},
+        {name: 'deadline', label: 'Дедлайн', active: true},
+        {name: 'executor', label: 'Исполнитель', active: true},
+        {name: 'sla', label: 'SLA', active: true}
+      ]
+
+      if (!Array.isArray(savedColumns)) {
+        return defaultColumns
+      }
+
+      const savedByName = new Map(savedColumns.map(column => [column.name, column]))
+
+      return defaultColumns.map(defaultColumn => ({
+        ...defaultColumn,
+        active: savedByName.has(defaultColumn.name)
+          ? savedByName.get(defaultColumn.name).active
+          : defaultColumn.active
+      }))
     },
 
     isValidFilterJoinOperator(value) {
@@ -1444,12 +1506,17 @@ export default {
       let tasks = this.store.getTasks.filter(task => {
         let matchesSearchRequest = true
         if (this.searchRequest) {
-          matchesSearchRequest = task.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.id.toString().toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) // ||
-          // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
+          const search = this.searchRequest.toLowerCase()
+          const checklistText = this.getChecklistItems(task)
+            .map(item => item.text)
+            .join(' ')
+            .toLowerCase()
+          matchesSearchRequest = task.name.toLowerCase().includes(search) ||
+            task.id.toString().toLowerCase().includes(search) ||
+            task.priority.name.toLowerCase().includes(search) ||
+            task.status.name.toLowerCase().includes(search) ||
+            this.getTaskTypeName(task).toLowerCase().includes(search) ||
+            checklistText.includes(search)
         }
         return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
       })
@@ -1604,20 +1671,20 @@ export default {
       try {
         const tasks = this.getFilteredTasks
         this.loadSlaInfoForTasks(tasks)
-
         return tasks.map(task => {
           const slaInfo = this.slaInfoByTaskId[task.id] || null
-
           const row = {
             ...task,
             originalSla: task.sla,
             slaInfo
           }
-
           const secondsLeft = this.getSlaLeftSeconds(row)
-
           return {
             ...row,
+            type: this.getTaskTypeName(row),
+            checklist: this.getChecklistTableValue(row),
+            checklistCompleted: this.getChecklistCompletedCount(row),
+            checklistTotal: this.getChecklistTotalCount(row),
             sla: secondsLeft !== null ? this.getSlaTime(row) : '',
             slaSecondsLeft: secondsLeft,
             slaPercent: slaInfo ? this.getSlaPercent(row) : 0,
@@ -1798,7 +1865,9 @@ export default {
     this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
     this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
     if (localStorage.getItem('taskTableSettings')) {
-      this.activeColumns = JSON.parse(localStorage.getItem('taskTableSettings'))
+      this.activeColumns = this.mergeActiveColumns(JSON.parse(localStorage.getItem('taskTableSettings')))
+    } else {
+      this.activeColumns = this.mergeActiveColumns(this.activeColumns)
     }
     const savedGroupType = localStorage.getItem('GroupType')
     if (savedGroupType) {
@@ -1825,9 +1894,12 @@ export default {
 
 .scroll-container {
   display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
   overflow-x: auto;
   overflow-y: auto;
-  width: 100%;
 }
 
 .mass-actions-btn {
@@ -1891,4 +1963,20 @@ export default {
   margin-right: 8px;
 }
 
+.tasks-page-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.tasks-page-component {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
 </style>

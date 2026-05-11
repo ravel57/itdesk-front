@@ -105,6 +105,10 @@ const routes = [
             component: () => import('pages/settings/NotificationsPage.vue')
           },
           {
+            path: 'task-types',
+            component: () => import('pages/settings/TaskTypePage.vue')
+          },
+          {
             path: 'telegram',
             component: () => import('pages/settings/TelegramPage.vue')
           },

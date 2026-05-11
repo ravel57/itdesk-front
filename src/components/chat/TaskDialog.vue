@@ -106,7 +106,25 @@
                   :options="this.taskTypes.map(t => t.type)"
                   label="Тип *"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                  @update:model-value="this.onTaskTypeChanged"
                 />
+                <div
+                  v-if="this.selectedTaskTypeChecklist.length > 0"
+                  class="task-type-checklist-hint"
+                >
+                  <div>
+                    Стандартный чек-лист: {{ this.selectedTaskTypeChecklist.length }} пунктов
+                  </div>
+
+                  <q-btn
+                    flat
+                    dense
+                    no-caps
+                    color="primary"
+                    label="Применить"
+                    @click="this.openApplyTypeChecklistDialog"
+                  />
+                </div>
                 <div
                   id="task-controls"
                   data-tour="task-dialog-status-controls"
@@ -574,6 +592,57 @@
     </q-card>
   </q-dialog>
 
+  <q-dialog v-model="this.typeChecklistApplyDialog">
+    <q-card class="task-type-checklist-dialog">
+      <q-toolbar class="justify-between">
+        <div class="text-h6">
+          Стандартный чек-лист
+        </div>
+
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          v-close-popup
+        />
+      </q-toolbar>
+
+      <q-card-section>
+        У типа «{{ this.dialogTaskType }}» есть стандартный чек-лист.
+        Что сделать с текущим чек-листом заявки?
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          no-caps
+          color="grey-7"
+          label="Оставить текущий"
+          v-close-popup
+        />
+
+        <q-btn
+          outline
+          no-caps
+          color="primary"
+          label="Добавить недостающие"
+          @click="this.applySelectedTypeChecklist('append')"
+          v-close-popup
+        />
+
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          label="Заменить"
+          @click="this.applySelectedTypeChecklist('replace')"
+          v-close-popup
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
   <teleport to="body">
     <div
       v-if="this.taskDialogOnboardingActive"
@@ -682,6 +751,8 @@ export default {
     filteredTags: [],
 
     taskTypes: [],
+    typeChecklistApplyDialog: false,
+    taskFieldsInitializing: false,
 
     dialogTaskType: '',
     dialogTaskChecklist: [],
@@ -987,6 +1058,7 @@ export default {
     },
 
     getTaskField () {
+      this.taskFieldsInitializing = true
       if (this.isNewTask) {
         this.dialogTaskName = ''
         this.dialogTaskDescription = ''
@@ -1016,6 +1088,9 @@ export default {
         this.dialogTaskChecklist = this.normalizeChecklist(this.task.checklist)
         this.newChecklistItemText = ''
       }
+      this.$nextTick(() => {
+        this.taskFieldsInitializing = false
+      })
     },
 
     saveNewOrUpdateTask () {
@@ -1519,6 +1594,64 @@ export default {
             }]
           }))
     },
+
+    onTaskTypeChanged () {
+      if (this.taskFieldsInitializing) {
+        return
+      }
+      const selectedType = this.selectedTaskType
+      if (!selectedType) {
+        return
+      }
+      const template = this.normalizeChecklist(selectedType.checklistTemplate)
+      if (template.length === 0) {
+        return
+      }
+      if (selectedType.autoApplyChecklist === false) {
+        return
+      }
+      if (this.dialogTaskChecklist.length === 0) {
+        this.dialogTaskChecklist = this.copyChecklist(template)
+        return
+      }
+      this.typeChecklistApplyDialog = true
+    },
+
+    openApplyTypeChecklistDialog () {
+      if (this.selectedTaskTypeChecklist.length === 0) {
+        return
+      }
+      if (this.dialogTaskChecklist.length === 0) {
+        this.applySelectedTypeChecklist('replace')
+        return
+      }
+      this.typeChecklistApplyDialog = true
+    },
+
+    applySelectedTypeChecklist (mode) {
+      const template = this.copyChecklist(this.selectedTaskTypeChecklist)
+      if (mode === 'replace') {
+        this.dialogTaskChecklist = template
+        return
+      }
+      if (mode === 'append') {
+        const existingTexts = new Set(
+          this.dialogTaskChecklist.map(item => item.text.trim().toLowerCase())
+        )
+        this.dialogTaskChecklist = [
+          ...this.dialogTaskChecklist,
+          ...template.filter(item => !existingTexts.has(item.text.trim().toLowerCase()))
+        ]
+      }
+    },
+
+    copyChecklist (checklist) {
+      return this.normalizeChecklist(checklist).map(item => ({
+        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        text: item.text,
+        completed: false
+      }))
+    },
   },
 
   computed: {
@@ -1578,7 +1711,15 @@ export default {
         ]
       }
       return message
-    }
+    },
+
+    selectedTaskType () {
+      return this.taskTypes.find(taskType => taskType.type === this.dialogTaskType) || null
+    },
+
+    selectedTaskTypeChecklist () {
+      return this.normalizeChecklist(this.selectedTaskType?.checklistTemplate)
+    },
   },
 
   watch: {
@@ -1807,5 +1948,24 @@ th {
 
 .task-checklist-item {
   padding: 4px 8px;
+}
+
+.task-type-checklist-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-top: -8px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(98, 0, 238, 0.06);
+  color: #5f6368;
+  font-size: 13px;
+}
+
+.task-type-checklist-dialog {
+  width: 460px;
+  max-width: calc(100vw - 32px);
 }
 </style>

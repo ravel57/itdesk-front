@@ -123,7 +123,13 @@
             :loading="loading"
             :rows-per-page-options="[10, 20, 50, 0]"
             no-data-label="Нет закрытых заявок за выбранный период"
-          />
+          >
+            <template v-slot:body-cell-period="props">
+              <q-td :props="props">
+                {{ formatPeriodDate(props.row.period) }}
+              </q-td>
+            </template>
+          </q-table>
         </q-card>
       </div>
 
@@ -157,6 +163,7 @@
 </template>
 
 <script>
+import moment from 'moment'
 import { useStore } from 'stores/store'
 
 export default {
@@ -370,7 +377,18 @@ export default {
       this.periodPreset = value
       this.applyPreset()
     },
-  }
+
+    formatPeriodDate (value) {
+      if (!value) {
+        return '—'
+      }
+      const date = moment(value, 'YYYY-MM-DD', true)
+      if (!date.isValid()) {
+        return value
+      }
+      return date.format('DD.MM.YYYY')
+    },
+  },
 }
 </script>
 
