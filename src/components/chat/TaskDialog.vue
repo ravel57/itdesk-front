@@ -174,7 +174,9 @@
                       style="margin-left: 8px;position: relative;height: 40px;width: 40px"
                       @click="this.changeTaskFrozen()"
                     >
-                      <q-tooltip>Заморожено до {{ this.getStamp(new Date(this.task.frozenUntil)) }}</q-tooltip>
+                      <q-tooltip>
+                        {{ this.task.frozenUntil ? `Заморожено до ${this.getStamp(this.task.frozenUntil)}` : 'Заявка заморожена' }}
+                      </q-tooltip>
                       <q-circular-progress
                         v-if="this.task.frozen"
                         :value="this.getPercentFrozenTask(this.task.frozenFrom, this.task.frozenUntil)"
@@ -1369,27 +1371,36 @@ export default {
     },
 
     getPercentFrozenTask (date, endDate) {
+      if (!date || !endDate) {
+        return 0
+      }
       const startDate = new Date(date).getTime()
       const targetDate = new Date(endDate).getTime()
       const now = new Date().getTime()
+      if (Number.isNaN(startDate) || Number.isNaN(targetDate) || targetDate <= startDate) {
+        return 0
+      }
       const totalInterval = targetDate - startDate
-      const timeRemaining = now - startDate
-      return (1 - (timeRemaining / totalInterval)) * 100
+      const timePassed = now - startDate
+      return Math.max(0, Math.min(100, 100 - ((timePassed / totalInterval) * 100)))
     },
 
-    getStamp (date) {
-      if (date) {
-        return date.toLocaleTimeString('ru-RU', {
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          year: 'numeric',
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      } else {
+    getStamp (value) {
+      if (!value) {
         return ''
       }
+      const date = value instanceof Date ? value : new Date(value)
+      if (Number.isNaN(date.getTime())) {
+        return ''
+      }
+      return date.toLocaleTimeString('ru-RU', {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     },
 
     getBackgroundColor (statusLabel) {
