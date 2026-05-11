@@ -101,10 +101,6 @@ const routes = [
             component: () => import('pages/settings/SlaPage.vue')
           },
           {
-            path: 'notifications',
-            component: () => import('pages/settings/NotificationsPage.vue')
-          },
-          {
             path: 'task-types',
             component: () => import('pages/settings/TaskTypePage.vue')
           },

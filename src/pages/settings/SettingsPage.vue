@@ -95,12 +95,6 @@ export default {
         roles: ['ADMIN']
       },
       {
-        title: 'Уведомления',
-        link: '/settings/notifications',
-        slug: 'notifications',
-        roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
-      },
-      {
         title: 'Telegram',
         link: '/settings/telegram',
         slug: 'telegram',

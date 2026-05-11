@@ -205,7 +205,7 @@
     </div>
     <div v-else class="absolute-center" data-tour="empty-state">
       <div style="text-align: center;font-size: 20px">
-        Чатов нет
+        {{ searchQuery.trim() ? 'Ничего не найдено' : 'Чатов нет' }}
         <no-tasks-placeholder/>
       </div>
     </div>
@@ -1243,7 +1243,7 @@ export default {
 
   computed: {
     shouldShowChatsToolbar () {
-      return this.getSortedAndFilteredClients.length > 0 || this.isOnboardingVisible
+      return this.clientsForChatsList.length > 0 || this.searchQuery.trim() !== '' || this.isOnboardingVisible
     },
 
     clientsForChatsList () {
