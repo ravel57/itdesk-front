@@ -344,6 +344,26 @@ function userNotificationCallback(message) {
           tag: 'new-task'
         })
         break
+      case 'SLA_HALF_TIME_PASSED':
+        notify('ULDesk', {
+          body: parsedMessage.message || 'SLA прошел больше чем на 50%',
+          tag: `sla-half-${parsedMessage.userId}`
+        })
+        break
+
+      case 'SLA_OVERDUE':
+        notify('ULDesk', {
+          body: parsedMessage.message || 'SLA нарушен',
+          tag: `sla-overdue-${parsedMessage.userId}`
+        })
+        break
+
+      case 'CHAT_UNANSWERED_TOO_LONG':
+        notify('ULDesk', {
+          body: parsedMessage.message || 'Есть чат без ответа',
+          tag: `chat-unanswered-${parsedMessage.userId}`
+        })
+        break
     }
   }
 }

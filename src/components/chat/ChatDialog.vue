@@ -232,7 +232,7 @@
 
             <div
               data-tour="chat-answer-required"
-              v-if="isLastMessage(message) && isIncomingMessage(message)"
+              v-if="isLastMessage(message) && isIncomingMessage(message) && getMessageId(message)"
               class="answer-required-actions"
             >
               <q-btn
@@ -1373,15 +1373,28 @@ export default {
     },
 
     setAnswerRequired (message, value) {
+      const messageId = this.getMessageId(message)
+      if (!messageId) {
+        this.$q.notify({
+          message: 'Нельзя изменить признак ответа: сообщение ещё не сохранено',
+          type: 'warning',
+          position: 'top-right'
+        })
+        return
+      }
       const answerRequired = value
         ? 'ANSWER_REQUIRED'
         : 'ANSWER_NOT_REQUIRED'
-      message.answerRequired = answerRequired
       this.$emit('setAnswerRequired', {
-        messageId: message.id,
+        messageId,
         clientId: this.client.id,
         answerRequired
       })
+    },
+
+    getMessageId (message) {
+      const id = Number(message?.id)
+      return Number.isFinite(id) && id > 0 ? id : null
     },
 
     getRouteMessageId() {

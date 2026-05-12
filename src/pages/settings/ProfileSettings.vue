@@ -58,6 +58,18 @@
             v-model="notifyTaskNewMessageAssigned"
             label="Уведомлять при новом сообщении в чате внутри заявки, где вы назначены исполнителем"
           />
+          <q-checkbox
+            v-model="notifySlaHalfTimePassed"
+            label="Уведомлять, когда SLA прошёл на 50%"
+          />
+          <q-checkbox
+            v-model="notifySlaOverdue"
+            label="Уведомлять, когда SLA нарушен"
+          />
+          <q-checkbox
+            v-model="notifyChatUnansweredTooLong"
+            label="Уведомлять, если новое сообщение в чате без ответа дольше N минут"
+          />
 
           <div class="row q-mt-md">
             <q-btn
@@ -159,12 +171,16 @@ export default {
       notifyChatPing: false,
       notifyTaskChatPing: false,
       notifyNewAssignedTask: false,
-      notifyTaskNewMessageAssigned: false
+      notifyTaskNewMessageAssigned: false,
+      notifySlaHalfTimePassed: false,
+      notifySlaOverdue: false,
+      notifyChatUnansweredTooLong: false,
+      isLoadingNotificationSettings: false,
     }
   },
 
   methods: {
-    changePassword () {
+    changePassword() {
       if (this.newPassword.length === 0 || this.newPasswordReenter.length === 0) {
         this.showNegativeNotify('Не заполнены обязательные поля')
         return
@@ -174,7 +190,7 @@ export default {
         return
       }
 
-      axios.post('/api/v1/user/change-password', { password: this.newPassword })
+      axios.post('/api/v1/user/change-password', {password: this.newPassword})
         .then(() => {
           this.newPasswordDialogClose()
         })
@@ -183,21 +199,21 @@ export default {
         })
     },
 
-    newPasswordDialogShow () {
+    newPasswordDialogShow() {
       this.isNewPasswordDialogShow = true
       this.newPassword = ''
       this.newPasswordReenter = ''
     },
 
-    newPasswordDialogClose () {
+    newPasswordDialogClose() {
       this.isNewPasswordDialogShow = false
     },
 
-    async ask () {
+    async ask() {
       this.perm = await this.myRequestPermission()
     },
 
-    notify () {
+    notify() {
       const n = this.myNotify('ULDesk', {
         body: 'Новая заявка назначена на вас',
         tag: 'new-task'
@@ -208,7 +224,7 @@ export default {
       }
     },
 
-    showNegativeNotify (message) {
+    showNegativeNotify(message) {
       this.$q.notify({
         message,
         type: 'negative',
@@ -219,25 +235,37 @@ export default {
       })
     },
 
-    loadNotificationSettings () {
+    loadNotificationSettings() {
+      this.isLoadingNotificationSettings = true
       axios.get('/api/v1/user/notification-settings')
-        .then(({ data }) => {
+        .then(({data}) => {
           this.notifyChatPing = !!data.notifyChatPing
           this.notifyTaskChatPing = !!data.notifyTaskChatPing
           this.notifyNewAssignedTask = !!data.notifyNewAssignedTask
           this.notifyTaskNewMessageAssigned = !!data.notifyTaskNewMessageAssigned
+          this.notifySlaHalfTimePassed = !!data.notifySlaHalfTimePassed
+          this.notifySlaOverdue = !!data.notifySlaOverdue
+          this.notifyChatUnansweredTooLong = !!data.notifyChatUnansweredTooLong
         })
         .catch(e => {
           this.showNegativeNotify(e.message)
         })
+        .finally(() => {
+          this.$nextTick(() => {
+            this.isLoadingNotificationSettings = false
+          })
+        })
     },
 
-    saveNotificationSettings () {
-      axios.patch('/api/v1/user/notification-settings', {
+    async saveNotificationSettings() {
+      return axios.patch('/api/v1/user/notification-settings', {
         notifyChatPing: this.notifyChatPing,
         notifyTaskChatPing: this.notifyTaskChatPing,
         notifyNewAssignedTask: this.notifyNewAssignedTask,
-        notifyTaskNewMessageAssigned: this.notifyTaskNewMessageAssigned
+        notifyTaskNewMessageAssigned: this.notifyTaskNewMessageAssigned,
+        notifySlaHalfTimePassed: this.notifySlaHalfTimePassed,
+        notifySlaOverdue: this.notifySlaOverdue,
+        notifyChatUnansweredTooLong: this.notifyChatUnansweredTooLong,
       })
         .then(() => {
           this.$q.notify({
@@ -249,14 +277,35 @@ export default {
         .catch(e => {
           this.showNegativeNotify(e.message)
         })
-    }
+    },
+
+    saveNotificationSettingsSilent () {
+      if (this.isLoadingNotificationSettings) {
+        return
+      }
+      axios.patch('/api/v1/user/notification-settings', {
+        notifyChatPing: this.notifyChatPing,
+        notifyTaskChatPing: this.notifyTaskChatPing,
+        notifyNewAssignedTask: this.notifyNewAssignedTask,
+        notifyTaskNewMessageAssigned: this.notifyTaskNewMessageAssigned,
+        notifySlaHalfTimePassed: this.notifySlaHalfTimePassed,
+        notifySlaOverdue: this.notifySlaOverdue,
+        notifyChatUnansweredTooLong: this.notifyChatUnansweredTooLong
+      })
+        .catch(e => {
+          this.showNegativeNotify(e.message)
+        })
+    },
   },
 
   watch: {
     notifyChatPing: 'saveNotificationSettingsSilent',
     notifyTaskChatPing: 'saveNotificationSettingsSilent',
     notifyNewAssignedTask: 'saveNotificationSettingsSilent',
-    notifyTaskNewMessageAssigned: 'saveNotificationSettingsSilent'
+    notifyTaskNewMessageAssigned: 'saveNotificationSettingsSilent',
+    notifySlaHalfTimePassed: 'saveNotificationSettingsSilent',
+    notifySlaOverdue: 'saveNotificationSettingsSilent',
+    notifyChatUnansweredTooLong: 'saveNotificationSettingsSilent',
   },
 
   mounted () {

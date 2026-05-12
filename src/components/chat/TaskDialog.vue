@@ -509,6 +509,7 @@
               v-model="this.dialogTaskFreezeUntil"
               clearable
               label="Заморозить до"
+              mask="##.##.#### ##:##"
             >
               <template
                 v-slot:append
@@ -1172,6 +1173,8 @@ export default {
       } else {
         axios.patch(`/api/v1/client/${this.client.id}/task`, task)
           .then(newTask => {
+            this.taskHistory = []
+            this.loadTaskHistory()
             this.closeDialog()
             this.$emit('updateTask', task, newTask.data)
           })
@@ -1244,19 +1247,6 @@ export default {
     changeTaskFrozen () {
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.store.tags.find(tag => tag.name === tagName)))
-      if (!this.task.frozen) {
-        if (this.dialogTaskFreezeUntil.length === 0) {
-          this.$q.notify({
-            message: 'Не заполнены обязательные поля',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          })
-          return
-        }
-      }
       const currentTaskId = this.getCurrentTaskId()
       if (!currentTaskId) {
         this.$q.notify({
@@ -1269,11 +1259,56 @@ export default {
         })
         return
       }
+      const freezeStatus = this.store.statuses.find(status => status.name === 'Заморожена')
+      const currentStatus = this.store.statuses.find(status => status.name === this.dialogTaskStatus)
+      const previousStatus = this.task.previousStatus || currentStatus
+      let nextStatus = currentStatus
+      let frozenUntil = null
+      if (!this.task.frozen) {
+        if (!this.dialogTaskFreezeUntil) {
+          this.$q.notify({
+            message: 'Не заполнена дата заморозки',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return
+        }
+        const parsedFrozenUntil = moment(this.dialogTaskFreezeUntil, 'DD.MM.YYYY HH:mm', true)
+        if (!parsedFrozenUntil.isValid()) {
+          this.$q.notify({
+            message: 'Некорректная дата заморозки. Используйте формат дд.мм.гггг чч:мм',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return
+        }
+        if (parsedFrozenUntil.isSameOrBefore(moment())) {
+          this.$q.notify({
+            message: 'Дата заморозки должна быть в будущем',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return
+        }
+        nextStatus = freezeStatus || currentStatus
+        frozenUntil = parsedFrozenUntil.format()
+      } else {
+        nextStatus = this.task.previousStatus || currentStatus
+      }
       const task = {
         id: currentTaskId,
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
-        status: this.store.statuses.find(status => status.name === this.dialogTaskStatus),
+        status: nextStatus,
         priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
         executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
@@ -1285,8 +1320,8 @@ export default {
         linkedMessageId: this.linkedMessageId,
         frozen: !this.task.frozen,
         frozenFrom: this.task.frozen ? null : new Date(),
-        frozenUntil: this.task.frozen ? null : moment(this.dialogTaskFreezeUntil, 'DD.MM.YYYY HH:mm').format(),
-        previousStatus: this.task.previousStatus
+        frozenUntil,
+        previousStatus: this.task.frozen ? null : previousStatus
       }
       if (!this.isNewTask) {
         task.sla = this.task.sla
@@ -1543,6 +1578,8 @@ export default {
         case 'TASK_TAG_ADDED':
         case 'TASK_TAG_REMOVED':
           return 'sell'
+        case 'TASK_UPDATED':
+          return 'edit_note'
         default:
           return 'history'
       }
@@ -1736,6 +1773,10 @@ export default {
   watch: {
     getPossibilityToOpenDialogTask (value) {
       if (value) {
+        this.getTaskField()
+        if (!this.isNewTask && this.taskRightTab === 'history') {
+          this.loadTaskHistory()
+        }
         this.$nextTick(() => {
           setTimeout(() => this.startTaskDialogOnboarding(false), 450)
         })

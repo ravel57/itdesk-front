@@ -975,26 +975,47 @@ export default {
       this.applyColumnWidthsFromRatios()
     },
 
-    setAnswerRequired({messageId, clientId, answerRequired}) {
+    setAnswerRequired ({ messageId, clientId, answerRequired }) {
+      const id = Number(messageId)
+      const cid = Number(clientId)
+
+      if (!Number.isFinite(id) || id <= 0) {
+        this.$q.notify({
+          message: 'Сообщение ещё не сохранено, невозможно изменить признак ответа',
+          type: 'warning',
+          position: 'top-right'
+        })
+        return
+      }
+
+      if (!Number.isFinite(cid) || cid <= 0) {
+        this.$q.notify({
+          message: 'Не найден клиент для изменения признака ответа',
+          type: 'warning',
+          position: 'top-right'
+        })
+        return
+      }
+
       if (this.isChatOnboardingActive) {
-        const message = this.chatOnboardingDemoClient.messages.find(m => m.id === messageId)
+        const message = this.chatOnboardingDemoClient.messages.find(m => m.id === id)
         if (message) {
           message.answerRequired = answerRequired
         }
         return
       }
-      axios.patch(`/api/v1/client/${clientId}/message/${messageId}/answer-required`, answerRequired, {
+      axios.patch(`/api/v1/client/${cid}/message/${id}/answer-required`, answerRequired, {
         headers: {
           'Content-Type': 'application/json'
         }
       })
         .then(() => {
-          const clientIndex = this.store.clients.findIndex(c => c.id === clientId)
+          const clientIndex = this.store.clients.findIndex(c => c.id === cid)
           if (clientIndex === -1) {
             return
           }
           const client = this.store.clients[clientIndex]
-          const message = client.messages?.find(m => m.id === messageId)
+          const message = client.messages?.find(m => Number(m.id) === id)
           if (message) {
             message.answerRequired = answerRequired
           }
@@ -1007,7 +1028,7 @@ export default {
         })
         .catch(e => {
           this.$q.notify({
-            message: e.message,
+            message: e.response?.data?.message || e.message,
             type: 'negative',
             position: 'top-right',
             actions: [{
