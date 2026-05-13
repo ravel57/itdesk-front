@@ -10,10 +10,10 @@
       />
     </tr>
     </thead>
-    <tbody>
+    <tbody v-if="isSlaReady && tableData.length">
     <tr
-      v-for="(organization, rowIndex) in this.getOrganizations"
-      :key="rowIndex"
+      v-for="(organization, rowIndex) in getOrganizations"
+      :key="organization.id || 'default-sla'"
     >
       <td
         v-text="organization.name"
@@ -66,16 +66,35 @@ export default {
     isPopulatingSla: false,
     lastSent: {},
     periodOptions: [
-      { label: 'минуты', value: 'MINUTES' },
-      { label: 'часы', value: 'HOURS' },
-      { label: 'дни', value: 'DAYS' }
+      {
+        label: 'минуты',
+        value: 'MINUTES'
+      },
+      {
+        label: 'часы',
+        value: 'HOURS'
+      },
+      {
+        label: 'дни',
+        value: 'DAYS'
+      }
     ]
   }),
 
   computed: {
     getOrganizations () {
-      // первая строка = дефолтный SLA
-      return [{ name: 'Стандартный SLA' }].concat(structuredClone(this.store.organizations))
+      return [
+        {
+          id: null,
+          name: 'Стандартный SLA',
+          isDefaultSla: true
+        },
+        ...(this.store.organizations || [])
+      ]
+    },
+
+    isSlaReady () {
+      return this.store.priorities.length > 0
     }
   },
 
@@ -85,40 +104,41 @@ export default {
         message: e?.response?.data?.message || e.message,
         type: 'negative',
         position: 'top-right',
-        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        actions: [{
+          icon: 'close',
+          color: 'white',
+          dense: true,
+          handler: () => undefined
+        }]
       })
     },
 
-    buildEmptyTable () {
-      const rows = this.getOrganizations.length
-      const cols = this.store.priorities.length
-
-      return Array.from({ length: rows }, () =>
-        Array.from({ length: cols }, () => ({
-          value: '',
-          unit: 'HOURS'
-        }))
-      )
-    },
-
     async loadSla () {
+      if (!this.isSlaReady) {
+        return
+      }
       this.isPopulatingSla = true
       try {
-        this.tableData = this.buildEmptyTable()
+        const organizations = this.getOrganizations
+        const priorities = this.store.priorities
 
+        const emptyTable = Array.from({ length: organizations.length }, () =>
+          Array.from({ length: priorities.length }, () => ({
+            value: '',
+            unit: 'HOURS'
+          }))
+        )
         const { data } = await axios.get('/api/v1/sla')
-        // data: { [orgName]: { [priorityName]: { value, unit } } }
-
-        this.getOrganizations.forEach((org, rowIndex) => {
-          this.store.priorities.forEach((priority, colIndex) => {
+        organizations.forEach((org, rowIndex) => {
+          priorities.forEach((priority, colIndex) => {
             const cell = data?.[org.name]?.[priority.name]
-
-            this.tableData[rowIndex][colIndex] = {
+            emptyTable[rowIndex][colIndex] = {
               value: cell?.value ?? '',
               unit: cell?.unit ?? 'HOURS'
             }
           })
         })
+        this.tableData = emptyTable
       } catch (e) {
         this.notifyError(e)
       } finally {
@@ -127,16 +147,19 @@ export default {
     },
 
     async onCellEdited (rowIndex, colIndex) {
-      if (this.isPopulatingSla) return
-
-      const organization = (rowIndex === 0) ? null : this.store.organizations[rowIndex - 1]
+      if (this.isPopulatingSla) {
+        return
+      }
+      const organizationRow = this.getOrganizations[rowIndex]
+      const organization = organizationRow?.isDefaultSla ? null : organizationRow
       const priority = this.store.priorities[colIndex]
-      const cell = this.tableData[rowIndex][colIndex]
-
+      const cell = this.tableData?.[rowIndex]?.[colIndex]
+      if (!priority || !cell) {
+        return
+      }
       const valueStr = String(cell.value ?? '').trim()
       const value = valueStr === '' ? null : Number(valueStr)
       const unit = cell.unit || 'HOURS'
-
       try {
         await axios.post('/api/v1/sla', {
           organization,
@@ -150,8 +173,17 @@ export default {
     }
   },
 
-  async created () {
-    await this.loadSla()
+  mounted () {
+    this.loadSla()
+  },
+
+  watch: {
+    'store.organizations.length' () {
+      this.loadSla()
+    },
+    'store.priorities.length' () {
+      this.loadSla()
+    }
   },
 
   setup () {

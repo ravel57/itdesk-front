@@ -275,6 +275,17 @@
                   </q-item-section>
                 </q-item>
                 <q-item
+                  v-if="canEditMessage(message)"
+                  clickable
+                  v-close-popup
+                >
+                  <q-item-section
+                    @click="this.startEditMessage(message)"
+                  >
+                    Редактировать
+                  </q-item-section>
+                </q-item>
+                <q-item
                   v-if="!message.deleted"
                   clickable
                   v-close-popup
@@ -417,6 +428,36 @@
           />
         </div>
       </q-card>
+
+      <q-card
+        v-if="this.editingMessage !== null"
+        class="no-shadow"
+        style="width: 100%;height: 50px;display: flex;flex-direction: row;border-radius: 0;border-top: 1px solid #0000001f"
+      >
+        <div style="display: flex;width: 100%;max-height: 50px;align-items: center">
+          <div style="height: 50px;width: 50px;display: flex;justify-content: center;align-items: center;margin-left: 5px;margin-right: 10px">
+            <q-icon
+              size="20px"
+              name="edit"
+            />
+          </div>
+          <div style="width: 100%">
+            <div>
+              Редактирование сообщения
+            </div>
+            <div class="truncate">
+              {{ this.editingMessage.text }}
+            </div>
+          </div>
+          <q-icon
+            size="20px"
+            style="height: 50px;width: 50px;cursor: pointer"
+            name="close"
+            @click="this.cancelEditMessage"
+          />
+        </div>
+      </q-card>
+
       <q-card
         data-tour="chat-message-composer"
         class="input-item no-shadow"
@@ -445,8 +486,9 @@
           v-if="this.attachedFiles.length > 0 ||
           this.typing.filter(t => t.username !== this.currentUser.username).length > 0 ||
           this.replyMessageId !== null ||
+          this.editingMessage !== null ||
           this.taskWatchingNow.filter(user => user.id !== this.currentUser.id).length > 0"
-          :style="this.replyMessageId !== null ? 'bottom: 210%;' : 'bottom: 100%;'"
+          :style="(this.replyMessageId !== null || this.editingMessage !== null) ? 'bottom: 210%;' : 'bottom: 100%;'"
           class="action-clouds"
         >
           <div class="input-clouds-container">
@@ -527,6 +569,7 @@
           @keydown.tab.prevent="handleTabPressed"
           @keydown="this.handleKeyPressed"
           @input="this.textChanged"
+          @paste="this.handlePaste"
         />
 
         <q-menu
@@ -792,7 +835,8 @@ export default {
     mentionIndex: 0,
     mentionTargetEl: null,
     isShowFileList: false,
-    fileList: []
+    fileList: [],
+    editingMessage: null,
   }),
 
   updated () {
@@ -872,6 +916,28 @@ export default {
 
     sendMessage () {
       const textarea = this.$refs.textInput
+      if (this.editingMessage !== null) {
+        const text = String(textarea.value || '').trim()
+        if (!text) {
+          this.$q.notify({
+            message: 'Текст сообщения не может быть пустым',
+            type: 'warning',
+            position: 'top-right'
+          })
+          return
+        }
+        this.$emit('isSending', true)
+        this.$emit('editMessage', {
+          clientId: this.client.id,
+          message: this.editingMessage,
+          text
+        })
+        this.editingMessage = null
+        textarea.value = ''
+        this.$emit('keyPressed', '')
+        this.autoResize()
+        return
+      }
       if (textarea.value || this.attachedFiles.length > 0) {
         this.$emit('isSending', true)
         const message = {
@@ -925,7 +991,7 @@ export default {
     },
 
     getStamp (message) {
-      return message.date.toLocaleTimeString('ru-RU', {
+      const time = message.date.toLocaleTimeString('ru-RU', {
         timeZone: 'Europe/Moscow',
         year: 'numeric',
         month: 'numeric',
@@ -933,6 +999,7 @@ export default {
         hour: '2-digit',
         minute: '2-digit'
       })
+      return message.editedAt ? `${time} · изменено` : time
     },
 
     getTimeLastMessage (message) {
@@ -1457,6 +1524,158 @@ export default {
         return
       }
       this.$emit('findInKnowledgeBase', text)
+    },
+
+    handlePaste (event) {
+      const files = this.getFilesFromClipboard(event)
+      if (files.length === 0) {
+        return
+      }
+      event.preventDefault()
+      const allowedFiles = files.filter(file => file.size <= 10485760)
+      if (allowedFiles.length !== files.length) {
+        this.$q.notify({
+          message: 'Некоторые файлы больше 10 МБ и не были добавлены',
+          type: 'warning',
+          position: 'top-right',
+          actions: [{
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }]
+        })
+      }
+      if (allowedFiles.length === 0) {
+        return
+      }
+      this.attachedFiles = [
+        ...this.attachedFiles,
+        ...allowedFiles
+      ]
+      this.$q.notify({
+        message: `Добавлено из буфера: ${allowedFiles.length}`,
+        type: 'positive',
+        position: 'top-right',
+        actions: [{
+          icon: 'close',
+          color: 'white',
+          dense: true,
+          handler: () => undefined
+        }]
+      })
+      this.showListPinedFiles = true
+    },
+
+    getFilesFromClipboard (event) {
+      const clipboardData = event.clipboardData
+      if (!clipboardData) {
+        return []
+      }
+      const files = []
+      if (clipboardData.files && clipboardData.files.length > 0) {
+        Array.from(clipboardData.files).forEach(file => {
+          files.push(this.normalizePastedFile(file))
+        })
+      }
+      if (clipboardData.items && clipboardData.items.length > 0) {
+        Array.from(clipboardData.items).forEach(item => {
+          if (item.kind !== 'file') {
+            return
+          }
+          const file = item.getAsFile()
+          if (!file) {
+            return
+          }
+          const exists = files.some(existingFile =>
+            existingFile.name === file.name &&
+            existingFile.size === file.size &&
+            existingFile.type === file.type
+          )
+          if (!exists) {
+            files.push(this.normalizePastedFile(file))
+          }
+        })
+      }
+      return files
+    },
+
+    normalizePastedFile (file) {
+      if (file.name && file.name.trim().length > 0) {
+        return file
+      }
+      const extension = this.getFileExtensionByType(file.type)
+      const fileName = `clipboard-${this.formatClipboardFileDate()}${extension}`
+      return new File([file], fileName, {
+        type: file.type,
+        lastModified: file.lastModified || Date.now()
+      })
+    },
+
+    getFileExtensionByType (type) {
+      if (!type) {
+        return ''
+      }
+      const map = {
+        'image/png': '.png',
+        'image/jpeg': '.jpg',
+        'image/jpg': '.jpg',
+        'image/gif': '.gif',
+        'image/webp': '.webp',
+        'application/pdf': '.pdf',
+        'text/plain': '.txt'
+      }
+      return map[type] || ''
+    },
+
+    formatClipboardFileDate () {
+      const date = new Date()
+      const pad = value => String(value).padStart(2, '0')
+      return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+      ].join('') + '-' + [
+        pad(date.getHours()),
+        pad(date.getMinutes()),
+        pad(date.getSeconds())
+      ].join('')
+    },
+
+    canEditMessage (message) {
+      return message && !message.deleted && message.text && message.isSent === true
+    },
+
+    startEditMessage (message) {
+      this.editingMessage = message
+      this.replyMessageId = null
+      this.replyFileUuid = null
+      this.replyFileType = null
+      this.attachedFiles = []
+      this.$nextTick(() => {
+        const textarea = this.$refs.textInput
+        if (!textarea) {
+          return
+        }
+        textarea.value = message.text || ''
+        textarea.focus()
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length)
+        this.$emit('keyPressed', textarea.value)
+        this.autoResize()
+      })
+    },
+
+    cancelEditMessage () {
+      this.editingMessage = null
+      this.$nextTick(() => {
+        const textarea = this.$refs.textInput
+        if (!textarea) {
+          return
+        }
+        textarea.value = ''
+        this.$emit('keyPressed', '')
+        this.autoResize()
+      })
     },
   },
 

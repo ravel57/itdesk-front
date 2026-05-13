@@ -60,6 +60,7 @@
             @scrollToMessageAfterSearch="this.getMessageOnSearch($event)"
             @setAnswerRequired="setAnswerRequired"
             @findInKnowledgeBase="this.findInKnowledgeBase"
+            @editMessage="this.editMessage"
           />
         </div>
         <div
@@ -579,9 +580,14 @@ export default {
         axios.post('/files/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
           .then(response => {
             response.data.map((fileUuid, index) => ({
+              ...event.message,
+              text: event.message.text || '',
               fileUuid,
               fileName: event.attachedFiles[index].name,
-              fileType: event.attachedFiles[index].type
+              fileType: event.attachedFiles[index].type,
+              isComment: event.message.isComment === true,
+              isSent: true,
+              isRead: true,
             })).forEach(message => {
               this.sendTextMessage(message)
             })
@@ -1275,6 +1281,40 @@ export default {
       this.$nextTick(() => {
         this.applyColumnWidthsFromRatios()
       })
+    },
+
+    editMessage ({ message, text }) {
+      if (!message || !message.id) {
+        this.isSending = false
+        return
+      }
+      axios.patch(`/api/v1/client/${this.getClient.id}/message/${message.id}`, {
+        text
+      })
+        .then(response => {
+          const updatedMessage = response.data
+          updatedMessage.date = new Date(updatedMessage.date)
+          if (updatedMessage.editedAt) {
+            updatedMessage.editedAt = new Date(updatedMessage.editedAt)
+          }
+          const localMessage = this.getClient.messages.find(m => Number(m.id) === Number(updatedMessage.id))
+          if (localMessage) {
+            Object.assign(localMessage, updatedMessage)
+          }
+          this.keyPressed('')
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          }))
+        .finally(() => {
+          this.isSending = false
+        })
     },
   },
 

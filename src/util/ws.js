@@ -36,6 +36,8 @@ export function connect() {
     stompClient.subscribe('/topic/client-message-edited/', message => editedMessageCallback(message))
 
     stompClient.subscribe('/topic/user-notification/', message => userNotificationCallback(message))
+
+    stompClient.subscribe('/topic/task-messages/', message => taskMessageCallback(message))
   })
 }
 
@@ -308,10 +310,21 @@ function globalAlertMessageCallback(message) {
 function editedMessageCallback(message) {
   const clientMessage = JSON.parse(message.body)
   clientMessage.message.date = new Date(clientMessage.message.date)
-  const client = useStore().clients.find(c => c.id === clientMessage.client.id)
-  try {
-    client.messages.find(m => m.id === clientMessage.message.id).text = clientMessage.message.text
-  } catch (ignoredError) {
+  if (clientMessage.message.editedAt) {
+    clientMessage.message.editedAt = new Date(clientMessage.message.editedAt)
+  }
+  const updateMessage = client => {
+    if (!client || !Array.isArray(client.messages)) {
+      return
+    }
+    const localMessage = client.messages.find(m => Number(m.id) === Number(clientMessage.message.id))
+    if (localMessage) {
+      Object.assign(localMessage, clientMessage.message)
+    }
+  }
+  updateMessage(useStore().clients.find(c => Number(c.id) === Number(clientMessage.client.id)))
+  if (Number(useStore().currentClient?.id) === Number(clientMessage.client.id)) {
+    updateMessage(useStore().currentClient)
   }
 }
 
@@ -367,3 +380,51 @@ function userNotificationCallback(message) {
     }
   }
 }
+
+const taskMessageListeners = new Set()
+
+export function onTaskMessage(listener) {
+  taskMessageListeners.add(listener)
+  return () => {
+    taskMessageListeners.delete(listener)
+  }
+}
+
+function taskMessageCallback(message) {
+  const payload = JSON.parse(message.body)
+  if (!payload || !payload.taskId || !payload.message) {
+    return
+  }
+  payload.message.date = new Date(payload.message.date)
+  addMessageToTaskInClient(useStore().clients.find(c => Number(c.id) === Number(payload.clientId)), payload)
+  addMessageToTaskInClient(
+    Number(useStore().currentClient?.id) === Number(payload.clientId)
+      ? useStore().currentClient
+      : null,
+    payload
+  )
+  taskMessageListeners.forEach(listener => {
+    listener(payload)
+  })
+}
+
+function addMessageToTaskInClient(client, payload) {
+  if (!client || !Array.isArray(client.tasks)) {
+    return
+  }
+  const task = client.tasks.find(t => Number(t.id) === Number(payload.taskId))
+  if (!task) {
+    return
+  }
+  if (!Array.isArray(task.messages)) {
+    task.messages = []
+  }
+  const existingMessage = task.messages.find(m => Number(m.id) === Number(payload.message.id))
+  if (existingMessage) {
+    Object.assign(existingMessage, payload.message)
+  } else {
+    task.messages.push(payload.message)
+  }
+}
+
+

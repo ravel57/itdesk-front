@@ -175,7 +175,9 @@
                       @click="this.changeTaskFrozen()"
                     >
                       <q-tooltip>
-                        {{ this.task.frozenUntil ? `Заморожено до ${this.getStamp(this.task.frozenUntil)}` : 'Заявка заморожена' }}
+                        {{
+                          this.task.frozenUntil ? `Заморожено до ${this.getStamp(this.task.frozenUntil)}` : 'Заявка заморожена'
+                        }}
                       </q-tooltip>
                       <q-circular-progress
                         v-if="this.task.frozen"
@@ -300,12 +302,12 @@
               class="text-grey-8 task-right-tabs"
               data-tour="task-dialog-right-tabs"
             >
-              <q-tab name="messages" label="Сообщения" data-tour="task-dialog-messages-tab" />
-              <q-tab name="checklist" label="Чек-лист" data-tour="task-dialog-checklist-tab" />
-              <q-tab name="history" label="История" data-tour="task-dialog-history-tab" />
+              <q-tab name="messages" label="Сообщения" data-tour="task-dialog-messages-tab"/>
+              <q-tab name="checklist" label="Чек-лист" data-tour="task-dialog-checklist-tab"/>
+              <q-tab name="history" label="История" data-tour="task-dialog-history-tab"/>
             </q-tabs>
 
-            <q-separator />
+            <q-separator/>
 
             <q-tab-panels
               v-model="taskRightTab"
@@ -332,6 +334,7 @@
                   @sendMessage="this.sendMessage"
                   @isSending="this.isSending = true"
                   @keyPressed="this.keyPressed"
+                  @editMessage="this.editMessage"
                 />
               </q-tab-panel>
 
@@ -381,7 +384,7 @@
                     class="task-checklist-item"
                   >
                     <q-item-section side>
-                      <q-checkbox v-model="item.completed" />
+                      <q-checkbox v-model="item.completed"/>
                     </q-item-section>
 
                     <q-item-section>
@@ -409,7 +412,7 @@
 
               <q-tab-panel name="history" class="q-pa-md task-history-panel" data-tour="task-dialog-history-panel">
                 <q-inner-loading :showing="taskHistoryLoading">
-                  <q-spinner size="32px" />
+                  <q-spinner size="32px"/>
                 </q-inner-loading>
                 <div
                   v-if="!taskHistoryLoading && taskHistory.length === 0"
@@ -767,6 +770,7 @@ import axios from 'axios'
 import { useStore } from 'stores/store'
 import ChatDialog from 'components/chat/ChatDialog.vue'
 import { useRoute } from 'vue-router'
+import { onTaskMessage } from 'src/util/ws'
 
 export default {
 
@@ -831,6 +835,8 @@ export default {
     dialogTaskType: '',
     dialogTaskChecklist: [],
     newChecklistItemText: '',
+
+    taskMessageUnsubscribe: null,
 
     taskDialogOnboardingKey: 'task-dialog-onboarding-v1',
     taskDialogOnboardingActive: false,
@@ -1016,7 +1022,11 @@ export default {
         return
       }
 
-      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' })
+      target.scrollIntoView({
+        block: 'center',
+        inline: 'center',
+        behavior: 'smooth'
+      })
 
       setTimeout(() => {
         if (!this.taskDialogOnboardingActive) {
@@ -1181,7 +1191,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
           return false
@@ -1199,7 +1212,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
           return false
@@ -1401,7 +1417,10 @@ export default {
           type: 'negative',
           position: 'top-right',
           actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
           }]
         })
         return
@@ -1419,7 +1438,10 @@ export default {
           type: 'negative',
           position: 'top-right',
           actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
           }]
         })
         return
@@ -1473,7 +1495,10 @@ export default {
               type: 'negative',
               position: 'top-right',
               actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
+                icon: 'close',
+                color: 'white',
+                dense: true,
+                handler: () => undefined
               }]
             }))
       } else {
@@ -1490,7 +1515,10 @@ export default {
               type: 'negative',
               position: 'top-right',
               actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
+                icon: 'close',
+                color: 'white',
+                dense: true,
+                handler: () => undefined
               }]
             }))
       }
@@ -1530,7 +1558,10 @@ export default {
             type: 'positive',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
         })
@@ -1540,7 +1571,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           }))
     },
@@ -1557,7 +1591,10 @@ export default {
           type: 'negative',
           position: 'top-right',
           actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
           }]
         })
         return
@@ -1590,7 +1627,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           }))
     },
@@ -1605,7 +1645,10 @@ export default {
           type: 'negative',
           position: 'top-right',
           actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
           }]
         })
         return
@@ -1623,7 +1666,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
           return
@@ -1635,7 +1681,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
           return
@@ -1646,7 +1695,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
           return
@@ -1657,7 +1709,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
           return
@@ -1701,7 +1756,10 @@ export default {
             type: 'positive',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           })
         })
@@ -1711,7 +1769,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           }))
     },
@@ -1767,8 +1828,6 @@ export default {
       axios.post(`/api/v1/client/${event.clientId}/task/${this.task.id}/message`, event.message)
         .then(() => {
           this.inputField = ''
-          this.isSending = false
-          this.$emit('addMessageToTask', { task: this.task, message: event.message, client: this.client })
         })
         .catch(e =>
           this.$q.notify({
@@ -1776,9 +1835,15 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           }))
+        .finally(() => {
+          this.isSending = false
+        })
     },
 
     keyPressed (text) {
@@ -1838,12 +1903,15 @@ export default {
 
     generateStatusColor (index) {
       const adjustedIndex = Math.abs(index)
+
       function generateHSLAColor (hue) {
         return `hsla(${hue}, 70%, 50%, 0.2)`
       }
+
       function isGreenOrBlue (hue) {
         return (hue >= 120 && hue <= 240)
       }
+
       let hue = (adjustedIndex * 30) % 360
       while (isGreenOrBlue(hue)) {
         hue = (hue + 60) % 360
@@ -2018,7 +2086,10 @@ export default {
             type: 'negative',
             position: 'top-right',
             actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
             }]
           }))
     },
@@ -2103,6 +2174,61 @@ export default {
     getNewTaskFromMessageText () {
       const message = this.getNewTaskFromMessage()
       return String(message?.text || '').trim()
+    },
+
+    onTaskMessage (payload) {
+      if (Number(payload.taskId) !== Number(this.task.id)) {
+        return
+      }
+      if (!this.task.messages) {
+        this.task.messages = []
+      }
+      const exists = this.task.messages.some(message => Number(message.id) === Number(payload.message.id))
+      if (!exists) {
+        this.task.messages.push(payload.message)
+      }
+      if (this.taskRightTab === 'messages') {
+        axios.post(`/api/v1/client/${this.client.id}/task/${this.task.id}/mark-message-read`, {
+          userId: this.store.currentUser.id
+        })
+      }
+    },
+
+    editMessage (event) {
+      if (!event.message || !event.message.id) {
+        this.isSending = false
+        return
+      }
+      axios.patch(`/api/v1/client/${event.clientId}/task/${this.task.id}/message/${event.message.id}`, {
+        text: event.text
+      })
+        .then(response => {
+          const updatedMessage = response.data
+          updatedMessage.date = new Date(updatedMessage.date)
+          if (updatedMessage.editedAt) {
+            updatedMessage.editedAt = new Date(updatedMessage.editedAt)
+          }
+          const localMessage = this.task.messages.find(m => Number(m.id) === Number(updatedMessage.id))
+          if (localMessage) {
+            Object.assign(localMessage, updatedMessage)
+          }
+          this.inputField = ''
+        })
+        .catch(e =>
+          this.$q.notify({
+            message: e.message,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
+          }))
+        .finally(() => {
+          this.isSending = false
+        })
     },
   },
 
@@ -2213,31 +2339,35 @@ export default {
     this.loadTaskTypes()
       .finally(() => {
         this.getTaskField()
-
         const currentTaskId = this.getCurrentTaskId()
-
         if (!this.isNewTask && currentTaskId) {
           axios.post(`/api/v1/client/${this.client.id}/task/${currentTaskId}/mark-message-read`, { userId: this.store.currentUser.id })
         }
-
         if (this.taskRightTab === 'history') {
           this.loadTaskHistory()
         }
-
         this.$nextTick(() => {
           setTimeout(() => this.startTaskDialogOnboarding(false), 450)
         })
+        this.taskMessageUnsubscribe = onTaskMessage(this.onTaskMessage)
       })
   },
 
   beforeUnmount () {
+    if (this.taskMessageUnsubscribe) {
+      this.taskMessageUnsubscribe()
+      this.taskMessageUnsubscribe = null
+    }
     this.removeTaskDialogOnboardingListeners()
   },
 
   setup () {
     const store = useStore()
     const router = useRoute()
-    return { store, router }
+    return {
+      store,
+      router
+    }
   }
 }
 </script>
