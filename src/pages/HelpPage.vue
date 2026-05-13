@@ -20,6 +20,7 @@
         :is-show-helper="true"
         :comments="false"
         :client="{id: -1}"
+        :show-answer-required-actions="false"
         @sendMessage="this.sendMessage"
         @isSending="this.isSending = true"
         @keyPressed="this.keyPressed"

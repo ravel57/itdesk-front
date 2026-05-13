@@ -232,7 +232,7 @@
 
             <div
               data-tour="chat-answer-required"
-              v-if="isLastMessage(message) && isIncomingMessage(message) && getMessageId(message)"
+              v-if="this.showAnswerRequiredActions && isLastMessage(message) && isIncomingMessage(message) && getMessageId(message)"
               class="answer-required-actions"
             >
               <q-btn
@@ -317,15 +317,16 @@
                     Создать заявку из сообщения
                   </q-item-section>
                 </q-item>
-                <!-- <q-item-->
-                <!--   clickable-->
-                <!-- >-->
-                <!--   <q-item-section-->
-                <!--     v-close-popup-->
-                <!--   >-->
-                <!--     Найти в базе знаний TODO-->
-                <!--   </q-item-section>-->
-                <!-- </q-item>-->
+                <q-item
+                  v-if="message.text"
+                  clickable
+                  v-close-popup
+                  @click="this.findInKnowledgeBase(message)"
+                >
+                  <q-item-section>
+                    Найти в базе знаний
+                  </q-item-section>
+                </q-item>
                 <q-item
                   v-if="this.tasks.filter(t => !t.completed).length > 0"
                   clickable
@@ -718,30 +719,48 @@
 </template>
 
 <script>
-import {useStore} from 'stores/store'
+import { useStore } from 'stores/store'
 import axios from 'axios'
-import {useResizeObserver} from '@vueuse/core'
-import {onMounted, ref} from 'vue'
-import {useRoute} from 'vue-router'
+import { useResizeObserver } from '@vueuse/core'
+import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 
 export default {
+
   name: 'ChatDialog',
+
   props: {
-    messages: {type: Array},
-    inputField: {type: String},
-    templates: {type: Array},
-    isSending: {type: Boolean},
-    typing: {default: () => [], type: Array},
-    currentUser: {type: Object},
-    linkedMessageId: {type: Number},
-    tasks: {type: Array},
-    taskWatchingNow: {default: () => [], type: Array},
-    isShowHelper: {type: Boolean},
-    isMobile: {type: Boolean},
-    isDialog: {default: false, type: Boolean},
-    client: {type: Object},
-    isEnd: {type: Boolean},
-    comments: {default: true, type: Boolean}
+    messages: { type: Array },
+    inputField: { type: String },
+    templates: { type: Array },
+    isSending: { type: Boolean },
+    typing: {
+      default: () => [],
+      type: Array
+    },
+    currentUser: { type: Object },
+    linkedMessageId: { type: Number },
+    tasks: { type: Array },
+    taskWatchingNow: {
+      default: () => [],
+      type: Array
+    },
+    isShowHelper: { type: Boolean },
+    isMobile: { type: Boolean },
+    isDialog: {
+      default: false,
+      type: Boolean
+    },
+    client: { type: Object },
+    isEnd: { type: Boolean },
+    comments: {
+      default: true,
+      type: Boolean
+    },
+    showAnswerRequiredActions: {
+      default: true,
+      type: Boolean
+    },
   },
 
   data: () => ({
@@ -776,13 +795,13 @@ export default {
     fileList: []
   }),
 
-  updated() {
+  updated () {
     setTimeout(() => {
       this.$emit('updated')
     }, 150)
   },
 
-  mounted() {
+  mounted () {
     try {
       this.mentionTargetEl = this.$refs.textInput
       if (this.getRouteMessageId()) {
@@ -796,7 +815,7 @@ export default {
   },
 
   methods: {
-    nameToPastelHex(name) {
+    nameToPastelHex (name) {
       let hash = 0
       for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash)
@@ -815,21 +834,21 @@ export default {
       return pastelHex
     },
 
-    getAbbreviation(client) {
+    getAbbreviation (client) {
       const lastname = client.lastname ? client.lastname[0].toUpperCase() : ''
       const firstname = client.firstname ? client.firstname[0].toUpperCase() : ''
       return `${lastname}${firstname}`
     },
 
-    copyToClipboard(text) {
+    copyToClipboard (text) {
       navigator.clipboard.writeText(text)
     },
 
-    pastToInputField(text) {
+    pastToInputField (text) {
       this.$emit('pastToInputField', text)
     },
 
-    scrollToBottom(timeout = 0) {
+    scrollToBottom (timeout = 0) {
       setTimeout(() => {
         let scrollArea = document.querySelector('#chat-dialog > div > div')
         if (this.isDialog) {
@@ -839,15 +858,19 @@ export default {
       }, timeout)
     },
 
-    smoothScrollToBottom() {
+    smoothScrollToBottom () {
       let scrollArea = document.querySelector('#chat-dialog > div > div')
       if (this.isDialog) {
         scrollArea = document.querySelector('#chat-dialog-pop-up > div > div')
       }
-      scrollArea.scrollTo({top: scrollArea.scrollHeight, left: 0, behavior: 'smooth'})
+      scrollArea.scrollTo({
+        top: scrollArea.scrollHeight,
+        left: 0,
+        behavior: 'smooth'
+      })
     },
 
-    sendMessage() {
+    sendMessage () {
       const textarea = this.$refs.textInput
       if (textarea.value || this.attachedFiles.length > 0) {
         this.$emit('isSending', true)
@@ -863,7 +886,11 @@ export default {
           replyFileType: this.replyFileType,
           user: this.currentUser
         }
-        this.$emit('sendMessage', {message, attachedFiles: this.attachedFiles, clientId: this.client.id})
+        this.$emit('sendMessage', {
+          message,
+          attachedFiles: this.attachedFiles,
+          clientId: this.client.id
+        })
         this.attachedFiles = []
         this.replyMessageId = null
         this.replyFileType = null
@@ -881,7 +908,7 @@ export default {
       this.scrollToBottom(500)
     },
 
-    handleTabPressed(event) {
+    handleTabPressed (event) {
       if (this.$refs.textInput.value) {
         try {
           const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
@@ -897,7 +924,7 @@ export default {
       }
     },
 
-    getStamp(message) {
+    getStamp (message) {
       return message.date.toLocaleTimeString('ru-RU', {
         timeZone: 'Europe/Moscow',
         year: 'numeric',
@@ -908,7 +935,7 @@ export default {
       })
     },
 
-    getTimeLastMessage(message) {
+    getTimeLastMessage (message) {
       if (message) {
         const dateFormatted = new Date(message.date)
         const currentDate = new Date()
@@ -943,7 +970,7 @@ export default {
       }
     },
 
-    getName(message) {
+    getName (message) {
       if (message.user) {
         return message.user.firstname + ' ' + (message.user.lastname !== null ? message.user.lastname : '')
       } else {
@@ -951,7 +978,7 @@ export default {
       }
     },
 
-    attachFile() {
+    attachFile () {
       const fileInput = document.getElementById('fileInput')
       fileInput.click()
       fileInput.addEventListener('change', () => {
@@ -961,20 +988,23 @@ export default {
           type: 'positive',
           position: 'top-right',
           actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
           }]
         })
       })
     },
 
-    findLinks(message) {
+    findLinks (message) {
       const urlRegex = /(https?:\/\/\S+)/g
       const decodedText = document.createElement('textarea')
       decodedText.innerHTML = message
       return decodedText.value.replace(urlRegex, '<a href="$&" target="_blank">$&</a>')
     },
 
-    scrollToElementById(id) {
+    scrollToElementById (id) {
       const root = document.getElementById(id)
       if (!root) {
         return false
@@ -993,7 +1023,7 @@ export default {
       return true
     },
 
-    scrollToMessageAfterSearch(messageId) {
+    scrollToMessageAfterSearch (messageId) {
       const id = Number(messageId)
       if (!id) {
         return
@@ -1011,15 +1041,15 @@ export default {
       }, 500)
     },
 
-    linkToTask(message, task) {
+    linkToTask (message, task) {
       this.$emit('linkToTask', message, task)
     },
 
-    deleteMessage(message) {
+    deleteMessage (message) {
       this.$emit('deleteMessage', message)
     },
 
-    invertContextMenu() {
+    invertContextMenu () {
       if (this.rightClickCounter > 0) {
         this.isShowCustomContextMenu = false
         setTimeout(() => {
@@ -1030,13 +1060,13 @@ export default {
       this.rightClickCounter++
     },
 
-    setReplyMessage(message) {
+    setReplyMessage (message) {
       this.replyMessageId = message.id
       this.replyFileUuid = message.fileUuid
       this.replyFileType = message.fileType
     },
 
-    onSearch() {
+    onSearch () {
       if (this.search) {
         let requestUri = `/api/v1/client/${this.client.id}/search-messages`
         if (this.isDialog) {
@@ -1044,7 +1074,7 @@ export default {
           const taskId = queryParams.get('task')
           requestUri = `/api/v1/client/${this.client.id}/task/${taskId}/search-messages`
         }
-        axios.post(requestUri, {text: this.search})
+        axios.post(requestUri, { text: this.search })
           .then(response => {
             this.searchResults = response.data
           })
@@ -1054,7 +1084,10 @@ export default {
               type: 'negative',
               position: 'top-right',
               actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
+                icon: 'close',
+                color: 'white',
+                dense: true,
+                handler: () => undefined
               }]
             }))
         this.isShowSearchResults = true
@@ -1066,32 +1099,36 @@ export default {
       }
     },
 
-    goToMessage(messageId) {
+    goToMessage (messageId) {
       const id = this.isDialog ? `modal_message_${messageId}` : `message_${messageId}`
       return this.scrollToElementById(id)
     },
 
-    onBlur() {
+    onBlur () {
       setTimeout(() => {
         this.isShowSearchResults = false
       }, 300)
     },
 
-    showHelper() {
+    showHelper () {
       this.$emit('showHelper')
     },
 
-    createNewTask(message) {
+    createNewTask (message) {
       const queryParams = new URLSearchParams(window.location.search)
+      queryParams.delete('task')
       queryParams.set('newTaskFromMessage', message.id)
-      this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
+      this.$router.push({
+        path: this.$route.path,
+        query: Object.fromEntries(queryParams.entries())
+      })
     },
 
-    switchToComment() {
+    switchToComment () {
       this.isComment = !this.isComment
     },
 
-    shortenLine(string, offset = 25) {
+    shortenLine (string, offset = 25) {
       if (string.length > 25) {
         return string.substring(0, 25) + '...'
       } else {
@@ -1099,7 +1136,7 @@ export default {
       }
     },
 
-    getReplyMessage(message) {
+    getReplyMessage (message) {
       if (message.text) {
         return this.shortenLine(message.text, 50)
       } else {
@@ -1115,7 +1152,7 @@ export default {
       }
     },
 
-    autoResize() {
+    autoResize () {
       this.$nextTick(() => {
         let replyContainer = 0
         let chat = document.getElementById('chat-dialog')
@@ -1134,7 +1171,7 @@ export default {
       })
     },
 
-    getPortionMessages() {
+    getPortionMessages () {
       let scrollZone = null
       const chatDialog = document.getElementById('chat-dialog')
       const chatPopUp = document.getElementById('chat-dialog-pop-up')
@@ -1160,7 +1197,7 @@ export default {
       }
     },
 
-    getSearchTitle(message) {
+    getSearchTitle (message) {
       if (this.getName(message) !== '') {
         return `${this.getName(message)} : ${message.text}`
       } else {
@@ -1170,12 +1207,12 @@ export default {
       }
     },
 
-    openPhoto(photo) {
+    openPhoto (photo) {
       this.isShowMaxSizePhoto = true
       this.selectedPhoto = photo
     },
 
-    getScaledImageStyle() {
+    getScaledImageStyle () {
       const maxWidth = this.isMobile ? window.innerWidth * 0.9 : window.innerWidth * 0.8
       const maxHeight = this.isMobile ? window.innerHeight * 0.6 : window.innerHeight * 0.9
 
@@ -1197,13 +1234,13 @@ export default {
       return `height: ${imgHeight}px; width: ${imgWidth}px;`
     },
 
-    textChanged() {
+    textChanged () {
       this.$emit('keyPressed', this.$refs.textInput.value)
       this.autoResize()
       this.updateMentionState()
     },
 
-    getTypingWatchingUsers() {
+    getTypingWatchingUsers () {
       const watchingNow = this.taskWatchingNow.filter(user =>
         user.id !== this.currentUser.id &&
         !this.typing.some(t => t.username === user.username)
@@ -1215,7 +1252,7 @@ export default {
       }
     },
 
-    updateMentionState() {
+    updateMentionState () {
       const textarea = this.$refs.textInput
       if (!textarea) return
 
@@ -1257,7 +1294,7 @@ export default {
       })
     },
 
-    selectMention(user) {
+    selectMention (user) {
       const textarea = this.$refs.textInput
       if (!textarea) return
 
@@ -1290,7 +1327,7 @@ export default {
       })
     },
 
-    handleKeyPressed(event) {
+    handleKeyPressed (event) {
       if (this.mentionMenu) {
         if (event.key === 'ArrowDown') {
           event.preventDefault()
@@ -1321,7 +1358,7 @@ export default {
       }
     },
 
-    showFiles() {
+    showFiles () {
       this.isShowFileList = true
       axios.get(`/api/v1/client-files/${this.client.id}`)
         .then(response => {
@@ -1329,11 +1366,11 @@ export default {
         })
     },
 
-    getFileName(file) {
+    getFileName (file) {
       return file?.name || file?.uuid || 'Файл'
     },
 
-    getFileExt(file) {
+    getFileExt (file) {
       const name = this.getFileName(file)
       if (!name.includes('.')) {
         return 'FILE'
@@ -1341,7 +1378,7 @@ export default {
       return name.split('.').pop().toUpperCase()
     },
 
-    getFileTitle(file) {
+    getFileTitle (file) {
       const name = this.getFileName(file)
       if (!name.includes('.')) {
         return name
@@ -1349,18 +1386,18 @@ export default {
       return name.substring(0, name.lastIndexOf('.'))
     },
 
-    getFileUrl(file) {
+    getFileUrl (file) {
       const type = file?.type || 'files/other'
       const category = type.includes('/') ? type.split('/')[0] : 'files'
       return `/files/${category}s/${file.uuid}`
     },
 
-    isLastMessage(message) {
+    isLastMessage (message) {
       const visibleMessages = this.messages.filter(m => !m.deleted)
       return visibleMessages.length > 0 && visibleMessages[visibleMessages.length - 1].id === message.id
     },
 
-    isIncomingMessage(message) {
+    isIncomingMessage (message) {
       return message && !message.isSent && !message.isComment && !message.deleted
     },
 
@@ -1397,7 +1434,7 @@ export default {
       return Number.isFinite(id) && id > 0 ? id : null
     },
 
-    getRouteMessageId() {
+    getRouteMessageId () {
       const rawMessageId = this.$route?.query?.messageId
       if (Array.isArray(rawMessageId)) {
         return Number(rawMessageId[0])
@@ -1406,17 +1443,25 @@ export default {
       return Number.isFinite(messageId) && messageId > 0 ? messageId : null
     },
 
-    scrollToRouteMessage() {
+    scrollToRouteMessage () {
       const messageId = this.getRouteMessageId()
       if (!messageId) {
         return
       }
       this.scrollToMessageAfterSearch(messageId)
     },
+
+    findInKnowledgeBase (message) {
+      const text = String(message?.text || '').trim()
+      if (!text) {
+        return
+      }
+      this.$emit('findInKnowledgeBase', text)
+    },
   },
 
   computed: {
-    typingUsers() {
+    typingUsers () {
       if (this.getTypingWatchingUsers()) {
         return this.getTypingWatchingUsers().typing
       } else {
@@ -1424,7 +1469,7 @@ export default {
       }
     },
 
-    watchUsers() {
+    watchUsers () {
       if (this.getTypingWatchingUsers()) {
         return this.getTypingWatchingUsers().watching
       } else {
@@ -1432,11 +1477,11 @@ export default {
       }
     },
 
-    renderShortcutPlaceholder() {
+    renderShortcutPlaceholder () {
       return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
     },
 
-    chatStyle() {
+    chatStyle () {
       return {
         height: this.isDialog ? 'calc(100% - 93px)' : (this.isMobile ? 'calc(100vh - 181px)' : 'calc(100vh - 95px)'),
         'border-radius': '0',
@@ -1445,7 +1490,7 @@ export default {
       }
     },
 
-    textareaStyle() {
+    textareaStyle () {
       return {
         borderStyle: 'unset',
         margin: '0 8px',
@@ -1459,11 +1504,11 @@ export default {
       }
     },
 
-    getReplayed() {
+    getReplayed () {
       return this.messages.find(m => m.id === this.replyMessageId)
     },
 
-    getMessageSender() {
+    getMessageSender () {
       if (this.getReplayed.user) {
         return this.getReplayed.user.lastname + ' ' + this.getReplayed.user.firstname
       } else {
@@ -1471,7 +1516,7 @@ export default {
       }
     },
 
-    filteredMentionUsers() {
+    filteredMentionUsers () {
       const users = Array.isArray(this.store?.users) ? this.store.users : []
       const q = (this.mentionQuery || '').trim().toLowerCase()
       const toSearchString = (u) => (
@@ -1485,19 +1530,19 @@ export default {
   },
 
   watch: {
-    linkedMessageId() {
+    linkedMessageId () {
       if (this.linkedMessageId) {
         this.scrollToElementById(`message_${this.linkedMessageId}`)
       }
     },
 
-    search(newVal) {
+    search (newVal) {
       this.onSearch(newVal)
     },
 
     messages: {
       immediate: true,
-      handler(newVal, oldVal) {
+      handler (newVal, oldVal) {
         try {
           if (this.routeMessageIdToScroll) {
             const messageId = this.routeMessageIdToScroll
@@ -1525,16 +1570,16 @@ export default {
       deep: true
     },
 
-    replyMessageId() {
+    replyMessageId () {
       this.autoResize()
     },
 
-    '$route.query.messageId'() {
+    '$route.query.messageId' () {
       this.scrollToRouteMessage()
     },
   },
 
-  setup(props) {
+  setup (props) {
     const store = useStore()
     const router = useRoute()
     const chatDialog = ref(null)
@@ -1578,7 +1623,10 @@ export default {
     onMounted(() => {
       useResizeObserver(chatDialog, (entries) => {
         const entry = entries[0]
-        const {width, height} = entry.contentRect
+        const {
+          width,
+          height
+        } = entry.contentRect
         containerHeight.value = height
         containerWidth.value = width
       })

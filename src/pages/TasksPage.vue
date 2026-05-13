@@ -545,9 +545,14 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
-  <q-dialog v-model="this.isModalForBulkActions" persistent>
+  <q-dialog
+    v-model="this.isModalForBulkActions"
+    persistent
+    @hide="this.clearBulkActionReason"
+  >
     <task-bulk-actions-modal
       :action="this.action"
+      :status-change-reason="this.bulkStatusChangeReason"
       @updateTask="this.updateTask"
     />
   </q-dialog>
@@ -610,6 +615,59 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <q-dialog
+    v-model="this.isBulkReasonDialogShow"
+    persistent
+  >
+    <q-card style="width: 520px; max-width: 95vw;">
+      <q-toolbar class="justify-between">
+        <div class="text-h6">
+          {{ this.getBulkReasonDialogTitle() }}
+        </div>
+
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          @click="this.cancelBulkReasonDialog"
+        />
+      </q-toolbar>
+
+      <q-card-section>
+        <div class="text-body2 q-mb-md">
+          {{ this.getBulkReasonDialogMessage() }}
+        </div>
+
+        <q-input
+          v-model="this.bulkStatusChangeReason"
+          type="textarea"
+          autogrow
+          autofocus
+          label="Причина *"
+          :error="this.bulkReasonError"
+          error-message="Обязательное поле"
+          @keyup.ctrl.enter="this.confirmBulkReasonDialog"
+        />
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          color="primary"
+          label="Отмена"
+          @click="this.cancelBulkReasonDialog"
+        />
+
+        <q-btn
+          color="primary"
+          label="Продолжить"
+          @click="this.confirmBulkReasonDialog"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
@@ -623,7 +681,9 @@ import moment from 'moment/moment'
 import draggable from 'vuedraggable'
 
 export default {
+
   components: {draggable, NoTasksPlaceholder, TaskBulkActionsModal, TasksComponent},
+
   data: () => ({
     filterTypes: [
       {label: 'Исполнитель', slug: 'executor'},
@@ -679,6 +739,11 @@ export default {
     isShowTableSettings: false,
 
     action: 'close',
+
+    pendingBulkAction: null,
+    bulkStatusChangeReason: '',
+    isBulkReasonDialogShow: false,
+    bulkReasonError: false,
 
     selectedSorting: [],
     sortMenuOpened: [],
@@ -1051,8 +1116,79 @@ export default {
     },
 
     openBulkModal(action) {
+      this.pendingBulkAction = action
+      if (this.isBulkReasonRequired(action)) {
+        this.bulkStatusChangeReason = ''
+        this.bulkReasonError = false
+        this.isBulkReasonDialogShow = true
+        return
+      }
       this.action = action
       this.isModalForBulkActions = true
+    },
+
+    isBulkReasonRequired(action) {
+      return ['close', 'open', 'freeze', 'status'].includes(action)
+    },
+
+    getBulkReasonDialogTitle() {
+      switch (this.pendingBulkAction) {
+        case 'close':
+          return 'Причина закрытия заявок'
+        case 'open':
+          return 'Причина возврата заявок в работу'
+        case 'freeze':
+          return 'Причина заморозки заявок'
+        case 'status':
+          return 'Причина изменения статуса заявок'
+        default:
+          return 'Причина изменения заявок'
+      }
+    },
+
+    getBulkReasonDialogMessage() {
+      const count = this.store.checkedTasks.length
+
+      switch (this.pendingBulkAction) {
+        case 'close':
+          return `Будет закрыто заявок: ${count}. Укажите причину закрытия.`
+        case 'open':
+          return `Будет возвращено в работу заявок: ${count}. Укажите причину возврата.`
+        case 'freeze':
+          return `Будет заморожено заявок: ${count}. Укажите причину заморозки.`
+        case 'status':
+          return `Будет изменён статус заявок: ${count}. Укажите причину изменения статуса.`
+        default:
+          return `Будет изменено заявок: ${count}. Укажите причину.`
+      }
+    },
+
+    confirmBulkReasonDialog() {
+      const reason = String(this.bulkStatusChangeReason || '').trim()
+
+      if (!reason) {
+        this.bulkReasonError = true
+        return
+      }
+
+      this.bulkStatusChangeReason = reason
+      this.action = this.pendingBulkAction
+      this.pendingBulkAction = null
+      this.isBulkReasonDialogShow = false
+      this.isModalForBulkActions = true
+    },
+
+    cancelBulkReasonDialog() {
+      this.pendingBulkAction = null
+      this.bulkStatusChangeReason = ''
+      this.bulkReasonError = false
+      this.isBulkReasonDialogShow = false
+    },
+
+    clearBulkActionReason() {
+      this.pendingBulkAction = null
+      this.bulkStatusChangeReason = ''
+      this.bulkReasonError = false
     },
 
     addMessageToTask(event) {

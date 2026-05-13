@@ -261,7 +261,14 @@ import DOMPurify from 'dompurify'
 export default {
   name: 'ChatHelper',
 
-  props: ['templates', 'knowledgeBase', 'macros', 'isMobile'],
+  props: [
+    'templates',
+    'knowledgeBase',
+    'macros',
+    'isMobile',
+    'aiQueryFromMessage',
+    'aiQueryVersion'
+  ],
 
   data: () => ({
     modalVisible: false,
@@ -385,6 +392,16 @@ export default {
       window.removeEventListener('mousemove', this.resizeTemplates)
       window.removeEventListener('mouseup', this.stopTemplatesResize)
     },
+
+    applyAiQueryFromMessage () {
+      const query = String(this.aiQueryFromMessage || '').trim()
+      if (!query) {
+        return
+      }
+      this.aiQuery = query
+      this.aiResponse = ''
+      this.knowledgeBaseOpened = true
+    },
   },
 
   watch: {
@@ -421,6 +438,10 @@ export default {
         String(newValue)
       )
     },
+
+    aiQueryVersion () {
+      this.applyAiQueryFromMessage()
+    },
   },
 
   computed: {
@@ -455,6 +476,7 @@ export default {
       const maxHeight = window.innerHeight - 220
       this.templatesBlockHeight = Math.min(Math.max(savedHeight, minHeight), maxHeight)
     }
+    this.applyAiQueryFromMessage()
   },
 
   created () {

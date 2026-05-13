@@ -201,7 +201,7 @@
                       icon="ac_unit"
                       style="height: 40px;width: 40px;margin-left: 8px"
                       text-color="gray"
-                      @click="this.freezeDialog = true"
+                      @click="this.openFreezeDialog"
                     >
                       <q-tooltip>Заморозить заявку</q-tooltip>
                     </q-btn>
@@ -328,6 +328,7 @@
                   :typing="[]"
                   :isDialog="true"
                   :comments="false"
+                  :show-answer-required-actions="false"
                   @sendMessage="this.sendMessage"
                   @isSending="this.isSending = true"
                   @keyPressed="this.keyPressed"
@@ -538,12 +539,19 @@
               </template>
             </q-input>
           </div>
+          <q-input
+            v-model="this.dialogTaskFreezeReason"
+            type="textarea"
+            autogrow
+            label="Причина заморозки *"
+            :rules="[val => (val && val.trim().length > 0) || 'Обязательное поле']"
+          />
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat label="Закрыть" color="primary" v-close-popup/>
           <div id="freeze-save-btn">
-            <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary" v-close-popup/>
+            <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary"/>
           </div>
         </q-card-actions>
       </q-card>
@@ -551,43 +559,42 @@
   </q-dialog>
   <q-dialog
     v-model="this.isSubmitModal"
+    persistent
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
         <div class="text-h6">
-          Сохранить {{ this.isNewTask ? 'заявку?' : 'изменение в заявке №' + this.task.id + '?' }}
+          {{ this.getSubmitModalTitle() }}
         </div>
         <q-btn
           flat
           round
           dense
           icon="close"
-          v-close-popup
+          @click="this.cancelSubmitModal"
         />
       </q-toolbar>
       <q-card-section>
-        {{ this.isNewTask ? 'Закрыть не сохраняя заявку?' : 'Соохранить изменения в заявке №' + this.task.id + '?' }}
+        {{ this.getSubmitModalMessage() }}
       </q-card-section>
       <q-card-actions class="justify-end">
         <q-btn
           outline
           color="primary"
-          v-close-popup
+          @click="this.cancelSubmitModal"
         >
           Отмена
         </q-btn>
         <q-btn
           outline
           color="primary"
-          v-close-popup
-          @click="this.closeDialog"
+          @click="this.confirmSubmitModalWithoutSave"
         >
           Не сохранять
         </q-btn>
         <q-btn
           color="primary"
-          v-close-popup
-          @click="this.saveNewOrUpdateTask"
+          @click="this.confirmSubmitModalWithSave"
         >
           Сохранить
         </q-btn>
@@ -641,6 +648,59 @@
           label="Заменить"
           @click="this.applySelectedTypeChecklist('replace')"
           v-close-popup
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog
+    v-model="this.statusReasonDialog"
+    persistent
+  >
+    <q-card class="dialog-width">
+      <q-toolbar class="justify-between">
+        <div class="text-h6">
+          {{ this.statusReasonDialogTitle }}
+        </div>
+
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          @click="this.cancelStatusReasonDialog"
+        />
+      </q-toolbar>
+
+      <q-card-section>
+        <div class="text-body2 q-mb-md">
+          {{ this.statusReasonDialogMessage }}
+        </div>
+
+        <q-input
+          v-model="this.statusReasonText"
+          type="textarea"
+          autogrow
+          autofocus
+          label="Причина *"
+          :error="this.statusReasonError"
+          error-message="Обязательное поле"
+          @keyup.ctrl.enter="this.confirmStatusReasonDialog"
+        />
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          color="primary"
+          label="Отмена"
+          @click="this.cancelStatusReasonDialog"
+        />
+
+        <q-btn
+          color="primary"
+          label="Продолжить"
+          @click="this.confirmStatusReasonDialog"
         />
       </q-card-actions>
     </q-card>
@@ -718,7 +778,8 @@ export default {
     'isNewTaskDialogShow',
     'isTaskDialogShow',
     'isNewTask',
-    'client'
+    'client',
+    'requestStatusChangeReason'
   ],
 
   data: () => ({
@@ -745,10 +806,20 @@ export default {
     isSending: false,
     freezeDialog: false,
     dialogTaskFreezeUntil: '',
+    dialogTaskFreezeReason: '',
+    statusReasonDialog: false,
+    statusReasonDialogTitle: '',
+    statusReasonDialogMessage: '',
+    statusReasonText: '',
+    statusReasonError: false,
+    statusReasonResolve: null,
 
     taskOnCreateProcess: false,
 
     isSubmitModal: false,
+
+    pendingSubmitAction: null,
+    pendingSubmitSourceTask: null,
 
     filteredUsers: [],
     filteredTags: [],
@@ -1029,42 +1100,269 @@ export default {
       return date >= `${year}/${month}/${day}`
     },
 
-    openSubmitModal () {
-      const dialogTaskDeadline = this.dialogTaskDeadline ? this.dialogTaskDeadline : ''
-      const taskDeadline = this.task.deadline ? moment(this.task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') : ''
+    openSubmitModal (pendingAction = null, sourceTask = null) {
+      this.pendingSubmitAction = pendingAction
+      this.pendingSubmitSourceTask = sourceTask
       if (this.isNewTask) {
         if (!this.dialogTaskName) {
+          this.clearPendingSubmitAction()
           this.closeDialog()
-        } else {
-          this.isSubmitModal = true
+          return
         }
-      } else if (
-        this.dialogTaskName !== this.task.name || this.dialogTaskDescription !== this.task.description ||
-        this.dialogTaskPriority !== this.task.priority.name ||
-        this.dialogTaskType !== (this.task.type?.type || '') ||
-        JSON.stringify(this.normalizeChecklist(this.dialogTaskChecklist)) !== JSON.stringify(this.normalizeChecklist(this.task.checklist)) ||
-        this.dialogTaskExecutor !== this.getUserName(this.task.executor) ||
-        JSON.stringify(this.dialogTaskTags) !== JSON.stringify(this.task.tags.map(tag => tag.name)) ||
-        // this.dialogTaskTags !== this.task.tags.map(tag => tag.name) ||
-        dialogTaskDeadline !== taskDeadline ||
-        this.dialogTaskStatus !== this.task.status.name ||
-        this.dialogTaskComplete !== this.task.completed
-      ) {
         this.isSubmitModal = true
-      } else {
-        this.closeDialog()
+        return
       }
+      if (this.hasUnsavedTaskChanges()) {
+        this.isSubmitModal = true
+        return
+      }
+      const action = this.pendingSubmitAction
+      const task = this.pendingSubmitSourceTask || this.task
+      this.clearPendingSubmitAction()
+      if (action === 'closeTask') {
+        this.setTaskCompleted(task, { skipUnsavedCheck: true })
+        return
+      }
+      if (action === 'reopenTask') {
+        this.setTaskNotCompleted(task, { skipUnsavedCheck: true })
+        return
+      }
+      this.closeDialog()
     },
 
     closeDialog () {
       this.$emit('closeDialog')
     },
 
+    getSubmitModalTitle () {
+      if (this.pendingSubmitAction === 'closeTask') {
+        return `Сохранить изменения перед закрытием заявки №${this.task.id}?`
+      }
+
+      if (this.pendingSubmitAction === 'reopenTask') {
+        return `Сохранить изменения перед возвратом заявки №${this.task.id} в работу?`
+      }
+
+      return this.isNewTask
+        ? 'Сохранить заявку?'
+        : 'Сохранить изменение в заявке №' + this.task.id + '?'
+    },
+
+    getSubmitModalMessage () {
+      if (this.pendingSubmitAction === 'closeTask') {
+        return 'В заявке есть несохранённые изменения. Сохранить их перед закрытием заявки?'
+      }
+
+      if (this.pendingSubmitAction === 'reopenTask') {
+        return 'В заявке есть несохранённые изменения. Сохранить их перед возвратом заявки в работу?'
+      }
+
+      return this.isNewTask
+        ? 'Закрыть не сохраняя заявку?'
+        : 'Сохранить изменения в заявке №' + this.task.id + '?'
+    },
+
+    cancelSubmitModal () {
+      this.isSubmitModal = false
+      this.clearPendingSubmitAction()
+    },
+
+    clearPendingSubmitAction () {
+      this.pendingSubmitAction = null
+      this.pendingSubmitSourceTask = null
+    },
+
+    applyPendingSubmitActionToDialogFields () {
+      if (this.pendingSubmitAction === 'closeTask') {
+        const closedStatus = this.store.statuses.find(status => this.isClosedStatusName(status.name))
+        if (!closedStatus) {
+          this.$q.notify({
+            message: 'Не найден статус закрытия заявки',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return false
+        }
+        this.dialogTaskStatus = closedStatus.name
+        this.dialogTaskComplete = true
+        return true
+      }
+
+      if (this.pendingSubmitAction === 'reopenTask') {
+        const reopenStatus = this.getReopenStatus(this.pendingSubmitSourceTask || this.task)
+        if (!reopenStatus) {
+          this.$q.notify({
+            message: 'Не найден открытый статус для возврата заявки в работу',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return false
+        }
+        this.dialogTaskStatus = reopenStatus.name
+        this.dialogTaskComplete = false
+        return true
+      }
+      return true
+    },
+
+    async confirmSubmitModalWithSave () {
+      const hasPendingAction = !!this.pendingSubmitAction
+      if (hasPendingAction && !this.applyPendingSubmitActionToDialogFields()) {
+        return
+      }
+      this.isSubmitModal = false
+      this.clearPendingSubmitAction()
+      await this.saveNewOrUpdateTask()
+    },
+
+    async confirmSubmitModalWithoutSave () {
+      const action = this.pendingSubmitAction
+      const task = this.pendingSubmitSourceTask || this.task
+      this.isSubmitModal = false
+      this.clearPendingSubmitAction()
+      if (action === 'closeTask') {
+        await this.setTaskCompleted(task, { skipUnsavedCheck: true })
+        return
+      }
+      if (action === 'reopenTask') {
+        await this.setTaskNotCompleted(task, { skipUnsavedCheck: true })
+        return
+      }
+      this.closeDialog()
+    },
+
+    getStatusName (status) {
+      if (!status) {
+        return ''
+      }
+      return typeof status === 'string' ? status : status.name || ''
+    },
+
+    isClosedStatusName (statusName) {
+      return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isFrozenStatusName (statusName) {
+      return ['заморожена', 'заморожено', 'заморожен'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isOpenStatusName (statusName) {
+      return !!statusName && !this.isClosedStatusName(statusName) && !this.isFrozenStatusName(statusName)
+    },
+
+    needStatusChangeReason (oldStatusName, newStatusName) {
+      const oldName = String(oldStatusName || '').trim()
+      const newName = String(newStatusName || '').trim()
+      if (!oldName || !newName || oldName.toLowerCase() === newName.toLowerCase()) {
+        return false
+      }
+      if (this.isClosedStatusName(newName) || this.isFrozenStatusName(newName)) {
+        return true
+      }
+      return this.isClosedStatusName(oldName) && this.isOpenStatusName(newName)
+    },
+
+    getStatusChangeReasonTitle (oldStatusName, newStatusName) {
+      if (this.isClosedStatusName(newStatusName)) {
+        return 'Причина закрытия заявки'
+      }
+      if (this.isFrozenStatusName(newStatusName)) {
+        return 'Причина заморозки заявки'
+      }
+      if (this.isClosedStatusName(oldStatusName) && this.isOpenStatusName(newStatusName)) {
+        return 'Причина возврата заявки в работу'
+      }
+      return 'Причина изменения статуса'
+    },
+
+    requestStatusChangeReasonIfNeeded (oldStatusName, newStatusName) {
+      if (!this.needStatusChangeReason(oldStatusName, newStatusName)) {
+        return Promise.resolve('')
+      }
+      if (typeof this.requestStatusChangeReason === 'function') {
+        return this.requestStatusChangeReason(oldStatusName, newStatusName)
+      }
+      return Promise.resolve(null)
+    },
+
+    confirmStatusReasonDialog () {
+      const reason = String(this.statusReasonText || '').trim()
+      if (!reason) {
+        this.statusReasonError = true
+        return
+      }
+      this.statusReasonDialog = false
+      if (this.statusReasonResolve) {
+        this.statusReasonResolve(reason)
+      }
+      this.clearStatusReasonDialog()
+    },
+
+    cancelStatusReasonDialog () {
+      this.statusReasonDialog = false
+      if (this.statusReasonResolve) {
+        this.statusReasonResolve(null)
+      }
+      this.clearStatusReasonDialog()
+    },
+
+    clearStatusReasonDialog () {
+      this.statusReasonDialogTitle = ''
+      this.statusReasonDialogMessage = ''
+      this.statusReasonText = ''
+      this.statusReasonError = false
+      this.statusReasonResolve = null
+    },
+
+    getDefaultOpenStatus () {
+      return this.store.statuses.find(status => this.isOpenStatusName(status.name) && status.defaultSelection === true) ||
+        this.store.statuses.find(status => this.isOpenStatusName(status.name))
+    },
+
+    getReopenStatus (task) {
+      if (task?.previousStatus && this.isOpenStatusName(task.previousStatus.name)) {
+        return task.previousStatus
+      }
+      return this.getDefaultOpenStatus()
+    },
+
+    openFreezeDialog () {
+      this.dialogTaskFreezeReason = ''
+      this.freezeDialog = true
+    },
+
+    hasUnsavedTaskChanges () {
+      if (this.isNewTask) {
+        return !!this.dialogTaskName
+      }
+      const dialogTaskDeadline = this.dialogTaskDeadline ? this.dialogTaskDeadline : ''
+      const taskDeadline = this.task.deadline
+        ? moment(this.task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm')
+        : ''
+      return this.dialogTaskName !== this.task.name ||
+        this.dialogTaskDescription !== this.task.description ||
+        this.dialogTaskPriority !== this.task.priority.name ||
+        this.dialogTaskType !== (this.task.type?.type || '') ||
+        JSON.stringify(this.normalizeChecklist(this.dialogTaskChecklist)) !== JSON.stringify(this.normalizeChecklist(this.task.checklist)) ||
+        this.dialogTaskExecutor !== this.getUserName(this.task.executor) ||
+        JSON.stringify(this.dialogTaskTags) !== JSON.stringify(this.task.tags.map(tag => tag.name)) ||
+        dialogTaskDeadline !== taskDeadline ||
+        this.dialogTaskStatus !== this.task.status.name ||
+        this.dialogTaskComplete !== this.task.completed
+    },
+
     getTaskField () {
       this.taskFieldsInitializing = true
       if (this.isNewTask) {
+        const messageText = this.getNewTaskFromMessageText()
         this.dialogTaskName = ''
-        this.dialogTaskDescription = ''
+        this.dialogTaskDescription = messageText
         this.dialogTaskPriority = this.store.priorities.find(priority => priority.defaultSelection === true).name
         this.dialogTaskExecutor = ''
         this.dialogTaskTags = []
@@ -1096,7 +1394,7 @@ export default {
       })
     },
 
-    saveNewOrUpdateTask () {
+    async saveNewOrUpdateTask () {
       if (!this.dialogTaskName || !this.dialogTaskType || !this.dialogTaskPriority || !this.dialogTaskStatus) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
@@ -1108,8 +1406,7 @@ export default {
         })
         return
       }
-      const queryParams = new URLSearchParams(window.location.search)
-      const messageId = queryParams.get('newTaskFromMessage')
+      const messageId = this.getNewTaskFromMessageId()
       if (!this.linkedMessageId) {
         this.linkedMessageId = messageId
       }
@@ -1142,13 +1439,22 @@ export default {
         deadline: this.dialogTaskDeadline ? moment(this.dialogTaskDeadline, 'DD.MM.YYYY HH:mm').format() : null,
         linkedMessageId: this.linkedMessageId,
         previousStatus: this.isNewTask ? this.store.statuses.find(status => status.name === this.dialogTaskStatus) : this.task.previousStatus,
-        messages: this.isNewTask ? (this.getLinkedMessage ? this.getLinkedMessage : null) : this.task.messages
+        messages: this.isNewTask ? this.getLinkedMessage : this.task.messages
       }
       if (!this.isNewTask) {
         task.sla = this.task.sla
       }
-      if (task.status.name === 'Закрыта') {
+      if (this.isClosedStatusName(task.status.name)) {
         task.completed = true
+      }
+      const oldStatusName = this.isNewTask ? '' : this.getStatusName(this.task.status)
+      const newStatusName = this.getStatusName(task.status)
+      const statusChangeReason = await this.requestStatusChangeReasonIfNeeded(oldStatusName, newStatusName)
+      if (statusChangeReason === null) {
+        return
+      }
+      if (statusChangeReason) {
+        task.statusChangeReason = statusChangeReason
       }
       if (this.isNewTask) {
         if (this.taskOnCreateProcess) {
@@ -1190,18 +1496,43 @@ export default {
       }
     },
 
-    setTaskCompleted (task) {
-      task.completed = true
-      task = Object.keys(task)
+    async setTaskCompleted (sourceTask, options = {}) {
+      if (!options.skipUnsavedCheck && this.hasUnsavedTaskChanges()) {
+        this.openSubmitModal('closeTask', sourceTask)
+        return
+      }
+      const closedStatus = this.store.statuses.find(status => this.isClosedStatusName(status.name))
+      const oldStatusName = this.getStatusName(sourceTask.status)
+      const newStatusName = this.getStatusName(closedStatus) || 'Закрыта'
+      const statusChangeReason = await this.requestStatusChangeReasonIfNeeded(oldStatusName, newStatusName)
+      if (statusChangeReason === null) {
+        return
+      }
+      const task = Object.keys(sourceTask)
         .filter(objKey => objKey !== 'client' && objKey !== 'sla')
-        .reduce((newObj, client) => {
-          newObj[client] = task[client]
+        .reduce((newObj, key) => {
+          newObj[key] = sourceTask[key]
           return newObj
         }, {})
+      task.completed = true
+      if (closedStatus) {
+        task.status = closedStatus
+      }
+      if (statusChangeReason) {
+        task.statusChangeReason = statusChangeReason
+      }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
-          this.$emit('updateTask', task, newTask)
+          this.$emit('updateTask', task, newTask.data)
+          this.$q.notify({
+            message: 'Заявка закрыта',
+            type: 'positive',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
         })
         .catch(e =>
           this.$q.notify({
@@ -1212,26 +1543,46 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
-      this.$q.notify({
-        message: 'Заяка закрыта',
-        type: 'positive',
-        position: 'top-right',
-        actions: [{
-          icon: 'close', color: 'white', dense: true, handler: () => undefined
-        }]
-      })
     },
 
-    setTaskNotCompleted (task) {
+    async setTaskNotCompleted (sourceTask, options = {}) {
+      if (!options.skipUnsavedCheck && this.hasUnsavedTaskChanges()) {
+        this.openSubmitModal('reopenTask', sourceTask)
+        return
+      }
+      const reopenStatus = this.getReopenStatus(sourceTask)
+      if (!reopenStatus) {
+        this.$q.notify({
+          message: 'Не найден открытый статус для возврата заявки в работу',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
+      const oldStatusName = this.getStatusName(sourceTask.status)
+      const newStatusName = this.getStatusName(reopenStatus)
+      const statusChangeReason = await this.requestStatusChangeReasonIfNeeded(oldStatusName, newStatusName)
+      if (statusChangeReason === null) {
+        return
+      }
+      const task = Object.keys(sourceTask)
+        .filter(objKey => objKey !== 'client' && objKey !== 'sla')
+        .reduce((newObj, key) => {
+          newObj[key] = sourceTask[key]
+          return newObj
+        }, {})
       task.completed = false
-      task = Object.keys(task).filter(objKey => objKey !== 'client').reduce((newObj, client) => {
-        newObj[client] = task[client]
-        return newObj
-      }, {})
+      task.status = reopenStatus
+      if (statusChangeReason) {
+        task.statusChangeReason = statusChangeReason
+      }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
           this.closeDialog()
-          this.$emit('updateTask', task, newTask)
+          this.$emit('updateTask', task, newTask.data)
         })
         .catch(e =>
           this.$q.notify({
@@ -1244,7 +1595,7 @@ export default {
           }))
     },
 
-    changeTaskFrozen () {
+    async changeTaskFrozen () {
       const tags = []
       this.dialogTaskTags.forEach(tagName => tags.push(this.store.tags.find(tag => tag.name === tagName)))
       const currentTaskId = this.getCurrentTaskId()
@@ -1261,7 +1612,8 @@ export default {
       }
       const freezeStatus = this.store.statuses.find(status => status.name === 'Заморожена')
       const currentStatus = this.store.statuses.find(status => status.name === this.dialogTaskStatus)
-      const previousStatus = this.task.previousStatus || currentStatus
+      const oldTaskStatus = this.task.status || currentStatus
+      const previousStatus = this.task.previousStatus || oldTaskStatus
       let nextStatus = currentStatus
       let frozenUntil = null
       if (!this.task.frozen) {
@@ -1299,6 +1651,17 @@ export default {
           })
           return
         }
+        if (!this.dialogTaskFreezeReason || !this.dialogTaskFreezeReason.trim()) {
+          this.$q.notify({
+            message: 'Не заполнена причина заморозки',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return
+        }
         nextStatus = freezeStatus || currentStatus
         frozenUntil = parsedFrozenUntil.format()
       } else {
@@ -1321,13 +1684,16 @@ export default {
         frozen: !this.task.frozen,
         frozenFrom: this.task.frozen ? null : new Date(),
         frozenUntil,
-        previousStatus: this.task.frozen ? null : previousStatus
+        previousStatus: this.task.frozen ? null : previousStatus,
+        statusChangeReason: this.task.frozen ? null : this.dialogTaskFreezeReason.trim(),
       }
       if (!this.isNewTask) {
         task.sla = this.task.sla
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
+          this.freezeDialog = false
+          this.dialogTaskFreezeReason = ''
           this.closeDialog()
           this.$emit('updateTask', task, newTask.data)
           this.$q.notify({
@@ -1359,15 +1725,26 @@ export default {
     },
 
     sendMessage (event) {
-      if (event.attachedFile) {
-        const data = new FormData()
-        data.append('file', event.attachedFile)
-        axios.post('/files/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } })
+      if (event.attachedFiles && event.attachedFiles.length > 0) {
+        const formData = new FormData()
+        event.attachedFiles.forEach(file => {
+          formData.append('files', file)
+        })
+        axios.post('/files/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
           .then(response => {
-            event.message.fileUuid = response.data
-            event.message.fileName = event.attachedFile.name
-            event.message.fileType = event.attachedFile.type
-            this.sendTextMessage(event)
+            response.data.map((fileUuid, index) => ({
+              ...event.message,
+              fileUuid,
+              fileName: event.attachedFiles[index].name,
+              fileType: event.attachedFiles[index].type
+            })).forEach(message => {
+              this.sendTextMessage({
+                ...event,
+                message
+              })
+            })
           })
           .catch(e =>
             this.$q.notify({
@@ -1375,7 +1752,10 @@ export default {
               type: 'negative',
               position: 'top-right',
               actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
+                icon: 'close',
+                color: 'white',
+                dense: true,
+                handler: () => undefined
               }]
             }))
       } else {
@@ -1700,6 +2080,30 @@ export default {
         completed: false
       }))
     },
+
+    getNewTaskFromMessageId () {
+      const queryParams = new URLSearchParams(window.location.search)
+      const messageId = Number(queryParams.get('newTaskFromMessage'))
+      return Number.isFinite(messageId) && messageId > 0 ? messageId : null
+    },
+
+    getNewTaskFromMessage () {
+      const messageId = this.getNewTaskFromMessageId()
+      if (!messageId) {
+        return null
+      }
+      const clientId = Number(this.router.params.clientId)
+      const client = this.store.clients.find(client => Number(client.id) === clientId) || this.client
+      if (!client || !Array.isArray(client.messages)) {
+        return null
+      }
+      return client.messages.find(message => Number(message.id) === messageId) || null
+    },
+
+    getNewTaskFromMessageText () {
+      const message = this.getNewTaskFromMessage()
+      return String(message?.text || '').trim()
+    },
   },
 
   computed: {
@@ -1743,22 +2147,17 @@ export default {
     },
 
     getLinkedMessage () {
-      const queryParams = new URLSearchParams(window.location.search)
-      let message = null
-      if (queryParams.get('newTaskFromMessage')) {
-        const messageId = queryParams.get('newTaskFromMessage')
-        const clientId = Number(this.router.params.clientId)
-        const client = this.store.clients.find(client => client.id === clientId)
-        message = [
-          {
-            id: null,
-            text: client.messages.find(message => message.id === Number(messageId)).text,
-            date: moment(new Date(), 'DD.MM.YYYY HH:mm'),
-            client: null
-          }
-        ]
+      const message = this.getNewTaskFromMessage()
+      if (!message) {
+        return []
       }
-      return message
+      return [
+        {
+          ...message,
+          id: null,
+          client: null
+        }
+      ]
     },
 
     selectedTaskType () {

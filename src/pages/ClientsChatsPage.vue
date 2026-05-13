@@ -285,7 +285,7 @@ export default {
     searchQuery: '',
     sortType: 'ANSWER_WAIT',
     sortOptions: [
-      { label: 'По времени неответа', value: 'ANSWER_WAIT' },
+      { label: 'По времени ожтдания', value: 'ANSWER_WAIT' },
       { label: 'По минимальному SLA среди заявок', value: 'MIN_SLA' },
       { label: 'По времени последнего сообщения', value: 'LAST_MESSAGE' },
       { label: 'Пинги', value: 'PINGS' },
@@ -467,7 +467,7 @@ export default {
         selector: '[data-tour="chat-sort"]',
         placement: 'bottom',
         title: 'Сортировка очереди',
-        text: 'Переключайте порядок списка: по времени неответа, SLA, последнему сообщению, пингам, непрочитанным или заявкам без исполнителя.'
+        text: 'Переключайте порядок списка: по времени ожидания, SLA, последнему сообщению, пингам, непрочитанным или заявкам без исполнителя.'
       },
       {
         selector: '[data-tour="client-row"]',

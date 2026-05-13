@@ -212,6 +212,7 @@
     :isNewTaskDialogShow="this.isNewTaskDialogShow"
     :isTaskDialogShow="this.isTaskDialogShow"
     :isNewTask="this.isNewTask"
+    :request-status-change-reason="this.requestStatusChangeReason"
     @closeDialog="this.closeDialog"
     @addMessageToTask="this.addMessageToTask"
     @updateTask="updateTask"
@@ -233,7 +234,17 @@ export default {
 
   components: { NoTasksPlaceholder, TaskCard, TaskDialog, ChatInfo },
 
-  props: ['tasks', 'tags', 'users', 'client', 'statuses', 'priorities', 'organizations', 'isMobile'],
+  props: [
+    'tasks',
+    'tags',
+    'users',
+    'client',
+    'statuses',
+    'priorities',
+    'organizations',
+    'isMobile',
+    'requestStatusChangeReason'
+  ],
 
   data: () => ({
     isNewTaskDialogShow: false,
@@ -307,12 +318,23 @@ export default {
       this.$emit('updateTask', task, newTask)
     },
 
-    setTaskCompleted (task) {
+    async setTaskCompleted (task) {
+      const closedStatus = this.getClosedStatus()
+      const oldStatusName = this.getStatusName(task.status)
+      const newStatusName = this.getStatusName(closedStatus) || 'Закрыта'
+      const statusChangeReason = typeof this.requestStatusChangeReason === 'function'
+        ? await this.requestStatusChangeReason(oldStatusName, newStatusName)
+        : ''
+      if (statusChangeReason === null) {
+        return
+      }
       const completedTask = {
         id: task.id,
         name: task.name,
         description: task.description,
-        status: task.status,
+        type: task.type,
+        checklist: task.checklist,
+        status: closedStatus || task.status,
         priority: task.priority,
         executor: task.executor,
         tags: task.tags,
@@ -320,12 +342,23 @@ export default {
         createdAt: task.createdAt,
         deadline: task.deadline,
         linkedMessageId: task.linkedMessageId,
-        sla: task.sla,
+        previousStatus: task.previousStatus || task.status
+      }
+      if (statusChangeReason) {
+        completedTask.statusChangeReason = statusChangeReason
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, completedTask)
         .then(newTask => {
           this.closeDialog()
           this.updateTask(task, newTask)
+          this.$q.notify({
+            message: 'Заявка закрыта',
+            type: 'positive',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
         })
         .catch(e =>
           this.$q.notify({
@@ -336,14 +369,6 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
-      this.$q.notify({
-        message: 'Заявка закрыта',
-        type: 'positive',
-        position: 'top-right',
-        actions: [{
-          icon: 'close', color: 'white', dense: true, handler: () => undefined
-        }]
-      })
     },
 
     getStamp (date) {
@@ -560,6 +585,22 @@ export default {
         return Number.MAX_SAFE_INTEGER
       }
       return new Date(task.sla.startDate).getTime() + this.parseIsoDurationToMs(task.sla.duration)
+    },
+
+    getStatusName (status) {
+      if (!status) {
+        return ''
+      }
+      return typeof status === 'string' ? status : status.name || ''
+    },
+
+    isClosedStatusName (statusName) {
+      return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    getClosedStatus () {
+      return this.statuses?.find(status => this.isClosedStatusName(status.name)) ||
+        this.store.statuses?.find(status => this.isClosedStatusName(status.name))
     },
   },
 

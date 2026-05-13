@@ -59,6 +59,7 @@
             @getMessagePage="this.getMessagePage"
             @scrollToMessageAfterSearch="this.getMessageOnSearch($event)"
             @setAnswerRequired="setAnswerRequired"
+            @findInKnowledgeBase="this.findInKnowledgeBase"
           />
         </div>
         <div
@@ -80,6 +81,8 @@
             :isMobile="this.isMobile"
             :templates="this.activeTemplates"
             :knowledgeBase="this.activeKnowledgeBase"
+            :ai-query-from-message="this.helperAiQueryFromMessage"
+            :ai-query-version="this.helperAiQueryVersion"
             @onTemplateClick="onTemplateClick"
             @hideHelper="this.hideHelper"
           />
@@ -106,6 +109,7 @@
             :statuses="this.activeStatuses"
             :priorities="this.activePriorities"
             :is-mobile="this.isMobile"
+            :request-status-change-reason="this.requestStatusChangeReasonIfNeeded"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
             @scrollToElementById="this.getLinkedMessage($event)"
@@ -113,6 +117,60 @@
         </div>
       </div>
     </q-page>
+
+    <q-dialog
+      v-model="this.statusReasonDialog"
+      persistent
+    >
+      <q-card style="width: 520px; max-width: 95vw;">
+        <q-toolbar class="justify-between">
+          <div class="text-h6">
+            {{ this.statusReasonDialogTitle }}
+          </div>
+
+          <q-btn
+            flat
+            round
+            dense
+            icon="close"
+            @click="this.cancelStatusReasonDialog"
+          />
+        </q-toolbar>
+
+        <q-card-section>
+          <div class="text-body2 q-mb-md">
+            {{ this.statusReasonDialogMessage }}
+          </div>
+
+          <q-input
+            v-model="this.statusReasonText"
+            type="textarea"
+            autogrow
+            autofocus
+            label="Причина *"
+            :error="this.statusReasonError"
+            error-message="Обязательное поле"
+            @keyup.ctrl.enter="this.confirmStatusReasonDialog"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn
+            flat
+            color="primary"
+            label="Отмена"
+            @click="this.cancelStatusReasonDialog"
+          />
+
+          <q-btn
+            color="primary"
+            label="Продолжить"
+            @click="this.confirmStatusReasonDialog"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
     <q-btn
       v-if="!isChatOnboardingActive"
       class="chat-onboarding-launch-btn"
@@ -202,6 +260,15 @@ export default {
     isEnd: false,
     pageCounter: 0,
     messagesLoadedForCurrentChat: false,
+
+    statusReasonDialog: false,
+    statusReasonDialogTitle: '',
+    statusReasonDialogMessage: '',
+    statusReasonText: '',
+    statusReasonError: false,
+    statusReasonResolve: null,
+    helperAiQueryFromMessage: '',
+    helperAiQueryVersion: 0,
 
     chatOnboardingStorageKey: 'chat-page-onboarding-v1',
     isChatOnboardingActive: typeof localStorage !== 'undefined' && localStorage.getItem('chat-page-onboarding-v1') !== 'done',
@@ -1102,6 +1169,112 @@ export default {
         return
       }
       this.getMessageOnSearch(messageId)
+    },
+
+    getStatusName (status) {
+      if (!status) {
+        return ''
+      }
+      return typeof status === 'string' ? status : status.name || ''
+    },
+
+    isClosedStatusName (statusName) {
+      return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isFrozenStatusName (statusName) {
+      return ['заморожена', 'заморожено', 'заморожен'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isOpenStatusName (statusName) {
+      return !!statusName && !this.isClosedStatusName(statusName) && !this.isFrozenStatusName(statusName)
+    },
+
+    needStatusChangeReason (oldStatusName, newStatusName) {
+      const oldName = String(oldStatusName || '').trim()
+      const newName = String(newStatusName || '').trim()
+      if (!oldName || !newName || oldName.toLowerCase() === newName.toLowerCase()) {
+        return false
+      }
+      if (this.isClosedStatusName(newName) || this.isFrozenStatusName(newName)) {
+        return true
+      }
+      return this.isClosedStatusName(oldName) && this.isOpenStatusName(newName)
+    },
+
+    getStatusChangeReasonTitle (oldStatusName, newStatusName) {
+      if (this.isClosedStatusName(newStatusName)) {
+        return 'Причина закрытия заявки'
+      }
+
+      if (this.isFrozenStatusName(newStatusName)) {
+        return 'Причина заморозки заявки'
+      }
+
+      if (this.isClosedStatusName(oldStatusName) && this.isOpenStatusName(newStatusName)) {
+        return 'Причина возврата заявки в работу'
+      }
+      return 'Причина изменения статуса'
+    },
+
+    requestStatusChangeReasonIfNeeded (oldStatusName, newStatusName) {
+      if (!this.needStatusChangeReason(oldStatusName, newStatusName)) {
+        return Promise.resolve('')
+      }
+      this.statusReasonDialogTitle = this.getStatusChangeReasonTitle(oldStatusName, newStatusName)
+      this.statusReasonDialogMessage = `Статус: «${oldStatusName}» → «${newStatusName}»`
+      this.statusReasonText = ''
+      this.statusReasonError = false
+      this.statusReasonDialog = true
+      return new Promise(resolve => {
+        this.statusReasonResolve = resolve
+      })
+    },
+
+    confirmStatusReasonDialog () {
+      const reason = String(this.statusReasonText || '').trim()
+      if (!reason) {
+        this.statusReasonError = true
+        return
+      }
+      this.statusReasonDialog = false
+      if (this.statusReasonResolve) {
+        this.statusReasonResolve(reason)
+      }
+      this.clearStatusReasonDialog()
+    },
+
+    cancelStatusReasonDialog () {
+      this.statusReasonDialog = false
+      if (this.statusReasonResolve) {
+        this.statusReasonResolve(null)
+      }
+      this.clearStatusReasonDialog()
+    },
+
+    clearStatusReasonDialog () {
+      this.statusReasonDialogTitle = ''
+      this.statusReasonDialogMessage = ''
+      this.statusReasonText = ''
+      this.statusReasonError = false
+      this.statusReasonResolve = null
+    },
+
+    findInKnowledgeBase (text) {
+      const query = String(text || '').trim()
+      if (!query) {
+        return
+      }
+      this.helperAiQueryFromMessage = query
+      this.helperAiQueryVersion += 1
+      this.isShowHelper = true
+      localStorage.setItem('isShowHelper', 'true')
+      if (this.isMobile) {
+        this.tab = 'tab2'
+      }
+      this.$nextTick(() => {
+        this.applyColumnWidthsFromRatios()
+      })
     },
   },
 

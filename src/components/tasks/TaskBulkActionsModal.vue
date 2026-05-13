@@ -197,10 +197,14 @@ import axios from 'axios'
 import moment from 'moment'
 
 export default {
+
   name: 'TaskBulkActionsModal',
+
   props: {
-    action: { type: String, required: true }
+    action: { type: String, required: true },
+    statusChangeReason: { type: String, default: '' }
   },
+
   data: () => ({
     tasksPriority: '',
     tasksFreezeUntil: '',
@@ -213,7 +217,6 @@ export default {
   }),
 
   methods: {
-
     dateOption (date) {
       const today = new Date()
       const year = today.getFullYear()
@@ -231,40 +234,88 @@ export default {
     },
 
     doAction () {
-      // const isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
-      this.store.checkedTasks.forEach(task => {
-        if (this.action !== 'close' && this.action !== 'open') {
-          if (this.tasksFreezeUntil.length === 0 && this.tasksExecutor.length === 0 &&
+      if (this.action !== 'close' && this.action !== 'open') {
+        if (this.tasksFreezeUntil.length === 0 && this.tasksExecutor.length === 0 &&
             this.tasksStatus.length === 0 && this.tasksPriority.length === 0 && this.tasksTags.length === 0 &&
-          this.tasksDeadline.length === 0) {
-            this.$q.notify({
-              message: 'Не заполнены обязательные поля',
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
-            })
-            return
-          }
+            this.tasksDeadline.length === 0) {
+          this.$q.notify({
+            message: 'Не заполнены обязательные поля',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+          return
         }
+      }
+
+      this.store.checkedTasks.forEach(sourceTask => {
+        let task = {
+          ...sourceTask,
+          tags: Array.isArray(sourceTask.tags) ? [...sourceTask.tags] : []
+        }
+
         if (this.action === 'close') {
+          const closedStatus = this.getClosedStatus()
+
           task.completed = true
+          task.frozen = false
+          task.frozenFrom = null
+          task.frozenUntil = null
+
+          if (closedStatus) {
+            task.status = closedStatus
+          }
         } else if (this.action === 'open') {
+          const openStatus = this.getOpenStatus(sourceTask)
+
           task.completed = false
+          task.frozen = false
+          task.frozenFrom = null
+          task.frozenUntil = null
+
+          if (openStatus) {
+            task.status = openStatus
+          }
         } else if (this.action === 'freeze') {
+          const frozenStatus = this.getFrozenStatus()
+
+          task.completed = false
           task.frozen = true
           task.frozenFrom = new Date()
           task.frozenUntil = moment(this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+
+          if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
+            task.previousStatus = sourceTask.status
+          }
+
+          if (frozenStatus) {
+            task.status = frozenStatus
+          }
         } else if (this.action === 'executor') {
           task.executor = this.store.users.find(user => this.getUserName(user) === this.tasksExecutor)
         } else if (this.action === 'status') {
-          task.status = this.store.statuses.find(status => status.name === this.tasksStatus)
-          if (task.status.name === 'Заморожена') {
+          const selectedStatus = this.store.statuses.find(status => status.name === this.tasksStatus)
+
+          task.status = selectedStatus
+
+          if (selectedStatus && this.isClosedStatusName(selectedStatus.name)) {
+            task.completed = true
+            task.frozen = false
+            task.frozenFrom = null
+            task.frozenUntil = null
+          } else if (selectedStatus && this.isFrozenStatusName(selectedStatus.name)) {
+            task.completed = false
             task.frozen = true
             task.frozenFrom = new Date()
-            task.frozenUntil = moment(this.taskFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+            task.frozenUntil = moment(this.taskFreezeUntil || this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+
+            if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
+              task.previousStatus = sourceTask.status
+            }
           } else {
+            task.completed = false
             task.frozen = false
             task.frozenFrom = null
             task.frozenUntil = null
@@ -278,8 +329,15 @@ export default {
         } else if (this.action === 'deadline') {
           task.deadline = moment(this.tasksDeadline, 'DD.MM.YYYY HH:mm').format()
         }
+
+        task = this.withStatusChangeReason(task)
+
+        const clientId = this.getClient(sourceTask)
+
         delete task.client
-        axios.patch(`/api/v1/client/${this.getClient(task)}/task`, task)
+        delete task.sla
+
+        axios.patch(`/api/v1/client/${clientId}/task`, task)
           .then(newTask => {
             this.$emit('updateTask', task, newTask)
             this.store.checkedTasks = []
@@ -293,14 +351,15 @@ export default {
                 icon: 'close', color: 'white', dense: true, handler: () => undefined
               }]
             }))
-        this.$q.notify({
-          message: this.getNotify,
-          type: 'positive',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
-        })
+      })
+
+      this.$q.notify({
+        message: this.getNotify,
+        type: 'positive',
+        position: 'top-right',
+        actions: [{
+          icon: 'close', color: 'white', dense: true, handler: () => undefined
+        }]
       })
     },
 
@@ -344,7 +403,51 @@ export default {
         formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
       }
       this.dialogTaskDeadline = formattedValue
-    }
+    },
+
+    getNormalizedStatusChangeReason () {
+      const reason = String(this.statusChangeReason || '').trim()
+      return reason.length > 0 ? reason : null
+    },
+
+    withStatusChangeReason (task) {
+      const reason = this.getNormalizedStatusChangeReason()
+      if (!reason) {
+        return task
+      }
+      return {
+        ...task,
+        statusChangeReason: reason
+      }
+    },
+
+    isClosedStatusName (statusName) {
+      return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isFrozenStatusName (statusName) {
+      return ['заморожена', 'заморожено', 'заморожен'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isOpenStatusName (statusName) {
+      return !!statusName && !this.isClosedStatusName(statusName) && !this.isFrozenStatusName(statusName)
+    },
+
+    getClosedStatus () {
+      return this.store.statuses.find(status => this.isClosedStatusName(status.name))
+    },
+
+    getFrozenStatus () {
+      return this.store.statuses.find(status => this.isFrozenStatusName(status.name))
+    },
+
+    getOpenStatus (task) {
+      if (task?.previousStatus && this.isOpenStatusName(task.previousStatus.name)) {
+        return task.previousStatus
+      }
+      return this.store.statuses.find(status => this.isOpenStatusName(status.name) && status.defaultSelection === true) ||
+        this.store.statuses.find(status => this.isOpenStatusName(status.name))
+    },
   },
 
   created () {
@@ -419,7 +522,7 @@ export default {
         default :
           return ''
       }
-    }
+    },
   },
 
   watch: {
