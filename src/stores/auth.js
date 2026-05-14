@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { api } from 'boot/axios'
-import { appConfig } from 'src/config/appConfig'
+import { useStore } from 'stores/store'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -9,27 +9,46 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: (s) => !!s.user
+    isAuthenticated: state => !!state.user
   },
 
   actions: {
     async init () {
-      if (this.inited) return
-      this.inited = true
-
-      // DEV-режим без авторизации
-      if (appConfig.disableAuth) {
-        this.user = { id: 'dev-1', authorities: ['ADMIN'], name: 'Dev User' }
-        return
+      if (this.inited && this.user) {
+        return this.user
       }
 
-      // PROD: проверяем сессию на сервере
       try {
-        const res = await api.post('/api/v1/user-online')
-        this.user = res.data
+        const response = await api.get('/api/v1/user/current')
+
+        this.user = response.data
+        this.inited = true
+
+        const mainStore = useStore()
+        mainStore.currentUser = response.data
+
+        await mainStore.loadCurrentSession()
+
+        return response.data
       } catch (e) {
         this.user = null
+        this.inited = true
+
+        const mainStore = useStore()
+        mainStore.currentUser = null
+        mainStore.currentSessionId = null
+
+        if (e.response && e.response.status === 401) {
+          return null
+        }
+
+        throw e
       }
+    },
+
+    reset () {
+      this.user = null
+      this.inited = false
     }
   }
 })

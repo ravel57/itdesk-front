@@ -43,3 +43,25 @@ export default boot(({ app }) => {
   app.config.globalProperties.$axios = axios
   app.config.globalProperties.$api = api
 })
+
+function handleUnauthorized (error) {
+  if (error.response && error.response.status === 401) {
+    localStorage.removeItem('currentSessionId')
+
+    if (window.location.pathname !== '/login') {
+      window.location.replace('/login')
+    }
+  }
+
+  return Promise.reject(error)
+}
+
+axios.interceptors.response.use(
+  response => response,
+  handleUnauthorized
+)
+
+api.interceptors.response.use(
+  response => response,
+  handleUnauthorized
+)

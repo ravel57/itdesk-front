@@ -180,9 +180,9 @@ module.exports = configure(function (ctx) {
       },
 
       manifest: {
-        name: 'ITdesk',
-        short_name: 'ITdesk',
-        description: 'ITdesk',
+        name: 'uldesk',
+        short_name: 'uldesk',
+        description: 'uldesk',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#ffffff',

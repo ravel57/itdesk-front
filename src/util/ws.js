@@ -7,10 +7,13 @@ import {useSystemNotifications} from "src/composables/useSystemNotifications";
 
 let stompClient = null
 
-export function connect() {
+export function connect () {
   if (appConfig.useMocks) return
-
-  const socket = new SockJS('/ws', null, {transports: ['websocket']})
+  const store = useStore()
+  if (!store.currentUser || !store.currentUser.username || !Array.isArray(store.currentUser.authorities)) {
+    return
+  }
+  const socket = new SockJS('/ws', null, { transports: ['websocket'] })
   stompClient = Stomp.over(() => {
     return socket
   })
@@ -38,6 +41,8 @@ export function connect() {
     stompClient.subscribe('/topic/user-notification/', message => userNotificationCallback(message))
 
     stompClient.subscribe('/topic/task-messages/', message => taskMessageCallback(message))
+
+    stompClient.subscribe('/topic/force-logout/', message => forceLogoutCallback(message))
   })
 }
 
@@ -427,4 +432,19 @@ function addMessageToTaskInClient(client, payload) {
   }
 }
 
-
+function forceLogoutCallback (message) {
+  const payload = JSON.parse(message.body)
+  const store = useStore()
+  const currentUsername = store.currentUser?.username
+  const currentSessionId = store.currentSessionId || localStorage.getItem('currentSessionId')
+  if (!currentUsername || !currentSessionId) {
+    return
+  }
+  if (payload.username !== currentUsername) {
+    return
+  }
+  if (payload.sessionId === currentSessionId) {
+    return
+  }
+  store.logoutByForce()
+}

@@ -1,8 +1,8 @@
 {
   "name": "itdesk-front",
   "version": "0.1.0",
-  "description": "ITdesk",
-  "productName": "ITdesk",
+  "description": "uldesk",
+  "productName": "uldesk",
   "author": "petr <petyalom@yandex.ru>",
   "private": true,
   "scripts": {

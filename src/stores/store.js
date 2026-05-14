@@ -64,9 +64,6 @@ export const useStore = defineStore('store', {
       'INTEGRATION_EVENT_RECEIVED'
     ],
     usersOnline: [],
-    currentUser: {
-      authorities: ['ADMIN']
-    },
     currentClient: {},
     currentChatMessageData:
       {
@@ -86,6 +83,9 @@ export const useStore = defineStore('store', {
       closedByPeriod: [],
       operatorLoad: []
     },
+
+    currentSessionId: null,
+    currentUser: null,
 
     miniState: false,
     globalAlertMessage: [],
@@ -178,6 +178,7 @@ export const useStore = defineStore('store', {
           this.triggerTypes = response.data
         })
     },
+
     fetchClientMessages (clientId) {
       return axios.get(`/api/v1/client/${clientId}/messages-page?page=1`)
         .then(response => {
@@ -214,6 +215,23 @@ export const useStore = defineStore('store', {
           this.analyticsSummary = response.data
           return response.data
         })
-    }
+    },
+
+    loadCurrentSession () {
+      return axios.get('/api/v1/session/current')
+        .then(response => {
+          this.currentSessionId = response.data.sessionId
+          localStorage.setItem('currentSessionId', response.data.sessionId)
+        })
+    },
+
+    logoutByForce () {
+      this.currentUser = null
+      this.currentSessionId = null
+      this.clients = []
+      this.currentClient = null
+      localStorage.removeItem('currentSessionId')
+      window.location.replace('/login')
+    },
   }
 })

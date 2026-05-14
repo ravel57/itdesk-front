@@ -22,15 +22,26 @@ export default route(function () {
   })
 
   Router.beforeEach(async (to) => {
-    if (appConfig.disableAuth) return true
-    if (to.path === '/login' || to.path === '/login-error') return true
-
+    if (appConfig.disableAuth) {
+      return true
+    }
+    const publicPages = [
+      '/login',
+      '/login-error',
+      '/session-expired'
+    ]
+    if (publicPages.includes(to.path)) {
+      return true
+    }
     const auth = useAuthStore()
-    await auth.init()
-
-    if (to.path === '/login') return true
-    if (!auth.isAuthenticated) return '/login'
-
+    try {
+      await auth.init()
+    } catch (e) {
+      return '/login'
+    }
+    if (!auth.isAuthenticated) {
+      return '/login'
+    }
     return true
   })
 
