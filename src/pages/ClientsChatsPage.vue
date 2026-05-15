@@ -285,7 +285,7 @@ export default {
     searchQuery: '',
     sortType: 'ANSWER_WAIT',
     sortOptions: [
-      { label: 'По времени ожтдания', value: 'ANSWER_WAIT' },
+      { label: 'По времени ожидания', value: 'ANSWER_WAIT' },
       { label: 'По минимальному SLA среди заявок', value: 'MIN_SLA' },
       { label: 'По времени последнего сообщения', value: 'LAST_MESSAGE' },
       { label: 'Пинги', value: 'PINGS' },
@@ -730,25 +730,61 @@ export default {
     },
 
     getSlaLeftMs (task) {
-      if (!task?.id) return null
-      const info = this.getSlaInfo(task)
-      if (info) {
-        if (info.paused && typeof info.remainingSeconds === 'number') {
-          return Math.max(0, info.remainingSeconds * 1000)
-        }
-        if (info.deadline) {
-          const now = moment(this.nowTs)
-          return Math.max(0, moment(info.deadline).diff(now))
-        }
-      }
-      return null
+      return this.getSlaLeftMsApprox(task)
     },
 
     getSlaTotalMs (task) {
-      if (!task?.sla?.duration) {
-        return 0
+      const duration = task?.sla?.duration || task?.slaDuration || task?.sla?.totalDuration || task?.slaTotalDuration
+      return this.parseIsoDurationToMs(duration)
+    },
+
+    getTaskSlaInfo (task) {
+      if (!task) {
+        return null
       }
-      return this.parseIsoDurationToMs(task.sla.duration)
+      return this.getSlaInfo(task) || task.slaInfo || task.slaInfoDto || task.slaStatus || null
+    },
+
+    getTaskSlaTags (task) {
+      const tags = task?.tags || task?.labels || []
+      if (!Array.isArray(tags)) {
+        return []
+      }
+      return tags
+        .map(tag => {
+          if (typeof tag === 'string') {
+            return tag
+          }
+          return tag?.name || tag?.title || tag?.label || tag?.value || ''
+        })
+        .filter(Boolean)
+    },
+
+    isTaskSlaExpiredByFlags (task) {
+      if (!task) {
+        return false
+      }
+      if (task.slaExpired === true || task.slaOverdue === true || task.slaViolated === true || task.deadlineOverdue === true) {
+        return true
+      }
+      return this.getTaskSlaTags(task).some(tag => {
+        const normalized = tag.toLowerCase()
+        return normalized.includes('sla наруш') ||
+          normalized.includes('sla просроч') ||
+          normalized.includes('просроч') ||
+          normalized.includes('overdue')
+      })
+    },
+
+    hasTaskSla (task) {
+      if (!task) {
+        return false
+      }
+      if (task?.sla?.startDate && task?.sla?.duration) {
+        return true
+      }
+      const info = this.getTaskSlaInfo(task)
+      return !!(info?.deadline || Number.isFinite(Number(info?.remainingSeconds)) || this.isTaskSlaExpiredByFlags(task))
     },
 
     parseIsoDurationToMs (duration) {
@@ -800,15 +836,18 @@ export default {
     },
 
     getMinimalSlaTask (tasks) {
-      const withSla = (tasks || []).filter(t => t?.sla?.startDate && t?.sla?.duration)
+      const withSla = (tasks || []).filter(task => this.hasTaskSla(task))
       if (withSla.length === 0) {
         return null
       }
-      // Берём самую “срочную” — с минимальным оставшимся временем
-      return withSla.reduce((best, t) => {
+      // Берём самую срочную заявку — с минимальным оставшимся временем.
+      // Важно учитывать данные /sla/info по каждой заявке, иначе просроченная
+      // заявка может потеряться, а в строке клиента будет показан зелёный SLA
+      // от другой заявки.
+      return withSla.reduce((best, task) => {
         const bestLeft = this.getSlaLeftMsApprox(best)
-        const tLeft = this.getSlaLeftMsApprox(t)
-        return (tLeft !== null && (bestLeft === null || tLeft < bestLeft)) ? t : best
+        const taskLeft = this.getSlaLeftMsApprox(task)
+        return taskLeft !== null && (bestLeft === null || taskLeft < bestLeft) ? task : best
       }, withSla[0])
     },
 
@@ -1161,34 +1200,55 @@ export default {
     async preloadSlaInfosForClients (clients) {
       const ids = []
       ;(clients || []).forEach(client => {
-        const minTask = this.getMinimalSlaTask(this.getActualTasks(client))
-        if (minTask?.id) {
-          ids.push(minTask.id)
-        }
+        this.getActualTasks(client).forEach(task => {
+          if (task?.id) {
+            ids.push(task.id)
+          }
+        })
       })
       const uniqIds = [...new Set(ids)]
       await Promise.all(uniqIds.map(id => this.loadSlaInfoForTaskId(id)))
     },
 
     getSlaLeftMsApprox (task) {
-      if (!task?.sla?.startDate || !task?.sla?.duration) {
+      if (!task) {
         return null
       }
-      const info = this.getSlaInfo(task)
+
+      const info = this.getTaskSlaInfo(task)
       if (info) {
         const remainingSeconds = Number(info.remainingSeconds)
-        if (info.paused && Number.isFinite(remainingSeconds)) {
+        const deadlineMs = info.deadline ? new Date(info.deadline).getTime() : NaN
+
+        if (Number.isFinite(remainingSeconds) && remainingSeconds <= 0) {
+          return 0
+        }
+
+        if (info.paused === true && Number.isFinite(remainingSeconds)) {
           return Math.max(0, remainingSeconds * 1000)
         }
-        if (info.deadline) {
-          const deadlineMs = new Date(info.deadline).getTime()
-          if (Number.isFinite(deadlineMs)) {
-            return Math.max(0, deadlineMs - this.nowTs)
-          }
+
+        if (Number.isFinite(deadlineMs)) {
+          return Math.max(0, deadlineMs - this.nowTs)
+        }
+
+        if (Number.isFinite(remainingSeconds)) {
+          return Math.max(0, remainingSeconds * 1000)
         }
       }
-      const startMs = new Date(task.sla.startDate).getTime()
-      const durationMs = this.parseIsoDurationToMs(task.sla.duration)
+
+      if (this.isTaskSlaExpiredByFlags(task)) {
+        return 0
+      }
+
+      const startDate = task?.sla?.startDate || task?.slaStartDate
+      const duration = task?.sla?.duration || task?.slaDuration
+      if (!startDate || !duration) {
+        return null
+      }
+
+      const startMs = new Date(startDate).getTime()
+      const durationMs = this.parseIsoDurationToMs(duration)
       if (!Number.isFinite(startMs) || durationMs <= 0) {
         return null
       }
@@ -1230,10 +1290,7 @@ export default {
     },
 
     hasClientSla (client) {
-      return this.getActualTasks(client).some(task =>
-        !!task?.sla?.startDate &&
-        !!task?.sla?.duration
-      )
+      return this.getActualTasks(client).some(task => this.hasTaskSla(task))
     },
 
     hasCriticalTasks (client) {

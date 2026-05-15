@@ -11,12 +11,12 @@
       />
     </q-card-section>
     <q-card-section style="margin-bottom: 44px" class="q-pt-none">
-<!--      <div v-if="this.action === 'close'">-->
-<!--        Закрыть заявки ({{ this.store.checkedTasks.length }})?-->
-<!--      </div>-->
-<!--      <div v-if="this.action === 'open'">-->
-<!--        Открыть заявки ({{ this.store.checkedTasks.length }})?-->
-<!--      </div>-->
+      <!--      <div v-if="this.action === 'close'">-->
+      <!--        Закрыть заявки ({{ this.store.checkedTasks.length }})?-->
+      <!--      </div>-->
+      <!--      <div v-if="this.action === 'open'">-->
+      <!--        Открыть заявки ({{ this.store.checkedTasks.length }})?-->
+      <!--      </div>-->
       <q-input
         v-if="this.action === 'freeze'"
         data-tour="tasks-bulk-actions-field"
@@ -132,7 +132,7 @@
     </q-card-section>
     <q-card-actions style="position: absolute;bottom: 0;width: 100%" align="right" data-tour="tasks-bulk-actions-buttons">
       <q-btn flat label="Отменить" text-color="primary" v-close-popup />
-      <q-btn label="Применить" color="primary" v-close-popup @click="this.doAction()"/>
+      <q-btn label="Применить" color="primary" @click="this.doAction()"/>
     </q-card-actions>
   </q-card>
   <q-dialog persistent v-model="this.freezeDialog">
@@ -202,7 +202,8 @@ export default {
 
   props: {
     action: { type: String, required: true },
-    statusChangeReason: { type: String, default: '' }
+    statusChangeReason: { type: String, default: '' },
+    requestStatusChangeReason: { type: Function, default: null }
   },
 
   data: () => ({
@@ -233,138 +234,172 @@ export default {
       }
     },
 
-    doAction () {
-      if (this.action !== 'close' && this.action !== 'open') {
-        if (this.tasksFreezeUntil.length === 0 && this.tasksExecutor.length === 0 &&
-            this.tasksStatus.length === 0 && this.tasksPriority.length === 0 && this.tasksTags.length === 0 &&
-            this.tasksDeadline.length === 0) {
-          this.$q.notify({
-            message: 'Не заполнены обязательные поля',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          })
-          return
-        }
+    hasRequiredActionValue () {
+      if (['close', 'open'].includes(this.action)) {
+        return true
       }
 
-      this.store.checkedTasks.forEach(sourceTask => {
-        let task = {
-          ...sourceTask,
-          tags: Array.isArray(sourceTask.tags) ? [...sourceTask.tags] : []
+      return String(this.tasksFreezeUntil || '').length > 0 ||
+        String(this.tasksExecutor || '').length > 0 ||
+        String(this.tasksStatus || '').length > 0 ||
+        String(this.tasksPriority || '').length > 0 ||
+        (Array.isArray(this.tasksTags) && this.tasksTags.length > 0) ||
+        String(this.tasksDeadline || '').length > 0
+    },
+
+    buildTaskForBulkAction (sourceTask, statusChangeReason) {
+      let task = {
+        ...sourceTask,
+        tags: Array.isArray(sourceTask.tags) ? [...sourceTask.tags] : []
+      }
+
+      if (this.action === 'close') {
+        const closedStatus = this.getClosedStatus()
+
+        task.completed = true
+        task.frozen = false
+        task.frozenFrom = null
+        task.frozenUntil = null
+
+        if (closedStatus) {
+          task.status = closedStatus
+        }
+      } else if (this.action === 'open') {
+        const openStatus = this.getOpenStatus(sourceTask)
+
+        task.completed = false
+        task.frozen = false
+        task.frozenFrom = null
+        task.frozenUntil = null
+
+        if (openStatus) {
+          task.status = openStatus
+        }
+      } else if (this.action === 'freeze') {
+        const frozenStatus = this.getFrozenStatus()
+
+        task.completed = false
+        task.frozen = true
+        task.frozenFrom = new Date()
+        task.frozenUntil = moment(this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+
+        if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
+          task.previousStatus = sourceTask.status
         }
 
-        if (this.action === 'close') {
-          const closedStatus = this.getClosedStatus()
+        if (frozenStatus) {
+          task.status = frozenStatus
+        }
+      } else if (this.action === 'executor') {
+        task.executor = this.store.users.find(user => this.getUserName(user) === this.tasksExecutor)
+      } else if (this.action === 'status') {
+        const selectedStatus = this.store.statuses.find(status => status.name === this.tasksStatus)
 
+        task.status = selectedStatus
+
+        if (selectedStatus && this.isClosedStatusName(selectedStatus.name)) {
           task.completed = true
           task.frozen = false
           task.frozenFrom = null
           task.frozenUntil = null
-
-          if (closedStatus) {
-            task.status = closedStatus
-          }
-        } else if (this.action === 'open') {
-          const openStatus = this.getOpenStatus(sourceTask)
-
-          task.completed = false
-          task.frozen = false
-          task.frozenFrom = null
-          task.frozenUntil = null
-
-          if (openStatus) {
-            task.status = openStatus
-          }
-        } else if (this.action === 'freeze') {
-          const frozenStatus = this.getFrozenStatus()
-
+        } else if (selectedStatus && this.isFrozenStatusName(selectedStatus.name)) {
           task.completed = false
           task.frozen = true
           task.frozenFrom = new Date()
-          task.frozenUntil = moment(this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+          task.frozenUntil = moment(this.taskFreezeUntil || this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
 
           if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
             task.previousStatus = sourceTask.status
           }
+        } else {
+          task.completed = false
+          task.frozen = false
+          task.frozenFrom = null
+          task.frozenUntil = null
+        }
+      } else if (this.action === 'priority') {
+        task.priority = this.store.priorities.find(priority => priority.name === this.tasksPriority)
+      } else if (this.action === 'tags') {
+        const taskTags = []
+        this.tasksTags.forEach(tagName => taskTags.push(this.store.tags.find(tag => tag.name === tagName)))
+        task.tags = taskTags
+      } else if (this.action === 'deadline') {
+        task.deadline = moment(this.tasksDeadline, 'DD.MM.YYYY HH:mm').format()
+      }
 
-          if (frozenStatus) {
-            task.status = frozenStatus
-          }
-        } else if (this.action === 'executor') {
-          task.executor = this.store.users.find(user => this.getUserName(user) === this.tasksExecutor)
-        } else if (this.action === 'status') {
-          const selectedStatus = this.store.statuses.find(status => status.name === this.tasksStatus)
+      task = this.withStatusChangeReason(task, statusChangeReason)
 
-          task.status = selectedStatus
+      delete task.client
+      delete task.sla
 
-          if (selectedStatus && this.isClosedStatusName(selectedStatus.name)) {
-            task.completed = true
-            task.frozen = false
-            task.frozenFrom = null
-            task.frozenUntil = null
-          } else if (selectedStatus && this.isFrozenStatusName(selectedStatus.name)) {
-            task.completed = false
-            task.frozen = true
-            task.frozenFrom = new Date()
-            task.frozenUntil = moment(this.taskFreezeUntil || this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
+      return task
+    },
 
-            if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
-              task.previousStatus = sourceTask.status
-            }
-          } else {
-            task.completed = false
-            task.frozen = false
-            task.frozenFrom = null
-            task.frozenUntil = null
-          }
-        } else if (this.action === 'priority') {
-          task.priority = this.store.priorities.find(priority => priority.name === this.tasksPriority)
-        } else if (this.action === 'tags') {
-          const taskTags = []
-          this.tasksTags.forEach(tagName => taskTags.push(this.store.tags.find(tag => tag.name === tagName)))
-          task.tags = taskTags
-        } else if (this.action === 'deadline') {
-          task.deadline = moment(this.tasksDeadline, 'DD.MM.YYYY HH:mm').format()
+    async doAction () {
+      if (!this.hasRequiredActionValue()) {
+        this.$q.notify({
+          message: 'Не заполнены обязательные поля',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
+
+      const selectedTasks = [...this.store.checkedTasks]
+      const statusChangeReason = await this.getStatusChangeReasonForBulkAction()
+
+      if (statusChangeReason === null) {
+        return
+      }
+
+      try {
+        for (const sourceTask of selectedTasks) {
+          const task = this.buildTaskForBulkAction(sourceTask, statusChangeReason)
+          const clientId = this.getClient(sourceTask)
+
+          const newTask = await axios.patch(`/api/v1/client/${clientId}/task`, task)
+          this.$emit('updateTask', task, newTask)
         }
 
-        task = this.withStatusChangeReason(task)
+        this.store.checkedTasks = []
 
-        const clientId = this.getClient(sourceTask)
+        this.$q.notify({
+          message: this.getNotify,
+          type: 'positive',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
 
-        delete task.client
-        delete task.sla
-
-        axios.patch(`/api/v1/client/${clientId}/task`, task)
-          .then(newTask => {
-            this.$emit('updateTask', task, newTask)
-            this.store.checkedTasks = []
-          })
-          .catch(e =>
-            this.$q.notify({
-              message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
-            }))
-      })
-
-      this.$q.notify({
-        message: this.getNotify,
-        type: 'positive',
-        position: 'top-right',
-        actions: [{
-          icon: 'close', color: 'white', dense: true, handler: () => undefined
-        }]
-      })
+        this.$emit('close')
+      } catch (e) {
+        this.$q.notify({
+          message: e.message,
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      }
     },
 
     getClient (task) {
-      return this.store.clients.find(client => client.tasks.find(t => t.id === task.id)).id
+      const directClientId = task?.client?.id || task?.clientId || task?.client_id || (typeof task?.client === 'number' ? task.client : null)
+      if (directClientId) {
+        return directClientId
+      }
+
+      const client = this.store.clients.find(client => Array.isArray(client.tasks) && client.tasks.find(t => t.id === task.id))
+      if (!client?.id) {
+        throw new Error(`Не найден clientId для заявки ${task?.id || ''}`)
+      }
+
+      return client.id
     },
 
     getDeclension (count) {
@@ -385,40 +420,51 @@ export default {
     },
 
     formatDateTime () {
-      const rawValue = this.dialogTaskDeadline.replace(/\D/g, '')
-      let formattedValue = ''
-      if (rawValue.length <= 2) {
-        formattedValue = rawValue
-      } else if (rawValue.length <= 4) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2)
-      } else if (rawValue.length <= 6) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4)
-      } else if (rawValue.length <= 8) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8)
-      } else if (rawValue.length <= 10) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8)
-      } else if (rawValue.length <= 12) {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10)
-      } else {
-        formattedValue = rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
+      const formatValue = value => {
+        const rawValue = String(value || '').replace(/\D/g, '')
+        if (rawValue.length <= 2) {
+          return rawValue
+        }
+        if (rawValue.length <= 4) {
+          return rawValue.slice(0, 2) + '.' + rawValue.slice(2)
+        }
+        if (rawValue.length <= 8) {
+          return rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8)
+        }
+        if (rawValue.length <= 10) {
+          return rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8)
+        }
+        return rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
       }
-      this.dialogTaskDeadline = formattedValue
+
+      ;['tasksFreezeUntil', 'taskFreezeUntil', 'tasksDeadline'].forEach(field => {
+        if (typeof this[field] === 'string') {
+          this[field] = formatValue(this[field])
+        }
+      })
     },
 
-    getNormalizedStatusChangeReason () {
-      const reason = String(this.statusChangeReason || '').trim()
-      return reason.length > 0 ? reason : null
+    getNormalizedStatusChangeReason (reason = this.statusChangeReason) {
+      const normalizedReason = String(reason || '').trim()
+      return normalizedReason.length > 0 ? normalizedReason : null
     },
 
-    withStatusChangeReason (task) {
-      const reason = this.getNormalizedStatusChangeReason()
-      if (!reason) {
+    withStatusChangeReason (task, reason = this.statusChangeReason) {
+      const normalizedReason = this.getNormalizedStatusChangeReason(reason)
+      if (!normalizedReason) {
         return task
       }
       return {
         ...task,
-        statusChangeReason: reason
+        statusChangeReason: normalizedReason
       }
+    },
+
+    getStatusName (status) {
+      if (!status) {
+        return ''
+      }
+      return typeof status === 'string' ? status : status.name || ''
     },
 
     isClosedStatusName (statusName) {
@@ -431,6 +477,124 @@ export default {
 
     isOpenStatusName (statusName) {
       return !!statusName && !this.isClosedStatusName(statusName) && !this.isFrozenStatusName(statusName)
+    },
+
+    getSelectedStatus () {
+      return this.store.statuses.find(status => status.name === this.tasksStatus)
+    },
+
+    getTargetStatusForCurrentAction () {
+      switch (this.action) {
+        case 'close':
+          return this.getClosedStatus()
+        case 'freeze':
+          return this.getFrozenStatus() || { name: 'Заморожено' }
+        case 'status':
+          return this.getSelectedStatus()
+        default:
+          return null
+      }
+    },
+
+    needStatusChangeReason (oldStatusName, newStatusName, task = null) {
+      const oldName = String(oldStatusName || '').trim()
+      const newName = String(newStatusName || '').trim()
+
+      if (!newName) {
+        return false
+      }
+
+      if (oldName && oldName.toLowerCase() === newName.toLowerCase()) {
+        return false
+      }
+
+      if (this.isClosedStatusName(newName) || this.isFrozenStatusName(newName)) {
+        return true
+      }
+
+      return this.isOpenStatusName(newName) && (
+        this.isClosedStatusName(oldName) ||
+        this.isFrozenStatusName(oldName) ||
+        task?.completed === true ||
+        task?.frozen === true
+      )
+    },
+
+    async getStatusChangeReasonForBulkAction () {
+      const existingReason = this.getNormalizedStatusChangeReason()
+      if (existingReason) {
+        return existingReason
+      }
+
+      if (!['close', 'open', 'freeze', 'status'].includes(this.action)) {
+        return ''
+      }
+
+      if (typeof this.requestStatusChangeReason !== 'function') {
+        return ''
+      }
+
+      if (this.action === 'open') {
+        const affectedOpenTasks = this.store.checkedTasks.filter(task =>
+          task?.completed === true ||
+          task?.frozen === true ||
+          this.isClosedStatusName(this.getStatusName(task?.status)) ||
+          this.isFrozenStatusName(this.getStatusName(task?.status))
+        )
+
+        if (affectedOpenTasks.length === 0) {
+          return ''
+        }
+
+        const openStatus = this.getOpenStatus(affectedOpenTasks[0]) || { name: 'Открыто' }
+        return this.requestStatusChangeReason({
+          action: this.action,
+          newStatus: openStatus,
+          newStatusName: this.getStatusName(openStatus),
+          tasks: affectedOpenTasks
+        })
+      }
+
+      if (this.action === 'freeze') {
+        const frozenStatus = this.getFrozenStatus() || { name: 'Заморожено' }
+        return this.requestStatusChangeReason({
+          action: this.action,
+          newStatus: frozenStatus,
+          newStatusName: this.getStatusName(frozenStatus),
+          tasks: this.store.checkedTasks
+        })
+      }
+
+      const selectedStatus = this.getTargetStatusForCurrentAction()
+      if (!selectedStatus) {
+        this.$q.notify({
+          message: this.action === 'status' ? 'Выберите статус' : 'Не найден целевой статус',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return null
+      }
+
+      const newStatusName = this.getStatusName(selectedStatus)
+      const affectedTasks = this.store.checkedTasks.filter(task => this.needStatusChangeReason(
+        this.getStatusName(task?.status),
+        newStatusName,
+        task
+      ))
+
+      if (affectedTasks.length === 0) {
+        return ''
+      }
+
+      return this.requestStatusChangeReason({
+        action: this.action,
+        newStatus: selectedStatus,
+        newStatusName,
+        tasks: affectedTasks
+      })
     },
 
     getClosedStatus () {
@@ -539,7 +703,7 @@ export default {
     tasksStatus: {
       deep: true,
       handler () {
-        if (this.tasksStatus === 'Заморожена') {
+        if (this.isFrozenStatusName(this.tasksStatus)) {
           this.freezeDialog = true
         }
       }

@@ -382,6 +382,20 @@ function userNotificationCallback(message) {
           tag: `chat-unanswered-${parsedMessage.userId}`
         })
         break
+
+      case 'DEADLINE_SOON':
+        notify('ULDesk', {
+          body: parsedMessage.message || 'Скоро дедлайн по заявке',
+          tag: `deadline-soon-${parsedMessage.userId}`
+        })
+        break
+
+      case 'DEADLINE_OVERDUE':
+        notify('ULDesk', {
+          body: parsedMessage.message || 'Дедлайн нарушен',
+          tag: `deadline-overdue-${parsedMessage.userId}`
+        })
+        break
     }
   }
 }

@@ -629,7 +629,7 @@
             <q-tooltip
               v-if="!this.isMobile"
             >
-              ctrl+enter отправить
+              {{ this.sendShortcutText }}
             </q-tooltip>
           </q-btn>
         </div>
@@ -1394,7 +1394,26 @@ export default {
       })
     },
 
+    isSendMessageShortcut (event) {
+      const isEnter = event.key === 'Enter' || event.keyCode === 13
+      if (!isEnter) {
+        return false
+      }
+
+      if (this.isMacOs) {
+        return event.metaKey && !event.ctrlKey
+      }
+
+      return event.ctrlKey && !event.metaKey
+    },
+
     handleKeyPressed (event) {
+      if (this.isSendMessageShortcut(event)) {
+        event.preventDefault()
+        this.sendMessage()
+        return
+      }
+
       if (this.mentionMenu) {
         if (event.key === 'ArrowDown') {
           event.preventDefault()
@@ -1419,9 +1438,6 @@ export default {
           this.mentionMenu = false
           return
         }
-      }
-      if (event.keyCode === 13 && event.ctrlKey) {
-        this.sendMessage()
       }
     },
 
@@ -1698,6 +1714,18 @@ export default {
 
     renderShortcutPlaceholder () {
       return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
+    },
+
+    isMacOs () {
+      if (typeof navigator === 'undefined') {
+        return false
+      }
+
+      return /Mac/.test(navigator.platform || '') || /Mac OS X/.test(navigator.userAgent || '')
+    },
+
+    sendShortcutText () {
+      return this.isMacOs ? 'cmd+enter отправить' : 'ctrl+enter отправить'
     },
 
     chatStyle () {

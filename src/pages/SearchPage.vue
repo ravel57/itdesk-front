@@ -205,6 +205,11 @@ export default {
     const store = useStore()
     const route = useRoute()
     return { store, route }
+  },
+
+
+  mounted() {
+    document.title = 'ULDESK : Поиск'
   }
 }
 </script>

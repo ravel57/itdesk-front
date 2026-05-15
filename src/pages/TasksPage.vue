@@ -150,6 +150,28 @@
                 Закрытые заявки: {{ this.isShowCompletedTasks ? "Показаны" : "Скрыты" }}
               </q-tooltip>
             </q-toggle>
+            <q-btn
+              icon="undo"
+              flat
+              class="text-grey-7"
+              :disable="!this.canUndoBulkAction || this.isBulkHistoryProcessing"
+              @click="this.undoBulkAction"
+            >
+              <q-tooltip>
+                {{ this.bulkUndoTooltip }}
+              </q-tooltip>
+            </q-btn>
+            <q-btn
+              icon="redo"
+              flat
+              class="text-grey-7"
+              :disable="!this.canRedoBulkAction || this.isBulkHistoryProcessing"
+              @click="this.redoBulkAction"
+            >
+              <q-tooltip>
+                {{ this.bulkRedoTooltip }}
+              </q-tooltip>
+            </q-btn>
           </div>
           <q-dialog
             v-model="dialogSaveFilterVisible"
@@ -471,8 +493,8 @@
     </div>
     <div
       v-if="this.isShowBulkActionsMenu"
-      :style="this.isMobile ? 'left: 2vw !important;' : ''"
       class="mass-container"
+      :class="{ 'mass-container--mobile': this.isMobile }"
     >
       <q-page class="shadow-1" style="min-height: 0; padding: 0; border-radius: 5px;display: flex">
         <q-btn v-if="!this.showOpenTaskBtn" class="mass-actions-btn" flat text-color="white" icon="check_circle"
@@ -551,9 +573,12 @@
     @hide="this.clearBulkActionReason"
   >
     <task-bulk-actions-modal
+      :key="this.action"
       :action="this.action"
       :status-change-reason="this.bulkStatusChangeReason"
+      :request-status-change-reason="this.requestBulkStatusChangeReason"
       @updateTask="this.updateTask"
+      @close="this.closeBulkActionModal"
     />
   </q-dialog>
   <q-dialog v-model="this.isShowTableSettings" persistent>
@@ -744,6 +769,15 @@ export default {
     bulkStatusChangeReason: '',
     isBulkReasonDialogShow: false,
     bulkReasonError: false,
+    bulkReasonResolve: null,
+    bulkReasonDialogTitle: '',
+    bulkReasonDialogMessage: '',
+    bulkActionHistory: [],
+    bulkActionRedoHistory: [],
+    pendingBulkActionHistory: null,
+    bulkActionHistoryFinishTimer: null,
+    isBulkHistoryProcessing: false,
+    maxBulkActionHistorySize: 20,
 
     selectedSorting: [],
     sortMenuOpened: [],
@@ -1112,7 +1146,440 @@ export default {
     },
 
     updateTask(task, newTask) {
-      this.getClient.tasks[this.getClient.tasks.indexOf(task)] = newTask.data
+      const updatedTask = newTask?.data || newTask || task?.data || task
+      if (!updatedTask?.id) {
+        return
+      }
+
+      this.trackBulkActionHistoryAfterState(updatedTask)
+      this.replaceTaskInLists(updatedTask)
+
+      const history = this.pendingBulkActionHistory
+      const delay = history && history.afterTasks.length >= history.taskIds.length ? 0 : 500
+      this.scheduleFinishBulkActionHistory(delay)
+    },
+
+    cloneBulkTask(task) {
+      const seen = new WeakSet()
+
+      return JSON.parse(JSON.stringify(task, (key, value) => {
+        if (typeof value === 'bigint') {
+          return value.toString()
+        }
+
+        if (typeof value === 'function' || typeof value === 'symbol') {
+          return undefined
+        }
+
+        if (value && typeof value === 'object') {
+          if (seen.has(value)) {
+            return undefined
+          }
+          seen.add(value)
+        }
+
+        return value
+      }))
+    },
+
+    getStoreTaskById(taskId) {
+      return this.store.getTasks.find(task => task?.id === taskId) || null
+    },
+
+    getCheckedTaskById(taskId) {
+      return this.store.checkedTasks.find(task => task?.id === taskId) || null
+    },
+
+    replaceTaskInLists(task) {
+      const tasks = this.store.getTasks
+      const taskIndex = tasks.findIndex(item => item?.id === task.id)
+      if (taskIndex !== -1) {
+        tasks.splice(taskIndex, 1, task)
+      }
+
+      const checkedTaskIndex = this.store.checkedTasks.findIndex(item => item?.id === task.id)
+      if (checkedTaskIndex !== -1) {
+        this.store.checkedTasks.splice(checkedTaskIndex, 1, task)
+      }
+
+      if (this.selectedTask?.id === task.id) {
+        this.selectedTask = task
+      }
+
+      if (Object.prototype.hasOwnProperty.call(this.slaInfoByTaskId, task.id)) {
+        const slaInfo = {...this.slaInfoByTaskId}
+        delete slaInfo[task.id]
+        this.slaInfoByTaskId = slaInfo
+      }
+    },
+
+    beginBulkActionHistory(action) {
+      if (this.bulkActionHistoryFinishTimer) {
+        clearTimeout(this.bulkActionHistoryFinishTimer)
+        this.bulkActionHistoryFinishTimer = null
+      }
+
+      const selectedTasks = this.store.checkedTasks
+        .map(task => this.getStoreTaskById(task?.id) || task)
+        .filter(task => task?.id)
+
+      if (selectedTasks.length === 0) {
+        this.pendingBulkActionHistory = null
+        return
+      }
+
+      const clientIdsByTaskId = selectedTasks.reduce((acc, task) => {
+        const clientId = this.getBulkTaskClientId(task)
+        if (clientId) {
+          acc[task.id] = clientId
+        }
+        return acc
+      }, {})
+
+      this.pendingBulkActionHistory = {
+        action,
+        createdAt: Date.now(),
+        taskIds: selectedTasks.map(task => task.id),
+        clientIdsByTaskId,
+        beforeTasks: selectedTasks.map(task => this.cloneBulkTask(task)),
+        afterTasks: []
+      }
+    },
+
+    trackBulkActionHistoryAfterState(task) {
+      const history = this.pendingBulkActionHistory
+      if (!history || !task?.id || !history.taskIds.includes(task.id)) {
+        return
+      }
+
+      const clientId = this.getBulkTaskClientId(task)
+      if (clientId) {
+        history.clientIdsByTaskId = {
+          ...(history.clientIdsByTaskId || {}),
+          [task.id]: clientId
+        }
+      }
+
+      const afterTask = this.cloneBulkTask(task)
+      const existingIndex = history.afterTasks.findIndex(item => item.id === task.id)
+      if (existingIndex === -1) {
+        history.afterTasks.push(afterTask)
+      } else {
+        history.afterTasks.splice(existingIndex, 1, afterTask)
+      }
+    },
+
+    trackPendingBulkHistoryFromTasks(tasks) {
+      const history = this.pendingBulkActionHistory
+      if (!history || !Array.isArray(tasks)) {
+        return
+      }
+
+      history.taskIds.forEach(taskId => {
+        const task = tasks.find(item => item?.id === taskId)
+        if (task?.id) {
+          this.trackBulkActionHistoryAfterState(task)
+        }
+      })
+    },
+
+    getBulkHistoryAfterTask(taskId) {
+      const history = this.pendingBulkActionHistory
+      return history?.afterTasks.find(task => task.id === taskId) || this.getStoreTaskById(taskId) || this.getCheckedTaskById(taskId)
+    },
+
+    areBulkTasksEqual(firstTask, secondTask) {
+      return JSON.stringify(this.cloneBulkTask(firstTask)) === JSON.stringify(this.cloneBulkTask(secondTask))
+    },
+
+    hasPendingBulkActionHistoryChanges() {
+      const history = this.pendingBulkActionHistory
+      if (!history) {
+        return false
+      }
+
+      const beforeById = new Map(history.beforeTasks.map(task => [task.id, task]))
+      return history.taskIds.some(taskId => {
+        const beforeTask = beforeById.get(taskId)
+        const afterTask = this.getBulkHistoryAfterTask(taskId)
+        return beforeTask?.id && afterTask?.id && !this.areBulkTasksEqual(beforeTask, afterTask)
+      })
+    },
+
+    scheduleFinishBulkActionHistory(delay = 0, force = false) {
+      if (!this.pendingBulkActionHistory) {
+        return
+      }
+
+      if (this.bulkActionHistoryFinishTimer) {
+        clearTimeout(this.bulkActionHistoryFinishTimer)
+      }
+
+      this.bulkActionHistoryFinishTimer = setTimeout(() => {
+        this.bulkActionHistoryFinishTimer = null
+        this.finishBulkActionHistory(force)
+      }, delay)
+    },
+
+    finishBulkActionHistory(force = false) {
+      const history = this.pendingBulkActionHistory
+      if (!history) {
+        return
+      }
+
+      const beforeById = new Map(history.beforeTasks.map(task => [task.id, task]))
+      const afterTasks = history.taskIds
+        .map(taskId => this.getBulkHistoryAfterTask(taskId))
+        .filter(task => task?.id)
+        .map(task => this.cloneBulkTask(task))
+        .filter(task => !this.areBulkTasksEqual(beforeById.get(task.id), task))
+      const afterIds = new Set(afterTasks.map(task => task.id))
+      const beforeTasks = history.beforeTasks.filter(task => afterIds.has(task.id))
+
+      if (beforeTasks.length === 0 || afterTasks.length === 0) {
+        if (!force && Date.now() - history.createdAt < 3500) {
+          this.scheduleFinishBulkActionHistory(500)
+          return
+        }
+
+        this.pendingBulkActionHistory = null
+        return
+      }
+
+      this.pendingBulkActionHistory = null
+
+      this.bulkActionHistory.push({
+        action: history.action,
+        createdAt: history.createdAt,
+        clientIdsByTaskId: history.clientIdsByTaskId || {},
+        beforeTasks,
+        afterTasks
+      })
+
+      if (this.bulkActionHistory.length > this.maxBulkActionHistorySize) {
+        this.bulkActionHistory.shift()
+      }
+
+      this.bulkActionRedoHistory = []
+      this.showBulkHistorySavedNotify(history.action, afterTasks.length)
+    },
+
+    getBulkActionLabel(action) {
+      switch (action) {
+        case 'close':
+          return 'закрытие заявок'
+        case 'open':
+          return 'возврат заявок в работу'
+        case 'freeze':
+          return 'заморозка заявок'
+        case 'executor':
+          return 'смена исполнителя'
+        case 'status':
+          return 'смена статуса'
+        case 'priority':
+          return 'смена приоритета'
+        case 'tags':
+          return 'смена тегов'
+        case 'deadline':
+          return 'смена дедлайна'
+        default:
+          return 'массовое действие'
+      }
+    },
+
+    showBulkHistorySavedNotify(action, count) {
+      this.$q.notify({
+        message: `Массовое действие сохранено в истории: ${this.getBulkActionLabel(action)} (${count})`,
+        type: 'info',
+        position: 'top-right',
+        timeout: 5000,
+        actions: [
+          {
+            label: 'Отменить',
+            color: 'white',
+            handler: () => this.undoBulkAction()
+          },
+          {
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }
+        ]
+      })
+    },
+
+    sanitizeBulkTaskForSave(task) {
+      const sanitizedTask = this.cloneBulkTask(task)
+      delete sanitizedTask.originalSla
+      delete sanitizedTask.slaInfo
+      delete sanitizedTask.slaSecondsLeft
+      delete sanitizedTask.slaPercent
+      delete sanitizedTask.slaExpired
+      delete sanitizedTask.checklistCompleted
+      delete sanitizedTask.checklistTotal
+      delete sanitizedTask._bulkClientId
+      if (sanitizedTask.client && Array.isArray(sanitizedTask.client.tasks)) {
+        delete sanitizedTask.client.tasks
+      }
+      return sanitizedTask
+    },
+
+    getBulkTaskClientId(task, fallbackTask = null, clientIdsByTaskId = {}) {
+      const taskId = task?.id || fallbackTask?.id
+      if (taskId && clientIdsByTaskId?.[taskId]) {
+        return clientIdsByTaskId[taskId]
+      }
+
+      const candidates = [
+        task,
+        fallbackTask,
+        taskId ? this.getStoreTaskById(taskId) : null,
+        taskId ? this.getCheckedTaskById(taskId) : null
+      ]
+
+      for (const candidate of candidates) {
+        const client = candidate?.client
+        const clientId = candidate?._bulkClientId ||
+          candidate?.clientId ||
+          candidate?.client_id ||
+          candidate?.client?.id ||
+          candidate?.client?.clientId ||
+          (typeof client === 'number' ? client : null)
+
+        if (clientId) {
+          return clientId
+        }
+      }
+
+      return null
+    },
+
+    async saveBulkTaskSnapshot(task, fallbackTask = null, clientIdsByTaskId = {}) {
+      const clientId = this.getBulkTaskClientId(task, fallbackTask, clientIdsByTaskId)
+      if (!clientId) {
+        throw new Error(`Не найден clientId для заявки ${task?.id || fallbackTask?.id || ''}`)
+      }
+
+      const response = await axios.patch(
+        `/api/v1/client/${clientId}/task`,
+        this.sanitizeBulkTaskForSave(task)
+      )
+      return response.data || task
+    },
+
+    async applyBulkHistorySnapshot(tasks, fallbackTasks = [], history = null) {
+      const updatedTasks = []
+      const fallbackById = new Map((fallbackTasks || []).map(task => [task.id, task]))
+      const clientIdsByTaskId = history?.clientIdsByTaskId || {}
+
+      for (const task of tasks) {
+        const fallbackTask = fallbackById.get(task?.id) || null
+        const savedTask = await this.saveBulkTaskSnapshot(task, fallbackTask, clientIdsByTaskId)
+        const normalizedTask = savedTask?.id ? savedTask : task
+        this.replaceTaskInLists(normalizedTask)
+        updatedTasks.push(this.cloneBulkTask(normalizedTask))
+      }
+      return updatedTasks
+    },
+
+    async undoBulkAction() {
+      if (this.pendingBulkActionHistory && this.hasPendingBulkActionHistoryChanges()) {
+        if (this.bulkActionHistoryFinishTimer) {
+          clearTimeout(this.bulkActionHistoryFinishTimer)
+          this.bulkActionHistoryFinishTimer = null
+        }
+        this.finishBulkActionHistory(true)
+      }
+
+      if (!this.canUndoBulkAction || this.isBulkHistoryProcessing) {
+        this.$q.notify({
+          message: 'Нет массовых действий для отмены',
+          type: 'warning',
+          position: 'top-right',
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        })
+        return
+      }
+
+      const history = this.bulkActionHistory.pop()
+      this.isBulkHistoryProcessing = true
+      try {
+        const restoredTasks = await this.applyBulkHistorySnapshot(history.beforeTasks, history.afterTasks, history)
+        this.bulkActionRedoHistory.push({
+          ...history,
+          clientIdsByTaskId: history.clientIdsByTaskId || {},
+          beforeTasks: restoredTasks,
+          afterTasks: history.afterTasks
+        })
+        this.$q.notify({
+          message: `Отменено: ${this.getBulkActionLabel(history.action)} (${restoredTasks.length})`,
+          type: 'positive',
+          position: 'top-right',
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        })
+      } catch (e) {
+        this.bulkActionHistory.push(history)
+        this.$q.notify({
+          message: e.message || 'Не удалось отменить массовое действие',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        })
+      } finally {
+        this.isBulkHistoryProcessing = false
+      }
+    },
+
+    async redoBulkAction() {
+      if (!this.canRedoBulkAction || this.isBulkHistoryProcessing) {
+        return
+      }
+
+      const history = this.bulkActionRedoHistory.pop()
+      this.isBulkHistoryProcessing = true
+      try {
+        const redoneTasks = await this.applyBulkHistorySnapshot(history.afterTasks, history.beforeTasks, history)
+        this.bulkActionHistory.push({
+          ...history,
+          clientIdsByTaskId: history.clientIdsByTaskId || {},
+          beforeTasks: history.beforeTasks,
+          afterTasks: redoneTasks
+        })
+        this.$q.notify({
+          message: `Повторено: ${this.getBulkActionLabel(history.action)} (${redoneTasks.length})`,
+          type: 'positive',
+          position: 'top-right',
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        })
+      } catch (e) {
+        this.bulkActionRedoHistory.push(history)
+        this.$q.notify({
+          message: e.message || 'Не удалось повторить массовое действие',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        })
+      } finally {
+        this.isBulkHistoryProcessing = false
+      }
+    },
+
+    showBulkActionModal(action) {
+      this.action = action
+      this.pendingBulkActionHistory = null
+
+      try {
+        this.beginBulkActionHistory(action)
+      } catch (e) {
+        console.error('Не удалось создать снимок заявок для undo/redo', e)
+        this.pendingBulkActionHistory = null
+      }
+
+      this.isModalForBulkActions = false
+      this.$nextTick(() => {
+        this.isModalForBulkActions = true
+      })
     },
 
     openBulkModal(action) {
@@ -1123,30 +1590,33 @@ export default {
         this.isBulkReasonDialogShow = true
         return
       }
-      this.action = action
-      this.isModalForBulkActions = true
+      this.showBulkActionModal(action)
     },
 
     isBulkReasonRequired(action) {
-      return ['close', 'open', 'freeze', 'status'].includes(action)
+      return ['close', 'open'].includes(action)
     },
 
     getBulkReasonDialogTitle() {
+      if (this.bulkReasonDialogTitle) {
+        return this.bulkReasonDialogTitle
+      }
+
       switch (this.pendingBulkAction) {
         case 'close':
           return 'Причина закрытия заявок'
         case 'open':
           return 'Причина возврата заявок в работу'
-        case 'freeze':
-          return 'Причина заморозки заявок'
-        case 'status':
-          return 'Причина изменения статуса заявок'
         default:
           return 'Причина изменения заявок'
       }
     },
 
     getBulkReasonDialogMessage() {
+      if (this.bulkReasonDialogMessage) {
+        return this.bulkReasonDialogMessage
+      }
+
       const count = this.store.checkedTasks.length
 
       switch (this.pendingBulkAction) {
@@ -1154,13 +1624,139 @@ export default {
           return `Будет закрыто заявок: ${count}. Укажите причину закрытия.`
         case 'open':
           return `Будет возвращено в работу заявок: ${count}. Укажите причину возврата.`
-        case 'freeze':
-          return `Будет заморожено заявок: ${count}. Укажите причину заморозки.`
-        case 'status':
-          return `Будет изменён статус заявок: ${count}. Укажите причину изменения статуса.`
         default:
           return `Будет изменено заявок: ${count}. Укажите причину.`
       }
+    },
+
+    getStatusName(status) {
+      if (!status) {
+        return ''
+      }
+
+      return typeof status === 'string' ? status : status.name || ''
+    },
+
+    isClosedStatusName(statusName) {
+      return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isFrozenStatusName(statusName) {
+      return ['заморожена', 'заморожено', 'заморожен'].includes(String(statusName || '').trim().toLowerCase())
+    },
+
+    isOpenStatusName(statusName) {
+      return !!statusName && !this.isClosedStatusName(statusName) && !this.isFrozenStatusName(statusName)
+    },
+
+    needBulkStatusChangeReason(oldStatusName, newStatusName, task = null) {
+      const oldName = String(oldStatusName || '').trim()
+      const newName = String(newStatusName || '').trim()
+
+      if (!newName) {
+        return false
+      }
+
+      if (oldName && oldName.toLowerCase() === newName.toLowerCase()) {
+        return false
+      }
+
+      if (this.isClosedStatusName(newName) || this.isFrozenStatusName(newName)) {
+        return true
+      }
+
+      if (!this.isOpenStatusName(newName)) {
+        return false
+      }
+
+      return this.isClosedStatusName(oldName) || this.isFrozenStatusName(oldName) || task?.completed === true || task?.frozen === true
+    },
+
+    getBulkStatusReasonPayload(payload = {}, maybeNewStatus = null) {
+      if (typeof payload === 'string' || maybeNewStatus !== null) {
+        return {
+          oldStatusName: this.getStatusName(payload),
+          newStatusName: this.getStatusName(maybeNewStatus),
+          tasks: this.store.checkedTasks || []
+        }
+      }
+
+      return {
+        oldStatusName: this.getStatusName(payload.oldStatus || payload.oldStatusName),
+        newStatusName: this.getStatusName(payload.newStatus || payload.status || payload.newStatusName),
+        tasks: payload.tasks || this.store.checkedTasks || []
+      }
+    },
+
+    getBulkStatusReasonAffectedTasks(oldStatusName, newStatusName, tasks) {
+      const checkedTasks = tasks || []
+      const affectedTasks = checkedTasks.filter(task => this.needBulkStatusChangeReason(
+        this.getStatusName(task?.status) || oldStatusName,
+        newStatusName,
+        task
+      ))
+
+      if (affectedTasks.length > 0) {
+        return affectedTasks
+      }
+
+      if (this.needBulkStatusChangeReason(oldStatusName, newStatusName)) {
+        return checkedTasks.length > 0
+          ? checkedTasks
+          : [{ status: oldStatusName, completed: this.isClosedStatusName(oldStatusName), frozen: this.isFrozenStatusName(oldStatusName) }]
+      }
+
+      return []
+    },
+
+    requestBulkStatusChangeReason(payload = {}, maybeNewStatus = null) {
+      const { oldStatusName, newStatusName, tasks } = this.getBulkStatusReasonPayload(payload, maybeNewStatus)
+      const affectedTasks = this.getBulkStatusReasonAffectedTasks(oldStatusName, newStatusName, tasks)
+
+      if (affectedTasks.length === 0) {
+        return Promise.resolve('')
+      }
+
+      const isClosing = affectedTasks.some(task =>
+        this.isClosedStatusName(newStatusName) &&
+        !this.isClosedStatusName(this.getStatusName(task?.status))
+      )
+      const isFreezing = affectedTasks.some(task =>
+        this.isFrozenStatusName(newStatusName) &&
+        !this.isFrozenStatusName(this.getStatusName(task?.status))
+      )
+      const isReopening = affectedTasks.some(task =>
+        this.isOpenStatusName(newStatusName) &&
+        (
+          this.isClosedStatusName(this.getStatusName(task?.status)) ||
+          this.isFrozenStatusName(this.getStatusName(task?.status)) ||
+          task?.completed === true ||
+          task?.frozen === true
+        )
+      )
+
+      if (isClosing && !isFreezing && !isReopening) {
+        this.bulkReasonDialogTitle = 'Причина закрытия заявок'
+        this.bulkReasonDialogMessage = `Будет закрыто заявок: ${affectedTasks.length}. Укажите причину закрытия.`
+      } else if (isFreezing && !isClosing && !isReopening) {
+        this.bulkReasonDialogTitle = 'Причина заморозки заявок'
+        this.bulkReasonDialogMessage = `Будет заморожено заявок: ${affectedTasks.length}. Укажите причину заморозки.`
+      } else if (isReopening && !isClosing && !isFreezing) {
+        this.bulkReasonDialogTitle = 'Причина возврата заявок в работу'
+        this.bulkReasonDialogMessage = `Будет возвращено в работу заявок: ${affectedTasks.length}. Укажите причину возврата.`
+      } else {
+        this.bulkReasonDialogTitle = 'Причина изменения статуса заявок'
+        this.bulkReasonDialogMessage = `Будет изменён тип состояния заявок: ${affectedTasks.length}. Укажите причину.`
+      }
+
+      this.pendingBulkAction = 'status'
+      this.bulkStatusChangeReason = ''
+      this.bulkReasonError = false
+      this.isBulkReasonDialogShow = true
+
+      return new Promise(resolve => {
+        this.bulkReasonResolve = resolve
+      })
     },
 
     confirmBulkReasonDialog() {
@@ -1171,24 +1767,89 @@ export default {
         return
       }
 
+      if (this.bulkReasonResolve) {
+        const resolve = this.bulkReasonResolve
+        this.isBulkReasonDialogShow = false
+        this.clearBulkReasonDialogState()
+        resolve(reason)
+        return
+      }
+
+      const action = this.pendingBulkAction
       this.bulkStatusChangeReason = reason
-      this.action = this.pendingBulkAction
       this.pendingBulkAction = null
       this.isBulkReasonDialogShow = false
-      this.isModalForBulkActions = true
+      this.showBulkActionModal(action)
     },
 
     cancelBulkReasonDialog() {
-      this.pendingBulkAction = null
-      this.bulkStatusChangeReason = ''
-      this.bulkReasonError = false
+      if (this.bulkReasonResolve) {
+        const resolve = this.bulkReasonResolve
+        this.isBulkReasonDialogShow = false
+        this.clearBulkReasonDialogState()
+        resolve(null)
+        return
+      }
+
+      this.clearBulkReasonDialogState()
       this.isBulkReasonDialogShow = false
     },
 
-    clearBulkActionReason() {
+    clearBulkReasonDialogState() {
       this.pendingBulkAction = null
       this.bulkStatusChangeReason = ''
       this.bulkReasonError = false
+      this.bulkReasonResolve = null
+      this.bulkReasonDialogTitle = ''
+      this.bulkReasonDialogMessage = ''
+    },
+
+    closeBulkActionModal() {
+      this.isModalForBulkActions = false
+      this.scheduleFinishBulkActionHistory(0)
+    },
+
+    clearBulkActionReason() {
+      if (this.hasPendingBulkActionHistoryChanges()) {
+        this.scheduleFinishBulkActionHistory(0)
+      } else {
+        this.scheduleFinishBulkActionHistory(1200)
+      }
+
+      if (this.bulkReasonResolve) {
+        return
+      }
+
+      this.clearBulkReasonDialogState()
+    },
+
+    isBulkHistoryShortcutTargetIgnored(target) {
+      const tagName = target?.tagName?.toLowerCase()
+      return target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName)
+    },
+
+    handleBulkHistoryShortcut(event) {
+      if (!(event.ctrlKey || event.metaKey) || this.isBulkHistoryShortcutTargetIgnored(event.target)) {
+        return
+      }
+
+      const key = event.key.toLowerCase()
+      if (key === 'z' && event.shiftKey) {
+        event.preventDefault()
+        this.redoBulkAction()
+        return
+      }
+
+      if (key === 'z') {
+        event.preventDefault()
+        this.undoBulkAction()
+        return
+      }
+
+      if (key === 'y') {
+        event.preventDefault()
+        this.redoBulkAction()
+      }
     },
 
     addMessageToTask(event) {
@@ -1638,6 +2299,36 @@ export default {
   },
 
   computed: {
+    canUndoBulkAction() {
+      return this.bulkActionHistory.length > 0 || this.hasPendingBulkActionHistoryChanges()
+    },
+
+    canRedoBulkAction() {
+      return this.bulkActionRedoHistory.length > 0
+    },
+
+    bulkUndoTooltip() {
+      const lastAction = this.bulkActionHistory[this.bulkActionHistory.length - 1]
+      if (lastAction) {
+        return `Отменить: ${this.getBulkActionLabel(lastAction.action)} (${lastAction.beforeTasks.length})`
+      }
+
+      if (this.hasPendingBulkActionHistoryChanges()) {
+        const pendingAction = this.pendingBulkActionHistory?.action
+        const count = this.pendingBulkActionHistory?.taskIds?.length || 0
+        return `Отменить: ${this.getBulkActionLabel(pendingAction)} (${count})`
+      }
+
+      return 'Нет массовых действий для отмены'
+    },
+
+    bulkRedoTooltip() {
+      const lastAction = this.bulkActionRedoHistory[this.bulkActionRedoHistory.length - 1]
+      return lastAction
+        ? `Повторить: ${this.getBulkActionLabel(lastAction.action)} (${lastAction.afterTasks.length})`
+        : 'Нет массовых действий для повтора'
+    },
+
     getFilteredTasks() {
       let tasks = this.store.getTasks.filter(task => {
         let matchesSearchRequest = true
@@ -1954,6 +2645,29 @@ export default {
       }
     },
 
+    'store.getTasks': {
+      deep: true,
+      handler(tasks) {
+        if (!this.pendingBulkActionHistory) {
+          return
+        }
+
+        this.trackPendingBulkHistoryFromTasks(tasks)
+        this.scheduleFinishBulkActionHistory(500)
+      }
+    },
+
+    'store.checkedTasks': {
+      deep: true,
+      handler(tasks) {
+        if (!this.pendingBulkActionHistory) {
+          return
+        }
+
+        this.trackPendingBulkHistoryFromTasks(tasks)
+      }
+    },
+
     activeColumns: {
       deep: true,
       handler() {
@@ -1977,6 +2691,7 @@ export default {
   mounted() {
     document.title = 'ULDESK : Заявки'
     this.store.checkedTasks = []
+    window.addEventListener('keydown', this.handleBulkHistoryShortcut)
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)
@@ -2018,7 +2733,11 @@ export default {
   },
 
   beforeUnmount() {
+    window.removeEventListener('keydown', this.handleBulkHistoryShortcut)
     clearInterval(this.slaTimer)
+    if (this.bulkActionHistoryFinishTimer) {
+      clearTimeout(this.bulkActionHistoryFinishTimer)
+    }
   },
 }
 </script>
@@ -2057,15 +2776,32 @@ export default {
 }
 
 .mass-container {
-  position: absolute;
+  position: fixed;
+  left: 50%;
+  bottom: -250px;
+  transform: translateX(-50%);
+  z-index: 3000;
+  width: max-content;
+  max-width: calc(100vw - 24px);
   padding: 0 14px;
   border-radius: 8px;
   background-color: rgba(36, 36, 36, 1);
-  left: 38vw;
-  bottom: -250px;
   animation-name: BulkContainer;
   animation-duration: 0.2s;
   animation-fill-mode: forwards;
+}
+
+.mass-container--mobile {
+  left: 12px;
+  right: 12px;
+  width: auto;
+  max-width: none;
+  transform: none;
+}
+
+.mass-container > .q-page {
+  width: 100%;
+  overflow-x: auto;
 }
 
 @keyframes BulkContainer {

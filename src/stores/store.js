@@ -22,6 +22,7 @@ export const useStore = defineStore('store', {
     roles: [],
     statuses: [],
     priorities: [],
+    taskTypes: [],
     templates: [],
     knowledgeBase: [],
     triggers: [],
@@ -65,23 +66,37 @@ export const useStore = defineStore('store', {
     ],
     usersOnline: [],
     currentClient: {},
-    currentChatMessageData:
-      {
-        messages: [],
-        isEnd: false
-      },
+    currentChatMessageData: {
+      messages: [],
+      isEnd: false
+    },
     checkedTasks: [],
     supportMessages: [],
     analyticsSummary: {
+      from: null,
+      to: null,
+      groupBy: 'DAY',
+
       newAppeals: 0,
       openTasks: 0,
       overdueSla: 0,
+      overdueDeadlines: 0,
+      deadlineWarnings: 0,
+      unansweredMessages: 0,
       avgFirstResponseSeconds: 0,
       avgCloseTimeSeconds: 0,
       unassignedTasks: 0,
       closedTasks: 0,
+      reopenedTasks: 0,
       closedByPeriod: [],
-      operatorLoad: []
+      reopenedByPeriod: [],
+      hourlyLoad: [],
+      operatorLoad: [],
+
+      byTypes: [],
+      byPriorities: [],
+      byExecutors: [],
+      byTags: []
     },
 
     currentSessionId: null,
@@ -158,6 +173,11 @@ export const useStore = defineStore('store', {
           this.priorities = response.data
         })
 
+      axios.get('/api/v1/task-types')
+        .then(response => {
+          this.taskTypes = response.data
+        })
+
       axios.get('/api/v1/templates')
         .then(response => {
           this.templates = response.data
@@ -179,12 +199,56 @@ export const useStore = defineStore('store', {
         })
     },
 
+    fetchAnalyticsDictionaries () {
+      const requests = []
+
+      requests.push(
+        axios.get('/api/v1/task-types')
+          .then(response => {
+            this.taskTypes = Array.isArray(response.data) ? response.data : []
+          })
+      )
+
+      requests.push(
+        axios.get('/api/v1/priorities')
+          .then(response => {
+            this.priorities = Array.isArray(response.data) ? response.data : []
+          })
+      )
+
+      requests.push(
+        axios.get('/api/v1/users')
+          .then(response => {
+            this.users = Array.isArray(response.data) ? response.data : []
+
+            this.users.forEach(user => {
+              if (user.lastname === null) {
+                user.lastname = ''
+              }
+            })
+          })
+      )
+
+      requests.push(
+        axios.get('/api/v1/tags')
+          .then(response => {
+            this.tags = Array.isArray(response.data) ? response.data : []
+          })
+      )
+
+      return Promise.all(requests)
+    },
+
     fetchClientMessages (clientId) {
       return axios.get(`/api/v1/client/${clientId}/messages-page?page=1`)
         .then(response => {
           const messages = response.data.messages
           const isEnd = response.data.isEnd
-          messages.forEach(message => { message.date = new Date(message.date) })
+
+          messages.forEach(message => {
+            message.date = new Date(message.date)
+          })
+
           this.currentChatMessageData.messages = messages
           this.currentChatMessageData.isEnd = isEnd
           return { messages, isEnd }
@@ -198,22 +262,89 @@ export const useStore = defineStore('store', {
     fetchAnalyticsSummary (params = {}) {
       const query = new URLSearchParams()
 
-      if (params.from) {
-        query.set('from', params.from)
+      const setParam = (name, value) => {
+        if (value === undefined || value === null || value === '') {
+          return
+        }
+
+        query.set(name, value)
       }
 
-      if (params.to) {
-        query.set('to', params.to)
+      const normalizeIds = value => {
+        if (!Array.isArray(value)) {
+          return []
+        }
+
+        return value
+          .map(item => {
+            if (item === null || item === undefined) {
+              return null
+            }
+
+            if (typeof item === 'object') {
+              return item.id ?? item.value ?? null
+            }
+
+            return item
+          })
+          .filter(item => item !== null && item !== undefined && item !== '')
       }
 
-      if (params.groupBy) {
-        query.set('groupBy', params.groupBy)
+      const setIdListParam = (name, value) => {
+        const ids = normalizeIds(value)
+
+        if (!ids.length) {
+          return
+        }
+
+        query.set(name, ids.join(','))
       }
 
-      return axios.get(`/api/v1/analytics/summary?${query.toString()}`)
+      setParam('from', params.from)
+      setParam('to', params.to)
+      setParam('groupBy', params.groupBy)
+
+      setIdListParam('typeIds', params.typeIds)
+      setIdListParam('priorityIds', params.priorityIds)
+      setIdListParam('executorIds', params.executorIds)
+      setIdListParam('tagIds', params.tagIds)
+
+      const queryString = query.toString()
+      const url = queryString
+        ? `/api/v1/analytics/summary?${queryString}`
+        : '/api/v1/analytics/summary'
+
+      return axios.get(url)
         .then(response => {
-          this.analyticsSummary = response.data
-          return response.data
+          this.analyticsSummary = {
+            from: response.data?.from ?? null,
+            to: response.data?.to ?? null,
+            groupBy: response.data?.groupBy ?? 'DAY',
+
+            newAppeals: response.data?.newAppeals ?? 0,
+            openTasks: response.data?.openTasks ?? 0,
+            overdueSla: response.data?.overdueSla ?? 0,
+            overdueDeadlines: response.data?.overdueDeadlines ?? 0,
+            deadlineWarnings: response.data?.deadlineWarnings ?? 0,
+            unansweredMessages: response.data?.unansweredMessages ?? 0,
+            avgFirstResponseSeconds: response.data?.avgFirstResponseSeconds ?? 0,
+            avgCloseTimeSeconds: response.data?.avgCloseTimeSeconds ?? 0,
+            unassignedTasks: response.data?.unassignedTasks ?? 0,
+            closedTasks: response.data?.closedTasks ?? 0,
+            reopenedTasks: response.data?.reopenedTasks ?? 0,
+
+            closedByPeriod: Array.isArray(response.data?.closedByPeriod) ? response.data.closedByPeriod : [],
+            reopenedByPeriod: Array.isArray(response.data?.reopenedByPeriod) ? response.data.reopenedByPeriod : [],
+            hourlyLoad: Array.isArray(response.data?.hourlyLoad) ? response.data.hourlyLoad : [],
+            operatorLoad: Array.isArray(response.data?.operatorLoad) ? response.data.operatorLoad : [],
+
+            byTypes: Array.isArray(response.data?.byTypes) ? response.data.byTypes : [],
+            byPriorities: Array.isArray(response.data?.byPriorities) ? response.data.byPriorities : [],
+            byExecutors: Array.isArray(response.data?.byExecutors) ? response.data.byExecutors : [],
+            byTags: Array.isArray(response.data?.byTags) ? response.data.byTags : []
+          }
+
+          return this.analyticsSummary
         })
     },
 
