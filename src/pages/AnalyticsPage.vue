@@ -896,6 +896,7 @@
 
 <script>
 import moment from 'moment'
+import { api } from 'boot/axios'
 import { useStore } from 'stores/store'
 
 export default {
@@ -909,6 +910,7 @@ export default {
 
   data: () => ({
     loading: false,
+    analyticsSummary: {},
     activeTab: 'overview',
     periodPreset: '7',
     fromDate: '',
@@ -1068,7 +1070,11 @@ export default {
 
   computed: {
     summary () {
-      return this.store.analyticsSummary || {}
+      const localSummary = this.unwrapAnalyticsResponse(this.analyticsSummary)
+      if (Object.keys(localSummary).length > 0) {
+        return localSummary
+      }
+      return this.unwrapAnalyticsResponse(this.store.analyticsSummary)
     },
 
     activeFilterCount () {
@@ -1655,6 +1661,36 @@ export default {
         }))
     },
 
+    unwrapAnalyticsResponse (value) {
+      if (!value) {
+        return {}
+      }
+      if (value.data && typeof value.data === 'object') {
+        return value.data
+      }
+      return value
+    },
+
+    toCsvParam (value) {
+      if (!Array.isArray(value) || value.length === 0) {
+        return undefined
+      }
+      return value.join(',')
+    },
+
+    buildAnalyticsParams () {
+      const filters = this.analyticsFilterQuery
+      return {
+        from: this.toIsoParam(this.fromDate, false),
+        to: this.toIsoParam(this.toDate, true),
+        groupBy: this.groupBy,
+        typeIds: this.toCsvParam(filters.typeIds),
+        priorityIds: this.toCsvParam(filters.priorityIds),
+        executorIds: this.toCsvParam(filters.executorIds),
+        tagIds: this.toCsvParam(filters.tagIds)
+      }
+    },
+
     applyPreset (needLoad = true) {
       const now = new Date()
       const from = new Date(now)
@@ -1675,17 +1711,15 @@ export default {
         return
       }
       this.loading = true
-      this.store.fetchAnalyticsSummary({
-        from: this.toIsoParam(this.fromDate, false),
-        to: this.toIsoParam(this.toDate, true),
-        groupBy: this.groupBy,
-        typeIds: this.analyticsFilterQuery.typeIds,
-        priorityIds: this.analyticsFilterQuery.priorityIds,
-        executorIds: this.analyticsFilterQuery.executorIds,
-        tagIds: this.analyticsFilterQuery.tagIds
+      api.get('/api/v1/analytics/summary', {
+        params: this.buildAnalyticsParams()
       })
+        .then(({ data }) => {
+          this.analyticsSummary = data || {}
+        })
         .catch(error => {
           console.error(error)
+          this.analyticsSummary = {}
           this.$q.notify({
             type: 'negative',
             message: 'Не удалось загрузить аналитику'
@@ -1723,9 +1757,27 @@ export default {
     },
 
     getSummaryRows (keys) {
+      const summary = this.unwrapAnalyticsResponse(this.summary)
       for (const key of keys) {
-        if (Array.isArray(this.summary[key])) {
-          return this.summary[key]
+        const value = summary[key]
+        if (Array.isArray(value)) {
+          return value
+        }
+        if (value && typeof value === 'object') {
+          return Object.entries(value).map(([entryKey, row]) => {
+            if (row && typeof row === 'object') {
+              return {
+                key: row.key || entryKey,
+                name: row.name || row.label || entryKey,
+                ...row
+              }
+            }
+            return {
+              key: entryKey,
+              name: entryKey,
+              totalTasks: Number(row || 0)
+            }
+          })
         }
       }
       return []

@@ -57,12 +57,12 @@ const routes = [
         component: () => import('pages/settings/SettingsPage.vue'),
         children: [
           {
-            path: 'common',
-            component: () => import('pages/settings/SettingsPage.vue')
-          },
-          {
             path: 'profile',
             component: () => import('pages/settings/ProfileSettings.vue')
+          },
+          {
+            path: 'general',
+            component: () => import('pages/settings/GeneralSettings.vue')
           },
           {
             path: 'users',

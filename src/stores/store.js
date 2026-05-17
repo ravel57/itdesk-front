@@ -104,6 +104,20 @@ export const useStore = defineStore('store', {
 
     miniState: false,
     globalAlertMessage: [],
+
+    generalSettings: {
+      timezone: 'Europe/Moscow',
+      workingTimeEnabled: true,
+      workdayStart: '09:00',
+      workdayEnd: '18:00',
+      mondayEnabled: true,
+      tuesdayEnabled: true,
+      wednesdayEnabled: true,
+      thursdayEnabled: true,
+      fridayEnabled: true,
+      saturdayEnabled: false,
+      sundayEnabled: false
+    },
   }),
 
   getters: {
@@ -363,6 +377,35 @@ export const useStore = defineStore('store', {
       this.currentClient = null
       localStorage.removeItem('currentSessionId')
       window.location.replace('/login')
+    },
+
+    fetchGeneralSettings () {
+      return axios.get('/api/v1/settings/general')
+        .then(response => {
+          this.generalSettings = {
+            timezone: response.data?.timezone ?? 'Europe/Moscow',
+            workingTimeEnabled: response.data?.workingTimeEnabled ?? true,
+            workdayStart: response.data?.workdayStart ?? '09:00',
+            workdayEnd: response.data?.workdayEnd ?? '18:00',
+            mondayEnabled: response.data?.mondayEnabled ?? true,
+            tuesdayEnabled: response.data?.tuesdayEnabled ?? true,
+            wednesdayEnabled: response.data?.wednesdayEnabled ?? true,
+            thursdayEnabled: response.data?.thursdayEnabled ?? true,
+            fridayEnabled: response.data?.fridayEnabled ?? true,
+            saturdayEnabled: response.data?.saturdayEnabled ?? false,
+            sundayEnabled: response.data?.sundayEnabled ?? false
+          }
+
+          return this.generalSettings
+        })
+    },
+
+    saveGeneralSettings (settings) {
+      return axios.patch('/api/v1/settings/general', settings)
+        .then(response => {
+          this.generalSettings = response.data
+          return response.data
+        })
     },
   }
 })

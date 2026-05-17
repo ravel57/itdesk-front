@@ -29,12 +29,17 @@ export default {
 
   data: () => ({
     menuItems: [
-      // { title: 'Общие', link: '/settings/common', slug: 'common' },
       {
         title: 'Профиль',
         link: '/settings/profile',
         slug: 'profile',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
+      },
+      {
+        title: 'Общее',
+        link: '/settings/general',
+        slug: 'general',
+        roles: ['ADMIN']
       },
       {
         title: 'Пользователи',
