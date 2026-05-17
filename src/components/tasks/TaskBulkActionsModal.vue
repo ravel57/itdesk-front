@@ -80,6 +80,17 @@
         :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
       />
       <q-select
+        v-if="this.action === 'type'"
+        data-tour="tasks-bulk-actions-field"
+        v-model="this.tasksType"
+        :options="this.taskTypeOptions"
+        option-label="type"
+        style="width: 100%;"
+        label="Тип заявки"
+        clearable
+        :rules="[val => val !== null || 'Обязательное поле']"
+      />
+      <q-select
         v-if="this.action === 'tags'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksTags"
@@ -211,6 +222,8 @@ export default {
     tasksFreezeUntil: '',
     tasksExecutor: '',
     tasksStatus: '',
+    tasksType: null,
+    taskTypes: [],
     tasksTags: [],
     tasksDeadline: '',
     taskFreezeUntil: '',
@@ -234,11 +247,65 @@ export default {
       }
     },
 
+    getTaskTypeName (taskType) {
+      if (!taskType) {
+        return 'Не указан'
+      }
+      if (typeof taskType === 'string') {
+        return taskType.trim() || 'Не указан'
+      }
+      return taskType.type || taskType.name || 'Не указан'
+    },
+
+    getTaskTypeKey (taskType) {
+      if (!taskType) {
+        return 'none'
+      }
+      if (typeof taskType === 'object' && taskType.id != null) {
+        return `id:${taskType.id}`
+      }
+      return `name:${this.getTaskTypeName(taskType).toLowerCase()}`
+    },
+
+    normalizeTaskTypeOption (taskType) {
+      if (!taskType) {
+        return { id: null, type: 'Не указан' }
+      }
+      if (typeof taskType === 'string') {
+        return {
+          id: null,
+          type: taskType.trim() || 'Не указан'
+        }
+      }
+      return {
+        ...taskType,
+        type: this.getTaskTypeName(taskType)
+      }
+    },
+
+    async loadTaskTypes () {
+      try {
+        const response = await axios.get('/api/v1/task-types')
+        this.taskTypes = Array.isArray(response.data) ? response.data : []
+      } catch (e) {
+        const typesByKey = new Map()
+        ;(this.store.getTasks || []).forEach(task => {
+          if (task?.type && typeof task.type === 'object') {
+            const option = this.normalizeTaskTypeOption(task.type)
+            typesByKey.set(this.getTaskTypeKey(option), option)
+          }
+        })
+        this.taskTypes = Array.from(typesByKey.values())
+      }
+    },
+
     hasRequiredActionValue () {
       if (['close', 'open'].includes(this.action)) {
         return true
       }
-
+      if (this.action === 'type') {
+        return this.tasksType !== null
+      }
       return String(this.tasksFreezeUntil || '').length > 0 ||
         String(this.tasksExecutor || '').length > 0 ||
         String(this.tasksStatus || '').length > 0 ||
@@ -252,41 +319,33 @@ export default {
         ...sourceTask,
         tags: Array.isArray(sourceTask.tags) ? [...sourceTask.tags] : []
       }
-
       if (this.action === 'close') {
         const closedStatus = this.getClosedStatus()
-
         task.completed = true
         task.frozen = false
         task.frozenFrom = null
         task.frozenUntil = null
-
         if (closedStatus) {
           task.status = closedStatus
         }
       } else if (this.action === 'open') {
         const openStatus = this.getOpenStatus(sourceTask)
-
         task.completed = false
         task.frozen = false
         task.frozenFrom = null
         task.frozenUntil = null
-
         if (openStatus) {
           task.status = openStatus
         }
       } else if (this.action === 'freeze') {
         const frozenStatus = this.getFrozenStatus()
-
         task.completed = false
         task.frozen = true
         task.frozenFrom = new Date()
         task.frozenUntil = moment(this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
-
         if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
           task.previousStatus = sourceTask.status
         }
-
         if (frozenStatus) {
           task.status = frozenStatus
         }
@@ -294,9 +353,7 @@ export default {
         task.executor = this.store.users.find(user => this.getUserName(user) === this.tasksExecutor)
       } else if (this.action === 'status') {
         const selectedStatus = this.store.statuses.find(status => status.name === this.tasksStatus)
-
         task.status = selectedStatus
-
         if (selectedStatus && this.isClosedStatusName(selectedStatus.name)) {
           task.completed = true
           task.frozen = false
@@ -307,7 +364,6 @@ export default {
           task.frozen = true
           task.frozenFrom = new Date()
           task.frozenUntil = moment(this.taskFreezeUntil || this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
-
           if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
             task.previousStatus = sourceTask.status
           }
@@ -319,6 +375,10 @@ export default {
         }
       } else if (this.action === 'priority') {
         task.priority = this.store.priorities.find(priority => priority.name === this.tasksPriority)
+      } else if (this.action === 'type') {
+        task.type = this.tasksType && this.tasksType.id != null
+          ? this.tasksType
+          : null
       } else if (this.action === 'tags') {
         const taskTags = []
         this.tasksTags.forEach(tagName => taskTags.push(this.store.tags.find(tag => tag.name === tagName)))
@@ -326,12 +386,9 @@ export default {
       } else if (this.action === 'deadline') {
         task.deadline = moment(this.tasksDeadline, 'DD.MM.YYYY HH:mm').format()
       }
-
       task = this.withStatusChangeReason(task, statusChangeReason)
-
       delete task.client
       delete task.sla
-
       return task
     },
 
@@ -347,10 +404,8 @@ export default {
         })
         return
       }
-
       const selectedTasks = [...this.store.checkedTasks]
       const statusChangeReason = await this.getStatusChangeReasonForBulkAction()
-
       if (statusChangeReason === null) {
         return
       }
@@ -359,13 +414,10 @@ export default {
         for (const sourceTask of selectedTasks) {
           const task = this.buildTaskForBulkAction(sourceTask, statusChangeReason)
           const clientId = this.getClient(sourceTask)
-
           const newTask = await axios.patch(`/api/v1/client/${clientId}/task`, task)
           this.$emit('updateTask', task, newTask)
         }
-
         this.store.checkedTasks = []
-
         this.$q.notify({
           message: this.getNotify,
           type: 'positive',
@@ -374,7 +426,6 @@ export default {
             icon: 'close', color: 'white', dense: true, handler: () => undefined
           }]
         })
-
         this.$emit('close')
       } catch (e) {
         this.$q.notify({
@@ -393,12 +444,10 @@ export default {
       if (directClientId) {
         return directClientId
       }
-
       const client = this.store.clients.find(client => Array.isArray(client.tasks) && client.tasks.find(t => t.id === task.id))
       if (!client?.id) {
         throw new Error(`Не найден clientId для заявки ${task?.id || ''}`)
       }
-
       return client.id
     },
 
@@ -436,7 +485,6 @@ export default {
         }
         return rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
       }
-
       ;['tasksFreezeUntil', 'taskFreezeUntil', 'tasksDeadline'].forEach(field => {
         if (typeof this[field] === 'string') {
           this[field] = formatValue(this[field])
@@ -615,6 +663,7 @@ export default {
   },
 
   created () {
+    this.loadTaskTypes()
     const firstTask = this.store.checkedTasks[0]
     const sameExecutor = this.store.checkedTasks.every(task => task.executor && task.executor === firstTask.executor)
     this.tasksExecutor = sameExecutor && firstTask.executor
@@ -624,6 +673,10 @@ export default {
     this.tasksPriority = samePriority && firstTask.priority
       ? firstTask.priority.name
       : 'Смешанные приоритеты'
+    const sameType = this.store.checkedTasks.every(task => this.getTaskTypeKey(task.type) === this.getTaskTypeKey(firstTask.type))
+    this.tasksType = sameType
+      ? this.normalizeTaskTypeOption(firstTask.type)
+      : null
     const sameStatus = this.store.checkedTasks.every(task => task.status && task.status === firstTask.status)
     this.tasksStatus = sameStatus && firstTask.status
       ? firstTask.status.name
@@ -642,6 +695,28 @@ export default {
   },
 
   computed: {
+    taskTypeOptions () {
+      const optionsByKey = new Map()
+      optionsByKey.set('none', {
+        id: null,
+        type: 'Не указан'
+      })
+      ;(this.taskTypes || []).forEach(taskType => {
+        const option = this.normalizeTaskTypeOption(taskType)
+        optionsByKey.set(this.getTaskTypeKey(option), option)
+      })
+      return Array.from(optionsByKey.values())
+        .sort((a, b) => {
+          if (a.id === null) {
+            return -1
+          }
+          if (b.id === null) {
+            return 1
+          }
+          return String(a.type || '').localeCompare(String(b.type || ''), 'ru')
+        })
+    },
+
     getHeader () {
       switch (this.action) {
         case 'close':
@@ -656,6 +731,8 @@ export default {
           return 'Изменить статусы заявок'
         case 'priority':
           return 'Изменить приоритеты заявок'
+        case 'type':
+          return 'Изменить тип заявки'
         case 'tags':
           return 'Изменить теги заявок'
         case 'deadline':
@@ -679,6 +756,8 @@ export default {
           return 'Статус изменен'
         case 'priority':
           return 'Приоритет изменен'
+        case 'type':
+          return 'Тип заявки изменен'
         case 'tags':
           return 'Теги изменены'
         case 'deadline':

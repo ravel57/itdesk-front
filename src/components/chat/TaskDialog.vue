@@ -113,7 +113,7 @@
                   class="task-type-checklist-hint"
                 >
                   <div>
-                    Стандартный чек-лист: {{ this.selectedTaskTypeChecklist.length }} пунктов
+                    Стандартный чек-лист: {{ this.getChecklistItemsLabel(this.selectedTaskTypeChecklist) }}
                   </div>
 
                   <q-btn
@@ -378,35 +378,51 @@
                   separator
                   class="rounded-borders"
                 >
-                  <q-item
-                    v-for="item in this.dialogTaskChecklist"
-                    :key="item.id"
-                    class="task-checklist-item"
+                  <draggable
+                    :list="this.dialogTaskChecklist"
+                    item-key="id"
+                    handle=".task-checklist-drag-handle"
+                    ghost-class="ghost"
+                    class="task-checklist-draggable-list"
                   >
-                    <q-item-section side>
-                      <q-checkbox v-model="item.completed"/>
-                    </q-item-section>
+                    <template #item="{ element: item }">
+                      <q-item class="task-checklist-item">
+                        <q-item-section
+                          side
+                          class="task-checklist-drag-handle"
+                        >
+                          <q-icon
+                            name="drag_indicator"
+                            color="grey-6"
+                          />
+                        </q-item-section>
 
-                    <q-item-section>
-                      <q-input
-                        v-model="item.text"
-                        dense
-                        borderless
-                        placeholder="Пункт чек-листа"
-                      />
-                    </q-item-section>
+                        <q-item-section side>
+                          <q-checkbox v-model="item.completed"/>
+                        </q-item-section>
 
-                    <q-item-section side>
-                      <q-btn
-                        flat
-                        dense
-                        round
-                        icon="delete"
-                        color="negative"
-                        @click="this.removeChecklistItem(item.id)"
-                      />
-                    </q-item-section>
-                  </q-item>
+                        <q-item-section>
+                          <q-input
+                            v-model="item.text"
+                            dense
+                            borderless
+                            placeholder="Пункт чек-листа"
+                          />
+                        </q-item-section>
+
+                        <q-item-section side>
+                          <q-btn
+                            flat
+                            dense
+                            round
+                            icon="delete"
+                            color="negative"
+                            @click.stop="this.removeChecklistItem(item.id)"
+                          />
+                        </q-item-section>
+                      </q-item>
+                    </template>
+                  </draggable>
                 </q-list>
               </q-tab-panel>
 
@@ -769,12 +785,13 @@ import moment from 'moment/moment'
 import axios from 'axios'
 import { useStore } from 'stores/store'
 import ChatDialog from 'components/chat/ChatDialog.vue'
+import draggable from 'vuedraggable'
 import { useRoute } from 'vue-router'
 import { onTaskMessage } from 'src/util/ws'
 
 export default {
 
-  components: { ChatDialog },
+  components: { ChatDialog, draggable },
 
   props: [
     'isMobile',
@@ -1384,8 +1401,11 @@ export default {
         this.dialogTaskTags = []
         this.dialogTaskDeadline = ''
         this.dialogTaskStatus = this.store.statuses.find(status => status.defaultSelection === true).name
-        this.dialogTaskType = this.taskTypes.find(taskType => taskType.type === 'Запрос')?.type || this.taskTypes[0]?.type || ''
-        this.dialogTaskChecklist = []
+        const defaultTaskType = this.getDefaultTaskType()
+        this.dialogTaskType = defaultTaskType?.type || ''
+        this.dialogTaskChecklist = defaultTaskType?.autoApplyChecklist !== false
+          ? this.copyChecklist(this.normalizeChecklist(defaultTaskType.checklistTemplate))
+          : []
         this.newChecklistItemText = ''
         setTimeout(() => this.$refs.taskName.focus(), 300)
       } else {
@@ -2037,7 +2057,6 @@ export default {
       if (!Array.isArray(checklist)) {
         return []
       }
-
       return checklist
         .filter(item => item && item.text !== undefined && item.text !== null)
         .map(item => ({
@@ -2046,6 +2065,26 @@ export default {
           completed: Boolean(item.completed)
         }))
         .filter(item => item.text.length > 0)
+    },
+
+    getChecklistItemsLabel (checklist) {
+      const count = this.normalizeChecklist(checklist).length
+      return `${count} ${this.declineRuNumber(count, 'пункт', 'пункта', 'пунктов')}`
+    },
+
+    declineRuNumber (value, one, few, many) {
+      const number = Math.abs(Number(value)) % 100
+      const lastDigit = number % 10
+      if (number >= 11 && number <= 19) {
+        return many
+      }
+      if (lastDigit === 1) {
+        return one
+      }
+      if (lastDigit >= 2 && lastDigit <= 4) {
+        return few
+      }
+      return many
     },
 
     addChecklistItem () {
@@ -2077,7 +2116,7 @@ export default {
         .then(response => {
           this.taskTypes = response.data || []
           if (!this.dialogTaskType && this.taskTypes.length > 0) {
-            this.dialogTaskType = this.taskTypes.find(taskType => taskType.type === 'Запрос')?.type || this.taskTypes[0].type
+            this.dialogTaskType = this.getDefaultTaskType()?.type || ''
           }
         })
         .catch(e =>
@@ -2229,6 +2268,13 @@ export default {
         .finally(() => {
           this.isSending = false
         })
+    },
+
+    getDefaultTaskType () {
+      return this.taskTypes.find(taskType => taskType.defaultSelection === true) ||
+        this.taskTypes.find(taskType => taskType.type === 'Запрос') ||
+        this.taskTypes[0] ||
+        null
     },
   },
 
@@ -2548,5 +2594,22 @@ th {
 .task-type-checklist-dialog {
   width: 460px;
   max-width: calc(100vw - 32px);
+}
+
+.task-checklist-draggable-list {
+  width: 100%;
+}
+
+.task-checklist-drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+.task-checklist-drag-handle:active {
+  cursor: grabbing;
+}
+
+.ghost {
+  opacity: 0.5;
 }
 </style>

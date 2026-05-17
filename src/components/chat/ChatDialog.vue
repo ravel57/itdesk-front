@@ -118,14 +118,17 @@
               :bg-color="message.isComment ? 'deep-purple-2' : message.isSent ? '#e0e0e0' : 'white'"
             >
               <template v-slot:stamp>
-              <span
-                v-text="this.getStamp(message)"
-              />
+                <span
+                  v-text="this.getStamp(message)"
+                />
                 <q-icon
                   v-if="message.linkedTaskId"
-                  style="margin-left: 8px"
+                  class="linked-task-icon"
                   name="link"
-                />
+                  @click.stop="openLinkedTaskByMessage(message)"
+                >
+                  <q-tooltip>Открыть связанную заявку</q-tooltip>
+                </q-icon>
               </template>
               <div
                 v-if="message.replyMessageId"
@@ -1112,6 +1115,10 @@ export default {
       this.$emit('linkToTask', message, task)
     },
 
+    openLinkedTaskByMessage (message) {
+      this.$emit('openLinkedTask', message)
+    },
+
     deleteMessage (message) {
       this.$emit('deleteMessage', message)
     },
@@ -2036,5 +2043,15 @@ textarea:focus {
   justify-content: flex-start;
   gap: 8px;
   margin: -8px 0 8px 0px;
+}
+
+.linked-task-icon {
+  margin-left: 8px;
+  cursor: pointer;
+  color: #5c35f9;
+}
+
+.linked-task-icon:hover {
+  opacity: 0.75;
 }
 </style>

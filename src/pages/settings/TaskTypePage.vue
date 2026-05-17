@@ -12,58 +12,93 @@
       />
     </div>
 
-    <q-table
-      flat
-      bordered
-      :rows="taskTypes"
-      :columns="columns"
-      row-key="id"
-      :loading="loading"
-      hide-pagination
-      :pagination="{ rowsPerPage: 0 }"
-      class="settings-table"
-      no-data-label="Типы заявок не добавлены"
-    >
-      <template #body-cell-type="props">
-        <q-td :props="props">
-          <div class="text-weight-medium">
-            {{ props.row.type }}
-          </div>
-        </q-td>
-      </template>
+    <div class="table-container">
+      <q-list
+        bordered
+        class="rounded-borders settings-list"
+        separator
+      >
+        <q-item header class="text-bold">
+          Тип заявки
+        </q-item>
 
-      <template #body-cell-autoApplyChecklist="props">
-        <q-td :props="props">
-          <q-chip
-            dense
-            square
-            :color="props.row.autoApplyChecklist !== false ? 'positive' : 'grey-5'"
-            text-color="white"
-          >
-            {{ props.row.autoApplyChecklist !== false ? 'Автоматически' : 'Вручную' }}
-          </q-chip>
-        </q-td>
-      </template>
+        <q-item v-if="loading">
+          <q-item-section class="text-grey-7">
+            Загрузка...
+          </q-item-section>
+        </q-item>
 
-      <template #body-cell-checklistTemplate="props">
-        <q-td :props="props">
-          {{ normalizeChecklist(props.row.checklistTemplate).length }} пунктов
-        </q-td>
-      </template>
+        <q-item v-else-if="taskTypes.length === 0">
+          <q-item-section class="text-grey-7">
+            Типы заявок не добавлены
+          </q-item-section>
+        </q-item>
 
-      <template #body-cell-actions="props">
-        <q-td :props="props" class="text-right">
-          <q-btn
-            flat
-            round
-            dense
-            color="primary"
-            icon="edit"
-            @click="openEditDialog(props.row)"
-          />
-        </q-td>
-      </template>
-    </q-table>
+        <draggable
+          v-else
+          :list="taskTypes"
+          item-key="id"
+          class="list-group"
+          ghost-class="ghost"
+          @start="dragging = true"
+          @end="resortTaskTypes"
+        >
+          <template #item="{ element }">
+            <q-item
+              class="list-group-item"
+              :class="{ 'not-draggable': true }"
+              style="cursor: grab"
+            >
+              <q-item-section
+                top
+                style="justify-content: center"
+              >
+                <div>
+                  {{ element.type }}
+                </div>
+
+                <div class="task-type-row-caption">
+                  {{ getChecklistItemsLabel(element.checklistTemplate) }} ·
+                  {{ element.autoApplyChecklist !== false ? 'автоматически' : 'вручную' }}
+                </div>
+              </q-item-section>
+
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  color="primary"
+                  dense
+                  flat
+                  icon="edit"
+                  @click.stop="openEditDialog(element)"
+                >
+                  <q-tooltip>Редактировать тип заявки</q-tooltip>
+                </q-btn>
+              </q-item-section>
+
+              <q-item-section
+                top
+                side
+              >
+                <q-btn
+                  :text-color="element.defaultSelection ? 'primary' : 'grey'"
+                  dense
+                  flat
+                  icon="beenhere"
+                  @click.stop="setDefaultSelected(element)"
+                >
+                  <q-tooltip>
+                    {{ element.defaultSelection ? 'Используется по умолчанию' : 'Использовать по умолчанию' }}
+                  </q-tooltip>
+                </q-btn>
+              </q-item-section>
+            </q-item>
+          </template>
+        </draggable>
+      </q-list>
+    </div>
 
     <q-dialog v-model="taskTypeDialog">
       <q-card class="task-type-dialog">
@@ -88,6 +123,12 @@
             v-model="editingTaskType.type"
             label="Название типа *"
             :rules="[val => !!val || 'Обязательное поле']"
+          />
+
+          <q-toggle
+            v-model="editingTaskType.defaultSelection"
+            label="Использовать тип заявки по умолчанию"
+            class="q-mt-md"
           />
 
           <q-toggle
@@ -143,35 +184,51 @@
             separator
             class="rounded-borders checklist-list"
           >
-            <q-item
-              v-for="item in editingTaskType.checklistTemplate"
-              :key="item.id"
-              class="checklist-item"
+            <draggable
+              :list="editingTaskType.checklistTemplate"
+              item-key="id"
+              handle=".checklist-drag-handle"
+              ghost-class="ghost"
+              class="checklist-draggable-list"
             >
-              <q-item-section side>
-                <q-icon name="check_box_outline_blank" color="grey-6" />
-              </q-item-section>
-
-              <q-item-section>
-                <q-input
-                  v-model="item.text"
-                  dense
-                  borderless
-                  placeholder="Пункт чек-листа"
-                />
-              </q-item-section>
-
-              <q-item-section side>
-                <q-btn
-                  flat
-                  dense
-                  round
-                  icon="delete"
-                  color="negative"
-                  @click="removeChecklistItem(item.id)"
-                />
-              </q-item-section>
-            </q-item>
+              <template #item="{ element: item }">
+                <q-item class="checklist-item">
+                  <q-item-section
+                    side
+                    class="checklist-drag-handle"
+                  >
+                    <q-icon
+                      name="drag_indicator"
+                      color="grey-6"
+                    />
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-icon
+                      name="check_box_outline_blank"
+                      color="grey-6"
+                    />
+                  </q-item-section>
+                  <q-item-section>
+                    <q-input
+                      v-model="item.text"
+                      dense
+                      borderless
+                      placeholder="Пункт чек-листа"
+                    />
+                  </q-item-section>
+                  <q-item-section side>
+                    <q-btn
+                      flat
+                      dense
+                      round
+                      icon="delete"
+                      color="negative"
+                      @click.stop="removeChecklistItem(item.id)"
+                    />
+                  </q-item-section>
+                </q-item>
+              </template>
+            </draggable>
           </q-list>
         </q-card-section>
 
@@ -248,48 +305,25 @@
 
 <script>
 import axios from 'axios'
+import draggable from 'vuedraggable'
 
 export default {
+  components: { draggable },
+
   data: () => ({
     loading: false,
+    dragging: false,
     taskTypes: [],
     taskTypeDialog: false,
     deleteTaskTypeDialog: false,
     editingTaskType: {
       id: null,
       type: '',
+      defaultSelection: false,
       checklistTemplate: [],
       autoApplyChecklist: true
     },
     newChecklistItemText: '',
-
-    columns: [
-      {
-        name: 'type',
-        label: 'Тип заявки',
-        field: 'type',
-        align: 'left',
-        sortable: true
-      },
-      {
-        name: 'checklistTemplate',
-        label: 'Чек-лист',
-        field: 'checklistTemplate',
-        align: 'left'
-      },
-      {
-        name: 'autoApplyChecklist',
-        label: 'Применение',
-        field: 'autoApplyChecklist',
-        align: 'left'
-      },
-      {
-        name: 'actions',
-        label: '',
-        field: 'actions',
-        align: 'right'
-      }
-    ]
   }),
 
   mounted () {
@@ -299,7 +333,6 @@ export default {
   methods: {
     loadTaskTypes () {
       this.loading = true
-
       return axios.get('/api/v1/task-types')
         .then(response => {
           this.taskTypes = response.data || []
@@ -310,14 +343,26 @@ export default {
         })
     },
 
+    resortTaskTypes () {
+      this.dragging = false
+      axios.patch('/api/v1/task-types/resort', this.taskTypes)
+        .then(response => {
+          this.taskTypes = response.data || this.taskTypes
+        })
+        .catch(e => {
+          this.notifyError(e.message)
+          this.loadTaskTypes()
+        })
+    },
+
     openCreateDialog () {
       this.editingTaskType = {
         id: null,
         type: '',
+        defaultSelection: false,
         checklistTemplate: [],
         autoApplyChecklist: true
       }
-
       this.newChecklistItemText = ''
       this.taskTypeDialog = true
     },
@@ -325,10 +370,10 @@ export default {
     openEditDialog (taskType) {
       this.editingTaskType = JSON.parse(JSON.stringify({
         ...taskType,
+        defaultSelection: taskType.defaultSelection === true,
         checklistTemplate: this.normalizeChecklist(taskType.checklistTemplate),
         autoApplyChecklist: taskType.autoApplyChecklist !== false
       }))
-
       this.newChecklistItemText = ''
       this.taskTypeDialog = true
     },
@@ -338,18 +383,16 @@ export default {
         this.notifyError('Название типа заявки обязательно')
         return
       }
-
       const payload = {
         ...this.editingTaskType,
         type: this.editingTaskType.type.trim(),
+        defaultSelection: this.editingTaskType.defaultSelection === true,
         checklistTemplate: this.normalizeChecklist(this.editingTaskType.checklistTemplate),
         autoApplyChecklist: this.editingTaskType.autoApplyChecklist !== false
       }
-
       const request = payload.id
         ? axios.patch(`/api/v1/task-types/${payload.id}`, payload)
         : axios.post('/api/v1/task-types', payload)
-
       request
         .then(() => {
           this.$q.notify({
@@ -357,7 +400,6 @@ export default {
             message: 'Тип заявки сохранён',
             position: 'top-right'
           })
-
           this.taskTypeDialog = false
           this.loadTaskTypes()
         })
@@ -370,7 +412,6 @@ export default {
         this.taskTypeDialog = false
         return
       }
-
       axios.delete(`/api/v1/task-types/${this.editingTaskType.id}`)
         .then(() => {
           this.$q.notify({
@@ -378,7 +419,6 @@ export default {
             message: 'Тип заявки удалён',
             position: 'top-right'
           })
-
           this.deleteTaskTypeDialog = false
           this.taskTypeDialog = false
           this.loadTaskTypes()
@@ -388,21 +428,17 @@ export default {
 
     addChecklistItem () {
       const text = this.newChecklistItemText.trim()
-
       if (!text) {
         return
       }
-
       if (!Array.isArray(this.editingTaskType.checklistTemplate)) {
         this.editingTaskType.checklistTemplate = []
       }
-
       this.editingTaskType.checklistTemplate.push({
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         text,
         completed: false
       })
-
       this.newChecklistItemText = ''
     },
 
@@ -415,7 +451,6 @@ export default {
       if (!Array.isArray(checklist)) {
         return []
       }
-
       return checklist
         .filter(item => item && item.text !== undefined && item.text !== null)
         .map(item => ({
@@ -439,8 +474,48 @@ export default {
         this.taskTypeDialog = false
         return
       }
-
       this.deleteTaskTypeDialog = true
+    },
+
+    setDefaultSelected (taskType) {
+      if (!taskType?.id || taskType.defaultSelection) {
+        return
+      }
+      const previousTaskTypes = JSON.parse(JSON.stringify(this.taskTypes))
+      this.taskTypes.forEach(item => {
+        item.defaultSelection = item.id === taskType.id
+      })
+      axios.patch('/api/v1/task-types/set-default', {
+        ...taskType,
+        defaultSelection: true
+      })
+        .then(() => {
+          this.loadTaskTypes()
+        })
+        .catch(e => {
+          this.taskTypes = previousTaskTypes
+          this.notifyError(e.message)
+        })
+    },
+
+    getChecklistItemsLabel (checklist) {
+      const count = this.normalizeChecklist(checklist).length
+      return `${count} ${this.declineRuNumber(count, 'пункт', 'пункта', 'пунктов')}`
+    },
+
+    declineRuNumber (value, one, few, many) {
+      const number = Math.abs(Number(value)) % 100
+      const lastDigit = number % 10
+      if (number >= 11 && number <= 19) {
+        return many
+      }
+      if (lastDigit === 1) {
+        return one
+      }
+      if (lastDigit >= 2 && lastDigit <= 4) {
+        return few
+      }
+      return many
     },
   }
 }
@@ -461,11 +536,6 @@ export default {
 .settings-add-btn {
   min-width: 190px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
-}
-
-.settings-table {
-  width: 100%;
-  background: white;
 }
 
 .task-type-dialog {
@@ -502,5 +572,53 @@ export default {
 .delete-task-type-dialog {
   width: 420px;
   max-width: calc(100vw - 32px);
+}
+
+.table-container {
+  width: 100%;
+}
+
+.settings-list {
+  width: 100%;
+  margin-top: 8px;
+  background: white;
+}
+
+.task-type-list-header {
+  display: grid;
+  grid-template-columns: 1fr 160px 1fr 1fr auto;
+  align-items: center;
+}
+
+.list-group-item:hover {
+  background-color: #e3e3e3;
+}
+
+.list-group-item {
+  min-height: 48px;
+}
+
+.task-type-row-caption {
+  margin-top: 2px;
+  color: #777;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.not-draggable {
+  user-select: none;
+}
+
+.checklist-draggable-list {
+  width: 100%;
+}
+
+.checklist-drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+.checklist-drag-handle:active {
+  cursor: grabbing;
 }
 </style>

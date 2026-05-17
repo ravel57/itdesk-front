@@ -1743,8 +1743,11 @@ export default {
     },
 
     toIsoParam (dateValue, endOfDay) {
+      if (!dateValue) {
+        return undefined
+      }
       const time = endOfDay ? '23:59:59' : '00:00:00'
-      return new Date(`${dateValue}T${time}`).toISOString()
+      return `${dateValue}T${time}`
     },
 
     getSummaryNumber (keys) {

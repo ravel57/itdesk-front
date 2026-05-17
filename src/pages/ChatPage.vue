@@ -61,6 +61,7 @@
             @setAnswerRequired="setAnswerRequired"
             @findInKnowledgeBase="this.findInKnowledgeBase"
             @editMessage="this.editMessage"
+            @openLinkedTask="this.openLinkedTask"
           />
         </div>
         <div
@@ -101,6 +102,7 @@
           v-if="!this.isMobile || this.tab === 'tab3'"
         >
           <chat-tasks
+            ref="chatTasks"
             :tasks="this.getClient.tasks"
             :isNotificationEnabled="isNotificationEnabled"
             :tags="this.activeTags"
@@ -686,10 +688,25 @@ export default {
       }
       axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, {message, task})
         .then(() => {
-          if (this.getClient.messages.find(msg => msg.id === oldTask.linkedMessageId)) {
-            this.getClient.messages.find(msg => msg.id === oldTask.linkedMessageId).linkedTaskId = null
+          const previousMessage = this.getClient.messages.find(msg => Number(msg.id) === Number(oldTask.linkedMessageId))
+          if (previousMessage) {
+            previousMessage.linkedTaskId = null
           }
-          this.getClient.messages.find(msg => msg.id === message.id).linkedTaskId = oldTask.id
+
+          const linkedMessage = this.getClient.messages.find(msg => Number(msg.id) === Number(message.id))
+          if (linkedMessage) {
+            linkedMessage.linkedTaskId = oldTask.id
+          }
+
+          const previousTask = this.getClient.tasks.find(task => Number(task.linkedMessageId) === Number(message.id))
+          if (previousTask && Number(previousTask.id) !== Number(oldTask.id)) {
+            previousTask.linkedMessageId = null
+          }
+
+          const linkedTask = this.getClient.tasks.find(task => Number(task.id) === Number(oldTask.id))
+          if (linkedTask) {
+            linkedTask.linkedMessageId = message.id
+          }
         })
         .catch(e => {
           this.$q.notify({
@@ -701,6 +718,75 @@ export default {
             }]
           })
         })
+    },
+
+    getLinkedTaskIdFromMessage (message) {
+      if (!message) {
+        return null
+      }
+
+      const linkedTaskId = message.linkedTaskId
+
+      if (linkedTaskId && typeof linkedTaskId === 'object') {
+        const id = Number(linkedTaskId.id || linkedTaskId.taskId || linkedTaskId.value)
+        return Number.isFinite(id) && id > 0 ? id : null
+      }
+
+      const id = Number(linkedTaskId)
+      return Number.isFinite(id) && id > 0 ? id : null
+    },
+
+    findLinkedTaskByMessage (message) {
+      const tasks = this.getClient?.tasks || []
+      const linkedTaskId = this.getLinkedTaskIdFromMessage(message)
+
+      if (linkedTaskId) {
+        const taskById = tasks.find(task => Number(task.id) === linkedTaskId)
+
+        if (taskById) {
+          return taskById
+        }
+      }
+
+      if (message?.id) {
+        const messageId = Number(message.id)
+        const taskByMessageId = tasks.find(task => Number(task.linkedMessageId) === messageId)
+
+        if (taskByMessageId) {
+          return taskByMessageId
+        }
+      }
+
+      return null
+    },
+
+    openLinkedTask (message) {
+      const task = this.findLinkedTaskByMessage(message)
+      if (!task) {
+        this.$q.notify({
+          message: 'Связанная заявка не найдена в текущем чате',
+          type: 'warning',
+          position: 'top-right',
+          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        })
+        return
+      }
+      if (this.isMobile) {
+        this.tab = 'tab3'
+      }
+      this.$nextTick(() => {
+        const chatTasks = this.$refs.chatTasks
+        if (chatTasks?.openLinkedTask) {
+          chatTasks.openLinkedTask(task)
+          return
+        }
+        this.$q.notify({
+          message: 'Не найден компонент заявок',
+          type: 'warning',
+          position: 'top-right',
+          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        })
+      })
     },
 
     clearLinkedMessageId() {

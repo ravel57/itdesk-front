@@ -602,6 +602,18 @@ export default {
       return this.statuses?.find(status => this.isClosedStatusName(status.name)) ||
         this.store.statuses?.find(status => this.isClosedStatusName(status.name))
     },
+
+    openLinkedTask (task) {
+      if (!task?.id) {
+        return
+      }
+      if (task.completed || task.frozen) {
+        this.isShowCompletedTasks = true
+      }
+      this.$nextTick(() => {
+        this.onTaskClick(task)
+      })
+    },
   },
 
   computed: {

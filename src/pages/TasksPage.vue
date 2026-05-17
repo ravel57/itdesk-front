@@ -519,6 +519,10 @@
                @click="this.openBulkModal('priority')">
           <q-tooltip>Изменить приоритет заявок</q-tooltip>
         </q-btn>
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="category"
+               @click="this.openBulkModal('type')">
+          <q-tooltip>Изменить тип заявки</q-tooltip>
+        </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="sell" @click="this.openBulkModal('tags')">
           <q-tooltip>Изменить теги заявок</q-tooltip>
         </q-btn>
@@ -717,7 +721,8 @@ export default {
       {label: 'Приоритет', slug: 'priority'},
       {label: 'Статус', slug: 'status'},
       {label: 'Клиент', slug: 'client'},
-      {label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false}
+      {label: 'Тип заявки', slug: 'type'},
+      {label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false},
     ],
     selectedGroupType: {label: 'Исполнитель', slug: 'executor'},
     sortingTypes: [
@@ -792,7 +797,8 @@ export default {
     slaInfoByTaskId: {},
     slaInfoLoadingByTaskId: {},
     nowTs: Date.now(),
-    slaTimer: null
+    slaTimer: null,
+    selectedTaskType: null,
   }),
 
   methods: {
@@ -841,6 +847,9 @@ export default {
           break
         case 'client':
           options = this.clients
+          break
+        case 'type':
+          options = this.taskTypes
           break
         default:
           options = null
@@ -923,6 +932,9 @@ export default {
               break
             case 'client':
               it.options = this.clients
+              break
+            case 'type':
+              it.options = this.taskTypes
               break
             default:
               it.options = null
@@ -1058,6 +1070,9 @@ export default {
                 break
               case 'client':
                 filter.options = this.clients
+                break
+              case 'type':
+                filter.options = this.taskTypes
                 break
               default:
                 filter.options = null
@@ -1378,6 +1393,8 @@ export default {
           return 'смена статуса'
         case 'priority':
           return 'смена приоритета'
+        case 'type':
+          return 'смена типа заявки'
         case 'tags':
           return 'смена тегов'
         case 'deadline':
@@ -2181,7 +2198,13 @@ export default {
     },
 
     getTaskTypeName (task) {
-      return task?.type?.type || 'Не указан'
+      if (!task?.type) {
+        return 'Не указан'
+      }
+      if (typeof task.type === 'string') {
+        return task.type.trim() || 'Не указан'
+      }
+      return task.type.type || 'Не указан'
     },
 
     getChecklistItems (task) {
@@ -2277,6 +2300,10 @@ export default {
 
         case 'client': {
           return filter.selectedOptions.includes(`${task.client.lastname} ${task.client.firstname}`)
+        }
+
+        case 'type': {
+          return filter.selectedOptions.includes(this.getTaskTypeName(task))
         }
 
         case 'deadline': {
@@ -2427,6 +2454,11 @@ export default {
           options = Object.groupBy(tasks, ({priority}) => priority.name)
           break
         }
+        case 'type': {
+          source = this.taskTypes
+          options = Object.groupBy(tasks, task => this.getTaskTypeName(task))
+          break
+        }
         case 'organization': {
           source = this.organizations
           options = Object.groupBy(tasks, ({organization}) => {
@@ -2446,6 +2478,7 @@ export default {
         case 'client': {
           source = this.clients
           options = Object.groupBy(tasks, ({client}) => `${client.lastname} ${client.firstname}`)
+          break
         }
       }
 
@@ -2562,6 +2595,12 @@ export default {
       return this.store.clients.map(client => `${client.lastname} ${client.firstname}`)
     },
 
+    taskTypes() {
+      return Array.from(
+        new Set(this.store.getTasks.map(task => this.getTaskTypeName(task)))
+      ).sort((a, b) => a.localeCompare(b, 'ru'))
+    },
+
     isMobile() {
       return this.$q.screen.width < 1023
     },
@@ -2580,6 +2619,12 @@ export default {
 
     getFilterType() {
       return this.filterTypes.filter(filter => filter.slug !== 'deadline')
+    },
+
+    taskTypeOptions() {
+      return (this.store.taskTypes || [])
+        .filter(type => type && type.id != null)
+        .sort((a, b) => String(a.type || '').localeCompare(String(b.type || ''), 'ru'))
     }
   },
 
