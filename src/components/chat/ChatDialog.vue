@@ -103,6 +103,7 @@
           <div
             v-for="message in this.messages"
             :key="message.id"
+            class="chat-message-row"
             style="position: relative;width: 100%; margin-top: 0"
             @click.right="this.invertContextMenu"
           >
@@ -122,7 +123,7 @@
                   v-text="this.getStamp(message)"
                 />
                 <q-icon
-                  v-if="message.linkedTaskId"
+                  v-if="!this.isDialog && message.linkedTaskId"
                   class="linked-task-icon"
                   name="link"
                   @click.stop="openLinkedTaskByMessage(message)"
@@ -154,7 +155,7 @@
                   />
                 </div>
                 <div
-                  v-else-if="message.replyUuid && message.replyFileType.startsWith('image/')"
+                  v-else-if="message.replyUuid && message.replyFileType && message.replyFileType.startsWith('image/')"
                 >
                   <img
                     :src="`/files/images/${message.replyUuid}`"
@@ -163,7 +164,7 @@
                   >
                 </div>
                 <div
-                  v-else-if="message.replyUuid && message.replyFileType.startsWith('video/')"
+                  v-else-if="message.replyUuid && message.replyFileType && message.replyFileType.startsWith('video/')"
                 >
                   <video
                     style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;"
@@ -180,9 +181,8 @@
                       message.user ? message.user.lastname + ' ' + message.user.firstname : this.client.lastname + ' ' + this.client.username
                     }}
                   </div>
-                  <div class="">{{
-                      message.replyMessageText ? message.replyMessageText : (message.replyFileType.startsWith('image/') ? 'Изображение' : (message.replyFileType.startsWith('video/') ? 'Видео' : 'Файл'))
-                    }}
+                  <div class="">
+                    {{ getReplyPreviewText(message) }}
                   </div>
                 </div>
               </div>
@@ -235,8 +235,9 @@
 
             <div
               data-tour="chat-answer-required"
-              v-if="this.showAnswerRequiredActions && isLastMessage(message) && isIncomingMessage(message) && getMessageId(message)"
+              v-if="this.canSetAnswerRequired(message)"
               class="answer-required-actions"
+              :class="{ 'answer-required-actions--selected': isSelectedAnswerRequiredMessage(message) }"
             >
               <q-btn
                 dense
@@ -495,7 +496,7 @@
           class="action-clouds"
         >
           <div class="input-clouds-container">
-            <div style="width: 100%;display: flex;justify-content: center">
+            <div class="typing-users-cloud-row">
               <div
                 class="typing-users-cloud"
                 v-if="this.typing.filter(t => t.username !== this.currentUser.username).length > 0 ||
@@ -807,6 +808,10 @@ export default {
       default: true,
       type: Boolean
     },
+    clientFiles: {
+      type: Array,
+      default: () => []
+    },
   },
 
   data: () => ({
@@ -994,7 +999,13 @@ export default {
     },
 
     getStamp (message) {
-      const time = message.date.toLocaleTimeString('ru-RU', {
+      const date = message?.date instanceof Date
+        ? message.date
+        : new Date(message?.date)
+      if (Number.isNaN(date.getTime())) {
+        return ''
+      }
+      const time = date.toLocaleTimeString('ru-RU', {
         timeZone: 'Europe/Moscow',
         year: 'numeric',
         month: 'numeric',
@@ -1450,9 +1461,18 @@ export default {
 
     showFiles () {
       this.isShowFileList = true
+      if (this.isDialog) {
+        this.fileList = Array.isArray(this.clientFiles)
+          ? [...this.clientFiles]
+          : []
+        return
+      }
       axios.get(`/api/v1/client-files/${this.client.id}`)
         .then(response => {
-          this.fileList = response.data || []
+          this.fileList = Array.isArray(response.data) ? response.data : []
+        })
+        .catch(() => {
+          this.fileList = []
         })
     },
 
@@ -1491,12 +1511,152 @@ export default {
       return message && !message.isSent && !message.isComment && !message.deleted
     },
 
+    isOperatorMessage (message) {
+      return message && message.isSent && !message.isComment && !message.deleted
+    },
+
+    getConversationMessages () {
+      return this.messages.filter(message => message && !message.deleted && !message.isComment)
+    },
+
+    getLastMessageIndex (messages, predicate) {
+      for (let index = messages.length - 1; index >= 0; index--) {
+        if (predicate(messages[index])) {
+          return index
+        }
+      }
+      return -1
+    },
+
+    getMessageIndex (messages, message) {
+      const messageId = this.getMessageId(message)
+      return messages.findIndex(currentMessage => {
+        const currentMessageId = this.getMessageId(currentMessage)
+        if (messageId && currentMessageId) {
+          return currentMessageId === messageId
+        }
+        return currentMessage === message
+      })
+    },
+
+    getLastMessageIndexBefore (messages, beforeIndex, predicate) {
+      for (let index = beforeIndex - 1; index >= 0; index--) {
+        if (predicate(messages[index])) {
+          return index
+        }
+      }
+      return -1
+    },
+
+    getFirstMessageIndexAfter (messages, afterIndex, predicate) {
+      for (let index = afterIndex + 1; index < messages.length; index++) {
+        if (predicate(messages[index])) {
+          return index
+        }
+      }
+      return -1
+    },
+
+    getAnswerRequiredGroupRange (message) {
+      const conversationMessages = this.getConversationMessages()
+      const messageIndex = this.getMessageIndex(conversationMessages, message)
+      if (messageIndex === -1 || !this.isIncomingMessage(conversationMessages[messageIndex])) {
+        return null
+      }
+
+      const previousOperatorIndex = this.getLastMessageIndexBefore(
+        conversationMessages,
+        messageIndex,
+        currentMessage => this.isOperatorMessage(currentMessage)
+      )
+      const nextOperatorIndex = this.getFirstMessageIndexAfter(
+        conversationMessages,
+        messageIndex,
+        currentMessage => this.isOperatorMessage(currentMessage)
+      )
+
+      const startIndex = previousOperatorIndex + 1
+      const endIndex = nextOperatorIndex === -1
+        ? conversationMessages.length - 1
+        : nextOperatorIndex - 1
+
+      return {
+        conversationMessages,
+        startIndex,
+        endIndex
+      }
+    },
+
+    getAnswerRequiredGroupMessages (message) {
+      const range = this.getAnswerRequiredGroupRange(message)
+      if (!range) {
+        return []
+      }
+
+      return range.conversationMessages
+        .slice(range.startIndex, range.endIndex + 1)
+        .filter(currentMessage => this.isIncomingMessage(currentMessage) && this.getMessageId(currentMessage))
+    },
+
+    isInAnswerRequiredRange (message) {
+      const groupMessages = this.getAnswerRequiredGroupMessages(message)
+      if (groupMessages.length === 0) {
+        return false
+      }
+
+      const conversationMessages = this.getConversationMessages()
+      const messageIndex = this.getMessageIndex(conversationMessages, message)
+      const lastIncomingIndex = this.getLastMessageIndex(conversationMessages, currentMessage => this.isIncomingMessage(currentMessage))
+      const lastOperatorIndex = this.getLastMessageIndex(conversationMessages, currentMessage => this.isOperatorMessage(currentMessage))
+
+      if (messageIndex === -1 || lastIncomingIndex === -1 || lastOperatorIndex > lastIncomingIndex) {
+        return false
+      }
+
+      return messageIndex > lastOperatorIndex && messageIndex <= lastIncomingIndex
+    },
+
+    canSetAnswerRequired (message) {
+      return this.showAnswerRequiredActions &&
+        this.isIncomingMessage(message) &&
+        !!this.getMessageId(message) &&
+        this.isInAnswerRequiredRange(message)
+    },
+
+    hasAnswerRequiredValue (message) {
+      return message && (
+        message.answerRequired === 'ANSWER_REQUIRED' ||
+        message.answerRequired === 'ANSWER_NOT_REQUIRED'
+      )
+    },
+
+    getSelectedAnswerRequiredMessageIdInGroup (message) {
+      const selectedMessage = [...this.getAnswerRequiredGroupMessages(message)]
+        .reverse()
+        .find(currentMessage => this.hasAnswerRequiredValue(currentMessage))
+      return this.getMessageId(selectedMessage)
+    },
+
+    isSelectedAnswerRequiredMessage (message) {
+      return this.getSelectedAnswerRequiredMessageIdInGroup(message) === this.getMessageId(message)
+    },
+
     isAnswerRequired (message) {
-      return message.answerRequired === 'ANSWER_REQUIRED'
+      return this.isSelectedAnswerRequiredMessage(message) && message.answerRequired === 'ANSWER_REQUIRED'
     },
 
     isAnswerNotRequired (message) {
-      return message.answerRequired === 'ANSWER_NOT_REQUIRED'
+      return this.isSelectedAnswerRequiredMessage(message) && message.answerRequired === 'ANSWER_NOT_REQUIRED'
+    },
+
+    applyAnswerRequiredLocally (message, answerRequired) {
+      const messageId = this.getMessageId(message)
+      this.getAnswerRequiredGroupMessages(message).forEach(currentMessage => {
+        const currentMessageId = this.getMessageId(currentMessage)
+        currentMessage.answerRequired = currentMessageId === messageId
+          ? answerRequired
+          : 'NOT_SET'
+      })
     },
 
     setAnswerRequired (message, value) {
@@ -1512,10 +1672,19 @@ export default {
       const answerRequired = value
         ? 'ANSWER_REQUIRED'
         : 'ANSWER_NOT_REQUIRED'
+      const groupMessageIds = this.getAnswerRequiredGroupMessages(message)
+        .map(currentMessage => this.getMessageId(currentMessage))
+        .filter(currentMessageId => currentMessageId)
+      const resetMessageIds = groupMessageIds
+        .filter(currentMessageId => currentMessageId !== messageId)
+
+      this.applyAnswerRequiredLocally(message, answerRequired)
       this.$emit('setAnswerRequired', {
         messageId,
         clientId: this.client.id,
-        answerRequired
+        answerRequired,
+        groupMessageIds,
+        resetMessageIds
       })
     },
 
@@ -1700,6 +1869,24 @@ export default {
         this.autoResize()
       })
     },
+
+    getReplyPreviewText (message) {
+      const replyText = String(message?.replyMessageText || '').trim()
+      if (replyText) {
+        return this.shortenLine(replyText, 50)
+      }
+      const replyFileType = String(message?.replyFileType || '')
+      if (replyFileType.startsWith('image/')) {
+        return 'Изображение'
+      }
+      if (replyFileType.startsWith('video/')) {
+        return 'Видео'
+      }
+      if (replyFileType.startsWith('application/')) {
+        return 'Документ'
+      }
+      return 'Сообщение'
+    },
   },
 
   computed: {
@@ -1784,6 +1971,16 @@ export default {
   },
 
   watch: {
+    clientFiles: {
+      deep: true,
+      handler (value) {
+        if (!this.isDialog || !this.isShowFileList) {
+          return
+        }
+        this.fileList = Array.isArray(value) ? [...value] : []
+      }
+    },
+
     linkedMessageId () {
       if (this.linkedMessageId) {
         this.scrollToElementById(`message_${this.linkedMessageId}`)
@@ -1901,15 +2098,17 @@ export default {
 
 .action-clouds {
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: 0;
   display: block;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
   color: white;
   font-size: 14px;
-  z-index: 1000;
+  z-index: 50;
   max-width: 100%;
+  pointer-events: none;
 }
 
 .attach-file-card {
@@ -1946,6 +2145,8 @@ export default {
   padding-right: 10px;
   margin-bottom: 8px;
   width: max-content;
+  max-width: calc(100% - 16px);
+  pointer-events: none;
 }
 
 .reply-message-cloud {
@@ -2042,7 +2243,24 @@ textarea:focus {
   display: flex;
   justify-content: flex-start;
   gap: 8px;
-  margin: -8px 0 8px 0px;
+  max-height: 0;
+  margin: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, max-height 0.15s ease, margin 0.15s ease;
+  position: relative;
+  z-index: 100;
+}
+
+.chat-message-row:hover .answer-required-actions,
+.answer-required-actions.answer-required-actions--selected {
+  max-height: 40px;
+  margin: -8px 0 8px 0;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .linked-task-icon {
@@ -2053,5 +2271,13 @@ textarea:focus {
 
 .linked-task-icon:hover {
   opacity: 0.75;
+}
+
+.typing-users-cloud-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding-right: 0;
+  pointer-events: none;
 }
 </style>

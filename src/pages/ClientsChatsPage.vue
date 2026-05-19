@@ -151,8 +151,16 @@
                     class="shorten-text"
                     caption
                     :data-tour="isFirstClient(client) ? 'client-last-message' : null"
+                    :class="client.lastMessage.deleted ? 'strikethrough' : ''"
                   >
-                    {{ this.getTimeLastMessage(client) +' : ' + this.getLastMessage(client) }}
+                    {{ this.getTimeLastMessage(client) }}
+                    <q-icon
+                      v-if="this.getLastMessageIcon(client)"
+                      :name="this.getLastMessageIcon(client)"
+                      size="16px"
+                      class="q-mr-xs"
+                    />
+                    {{ this.getLastMessage(client) }}
                   </q-item-label>
                 </q-item-section>
                 <div
@@ -160,7 +168,7 @@
                   class="client-row-alerts"
                   :data-tour="isFirstClient(client) ? 'client-alerts' : null"
                 >
-                  <q-separator vertical class="client-row-alerts__separator" />
+                  <q-separator vertical class="client-row-alerts__separator"/>
 
                   <div class="client-row-alerts__content">
                     <q-icon
@@ -279,18 +287,40 @@ import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
 export default {
   name: 'DialogsPage',
 
-  components: { NoTasksPlaceholder, CircleCounter, PluginExtensionPoint },
+  components: {
+    NoTasksPlaceholder,
+    CircleCounter,
+    PluginExtensionPoint
+  },
 
   data: () => ({
     searchQuery: '',
     sortType: 'ANSWER_WAIT',
     sortOptions: [
-      { label: 'По времени ожидания', value: 'ANSWER_WAIT' },
-      { label: 'По минимальному SLA среди заявок', value: 'MIN_SLA' },
-      { label: 'По времени последнего сообщения', value: 'LAST_MESSAGE' },
-      { label: 'Пинги', value: 'PINGS' },
-      { label: 'Непрочитанные сообщения', value: 'UNREAD_MESSAGES' },
-      { label: 'Заявки без исполнителя', value: 'TASKS_WITHOUT_ASSIGNEE' }
+      {
+        label: 'По времени ожидания',
+        value: 'ANSWER_WAIT'
+      },
+      {
+        label: 'По минимальному SLA среди заявок',
+        value: 'MIN_SLA'
+      },
+      {
+        label: 'По времени последнего сообщения',
+        value: 'LAST_MESSAGE'
+      },
+      {
+        label: 'Пинги',
+        value: 'PINGS'
+      },
+      {
+        label: 'Непрочитанные сообщения',
+        value: 'UNREAD_MESSAGES'
+      },
+      {
+        label: 'Заявки без исполнителя',
+        value: 'TASKS_WITHOUT_ASSIGNEE'
+      }
     ],
     nowTs: Date.now(),
     slaTimer: null,
@@ -867,9 +897,13 @@ export default {
     getSlaColor (tasks) {
       const p = this.getSlaPercent(tasks)
       if (p === null) return 'grey'
-      if (p > 0.5) return 'green'
-      else if (p > 0.25) return 'orange'
-      else return 'red'
+      if (p > 0.5) {
+        return 'green'
+      } else if (p > 0.25) {
+        return 'orange'
+      } else {
+        return 'red'
+      }
     },
 
     getTimeLastMessage (client) {
@@ -887,8 +921,8 @@ export default {
           return words[
             (number % 10 === 1 && number % 100 !== 11) ? 0
               : (number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 10 || number % 100 >= 20)) ? 1
-                  : 2
-          ]
+                : 2
+            ]
         }
 
         let result
@@ -992,7 +1026,7 @@ export default {
       if (!lastMarkedMessage || lastMarkedMessage.answerRequired !== 'ANSWER_REQUIRED') {
         return null
       }
-      return unansweredIncomingMessages[0].date
+      return lastMarkedMessage.date
     },
 
     getAnswerRequiredWaitMs (client) {
@@ -1296,6 +1330,27 @@ export default {
     hasCriticalTasks (client) {
       return client.tasks?.some(task => task.priority?.critical && !task.completed) === true
     },
+
+    getLastMessageObject (client) {
+      if (!client) {
+        return null
+      }
+      if (client.lastMessage) {
+        return client.lastMessage
+      }
+      const messages = [...this.getClientMessages(client)]
+        .filter(message => message && message.deleted !== true && message.isComment !== true)
+        .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+      return messages[0] || null
+    },
+
+    getLastMessageIcon (client) {
+      const message = this.getLastMessageObject(client)
+      if (!message || message.isSent === undefined || message.isSent === null) {
+        return ''
+      }
+      return message.isSent === true ? 'output' : 'input'
+    },
   },
 
   computed: {
@@ -1530,4 +1585,8 @@ export default {
   line-height: 1.45;
 }
 
+.strikethrough {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
 </style>

@@ -16,6 +16,16 @@
         </template>
       </q-input>
 
+      <q-option-group
+        v-model="selectedCategories"
+        :options="categoryOptions"
+        type="checkbox"
+        color="primary"
+        inline
+        class="q-mt-sm search-category-filter"
+        @update:model-value="sendSearchRequest"
+      />
+
       <div class="q-mt-md">
         <q-banner
           v-if="!searchRequest"
@@ -60,6 +70,14 @@
               </q-item-label>
 
               <q-item-label
+                v-if="result.entityType === 'TASK' && result.entityId"
+                caption
+                class="text-primary"
+              >
+                №{{ result.entityId }}
+              </q-item-label>
+
+              <q-item-label
                 v-if="result.text"
                 caption
                 class="result-text"
@@ -92,6 +110,14 @@ export default {
 
   data: () => ({
     searchRequest: '',
+    selectedCategories: [],
+    categoryOptions: [
+      { label: 'Операторы', value: 'USER' },
+      { label: 'Клиенты', value: 'CLIENT' },
+      { label: 'Заявки', value: 'TASK' },
+      { label: 'Сообщения клиентов', value: 'CLIENT_MESSAGE' },
+      { label: 'Сообщения заявок', value: 'TASK_MESSAGE' }
+    ],
     results: [],
     loading: false
   }),
@@ -109,7 +135,10 @@ export default {
 
       axios.get('/api/v1/global-search', {
         params: {
-          query
+          query,
+          types: this.selectedCategories.length > 0
+            ? this.selectedCategories.join(',')
+            : undefined
         }
       })
         .then(response => {
@@ -235,5 +264,9 @@ export default {
   overflow: hidden;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.search-category-filter {
+  align-items: center;
 }
 </style>

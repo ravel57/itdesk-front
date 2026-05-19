@@ -614,12 +614,12 @@ export default {
         return
       }
       axios.post(`/api/v1/client/${this.getClient.id}/message`, message)
-        .then(() => {
+        .then((response) => {
           this.isSending = false
-          if (message.replyMessageId) {
-            message.replyMessageText = this.getClient.messages.find(msg => msg.id === message.replyMessageId).text
+          const savedMessage = response.data
+          if (savedMessage && savedMessage.id) {
+            this.addOrUpdateClientMessage(savedMessage)
           }
-          // this.getClient.messages.push(message)
           this.keyPressed('')
         })
         .catch(e =>
@@ -631,6 +631,58 @@ export default {
               icon: 'close', color: 'white', dense: true, handler: () => undefined
             }]
           }))
+    },
+
+    addOrUpdateClientMessage (message) {
+      if (!this.getClient || !Array.isArray(this.getClient.messages)) {
+        return
+      }
+      const normalizedMessage = this.normalizeReplyMessage(
+        this.normalizeClientMessage(message)
+      )
+      const index = this.getClient.messages.findIndex(item =>
+        Number(item.id) === Number(normalizedMessage.id)
+      )
+      if (index === -1) {
+        this.getClient.messages.push(normalizedMessage)
+      } else {
+        this.getClient.messages.splice(index, 1, {
+          ...this.getClient.messages[index],
+          ...normalizedMessage
+        })
+      }
+      this.getClient.messages = [...this.getClient.messages]
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+    },
+
+    normalizeClientMessage (message) {
+      if (!message) {
+        return message
+      }
+      return {
+        ...message,
+        date: message.date instanceof Date
+          ? message.date
+          : new Date(message.date),
+        editedAt: message.editedAt
+          ? new Date(message.editedAt)
+          : message.editedAt
+      }
+    },
+
+    normalizeReplyMessage (message) {
+      if (!message || !message.replyMessageId || message.replyMessageText) {
+        return message
+      }
+      const repliedMessage = this.getClient.messages.find(item =>
+        Number(item.id) === Number(message.replyMessageId)
+      )
+      return {
+        ...message,
+        replyMessageText: repliedMessage?.text || '',
+        replyFileType: message.replyFileType || repliedMessage?.fileType || null,
+        replyUuid: message.replyUuid || repliedMessage?.fileUuid || null
+      }
     },
 
     keyPressed(text) {
@@ -1134,7 +1186,7 @@ export default {
       this.applyColumnWidthsFromRatios()
     },
 
-    setAnswerRequired ({ messageId, clientId, answerRequired }) {
+        setAnswerRequired ({ messageId, clientId, answerRequired, groupMessageIds = [], resetMessageIds = [] }) {
       const id = Number(messageId)
       const cid = Number(clientId)
 
@@ -1156,29 +1208,58 @@ export default {
         return
       }
 
-      if (this.isChatOnboardingActive) {
-        const message = this.chatOnboardingDemoClient.messages.find(m => m.id === id)
-        if (message) {
-          message.answerRequired = answerRequired
+      const applyLocalState = (client) => {
+        if (!client || !Array.isArray(client.messages)) {
+          return
         }
+
+        const groupIds = new Set([
+          ...groupMessageIds,
+          ...resetMessageIds,
+          id
+        ].map(value => Number(value)))
+
+        client.messages.forEach(message => {
+          if (groupIds.has(Number(message.id))) {
+            message.answerRequired = 'NOT_SET'
+          }
+        })
+
+        const selectedMessage = client.messages.find(message => Number(message.id) === id)
+        if (selectedMessage) {
+          selectedMessage.answerRequired = answerRequired
+        }
+
+        client.firstUnansweredMessageDate = this.calculateFirstUnansweredMessageDate(client)
+      }
+
+      if (this.isChatOnboardingActive) {
+        applyLocalState(this.chatOnboardingDemoClient)
         return
       }
-      axios.patch(`/api/v1/client/${cid}/message/${id}/answer-required`, answerRequired, {
+
+      axios.patch(`/api/v1/client/${cid}/message/${id}/answer-required`, {
+        answerRequired,
+        groupMessageIds
+      }, {
         headers: {
           'Content-Type': 'application/json'
         }
       })
-        .then(() => {
-          const clientIndex = this.store.clients.findIndex(c => c.id === cid)
+        .then((response) => {
+          const clientIndex = this.store.clients.findIndex(c => Number(c.id) === cid)
           if (clientIndex === -1) {
             return
           }
+
           const client = this.store.clients[clientIndex]
-          const message = client.messages?.find(m => Number(m.id) === id)
-          if (message) {
-            message.answerRequired = answerRequired
+
+          applyLocalState(client)
+
+          if (response.data && Object.prototype.hasOwnProperty.call(response.data, 'firstUnansweredMessageDate')) {
+            client.firstUnansweredMessageDate = response.data.firstUnansweredMessageDate
           }
-          client.firstUnansweredMessageDate = this.calculateFirstUnansweredMessageDate(client)
+
           this.store.clients.splice(clientIndex, 1, {
             ...client,
             messages: client.messages ? [...client.messages] : []
@@ -1232,7 +1313,7 @@ export default {
       if (!lastMarkedMessage || lastMarkedMessage.answerRequired !== 'ANSWER_REQUIRED') {
         return null
       }
-      return unansweredIncomingMessages[0].date
+      return lastMarkedMessage.date
     },
 
     getRouteMessageId() {

@@ -45,6 +45,11 @@ const routes = [
         component: () => import('pages/TasksPage.vue')
       },
       {
+        path: 'orgs',
+        alias: 'organizations',
+        component: () => import('pages/OrganizationsPage.vue')
+      },
+      {
         path: 'history',
         component: () => import('pages/HistoryPage.vue')
       },

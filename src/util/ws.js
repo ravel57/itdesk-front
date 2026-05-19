@@ -1,9 +1,9 @@
 import SockJS from 'sockjs-client/dist/sockjs'
-import {Stomp} from '@stomp/stompjs'
-import {useStore} from 'stores/store'
+import { Stomp } from '@stomp/stompjs'
+import { useStore } from 'stores/store'
 import moment from 'moment/moment'
-import {appConfig} from 'src/config/appConfig'
-import {useSystemNotifications} from "src/composables/useSystemNotifications";
+import { appConfig } from 'src/config/appConfig'
+import { useSystemNotifications } from 'src/composables/useSystemNotifications'
 
 let stompClient = null
 
@@ -46,44 +46,75 @@ export function connect () {
   })
 }
 
-function clientsCallback(clients) {
-  const parsedClients = JSON.parse(clients.body)
-  parsedClients.forEach(client => {
-    if (client.lastname === null) {
-      client.lastname = ''
-    }
-    // client.messages.forEach(message => {
-    //   message.date = new Date(message.date)
-    // })
-    try {
-      client.messages = useStore().clients.find(c => c.id === client.id).messages
-    } catch (ignoreError) {
-    }
-    client.tasks.forEach(task => {
-      task.createdAt = new Date(task.createdAt)
-      if (task.deadline) {
-        task.deadline = new Date(task.deadline)
-      }
-      if (task.sla) {
-        task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-        task.sla.duration = normalizeSlaDuration(task.sla.duration)
-      }
-      task.messages.forEach(message => {
-        message.date = new Date(message.date)
-      })
-    })
-    if (client.user != null) {
-      client.user.forEach(user => {
-        if (user.lastname === null) {
-          user.lastname = ''
-        }
-      })
-    }
-    client.tasks.forEach(task => {
-      task.client = client
-    })
+function clientsCallback (clients) {
+  const store = useStore()
+  const parsedClients = safeParseJson(clients.body, [])
+
+  store.clients = Array.isArray(parsedClients)
+    ? parsedClients.map(client => normalizeClientFromSocket(
+      client,
+      store.clients.find(existingClient => Number(existingClient.id) === Number(client.id))
+    ))
+    : []
+}
+
+function normalizeClientFromSocket (client, existingClient = null) {
+  const normalizedClient = {
+    ...client,
+    lastname: client?.lastname === null ? '' : client?.lastname,
+    messages: normalizeClientMessages(client, existingClient),
+    tasks: Array.isArray(client?.tasks)
+      ? client.tasks.map(task => normalizeTaskFromSocket(task))
+      : []
+  }
+
+  if (Array.isArray(normalizedClient.user)) {
+    normalizedClient.user = normalizedClient.user.map(user => ({
+      ...user,
+      lastname: user?.lastname === null ? '' : user?.lastname
+    }))
+  }
+
+  normalizedClient.tasks.forEach(task => {
+    task.client = normalizedClient
   })
-  useStore().clients = parsedClients
+
+  return normalizedClient
+}
+
+function normalizeClientMessages (client, existingClient = null) {
+  if (Array.isArray(client?.messages)) {
+    return client.messages.map(normalizeIncomingClientMessage)
+  }
+
+  if (Array.isArray(existingClient?.messages)) {
+    return existingClient.messages.map(normalizeIncomingClientMessage)
+  }
+
+  return []
+}
+
+function normalizeTaskFromSocket (task) {
+  const normalizedTask = {
+    ...task,
+    createdAt: task?.createdAt ? new Date(task.createdAt) : task?.createdAt,
+    deadline: task?.deadline ? new Date(task.deadline) : task?.deadline,
+    messages: Array.isArray(task?.messages)
+      ? task.messages.map(normalizeIncomingClientMessage)
+      : []
+  }
+
+  if (normalizedTask.sla) {
+    normalizedTask.sla = {
+      ...normalizedTask.sla,
+      startDate: normalizedTask.sla.startDate
+        ? moment(new Date(normalizedTask.sla.startDate), 'DD.MM.YYYY HH:mm')
+        : normalizedTask.sla.startDate,
+      duration: normalizeSlaDuration(normalizedTask.sla.duration)
+    }
+  }
+
+  return normalizedTask
 }
 
 function normalizeSlaDuration (duration) {
@@ -111,8 +142,13 @@ function normalizeSlaDuration (duration) {
   return moment.duration(0)
 }
 
-function authenticatedUsersCallback(usersOnline) {
-  const users = JSON.parse(usersOnline.body)
+function authenticatedUsersCallback (usersOnline) {
+  const users = safeParseJson(usersOnline.body, [])
+  if (!Array.isArray(users)) {
+    useStore().usersOnline = []
+    return
+  }
+
   users.forEach(user => {
     if (user.lastname === null) {
       user.lastname = ''
@@ -121,7 +157,7 @@ function authenticatedUsersCallback(usersOnline) {
   useStore().usersOnline = users
 }
 
-export function markRead(client) {
+export function markRead (client) {
   if (appConfig.useMocks) {
     return
   }
@@ -154,7 +190,7 @@ export function markRead(client) {
   }))
 }
 
-export function userOnline(user) {
+export function userOnline (user) {
   if (appConfig.useMocks) {
     return
   }
@@ -165,13 +201,16 @@ export function userOnline(user) {
     console.warn('STOMP is not connected, user-online skipped')
     return
   }
-  stompClient.send('/app/user-online', {}, JSON.stringify({id: user.id, username: user.username}))
+  stompClient.send('/app/user-online', {}, JSON.stringify({
+    id: user.id,
+    username: user.username
+  }))
 }
 
-function removeCycles(obj) {
+function removeCycles (obj) {
   const seenObjects = new WeakMap()
 
-  function clone(obj) {
+  function clone (obj) {
     if (obj && typeof obj === 'object') {
       if (seenObjects.has(obj)) {
         return
@@ -201,7 +240,7 @@ function removeCycles(obj) {
   return clone(obj)
 }
 
-export function typing(client, user, text) {
+export function typing (client, user, text) {
   if (appConfig.useMocks) {
     return
   }
@@ -219,7 +258,7 @@ export function typing(client, user, text) {
   }))
 }
 
-export function getClientsForObserver(user) {
+export function getClientsForObserver (user) {
   if (appConfig.useMocks) {
     return
   }
@@ -233,98 +272,139 @@ export function getClientsForObserver(user) {
   stompClient.send('/app/observer', {}, user.username)
 }
 
-function clientsForObserverCallback(message) {
-  const parsedClients = JSON.parse(message.body)
-  parsedClients.forEach(it => {
-    if (it.lastname === null) {
-      it.lastname = ''
-    }
-    // it.messages.forEach(message => {
-    //   message.date = new Date(message.date)
-    // })
-    it.tasks.forEach(task => {
-      task.createdAt = new Date(task.createdAt)
-      if (task.deadline) {
-        task.deadline = new Date(task.deadline)
-      }
-      if (task.sla) {
-        task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-        task.sla.duration = moment.duration(task.sla.duration * 1000)
-      }
-    })
-    if (it.user != null) {
-      it.user.forEach(user => {
-        if (user.lastname === null) {
-          user.lastname = ''
-        }
-      })
-    }
-  })
-  useStore().clients = parsedClients
+function clientsForObserverCallback (message) {
+  const store = useStore()
+  const parsedClients = safeParseJson(message.body, [])
+
+  store.clients = Array.isArray(parsedClients)
+    ? parsedClients.map(client => normalizeClientFromSocket(
+      client,
+      store.clients.find(existingClient => Number(existingClient.id) === Number(client.id))
+    ))
+    : []
 }
 
-function currentClientCallback(message) {
+function currentClientCallback (message) {
+  const store = useStore()
   const binaryData = new Uint8Array(message._binaryBody)
   const textDecoder = new TextDecoder('utf-8')
   const decodedString = textDecoder.decode(binaryData)
-  const paredClient = JSON.parse(decodedString)
-  // paredClient.messages.forEach(m => {
-  //   m.date = new Date(m.date)
-  // })
-  paredClient.tasks.forEach(task => {
-    task.createdAt = new Date(task.createdAt)
-    if (task.deadline) {
-      task.deadline = new Date(task.deadline)
-    }
-    if (task.sla) {
-      task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-      task.sla.duration = moment.duration(task.sla.duration * 1000)
-    }
-    task.messages.forEach(message => {
-      message.date = new Date(message.date)
+  const parsedClient = safeParseJson(decodedString, null)
+
+  if (!parsedClient) {
+    return
+  }
+
+  store.currentClient = normalizeClientFromSocket(parsedClient, store.currentClient)
+}
+
+function clientMessageCallback (message) {
+  const store = useStore()
+  const clientMessage = safeParseJson(message.body, null)
+
+  if (!clientMessage || !clientMessage.message || !clientMessage.client?.id) {
+    return
+  }
+
+  const incomingMessage = normalizeIncomingClientMessage(clientMessage.message)
+  let client = store.clients.find(c => Number(c.id) === Number(clientMessage.client.id))
+  if (!client) {
+    client = normalizeClientFromSocket(clientMessage.client)
+    store.clients.push(client)
+  } else if (!Array.isArray(client.messages)) {
+    client.messages = []
+  }
+  upsertClientMessage(client, incomingMessage)
+  if (Number(store.currentClient?.id) === Number(client.id)) {
+    upsertClientMessage(store.currentClient, incomingMessage)
+  }
+  client.lastMessage = incomingMessage
+}
+
+function normalizeIncomingClientMessage (message) {
+  if (!message) {
+    return message
+  }
+  return {
+    ...message,
+    date: message.date instanceof Date
+      ? message.date
+      : new Date(message.date || Date.now()),
+    editedAt: message.editedAt
+      ? new Date(message.editedAt)
+      : message.editedAt
+  }
+}
+
+function upsertClientMessage (client, message) {
+  if (!client || !message || !message.id) {
+    return
+  }
+  if (!Array.isArray(client.messages)) {
+    client.messages = []
+  }
+
+  const normalizedMessage = hydrateReplyMessageFromClient(client, normalizeIncomingClientMessage(message))
+  const index = client.messages.findIndex(item =>
+    Number(item.id) === Number(normalizedMessage.id)
+  )
+  if (index === -1) {
+    client.messages.push(normalizedMessage)
+  } else {
+    client.messages.splice(index, 1, {
+      ...client.messages[index],
+      ...normalizedMessage
     })
-  })
-  useStore().currentClient = paredClient
-}
-
-function clientMessageCallback(message) {
-  const clientMessage = JSON.parse(message.body)
-  clientMessage.message.date = new Date(clientMessage.message.date)
-  if (!(useStore().clients.find(c => c.id === clientMessage.client.id))) {
-    useStore().clients.push(clientMessage.client)
   }
-  const client = useStore().clients.find(c => c.id === clientMessage.client.id)
-  try {
-    client.messages.push(clientMessage.message)
-  } catch (ignoredError) {
+
+  client.messages = [...client.messages]
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+}
+
+function hydrateReplyMessageFromClient (client, message) {
+  if (!message.replyMessageId || message.replyMessageText) {
+    return message
+  }
+
+  const messages = Array.isArray(client?.messages) ? client.messages : []
+  const repliedMessage = messages.find(item =>
+    Number(item.id) === Number(message.replyMessageId)
+  )
+  return {
+    ...message,
+    replyMessageText: repliedMessage?.text || '',
+    replyFileType: message.replyFileType || repliedMessage?.fileType || null,
+    replyUuid: message.replyUuid || repliedMessage?.fileUuid || null
   }
 }
 
-function supportMessagesCallback(message) {
-  const supportMessages = JSON.parse(message.body)
-  supportMessages.forEach(message => {
-    message.date = new Date(message.date)
-  })
-  useStore().supportMessages = supportMessages
+function supportMessagesCallback (message) {
+  const supportMessages = safeParseJson(message.body, [])
+  useStore().supportMessages = Array.isArray(supportMessages)
+    ? supportMessages.map(normalizeIncomingClientMessage)
+    : []
 }
 
-function globalAlertMessageCallback(message) {
-  useStore().globalAlertMessage = JSON.parse(message.body)
+function globalAlertMessageCallback (message) {
+  useStore().globalAlertMessage = safeParseJson(message.body, null)
 }
 
-function editedMessageCallback(message) {
-  const clientMessage = JSON.parse(message.body)
-  clientMessage.message.date = new Date(clientMessage.message.date)
-  if (clientMessage.message.editedAt) {
-    clientMessage.message.editedAt = new Date(clientMessage.message.editedAt)
+function editedMessageCallback (message) {
+  const clientMessage = safeParseJson(message.body, null)
+
+  if (!clientMessage || !clientMessage.message || !clientMessage.client?.id) {
+    return
   }
+
+  const normalizedMessage = normalizeIncomingClientMessage(clientMessage.message)
   const updateMessage = client => {
     if (!client || !Array.isArray(client.messages)) {
       return
     }
-    const localMessage = client.messages.find(m => Number(m.id) === Number(clientMessage.message.id))
+
+    const localMessage = client.messages.find(m => Number(m.id) === Number(normalizedMessage.id))
     if (localMessage) {
-      Object.assign(localMessage, clientMessage.message)
+      Object.assign(localMessage, normalizedMessage)
     }
   }
   updateMessage(useStore().clients.find(c => Number(c.id) === Number(clientMessage.client.id)))
@@ -333,88 +413,94 @@ function editedMessageCallback(message) {
   }
 }
 
-function userNotificationCallback(message) {
-  const {notify} = useSystemNotifications()
-  const parsedMessage = JSON.parse(message.body)
-  if (parsedMessage.userId === useStore().currentUser.id) {
-    switch (parsedMessage.event) {
-      case 'MENTIONED_USER':
-        notify('ULDesk', {
-          body: `Вас упомянули в чате: ${parsedMessage.message}`,
-          tag: 'new-task'
-        })
-        break
-      case 'MENTIONED_USER_IN_TASK_CHAT':
-        notify('ULDesk', {
-          body: `Вас упомянули в заявке: ${parsedMessage.message}`,
-          tag: 'new-task'
-        })
-        break
-      case 'NEW_TASK':
-        notify('ULDesk', {
-          body: 'Новая заявка назначена на Вас',
-          tag: 'new-task'
-        })
-        break
-      case 'NEW_CHAT_MESSAGE':
-        notify('ULDesk', {
-          body: 'Новое сообщение в чате, где Вы назначены исполнителем',
-          tag: 'new-task'
-        })
-        break
-      case 'SLA_HALF_TIME_PASSED':
-        notify('ULDesk', {
-          body: parsedMessage.message || 'SLA прошел больше чем на 50%',
-          tag: `sla-half-${parsedMessage.userId}`
-        })
-        break
+function userNotificationCallback (message) {
+  const { notify } = useSystemNotifications()
+  const parsedMessage = safeParseJson(message.body, null)
 
-      case 'SLA_OVERDUE':
-        notify('ULDesk', {
-          body: parsedMessage.message || 'SLA нарушен',
-          tag: `sla-overdue-${parsedMessage.userId}`
-        })
-        break
+  if (!parsedMessage || parsedMessage.userId !== useStore().currentUser.id) {
+    return
+  }
 
-      case 'CHAT_UNANSWERED_TOO_LONG':
-        notify('ULDesk', {
-          body: parsedMessage.message || 'Есть чат без ответа',
-          tag: `chat-unanswered-${parsedMessage.userId}`
-        })
-        break
+  switch (parsedMessage.event) {
+    case 'MENTIONED_USER':
+      notify('ULDesk', {
+        body: `Вас упомянули в чате: ${parsedMessage.message}`,
+        tag: 'new-task'
+      })
+      break
+    case 'MENTIONED_USER_IN_TASK_CHAT':
+      notify('ULDesk', {
+        body: `Вас упомянули в заявке: ${parsedMessage.message}`,
+        tag: 'new-task'
+      })
+      break
+    case 'NEW_TASK':
+      notify('ULDesk', {
+        body: 'Новая заявка назначена на Вас',
+        tag: 'new-task'
+      })
+      break
+    case 'NEW_CHAT_MESSAGE':
+      notify('ULDesk', {
+        body: 'Новое сообщение в чате, где Вы назначены исполнителем',
+        tag: 'new-task'
+      })
+      break
+    case 'SLA_HALF_TIME_PASSED':
+      notify('ULDesk', {
+        body: parsedMessage.message || 'SLA прошел больше чем на 50%',
+        tag: `sla-half-${parsedMessage.userId}`
+      })
+      break
 
-      case 'DEADLINE_SOON':
-        notify('ULDesk', {
-          body: parsedMessage.message || 'Скоро дедлайн по заявке',
-          tag: `deadline-soon-${parsedMessage.userId}`
-        })
-        break
+    case 'SLA_OVERDUE':
+      notify('ULDesk', {
+        body: parsedMessage.message || 'SLA нарушен',
+        tag: `sla-overdue-${parsedMessage.userId}`
+      })
+      break
 
-      case 'DEADLINE_OVERDUE':
-        notify('ULDesk', {
-          body: parsedMessage.message || 'Дедлайн нарушен',
-          tag: `deadline-overdue-${parsedMessage.userId}`
-        })
-        break
-    }
+    case 'CHAT_UNANSWERED_TOO_LONG':
+      notify('ULDesk', {
+        body: parsedMessage.message || 'Есть чат без ответа',
+        tag: `chat-unanswered-${parsedMessage.userId}`
+      })
+      break
+
+    case 'DEADLINE_SOON':
+      notify('ULDesk', {
+        body: parsedMessage.message || 'Скоро дедлайн по заявке',
+        tag: `deadline-soon-${parsedMessage.userId}`
+      })
+      break
+
+    case 'DEADLINE_OVERDUE':
+      notify('ULDesk', {
+        body: parsedMessage.message || 'Дедлайн нарушен',
+        tag: `deadline-overdue-${parsedMessage.userId}`
+      })
+      break
   }
 }
 
 const taskMessageListeners = new Set()
 
-export function onTaskMessage(listener) {
+export function onTaskMessage (listener) {
   taskMessageListeners.add(listener)
   return () => {
     taskMessageListeners.delete(listener)
   }
 }
 
-function taskMessageCallback(message) {
-  const payload = JSON.parse(message.body)
+function taskMessageCallback (message) {
+  const payload = safeParseJson(message.body, null)
+
   if (!payload || !payload.taskId || !payload.message) {
     return
   }
-  payload.message.date = new Date(payload.message.date)
+
+  payload.message = normalizeIncomingClientMessage(payload.message)
+
   addMessageToTaskInClient(useStore().clients.find(c => Number(c.id) === Number(payload.clientId)), payload)
   addMessageToTaskInClient(
     Number(useStore().currentClient?.id) === Number(payload.clientId)
@@ -427,7 +513,7 @@ function taskMessageCallback(message) {
   })
 }
 
-function addMessageToTaskInClient(client, payload) {
+function addMessageToTaskInClient (client, payload) {
   if (!client || !Array.isArray(client.tasks)) {
     return
   }
@@ -447,11 +533,12 @@ function addMessageToTaskInClient(client, payload) {
 }
 
 function forceLogoutCallback (message) {
-  const payload = JSON.parse(message.body)
+  const payload = safeParseJson(message.body, null)
   const store = useStore()
   const currentUsername = store.currentUser?.username
   const currentSessionId = store.currentSessionId || localStorage.getItem('currentSessionId')
-  if (!currentUsername || !currentSessionId) {
+
+  if (!payload || !currentUsername || !currentSessionId) {
     return
   }
   if (payload.username !== currentUsername) {
@@ -461,4 +548,12 @@ function forceLogoutCallback (message) {
     return
   }
   store.logoutByForce()
+}
+
+function safeParseJson (value, fallback) {
+  try {
+    return JSON.parse(value)
+  } catch (ignoredError) {
+    return fallback
+  }
 }

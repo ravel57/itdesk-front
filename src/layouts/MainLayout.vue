@@ -208,6 +208,12 @@ export default {
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
       },
       {
+        title: 'Организации',
+        icon: 'store',
+        link: '/orgs',
+        roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
+      },
+      {
         title: 'Поиск',
         icon: 'search',
         link: '/search',

@@ -275,7 +275,7 @@ export default {
     sortMenuOpened: false,
     dialogTab: 'tab1',
     selectedSorting: [],
-    ascendingSort: true,
+    ascendingSort: false,
 
     sortingTypes: [
       { label: 'По дедлайну', slug: 'deadline' },

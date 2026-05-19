@@ -44,6 +44,19 @@
             </q-tooltip>
           </q-btn>
           <q-btn
+            v-if="this.canCreateVisitFromTask"
+            flat
+            round
+            dense
+            icon="directions_car"
+            data-tour="task-dialog-visit"
+            @click.stop="this.openTaskVisitDialog"
+          >
+            <q-tooltip>
+              Добавить выезд по этой заявке
+            </q-tooltip>
+          </q-btn>
+          <q-btn
             flat
             round
             dense
@@ -331,6 +344,7 @@
                   :isDialog="true"
                   :comments="false"
                   :show-answer-required-actions="false"
+                  :client-files="taskFiles"
                   @sendMessage="this.sendMessage"
                   @isSending="this.isSending = true"
                   @keyPressed="this.keyPressed"
@@ -450,32 +464,32 @@
                     <div class="text-grey-8 task-history-description">
                       {{ item.description }}
                     </div>
-                    <q-list
+                    <q-markup-table
                       v-if="item.changes && item.changes.length > 0"
                       dense
+                      flat
                       bordered
-                      separator
-                      class="q-mt-sm rounded-borders"
+                      class="q-mt-sm task-history-changes-table"
                     >
-                      <q-item
+                      <thead>
+                      <tr>
+                        <th class="text-left">Поле</th>
+                        <th class="text-left">Было</th>
+                        <th class="text-left">Стало</th>
+                      </tr>
+                      </thead>
+
+                      <tbody>
+                      <tr
                         v-for="change in item.changes"
                         :key="change.field"
                       >
-                        <q-item-section>
-                          <div class="text-caption text-weight-medium">
-                            {{ change.label || change.field }}
-                          </div>
-
-                          <div class="text-caption text-grey-7">
-                            Было: {{ change.oldValue || '—' }}
-                          </div>
-
-                          <div class="text-caption text-grey-7">
-                            Стало: {{ change.newValue || '—' }}
-                          </div>
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
+                        <td>{{ change.label || change.field }}</td>
+                        <td>{{ change.oldValue || '—' }}</td>
+                        <td>{{ change.newValue || '—' }}</td>
+                      </tr>
+                      </tbody>
+                    </q-markup-table>
                     <div
                       v-if="item.actorDisplayName"
                       class="text-caption text-grey-7 q-mt-xs"
@@ -516,6 +530,14 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+  <organization-visit-dialog
+    v-model="taskVisitDialog"
+    :organization="this.currentTaskOrganization"
+    :selected-task="this.currentTaskVisitOption"
+    :lock-task="true"
+    @saved="this.onTaskVisitSaved"
+  />
+
   <q-dialog persistent v-model="this.freezeDialog">
     <div id="task-freeze-modal">
       <q-card>
@@ -785,13 +807,14 @@ import moment from 'moment/moment'
 import axios from 'axios'
 import { useStore } from 'stores/store'
 import ChatDialog from 'components/chat/ChatDialog.vue'
+import OrganizationVisitDialog from 'components/organization/OrganizationVisitDialog.vue'
 import draggable from 'vuedraggable'
 import { useRoute } from 'vue-router'
 import { onTaskMessage } from 'src/util/ws'
 
 export default {
 
-  components: { ChatDialog, draggable },
+  components: { ChatDialog, OrganizationVisitDialog, draggable },
 
   props: [
     'isMobile',
@@ -807,6 +830,7 @@ export default {
     dialogTab: 'tab1',
 
     taskRightTab: 'messages',
+    taskVisitDialog: false,
     taskHistory: [],
     taskHistoryLoading: false,
 
@@ -951,7 +975,8 @@ export default {
         text: 'После редактирования нажмите «Сохранить». Если закрыть окно с несохранёнными изменениями, система попросит подтвердить действие.',
         dialogTab: 'tab1'
       }
-    ]
+    ],
+    taskFiles: [],
   }),
 
   methods: {
@@ -1159,6 +1184,49 @@ export default {
 
     closeDialog () {
       this.$emit('closeDialog')
+    },
+
+    openTaskVisitDialog () {
+      if (!this.canCreateVisitFromTask) {
+        this.$q.notify({
+          message: 'Для добавления выезда у заявки должна быть организация',
+          type: 'warning',
+          position: 'top-right',
+          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        })
+        return
+      }
+
+      this.taskVisitDialog = true
+    },
+
+    onTaskVisitSaved ({ organization, visit }) {
+      if (organization?.id && Array.isArray(this.store.organizations)) {
+        const index = this.store.organizations.findIndex(item => Number(item.id) === Number(organization.id))
+
+        if (index >= 0) {
+          this.store.organizations.splice(index, 1, organization)
+        } else {
+          this.store.organizations.push(organization)
+        }
+      }
+
+      if (organization?.id && this.client?.organization && Number(this.client.organization.id) === Number(organization.id)) {
+        Object.assign(this.client.organization, organization)
+      }
+
+      this.$emit('organizationVisitSaved', {
+        organization,
+        visit,
+        task: this.task
+      })
+
+      this.$q.notify({
+        message: 'Выезд добавлен к заявке',
+        type: 'positive',
+        position: 'top-right',
+        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+      })
     },
 
     getSubmitModalTitle () {
@@ -1848,6 +1916,9 @@ export default {
       axios.post(`/api/v1/client/${event.clientId}/task/${this.task.id}/message`, event.message)
         .then(() => {
           this.inputField = ''
+          if (event.message?.fileUuid) {
+            this.loadTaskFiles()
+          }
         })
         .catch(e =>
           this.$q.notify({
@@ -2226,6 +2297,9 @@ export default {
       if (!exists) {
         this.task.messages.push(payload.message)
       }
+      if (payload.message?.fileUuid) {
+        this.loadTaskFiles()
+      }
       if (this.taskRightTab === 'messages') {
         axios.post(`/api/v1/client/${this.client.id}/task/${this.task.id}/mark-message-read`, {
           userId: this.store.currentUser.id
@@ -2276,6 +2350,20 @@ export default {
         this.taskTypes[0] ||
         null
     },
+
+    loadTaskFiles () {
+      if (!this.client?.id || !this.task?.id) {
+        this.taskFiles = []
+        return
+      }
+      axios.get(`/api/v1/client/${this.client.id}/task/${this.task.id}/files`)
+        .then(response => {
+          this.taskFiles = Array.isArray(response.data) ? response.data : []
+        })
+        .catch(() => {
+          this.taskFiles = []
+        })
+    },
   },
 
   computed: {
@@ -2285,6 +2373,69 @@ export default {
 
     isTaskDialogOperator () {
       return ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])
+    },
+
+    currentTaskOrganization () {
+      const client = this.task?.client || this.client || {}
+      const rawOrganization = client.organization ||
+        client.organizationId ||
+        client.organizationName ||
+        this.task?.organization ||
+        this.task?.organizationId ||
+        this.task?.organizationName ||
+        null
+
+      if (!rawOrganization) {
+        return null
+      }
+
+      if (typeof rawOrganization === 'object') {
+        return rawOrganization
+      }
+
+      const rawValue = String(rawOrganization)
+      const normalizedRawValue = rawValue.replace(/^id:/i, '')
+      const organizations = Array.isArray(this.store.organizations) ? this.store.organizations : []
+      const foundOrganization = organizations.find(organization => {
+        return String(organization.id) === normalizedRawValue ||
+          String(organization.name) === rawValue
+      })
+
+      if (foundOrganization) {
+        return foundOrganization
+      }
+
+      if (Number.isFinite(Number(normalizedRawValue))) {
+        return {
+          id: Number(normalizedRawValue),
+          name: rawValue
+        }
+      }
+
+      return null
+    },
+
+    currentTaskVisitOption () {
+      const taskId = this.getCurrentTaskId()
+
+      if (!taskId) {
+        return null
+      }
+
+      const taskTitle = this.dialogTaskName || this.task?.name || this.task?.title || 'Без названия'
+
+      return {
+        label: `#${taskId} ${taskTitle}`,
+        value: taskId,
+        taskTitle
+      }
+    },
+
+    canCreateVisitFromTask () {
+      return !this.isNewTask &&
+        !!this.getCurrentTaskId() &&
+        !!this.currentTaskOrganization?.id &&
+        this.isTaskDialogOperator
     },
 
     visibleTaskDialogOnboardingSteps () {
@@ -2345,6 +2496,9 @@ export default {
     getPossibilityToOpenDialogTask (value) {
       if (value) {
         this.getTaskField()
+        if (!this.isNewTask) {
+          this.loadTaskFiles()
+        }
         if (!this.isNewTask && this.taskRightTab === 'history') {
           this.loadTaskHistory()
         }
@@ -2353,6 +2507,7 @@ export default {
         })
       } else {
         this.stopTaskDialogOnboarding()
+        this.taskFiles = []
       }
     },
 
@@ -2371,10 +2526,17 @@ export default {
       if (value === 'history') {
         this.loadTaskHistory()
       }
+      if (value === 'messages') {
+        this.loadTaskFiles()
+      }
     },
 
     'task.id' () {
       this.taskHistory = []
+      this.taskFiles = []
+      if (!this.isNewTask) {
+        this.loadTaskFiles()
+      }
       if (this.taskRightTab === 'history') {
         this.loadTaskHistory()
       }
@@ -2385,6 +2547,9 @@ export default {
     this.loadTaskTypes()
       .finally(() => {
         this.getTaskField()
+        if (!this.isNewTask) {
+          this.loadTaskFiles()
+        }
         const currentTaskId = this.getCurrentTaskId()
         if (!this.isNewTask && currentTaskId) {
           axios.post(`/api/v1/client/${this.client.id}/task/${currentTaskId}/mark-message-read`, { userId: this.store.currentUser.id })
@@ -2611,5 +2776,15 @@ th {
 
 .ghost {
   opacity: 0.5;
+}
+
+.task-history-changes-table {
+  width: 100%;
+}
+
+.task-history-changes-table th,
+.task-history-changes-table td {
+  white-space: normal;
+  vertical-align: top;
 }
 </style>
