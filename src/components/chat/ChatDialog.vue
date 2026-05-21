@@ -106,6 +106,8 @@
             class="chat-message-row"
             style="position: relative;width: 100%; margin-top: 0"
             @click.right="this.invertContextMenu"
+            :class="{ 'chat-dialog--wheel-scrolling': isWheelScrollingMessages }"
+            @wheel.passive="markMessagesWheelScrolling"
           >
             <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
@@ -845,6 +847,11 @@ export default {
     isShowFileList: false,
     fileList: [],
     editingMessage: null,
+
+    lastKnownLastMessageId: null,
+    lastKnownMessagesLength: 0,
+    isWheelScrollingMessages: false,
+    wheelScrollingTimer: null,
   }),
 
   updated () {
@@ -1887,6 +1894,28 @@ export default {
       }
       return 'Сообщение'
     },
+
+    getScrollZone () {
+      const chat = document.getElementById(this.isDialog ? 'chat-dialog-pop-up' : 'chat-dialog')
+      return chat?.children?.[0]?.children?.[0] || null
+    },
+
+    isNearBottom (scrollZone, threshold = 160) {
+      if (!scrollZone) {
+        return false
+      }
+      return scrollZone.scrollHeight - scrollZone.clientHeight - scrollZone.scrollTop <= threshold
+    },
+
+    markMessagesWheelScrolling () {
+      this.isWheelScrollingMessages = true
+      if (this.wheelScrollingTimer) {
+        clearTimeout(this.wheelScrollingTimer)
+      }
+      this.wheelScrollingTimer = setTimeout(() => {
+        this.isWheelScrollingMessages = false
+      }, 180)
+    },
   },
 
   computed: {
@@ -1993,14 +2022,13 @@ export default {
 
     messages: {
       immediate: true,
-      handler (newVal, oldVal) {
+      handler (newVal) {
         try {
           if (this.routeMessageIdToScroll) {
             const messageId = this.routeMessageIdToScroll
             if (this.messages.some(m => Number(m.id) === Number(messageId))) {
               this.$nextTick(() => {
                 const scrolled = this.goToMessage(messageId)
-
                 if (scrolled) {
                   this.routeMessageIdToScroll = null
                 }
@@ -2008,12 +2036,29 @@ export default {
             }
             return
           }
-          const chatDialog = document.getElementById('chat-dialog')
-          if (chatDialog && chatDialog.children[0].children[0]) {
-            const scrollZone = chatDialog.children[0].children[0]
-            if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 >= 90) {
+          const messages = Array.isArray(newVal) ? newVal : []
+          const lastMessage = messages[messages.length - 1]
+          const currentLastMessageId = this.getMessageId(lastMessage)
+          const previousLastMessageId = this.lastKnownLastMessageId
+          const previousMessagesLength = this.lastKnownMessagesLength
+          this.lastKnownLastMessageId = currentLastMessageId
+          this.lastKnownMessagesLength = messages.length
+          if (!previousLastMessageId) {
+            return
+          }
+          const messageWasAddedToBottom =
+            currentLastMessageId &&
+            currentLastMessageId !== previousLastMessageId &&
+            messages.length >= previousMessagesLength
+          if (!messageWasAddedToBottom) {
+            return
+          }
+          const scrollZone = this.getScrollZone()
+          const shouldScrollToBottom = this.isNearBottom(scrollZone)
+          if (shouldScrollToBottom) {
+            this.$nextTick(() => {
               this.scrollToBottom(0)
-            }
+            })
           }
         } catch (ignoreError) {
         }
@@ -2251,16 +2296,24 @@ textarea:focus {
   pointer-events: none;
   transition: opacity 0.15s ease, max-height 0.15s ease, margin 0.15s ease;
   position: relative;
-  z-index: 100;
+  z-index: 10;
 }
 
 .chat-message-row:hover .answer-required-actions,
 .answer-required-actions.answer-required-actions--selected {
-  max-height: 40px;
-  margin: -8px 0 8px 0;
+  max-height: 36px;
+  margin: 6px 0 0 0;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
+}
+
+.chat-dialog--wheel-scrolling .chat-message-row:hover .answer-required-actions:not(.answer-required-actions--selected) {
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .linked-task-icon {

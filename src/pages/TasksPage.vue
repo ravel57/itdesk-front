@@ -505,9 +505,9 @@
                @click="this.openBulkModal('open')">
           <q-tooltip>Открыть заявку</q-tooltip>
         </q-btn>
-        <q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">
-          <q-tooltip>Заморозить заявки</q-tooltip>
-        </q-btn>
+<!--        <q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">-->
+<!--          <q-tooltip>Заморозить заявки</q-tooltip>-->
+<!--        </q-btn>-->
         <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts"
                @click="this.openBulkModal('executor')">
           <q-tooltip>Сменить исполнителя заявок</q-tooltip>
@@ -750,6 +750,8 @@ export default {
     selectedOptions: [],
     savedFilters: [],
     selectedSavedFilter: '',
+    isApplyingSavedFilter: false,
+    isRestoringActiveFilter: false,
     dialogNewFilterName: '',
     dialogSaveFilterVisible: false,
     isShowTableMode: false,
@@ -765,7 +767,7 @@ export default {
     isShowDelFilterPreset: false,
     isModalForBulkActions: false,
     isShowBulkActionsMenu: false,
-    ascendingSort: true,
+    ascendingSort: false,
     isShowTableSettings: false,
 
     action: 'close',
@@ -907,48 +909,17 @@ export default {
         this.filterJoinOperator = this.isValidFilterJoinOperator(filterElement.filterJoinOperator)
           ? filterElement.filterJoinOperator
           : 'AND'
-        this.filterChain = structuredClone(filterElement.selectedOptions || [])
-        this.filterChain.forEach(it => {
-          const filterType = this.filterTypes.find(el => el.label === it.label)
-          if (!filterType) {
-            return
-          }
-          it.slug = filterType.slug
-          switch (it.slug) {
-            case 'executor':
-              it.options = this.executors
-              break
-            case 'tag':
-              it.options = this.tags
-              break
-            case 'organization':
-              it.options = this.organizations
-              break
-            case 'priority':
-              it.options = this.priorities
-              break
-            case 'status':
-              it.options = this.statuses
-              break
-            case 'client':
-              it.options = this.clients
-              break
-            case 'type':
-              it.options = this.taskTypes
-              break
-            default:
-              it.options = null
-              break
-          }
-        })
+        this.filterChain = this.hydrateFilterChainOptions(structuredClone(filterElement.selectedOptions || []))
         this.isFilterSelected = true
         this.updateUrlWithFilterChain(this.filterChain)
+        this.saveActiveFilterToLocalStorage()
         this.$nextTick(() => {
           this.isApplyingSavedFilter = false
         })
       } else {
         this.selectedSavedFilter = ''
         this.filterChain = []
+        this.saveActiveFilterToLocalStorage()
       }
     },
 
@@ -970,6 +941,7 @@ export default {
           this.selectedSavedFilter = ''
           this.isDeleteSavedFilterDialogShow = false
           this.filterChain = []
+          this.clearActiveFilterFromLocalStorage()
         })
         .catch(e =>
           this.$q.notify({
@@ -990,6 +962,7 @@ export default {
         queryParams.delete('filterJoinOperator')
         this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
       }
+      this.saveActiveFilterToLocalStorage()
     },
 
     getOrganizationName(task) {
@@ -1006,6 +979,7 @@ export default {
       this.selectedSavedFilter = ''
       this.filterJoinOperator = 'AND'
       this.filterChain = []
+      this.clearActiveFilterFromLocalStorage()
     },
 
     base64EncodeUnicode(str) {
@@ -1045,46 +1019,143 @@ export default {
 
       if (filterChainFromUrl) {
         try {
-          this.filterChain = JSON.parse(this.base64DecodeUnicode(filterChainFromUrl))
-          this.filterChain.forEach(filter => {
-            const filterType = this.filterTypes.find(el => el.label === filter.label)
-            if (!filterType) {
-              return
-            }
-            filter.slug = filterType.slug
-            switch (filter.slug) {
-              case 'executor':
-                filter.options = this.executors
-                break
-              case 'tag':
-                filter.options = this.tags
-                break
-              case 'organization':
-                filter.options = this.organizations
-                break
-              case 'priority':
-                filter.options = this.priorities
-                break
-              case 'status':
-                filter.options = this.statuses
-                break
-              case 'client':
-                filter.options = this.clients
-                break
-              case 'type':
-                filter.options = this.taskTypes
-                break
-              default:
-                filter.options = null
-                break
-            }
-          })
+          this.filterChain = this.hydrateFilterChainOptions(JSON.parse(this.base64DecodeUnicode(filterChainFromUrl)))
           this.isFilterSelected = true
+          this.saveActiveFilterToLocalStorage()
         } catch (e) {
           console.error(e)
         }
       } else {
         this.filterChain = []
+      }
+    },
+
+    hydrateFilterChainOptions(filterChain) {
+      if (!Array.isArray(filterChain)) {
+        return []
+      }
+
+      return filterChain.map(filter => {
+        const normalizedFilter = {...filter}
+        const filterType = this.filterTypes.find(el => el.label === normalizedFilter.label)
+        if (!filterType) {
+          normalizedFilter.options = null
+          return normalizedFilter
+        }
+
+        normalizedFilter.slug = filterType.slug
+        switch (normalizedFilter.slug) {
+          case 'executor':
+            normalizedFilter.options = this.executors
+            break
+          case 'tag':
+            normalizedFilter.options = this.tags
+            break
+          case 'organization':
+            normalizedFilter.options = this.organizations
+            break
+          case 'priority':
+            normalizedFilter.options = this.priorities
+            break
+          case 'status':
+            normalizedFilter.options = this.statuses
+            break
+          case 'client':
+            normalizedFilter.options = this.clients
+            break
+          case 'type':
+            normalizedFilter.options = this.taskTypes
+            break
+          default:
+            normalizedFilter.options = null
+            break
+        }
+        return normalizedFilter
+      })
+    },
+
+    getActiveFilterStorageKey() {
+      return 'tasksPageActiveFilter'
+    },
+
+    hasFilterQueryParams() {
+      const queryParams = new URLSearchParams(window.location.search)
+      return !!queryParams.get('filterChain') || !!queryParams.get('filterJoinOperator')
+    },
+
+    clearActiveFilterFromLocalStorage() {
+      localStorage.removeItem(this.getActiveFilterStorageKey())
+    },
+
+    saveActiveFilterToLocalStorage() {
+      if (this.isRestoringActiveFilter) {
+        return
+      }
+
+      const normalizedFilterChain = this.normalizeFiltersForSave(this.filterChain || [])
+      const payload = {
+        isFilterSelected: Boolean(this.isFilterSelected),
+        selectedSavedFilter: this.selectedSavedFilter || '',
+        filterJoinOperator: this.isValidFilterJoinOperator(this.filterJoinOperator)
+          ? this.filterJoinOperator
+          : 'AND',
+        filterChain: normalizedFilterChain
+      }
+
+      if (!payload.isFilterSelected && !payload.selectedSavedFilter && normalizedFilterChain.length === 0) {
+        this.clearActiveFilterFromLocalStorage()
+        return
+      }
+
+      localStorage.setItem(this.getActiveFilterStorageKey(), JSON.stringify(payload))
+    },
+
+    restoreActiveFilterFromLocalStorage() {
+      if (this.hasFilterQueryParams()) {
+        return
+      }
+
+      const rawValue = localStorage.getItem(this.getActiveFilterStorageKey())
+      if (!rawValue) {
+        return
+      }
+
+      let payload
+      try {
+        payload = JSON.parse(rawValue)
+      } catch (e) {
+        this.clearActiveFilterFromLocalStorage()
+        return
+      }
+
+      this.isRestoringActiveFilter = true
+      try {
+        this.filterJoinOperator = this.isValidFilterJoinOperator(payload.filterJoinOperator)
+          ? payload.filterJoinOperator
+          : 'AND'
+
+        const savedFilterLabel = payload.selectedSavedFilter || ''
+        const savedFilter = this.savedFilters.find(filter => filter.label === savedFilterLabel)
+
+        if (savedFilter) {
+          this.selectedSavedFilter = savedFilter.label
+          this.filterChain = this.hydrateFilterChainOptions(structuredClone(savedFilter.selectedOptions || []))
+          this.isFilterSelected = true
+          this.updateUrlWithFilterChain(this.filterChain)
+          return
+        }
+
+        this.selectedSavedFilter = ''
+        this.filterChain = this.hydrateFilterChainOptions(payload.filterChain || [])
+        this.isFilterSelected = Boolean(payload.isFilterSelected) || this.filterChain.length > 0
+
+        if (this.isFilterSelected && this.filterChain.length > 0) {
+          this.updateUrlWithFilterChain(this.filterChain)
+        }
+      } finally {
+        this.$nextTick(() => {
+          this.isRestoringActiveFilter = false
+        })
       }
     },
 
@@ -1326,6 +1397,12 @@ export default {
         return
       }
 
+      // Пока модалка массовых действий открыта, запросы ещё могут выполняться.
+      // Не закрываем undo/redo-снимок после первого @updateTask.
+      if (!force && this.isModalForBulkActions) {
+        return
+      }
+
       if (this.bulkActionHistoryFinishTimer) {
         clearTimeout(this.bulkActionHistoryFinishTimer)
       }
@@ -1340,6 +1417,19 @@ export default {
       const history = this.pendingBulkActionHistory
       if (!history) {
         return
+      }
+
+      if (!force && this.isModalForBulkActions) {
+        return
+      }
+
+      // Если модалка закрылась раньше, чем пришли ответы по всем заявкам,
+      // ждём остальные @updateTask, иначе в историю попадёт только первая заявка.
+      if (!force && history.afterTasks.length < history.taskIds.length) {
+        if (Date.now() - history.createdAt < 10000) {
+          this.scheduleFinishBulkActionHistory(500)
+          return
+        }
       }
 
       const beforeById = new Map(history.beforeTasks.map(task => [task.id, task]))
@@ -1901,6 +1991,7 @@ export default {
         !task?.id ||
         !sourceSla ||
         task.completed ||
+        task.frozen ||
         this.slaInfoLoadingByTaskId[task.id] ||
         Object.prototype.hasOwnProperty.call(this.slaInfoByTaskId, task.id)
       ) {
@@ -1930,7 +2021,7 @@ export default {
 
     loadSlaInfoForTasks(tasks) {
       tasks
-        .filter(task => this.getTaskSla(task) && !task.completed)
+        .filter(task => this.getTaskSla(task) && !task.completed && !task.frozen)
         .forEach(task => this.loadSlaInfoForTask(task))
     },
 
@@ -1942,9 +2033,26 @@ export default {
       if (secondsLeft <= 0) {
         return '0 ч. 0 м.'
       }
+      const workdaySeconds = this.getSlaWorkdaySeconds(task)
+      if (workdaySeconds > 0 && secondsLeft >= workdaySeconds) {
+        const days = Math.floor(secondsLeft / workdaySeconds)
+        const restSeconds = secondsLeft % workdaySeconds
+        const hours = Math.floor(restSeconds / 3600)
+        const minutes = Math.floor((restSeconds % 3600) / 60)
+        return `${days} д. ${hours} ч. ${minutes} м.`
+      }
       const hours = Math.floor(secondsLeft / 3600)
       const minutes = Math.floor((secondsLeft % 3600) / 60)
       return `${hours} ч. ${minutes} м.`
+    },
+
+    getSlaWorkdaySeconds(task) {
+      const slaInfo = this.getSlaInfo(task)
+      const workdaySeconds = Number(slaInfo?.workdaySeconds)
+      if (Number.isFinite(workdaySeconds) && workdaySeconds > 0) {
+        return workdaySeconds
+      }
+      return 24 * 60 * 60
     },
 
     getSlaLeftSeconds(task) {
@@ -2133,6 +2241,7 @@ export default {
 
     isSlaVisibleInTable(task) {
       return !task?.completed &&
+        !task?.frozen &&
         !!this.getTaskSla(task) &&
         !!this.getSlaInfo(task)
     },
@@ -2145,12 +2254,37 @@ export default {
       return slaTime ? `Осталось: ${slaTime}` : ''
     },
 
+    saveSortingSettings() {
+      localStorage.setItem('tasksPageSorting', JSON.stringify({
+        slug: this.selectedSorting?.slug || '',
+        ascendingSort: this.ascendingSort
+      }))
+    },
+
+    restoreSortingSettings() {
+      try {
+        const savedSorting = JSON.parse(localStorage.getItem('tasksPageSorting') || '{}')
+        const selectedSorting = this.sortingTypes.find(sorting => sorting.slug === savedSorting.slug)
+
+        if (selectedSorting) {
+          this.selectedSorting = selectedSorting
+        }
+
+        if (typeof savedSorting.ascendingSort === 'boolean') {
+          this.ascendingSort = savedSorting.ascendingSort
+        }
+      } catch (ignored) {
+      }
+    },
+
     setSortVariable(sort) {
       this.selectedSorting = sort
+      this.saveSortingSettings()
     },
 
     changeSortingAsc() {
       this.ascendingSort = !this.ascendingSort
+      this.saveSortingSettings()
     },
 
     formatDateTime() {
@@ -2532,13 +2666,16 @@ export default {
         const tasks = this.getFilteredTasks
         this.loadSlaInfoForTasks(tasks)
         return tasks.map(task => {
-          const slaInfo = this.slaInfoByTaskId[task.id] || null
+          const slaInfo = task.frozen || task.completed
+            ? null
+            : this.slaInfoByTaskId[task.id] || null
           const row = {
             ...task,
             originalSla: task.sla,
             slaInfo
           }
-          const secondsLeft = this.getSlaLeftSeconds(row)
+          const isSlaVisible = this.isSlaVisibleInTable(row)
+          const secondsLeft = isSlaVisible ? this.getSlaLeftSeconds(row) : null
           return {
             ...row,
             type: this.getTaskTypeName(row),
@@ -2547,8 +2684,8 @@ export default {
             checklistTotal: this.getChecklistTotalCount(row),
             sla: secondsLeft !== null ? this.getSlaTime(row) : '',
             slaSecondsLeft: secondsLeft,
-            slaPercent: slaInfo ? this.getSlaPercent(row) : 0,
-            slaExpired: secondsLeft !== null && secondsLeft <= 0
+            slaPercent: isSlaVisible ? this.getSlaPercent(row) : null,
+            slaExpired: isSlaVisible && secondsLeft !== null && secondsLeft <= 0
           }
         })
       } catch (e) {
@@ -2636,6 +2773,7 @@ export default {
             this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
           }
           this.updateUrlWithFilterChain(newVal)
+          this.saveActiveFilterToLocalStorage()
           const queryParams = new URLSearchParams(window.location.search)
           const filterChainFromUrl = queryParams.get('filterChain')
           try {
@@ -2643,7 +2781,7 @@ export default {
             document.getElementById(`filter_${filters[filters.length - 1].slug}`).children[0].click()
           } catch (ignored) {
           }
-          if (this.selectedSavedFilter && !this.isApplyingSavedFilter) {
+          if (this.selectedSavedFilter && !this.isApplyingSavedFilter && !this.isRestoringActiveFilter) {
             if (this.isCurrentSavedFilterChanged()) {
               this.selectedSavedFilter = ''
             }
@@ -2661,6 +2799,7 @@ export default {
     selectedSavedFilter: {
       handler(newVal) {
         this.isShowDelFilterPreset = newVal !== ''
+        this.saveActiveFilterToLocalStorage()
       },
       deep: true
     },
@@ -2725,7 +2864,9 @@ export default {
         this.updateUrlWithFilterChain(this.filterChain)
       }
 
-      if (this.selectedSavedFilter && !this.isApplyingSavedFilter) {
+      this.saveActiveFilterToLocalStorage()
+
+      if (this.selectedSavedFilter && !this.isApplyingSavedFilter && !this.isRestoringActiveFilter) {
         if (this.isCurrentSavedFilterChanged()) {
           this.selectedSavedFilter = ''
         }
@@ -2745,6 +2886,7 @@ export default {
     axios.get('/api/v1/filters')
       .then(response => {
         this.savedFilters = response.data
+        this.restoreActiveFilterFromLocalStorage()
       })
       .catch(e =>
         this.$q.notify({
@@ -2758,6 +2900,7 @@ export default {
   },
 
   created() {
+    this.restoreSortingSettings()
     this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
     this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
     if (localStorage.getItem('taskTableSettings')) {

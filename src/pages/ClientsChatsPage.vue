@@ -8,7 +8,7 @@
         v-model="searchQuery"
         dense
         data-tour="chat-search"
-        placeholder="Поиск..."
+        placeholder="Поиск по клиенту или организации..."
         @input="search"
         clearable
         class="search-sort-row__search"
@@ -32,6 +32,10 @@
         options-dense
         class="search-sort-row__sort"
       />
+
+<!--      <q-btn>-->
+<!--        <q-tooltip>Новый пользователь</q-tooltip>-->
+<!--      </q-btn>-->
 
       <q-btn
         flat
@@ -105,7 +109,7 @@
                     </div>
                     <div class="row items-center no-wrap">
                       <div
-                        v-if="hasClientSla(client)"
+                        v-if="isSlaVisible(client)"
                         class="sla-pill q-ml-sm"
                         :class="{ 'sla-pill--expired': isSlaExpired(this.getActualTasks(client)) }"
                         :data-tour="isFirstClient(client) ? 'client-sla' : null"
@@ -764,8 +768,27 @@ export default {
     },
 
     getSlaTotalMs (task) {
-      const duration = task?.sla?.duration || task?.slaDuration || task?.sla?.totalDuration || task?.slaTotalDuration
-      return this.parseIsoDurationToMs(duration)
+      const info = this.getTaskSlaInfo(task)
+      const durations = [
+        task?.sla?.duration,
+        task?.slaDuration,
+        task?.sla?.totalDuration,
+        task?.slaTotalDuration,
+        info?.duration,
+        info?.totalDuration,
+        info?.slaDuration,
+        info?.durationSeconds,
+        info?.totalSeconds,
+        info?.totalDurationSeconds,
+        info?.slaDurationSeconds
+      ]
+      for (const duration of durations) {
+        const ms = this.parseIsoDurationToMs(duration)
+        if (Number.isFinite(ms) && ms > 0) {
+          return ms
+        }
+      }
+      return 0
     },
 
     getTaskSlaInfo (task) {
@@ -807,14 +830,21 @@ export default {
     },
 
     hasTaskSla (task) {
-      if (!task) {
+      if (!task || task.completed || task.frozen) {
         return false
       }
-      if (task?.sla?.startDate && task?.sla?.duration) {
-        return true
+      const totalMs = this.getSlaTotalMs(task)
+      if (!Number.isFinite(totalMs) || totalMs <= 0) {
+        return false
       }
       const info = this.getTaskSlaInfo(task)
-      return !!(info?.deadline || Number.isFinite(Number(info?.remainingSeconds)) || this.isTaskSlaExpiredByFlags(task))
+      const startDate = task?.sla?.startDate || task?.slaStartDate
+      return !!(
+        startDate ||
+        info?.deadline ||
+        Number.isFinite(Number(info?.remainingSeconds)) ||
+        this.isTaskSlaExpiredByFlags(task)
+      )
     },
 
     parseIsoDurationToMs (duration) {
@@ -1235,7 +1265,7 @@ export default {
       const ids = []
       ;(clients || []).forEach(client => {
         this.getActualTasks(client).forEach(task => {
-          if (task?.id) {
+          if (task?.id && !task.completed && !task.frozen) {
             ids.push(task.id)
           }
         })
@@ -1351,6 +1381,19 @@ export default {
       }
       return message.isSent === true ? 'output' : 'input'
     },
+
+    isSlaVisible (client) {
+      const task = this.getMinimalSlaTask(this.getActualTasks(client))
+      if (!task || task.completed) {
+        return false
+      }
+      const totalMs = this.getSlaTotalMs(task)
+      if (!Number.isFinite(totalMs) || totalMs <= 0) {
+        return false
+      }
+      const leftMs = this.getSlaLeftMsApprox(task)
+      return leftMs !== null
+    },
   },
 
   computed: {
@@ -1411,7 +1454,10 @@ export default {
       this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
     },
 
-    sortType () {
+    sortType (newValue) {
+      if (newValue) {
+        localStorage.setItem('clientsChatsSortType', newValue)
+      }
       this.preloadSlaInfosForClients(this.getSortedAndFilteredClients)
     },
 
@@ -1421,6 +1467,13 @@ export default {
         this.$nextTick(() => this.normalizeOnboardingStep())
       },
       deep: true
+    }
+  },
+
+  created () {
+    const savedSortType = localStorage.getItem('clientsChatsSortType')
+    if (this.sortOptions.some(option => option.value === savedSortType)) {
+      this.sortType = savedSortType
     }
   },
 

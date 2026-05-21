@@ -3,6 +3,9 @@
     v-model="getPossibilityToOpenDialogTask"
     persistent
     backdrop-filter="blur(4px)"
+    transition-show="none"
+    transition-hide="none"
+    :transition-duration="0"
   >
     <q-card
       data-tour="task-dialog-card"
@@ -465,7 +468,7 @@
                       {{ item.description }}
                     </div>
                     <q-markup-table
-                      v-if="item.changes && item.changes.length > 0"
+                      v-if="getTaskHistoryChanges(item).length > 0"
                       dense
                       flat
                       bordered
@@ -481,12 +484,12 @@
 
                       <tbody>
                       <tr
-                        v-for="change in item.changes"
-                        :key="change.field"
+                        v-for="(change, index) in getTaskHistoryChanges(item)"
+                        :key="`${change.field}-${index}`"
                       >
                         <td>{{ change.label || change.field }}</td>
-                        <td>{{ change.oldValue || '—' }}</td>
-                        <td>{{ change.newValue || '—' }}</td>
+                        <td>{{ getTaskHistoryChangeValue(change.oldValue, change.field) }}</td>
+                        <td>{{ getTaskHistoryChangeValue(change.newValue, change.field) }}</td>
                       </tr>
                       </tbody>
                     </q-markup-table>
@@ -1366,7 +1369,10 @@ export default {
       if (this.isClosedStatusName(newName) || this.isFrozenStatusName(newName)) {
         return true
       }
-      return this.isClosedStatusName(oldName) && this.isOpenStatusName(newName)
+      return this.isOpenStatusName(newName) && (
+        this.isClosedStatusName(oldName) ||
+        this.isFrozenStatusName(oldName)
+      )
     },
 
     getStatusChangeReasonTitle (oldStatusName, newStatusName) {
@@ -1375,6 +1381,9 @@ export default {
       }
       if (this.isFrozenStatusName(newStatusName)) {
         return 'Причина заморозки заявки'
+      }
+      if (this.isFrozenStatusName(oldStatusName) && this.isOpenStatusName(newStatusName)) {
+        return 'Причина разморозки заявки'
       }
       if (this.isClosedStatusName(oldStatusName) && this.isOpenStatusName(newStatusName)) {
         return 'Причина возврата заявки в работу'
@@ -1475,7 +1484,9 @@ export default {
           ? this.copyChecklist(this.normalizeChecklist(defaultTaskType.checklistTemplate))
           : []
         this.newChecklistItemText = ''
-        setTimeout(() => this.$refs.taskName.focus(), 300)
+        this.$nextTick(() => {
+          this.$refs.taskName?.focus?.()
+        })
       } else {
         this.dialogTaskId = this.task.id
         this.dialogTaskName = this.task.name
@@ -1554,11 +1565,48 @@ export default {
       if (!this.isNewTask) {
         task.sla = this.task.sla
       }
-      if (this.isClosedStatusName(task.status.name)) {
-        task.completed = true
-      }
       const oldStatusName = this.isNewTask ? '' : this.getStatusName(this.task.status)
       const newStatusName = this.getStatusName(task.status)
+
+      if (this.isClosedStatusName(newStatusName)) {
+        task.completed = true
+        task.frozen = false
+        task.frozenFrom = null
+        task.frozenUntil = null
+      }
+
+      if (!this.isNewTask && this.isFrozenStatusName(newStatusName)) {
+        const alreadyFrozenWithTimer = this.task.frozen === true && !!this.task.frozenFrom && !!this.task.frozenUntil
+        if (!alreadyFrozenWithTimer) {
+          this.dialogTaskStatus = oldStatusName
+          this.openFreezeDialog()
+          this.$q.notify({
+            message: 'Для заморозки укажите срок заморозки',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
+          })
+          return
+        }
+        task.completed = false
+        task.frozen = true
+        task.frozenFrom = this.task.frozenFrom
+        task.frozenUntil = this.task.frozenUntil
+        task.previousStatus = this.task.previousStatus
+      }
+
+      if (!this.isNewTask && this.task.frozen === true && !this.isFrozenStatusName(newStatusName)) {
+        task.frozen = false
+        task.frozenFrom = null
+        task.frozenUntil = null
+        task.previousStatus = null
+      }
+
       const statusChangeReason = await this.requestStatusChangeReasonIfNeeded(oldStatusName, newStatusName)
       if (statusChangeReason === null) {
         return
@@ -2096,6 +2144,113 @@ export default {
       })
     },
 
+    getTaskHistoryChanges (item) {
+      const changes = Array.isArray(item?.changes)
+        ? item.changes.map(change => ({ ...change }))
+        : []
+
+      if (changes.some(change => change?.field === 'frozenUntil')) {
+        return changes
+      }
+
+      const frozenChange = changes.find(change => change?.field === 'frozen')
+      if (!this.isPositiveHistoryValue(frozenChange?.newValue)) {
+        return changes
+      }
+
+      const frozenUntil = this.getTaskHistoryPayloadValue(item, ['task', 'frozenUntil'])
+        || this.getTaskHistoryPayloadValue(item, ['frozenUntil'])
+
+      if (!frozenUntil) {
+        return changes
+      }
+
+      changes.push({
+        field: 'frozenUntil',
+        label: 'Заморожена до',
+        oldValue: '—',
+        newValue: frozenUntil
+      })
+
+      return changes
+    },
+
+    getTaskHistoryPayloadValue (item, path) {
+      const payload = this.getTaskHistoryPayload(item)
+      if (!payload) {
+        return null
+      }
+
+      return path.reduce((value, key) => {
+        if (value === null || value === undefined) {
+          return null
+        }
+        return value[key]
+      }, payload)
+    },
+
+    getTaskHistoryPayload (item) {
+      const payload = item?.meta?.payload || item?.payload
+
+      if (!payload) {
+        return null
+      }
+
+      if (typeof payload === 'object') {
+        return payload
+      }
+
+      try {
+        return JSON.parse(payload)
+      } catch (e) {
+        return null
+      }
+    },
+
+    isPositiveHistoryValue (value) {
+      if (value === true) {
+        return true
+      }
+      const normalized = String(value || '').trim().toLowerCase()
+      return ['true', 'да', 'заморожена', 'заморожено'].includes(normalized)
+    },
+
+    getTaskHistoryChangeValue (value, field) {
+      if (value === null || value === undefined || value === '' || value === 'null') {
+        return '—'
+      }
+
+      if (['deadline', 'frozenFrom', 'frozenUntil'].includes(field)) {
+        return this.formatHistoryDateValue(value)
+      }
+
+      return value
+    },
+
+    formatHistoryDateValue (value) {
+      if (!value || value === 'null') {
+        return '—'
+      }
+
+      if (Array.isArray(value) && value.length >= 5) {
+        const [year, month, day, hour, minute] = value
+        return moment({
+          year: Number(year),
+          month: Number(month) - 1,
+          date: Number(day),
+          hour: Number(hour),
+          minute: Number(minute)
+        }).format('DD.MM.YYYY HH:mm')
+      }
+
+      const parsed = moment(value)
+      if (parsed.isValid()) {
+        return parsed.format('DD.MM.YYYY HH:mm')
+      }
+
+      return value
+    },
+
     getHistoryIcon (type) {
       switch (type) {
         case 'TASK_CREATED':
@@ -2503,7 +2658,7 @@ export default {
           this.loadTaskHistory()
         }
         this.$nextTick(() => {
-          setTimeout(() => this.startTaskDialogOnboarding(false), 450)
+          this.startTaskDialogOnboarding(false)
         })
       } else {
         this.stopTaskDialogOnboarding()
@@ -2513,12 +2668,32 @@ export default {
 
     dialogTaskStatus: {
       deep: true,
-      handler (oldVal, newVal) {
-        if (oldVal !== '' && newVal !== '') {
-          if (this.dialogTaskStatus === 'Заморожена') {
-            this.freezeDialog = true
-          }
+      handler (newVal, oldVal) {
+        if (this.taskFieldsInitializing || this.isNewTask) {
+          return
         }
+        const oldName = String(oldVal || '').trim()
+        const newName = String(newVal || '').trim()
+        if (!oldName || !newName || oldName.toLowerCase() === newName.toLowerCase()) {
+          return
+        }
+        if (!this.isFrozenStatusName(newName)) {
+          return
+        }
+
+        const sourceStatusName = String(this.getStatusName(this.task?.status) || '').trim()
+        const alreadyFrozenWithTimer = this.task?.frozen === true && !!this.task?.frozenFrom && !!this.task?.frozenUntil
+
+        if (alreadyFrozenWithTimer && this.isFrozenStatusName(sourceStatusName)) {
+          this.freezeDialog = false
+          this.dialogTaskFreezeUntil = ''
+          this.dialogTaskFreezeReason = ''
+          return
+        }
+
+        this.dialogTaskFreezeUntil = ''
+        this.dialogTaskFreezeReason = ''
+        this.freezeDialog = true
       }
     },
 
@@ -2558,7 +2733,7 @@ export default {
           this.loadTaskHistory()
         }
         this.$nextTick(() => {
-          setTimeout(() => this.startTaskDialogOnboarding(false), 450)
+          this.startTaskDialogOnboarding(false)
         })
         this.taskMessageUnsubscribe = onTaskMessage(this.onTaskMessage)
       })

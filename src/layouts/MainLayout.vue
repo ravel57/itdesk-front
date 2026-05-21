@@ -202,7 +202,7 @@ export default {
         roles: ['CLIENT']
       },
       {
-        title: 'Заявки',
+        title: 'Список заявок',
         icon: 'find_in_page',
         link: '/tasks',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
@@ -211,7 +211,7 @@ export default {
         title: 'Организации',
         icon: 'store',
         link: '/orgs',
-        roles: ['ADMIN', 'OPERATOR', 'OBSERVER']
+        roles: ['ADMIN', 'OPERATOR']
       },
       {
         title: 'Поиск',

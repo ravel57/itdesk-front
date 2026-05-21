@@ -315,7 +315,20 @@ export default {
     },
 
     updateTask (task, newTask) {
+      const updatedTask = newTask?.data || newTask
+      const taskId = updatedTask?.id || task?.id
+
+      if (taskId) {
+        const slaInfoByTaskId = { ...this.slaInfoByTaskId }
+        delete slaInfoByTaskId[taskId]
+        this.slaInfoByTaskId = slaInfoByTaskId
+      }
+
       this.$emit('updateTask', task, newTask)
+
+      this.$nextTick(() => {
+        this.loadSlaInfoForTask(updatedTask || task)
+      })
     },
 
     async setTaskCompleted (task) {
@@ -432,12 +445,37 @@ export default {
       this.isTaskDialogShow = false
     },
 
+    saveSortingSettings () {
+      localStorage.setItem('chatTasksSorting', JSON.stringify({
+        slug: this.selectedSorting?.slug || '',
+        ascendingSort: this.ascendingSort
+      }))
+    },
+
+    restoreSortingSettings () {
+      try {
+        const savedSorting = JSON.parse(localStorage.getItem('chatTasksSorting') || '{}')
+        const selectedSorting = this.sortingTypes.find(sorting => sorting.slug === savedSorting.slug)
+
+        if (selectedSorting) {
+          this.selectedSorting = selectedSorting
+        }
+
+        if (typeof savedSorting.ascendingSort === 'boolean') {
+          this.ascendingSort = savedSorting.ascendingSort
+        }
+      } catch (ignored) {
+      }
+    },
+
     setSortVariable (sort) {
       this.selectedSorting = sort
+      this.saveSortingSettings()
     },
 
     changeSortingAsc () {
       this.ascendingSort = !this.ascendingSort
+      this.saveSortingSettings()
     },
 
     addMessageToTask (event) {
@@ -513,15 +551,45 @@ export default {
       return this.slaInfoByTaskId[task.id] || null
     },
 
+    normalizeSlaSeconds (value) {
+      if (value === null || value === undefined || value === '') {
+        return null
+      }
+
+      const seconds = Number(value)
+      return Number.isFinite(seconds) ? seconds : null
+    },
+
+    isTaskSlaSortable (task) {
+      return !!task?.sla && !task.completed && !task.frozen
+    },
+
     getSlaLeftSeconds (task) {
+      if (!this.isTaskSlaSortable(task)) {
+        return null
+      }
+
       const info = this.getSlaInfo(task)
 
       if (info) {
+        const remainingSeconds = this.normalizeSlaSeconds(info.remainingSeconds)
+
         if (info.paused) {
-          return info.remainingSeconds
+          return remainingSeconds
         }
 
-        return Math.max(0, Math.floor((new Date(info.deadline).getTime() - this.nowTs) / 1000))
+        if (remainingSeconds !== null && !info.deadline) {
+          return Math.max(0, remainingSeconds)
+        }
+
+        if (info.deadline) {
+          const deadlineMs = new Date(info.deadline).getTime()
+          if (Number.isFinite(deadlineMs)) {
+            return Math.max(0, Math.floor((deadlineMs - this.nowTs) / 1000))
+          }
+        }
+
+        return remainingSeconds === null ? null : Math.max(0, remainingSeconds)
       }
 
       if (!task?.sla?.startDate || !task?.sla?.duration) {
@@ -530,6 +598,11 @@ export default {
 
       const startMs = new Date(task.sla.startDate).getTime()
       const durationMs = this.parseIsoDurationToMs(task.sla.duration)
+
+      if (!Number.isFinite(startMs) || !Number.isFinite(durationMs) || durationMs <= 0) {
+        return null
+      }
+
       const deadlineMs = startMs + durationMs
 
       return Math.max(0, Math.floor((deadlineMs - this.nowTs) / 1000))
@@ -542,17 +615,18 @@ export default {
         return duration
       }
 
-      const match = duration.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/)
+      const match = duration.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/)
 
       if (!match) {
         return 0
       }
 
-      const hours = Number(match[1] || 0)
-      const minutes = Number(match[2] || 0)
-      const seconds = Number(match[3] || 0)
+      const days = Number(match[1] || 0)
+      const hours = Number(match[2] || 0)
+      const minutes = Number(match[3] || 0)
+      const seconds = Number(match[4] || 0)
 
-      return ((hours * 3600) + (minutes * 60) + seconds) * 1000
+      return (((days * 24 + hours) * 3600) + (minutes * 60) + seconds) * 1000
     },
 
     getSlaText (task) {
@@ -579,12 +653,47 @@ export default {
     getSlaDeadlineMs (task) {
       const info = this.getSlaInfo(task)
       if (info?.deadline) {
-        return new Date(info.deadline).getTime()
+        const deadlineMs = new Date(info.deadline).getTime()
+        return Number.isFinite(deadlineMs) ? deadlineMs : Number.MAX_SAFE_INTEGER
       }
       if (!task?.sla?.startDate || !task?.sla?.duration) {
         return Number.MAX_SAFE_INTEGER
       }
-      return new Date(task.sla.startDate).getTime() + this.parseIsoDurationToMs(task.sla.duration)
+
+      const startMs = new Date(task.sla.startDate).getTime()
+      const durationMs = this.parseIsoDurationToMs(task.sla.duration)
+
+      if (!Number.isFinite(startMs) || !Number.isFinite(durationMs) || durationMs <= 0) {
+        return Number.MAX_SAFE_INTEGER
+      }
+
+      return startMs + durationMs
+    },
+
+    getSlaSortValue (task) {
+      const secondsLeft = this.getSlaLeftSeconds(task)
+      return secondsLeft === null ? Number.POSITIVE_INFINITY : secondsLeft
+    },
+
+    compareTasksBySla (a, b) {
+      const aValue = this.getSlaSortValue(a)
+      const bValue = this.getSlaSortValue(b)
+      const aEmpty = !Number.isFinite(aValue)
+      const bEmpty = !Number.isFinite(bValue)
+
+      if (aEmpty && bEmpty) {
+        return 0
+      }
+
+      if (aEmpty) {
+        return 1
+      }
+
+      if (bEmpty) {
+        return -1
+      }
+
+      return this.ascendingSort ? aValue - bValue : bValue - aValue
     },
 
     getStatusName (status) {
@@ -642,20 +751,8 @@ export default {
                 return new Date(a.createdAt) - new Date(b.createdAt)
               case 'priority':
                 return b.priority.orderNumber - a.priority.orderNumber
-              case 'sla': {
-                const aEnd = this.getSlaEndDate(a)
-                const bEnd = this.getSlaEndDate(b)
-                if (!aEnd && !bEnd) {
-                  return 0
-                }
-                if (!aEnd) {
-                  return 1
-                }
-                if (!bEnd) {
-                  return -1
-                }
-                return aEnd.diff(bEnd)
-              }
+              case 'sla':
+                return this.compareTasksBySla(a, b)
               case 'status':
                 return b.status.orderNumber - a.status.orderNumber
               default:
@@ -672,7 +769,7 @@ export default {
               case 'priority':
                 return a.priority.orderNumber - b.priority.orderNumber
               case 'sla':
-                return this.getSlaDeadlineMs(b) - this.getSlaDeadlineMs(a)
+                return this.compareTasksBySla(a, b)
               case 'status':
                 return a.status.orderNumber - b.status.orderNumber
               default:
@@ -728,6 +825,7 @@ export default {
   },
 
   created () {
+    this.restoreSortingSettings()
     this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
   },
 

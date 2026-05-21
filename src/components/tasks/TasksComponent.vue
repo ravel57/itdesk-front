@@ -88,7 +88,7 @@
                 dense
                 outline
                 color="primary"
-                :label="col.value || 'Не указан'"
+                :label="col.value"
               />
             </div>
 
@@ -359,7 +359,7 @@ export default {
         name: 'type',
         label: 'Тип',
         align: 'left',
-        field: row => row.type || 'Не указан',
+        field: row => row.type,
         sortable: true
       },
       {

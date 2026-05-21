@@ -32,14 +32,14 @@
     </div>
     <table @click="this.$emit('onTaskClicked', this.task)">
       <tr v-if="task.description.length !== 0" data-tour="tasks-task-description">
-        <th class="small-text text-grey row-label" v-text="'Описание: '" />
+        <th class="small-text text-grey row-label" v-text="'Описание: '"/>
         <th
           :class="descriptionClass"
           v-text="task.description"
         />
       </tr>
       <tr data-tour="tasks-task-type">
-        <th class="small-text text-grey row-label" v-text="'Тип: '" />
+        <th class="small-text text-grey row-label" v-text="'Тип: '"/>
         <th
           :class="typeClass"
           v-text="getTaskTypeName(task)"
@@ -49,7 +49,7 @@
         v-if="getChecklistTotalCount(task) > 0"
         data-tour="tasks-task-checklist"
       >
-        <th class="small-text text-grey row-label" v-text="'Чек-лист: '" />
+        <th class="small-text text-grey row-label" v-text="'Чек-лист: '"/>
         <th :class="checklistClass">
           <div class="task-card-checklist-progress-row">
       <span>
@@ -68,7 +68,7 @@
         </th>
       </tr>
       <tr v-if="task.tags.map(tag => tag.name).length !== 0" data-tour="tasks-task-tags">
-        <th class="small-text text-grey row-label" v-text="'Теги: '" />
+        <th class="small-text text-grey row-label" v-text="'Теги: '"/>
         <th
           :class="tagsClass"
           v-text="task.tags.map(tag => tag.name).join(', ')"
@@ -86,7 +86,7 @@
         />
       </tr>
       <tr v-if="task.executor" data-tour="tasks-task-executor">
-        <th class="small-text text-grey row-label" v-text="'Исполнитель: '" />
+        <th class="small-text text-grey row-label" v-text="'Исполнитель: '"/>
         <th
           :class="executorClass"
           v-text="getName(task.executor)"
@@ -103,17 +103,17 @@
           v-text="this.getStamp(task.createdAt)"
         />
       </tr>
-<!--      <tr v-if="!task.completed">-->
-<!--        <th-->
-<!--          class="small-text text-grey"-->
-<!--          :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"-->
-<!--          v-text="'Статус: '"-->
-<!--        />-->
-<!--        <th-->
-<!--          class="text-body2"-->
-<!--          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"-->
-<!--          v-text="task.status.name"/>-->
-<!--      </tr>-->
+      <!--      <tr v-if="!task.completed">-->
+      <!--        <th-->
+      <!--          class="small-text text-grey"-->
+      <!--          :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"-->
+      <!--          v-text="'Статус: '"-->
+      <!--        />-->
+      <!--        <th-->
+      <!--          class="text-body2"-->
+      <!--          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"-->
+      <!--          v-text="task.status.name"/>-->
+      <!--      </tr>-->
       <tr v-if="task.deadline" data-tour="tasks-task-deadline">
         <th
           class="small-text text-grey row-label"
@@ -126,16 +126,23 @@
           v-text="this.getStamp(task.deadline)"
         />
       </tr>
+      <tr v-if="isCloseReasonVisible(task)" data-tour="tasks-task-close-reason">
+        <th class="small-text text-grey row-label" v-text="'Причина закрытия: '"/>
+        <th
+            :class="closeReasonClass"
+            v-text="getCloseReason(task)"
+        />
+      </tr>
       <tr v-if="isSlaVisible(task)" data-tour="tasks-task-sla">
         <th
           class="small-text text-grey"
           :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:#9e9e9e'"
-          v-text="'SLA: '"
+          v-text="'SLA осталось:'"
         />
         <th class="text-body2"
             :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"
             style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
-          Осталось: {{ this.getSlaTime(task) }}
+          {{ this.getSlaTime(task) }}
           <div
             class="sla-pill"
             :class="{ 'sla-pill--expired': isSlaExpired(task) }"
@@ -176,9 +183,9 @@
           </div>
         </th>
       </tr>
-      <tr v-if="!this.$route.path.includes('chat')" data-tour="tasks-task-last-activity"> <!--TODO может быть сделать везде, не помню почему ограничели отображение-->
-        <th class="small-text text-grey row-label" v-text="'Последняя активность: '" />
-        <th :class="lastActivityClass" v-text="this.getStamp(new Date(task.client.lastMessage.date))" />
+      <tr data-tour="tasks-task-last-activity">
+        <th class="small-text text-grey row-label" v-text="'Последнее действие: '"/>
+        <th :class="lastActivityClass" v-text="getLastTaskHistoryTime(task)"/>
       </tr>
     </table>
     <slot name="taskControl"></slot>
@@ -233,6 +240,19 @@ export default {
       }
     },
 
+    toFiniteNumber (value) {
+      const number = Number(value)
+      return Number.isFinite(number) ? number : null
+    },
+
+    toTimestamp (value) {
+      if (!value) {
+        return null
+      }
+      const timestamp = new Date(value).getTime()
+      return Number.isFinite(timestamp) ? timestamp : null
+    },
+
     getSlaHours (task) {
       const deadline = this.getSlaDeadlineMoment(task)
       const now = moment()
@@ -242,20 +262,43 @@ export default {
 
     getSlaTime (task) {
       const secondsLeft = this.getSlaLeftSeconds(task)
-      if (secondsLeft === null) {
-        return ''
+      if (!Number.isFinite(secondsLeft)) {
+        return '—'
       }
       if (secondsLeft <= 0) {
         return '0 ч. 0 м.'
+      }
+      const workdaySeconds = this.getSlaWorkdaySeconds(task)
+      if (workdaySeconds > 0 && secondsLeft >= workdaySeconds) {
+        const days = Math.floor(secondsLeft / workdaySeconds)
+        const restSeconds = secondsLeft % workdaySeconds
+        const hours = Math.floor(restSeconds / 3600)
+        const minutes = Math.floor((restSeconds % 3600) / 60)
+        if (hours > 0 || minutes > 0) {
+          return `${days} д. ${hours} ч. ${minutes} м.`
+        }
+        return `${days} д.`
       }
       const hours = Math.floor(secondsLeft / 3600)
       const minutes = Math.floor((secondsLeft % 3600) / 60)
       return `${hours} ч. ${minutes} м.`
     },
 
+    getSlaWorkdaySeconds (task) {
+      const workdaySecondsFromInfo = Number(this.slaInfo?.workdaySeconds)
+      if (Number.isFinite(workdaySecondsFromInfo) && workdaySecondsFromInfo > 0) {
+        return workdaySecondsFromInfo
+      }
+      const workdaySecondsFromTask = Number(task?.slaInfo?.workdaySeconds)
+      if (Number.isFinite(workdaySecondsFromTask) && workdaySecondsFromTask > 0) {
+        return workdaySecondsFromTask
+      }
+      return 24 * 60 * 60
+    },
+
     getSlaPercent (task) {
       const leftSeconds = this.getSlaLeftSeconds(task)
-      if (leftSeconds === null) {
+      if (!Number.isFinite(leftSeconds)) {
         return 0
       }
       let totalSeconds = this.getSlaTotalSeconds(task)
@@ -263,28 +306,31 @@ export default {
         totalSeconds = this.getSlaTotalSecondsFromInfo()
       }
       if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) {
-        return 0
+        totalSeconds = Math.max(leftSeconds, 1)
       }
       return Math.max(0, Math.min(1, leftSeconds / totalSeconds))
     },
 
     getSlaTotalSecondsFromInfo () {
-      if (!this.slaInfo?.remainingSeconds || !this.slaInfo?.deadline) {
+      const remainingSeconds = this.toFiniteNumber(this.slaInfo?.remainingSeconds)
+      if (remainingSeconds === null) {
         return 0
       }
-      const deadlineMs = new Date(this.slaInfo.deadline).getTime()
-      if (!Number.isFinite(deadlineMs)) {
-        return 0
+      const slaWorkingDays = this.toFiniteNumber(this.slaInfo?.slaWorkingDays)
+      const workdaySeconds = this.toFiniteNumber(this.slaInfo?.workdaySeconds)
+      if (slaWorkingDays !== null && slaWorkingDays > 0 && workdaySeconds !== null && workdaySeconds > 0) {
+        return Math.max(remainingSeconds, Math.round(slaWorkingDays * workdaySeconds))
       }
-      const remainingSeconds = Number(this.slaInfo.remainingSeconds)
-      const pausedSeconds = Number(this.slaInfo.pausedSeconds || 0)
-      if (!Number.isFinite(remainingSeconds)) {
-        return 0
+      const deadlineMs = this.toTimestamp(this.slaInfo?.deadline)
+      const createdAtMs = this.toTimestamp(this.task?.createdAt)
+      if (deadlineMs === null || createdAtMs === null) {
+        return Math.max(remainingSeconds, 0)
       }
+      const pausedSeconds = this.toFiniteNumber(this.slaInfo?.pausedSeconds) || 0
       const nowMs = this.slaInfo.paused
-        ? deadlineMs - remainingSeconds * 1000
-        : this.nowTs
-      const elapsedSeconds = Math.max(0, Math.floor((nowMs - new Date(this.task.createdAt).getTime()) / 1000))
+          ? deadlineMs - remainingSeconds * 1000
+          : this.nowTs
+      const elapsedSeconds = Math.max(0, Math.floor((nowMs - createdAtMs) / 1000))
       return Math.max(remainingSeconds, remainingSeconds + elapsedSeconds - pausedSeconds)
     },
 
@@ -352,19 +398,18 @@ export default {
     },
 
     getSlaLeftSeconds (task) {
-      if (this.slaInfo) {
-        if (this.slaInfo.paused) {
-          return this.slaInfo.remainingSeconds
-        }
-
-        if (this.slaInfo.deadline) {
-          return Math.max(0, Math.floor((new Date(this.slaInfo.deadline).getTime() - this.nowTs) / 1000))
-        }
-
-        return this.slaInfo.remainingSeconds ?? null
+      if (!this.slaInfo) {
+        return null
       }
-
-      return null
+      const remainingSeconds = this.toFiniteNumber(this.slaInfo.remainingSeconds)
+      if (this.slaInfo.paused) {
+        return remainingSeconds
+      }
+      const deadlineMs = this.toTimestamp(this.slaInfo.deadline)
+      if (deadlineMs !== null) {
+        return Math.max(0, Math.floor((deadlineMs - this.nowTs) / 1000))
+      }
+      return remainingSeconds
     },
 
     shortenLine (string) {
@@ -386,6 +431,14 @@ export default {
       return Object.values(task.unreadPingTasksMessages).some(Boolean)
     },
 
+    getCloseReason (task) {
+      return String(task?.statusChangeReason || '').trim()
+    },
+
+    isCloseReasonVisible (task) {
+      return Boolean(task?.completed) && this.getCloseReason(task).length > 0
+    },
+
     async loadSlaInfo () {
       if (this.task?.__onboardingDemo) {
         this.applySlaInfo(this.task.__onboardingSlaInfo || {
@@ -396,7 +449,9 @@ export default {
         })
         return
       }
-      if (!this.task?.id || !this.task?.sla) {
+      if (!this.task?.id || !this.task?.sla || this.task?.completed || this.task?.frozen) {
+        this.slaInfo = null
+        this.slaIsPause = false
         return
       }
       try {
@@ -410,8 +465,15 @@ export default {
 
     applySlaInfo (info) {
       if (!info) return
-      this.slaInfo = info
-      this.slaIsPause = !!info.paused
+      this.slaInfo = {
+        ...info,
+        paused: Boolean(info.paused),
+        remainingSeconds: this.toFiniteNumber(info.remainingSeconds),
+        pausedSeconds: this.toFiniteNumber(info.pausedSeconds) || 0,
+        workdaySeconds: this.toFiniteNumber(info.workdaySeconds),
+        slaWorkingDays: this.toFiniteNumber(info.slaWorkingDays)
+      }
+      this.slaIsPause = this.slaInfo.paused
     },
 
     getSlaDeadlineMoment (task) {
@@ -460,6 +522,7 @@ export default {
     isSlaVisible (task) {
       return this.slaRequire &&
         !task?.completed &&
+        !task?.frozen &&
         !!task?.sla &&
         !!this.slaInfo
     },
@@ -487,14 +550,26 @@ export default {
       try {
         const { data } = await axios.post(`/api/v1/task/${this.task.id}/sla/resume`)
         this.applySlaInfo(data)
-        this.nowTs = Date.now() // ✅ возобновили тик
+        this.nowTs = Date.now()
+      } catch (e) {
+        this.$q.notify({
+          message: e.response?.data || e.message || 'Не удалось снять SLA с паузы',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }]
+        })
       } finally {
         this.slaActionLoading = false
       }
     },
 
     getTaskTypeName (task) {
-      return task?.type?.type || 'Не указан'
+      return task?.type?.type
     },
 
     getChecklistItems (task) {
@@ -517,12 +592,32 @@ export default {
 
     getChecklistProgress (task) {
       const total = this.getChecklistTotalCount(task)
-
       if (total === 0) {
         return 0
       }
-
       return this.getChecklistCompletedCount(task) / total
+    },
+
+    getLastTaskHistoryTime (task) {
+      const event = this.getLastTaskHistoryEvent(task)
+      if (event?.createdAt) {
+        return this.getStamp(new Date(event.createdAt))
+      }
+      if (task?.lastActivity) {
+        return this.getStamp(new Date(task.lastActivity))
+      }
+      return '—'
+    },
+
+    getLastTaskHistoryEvent (task) {
+      const history = [
+        ...(Array.isArray(task?.history) ? task.history : []),
+        ...(Array.isArray(task?.taskHistory) ? task.taskHistory : []),
+        ...(Array.isArray(task?.events) ? task.events : [])
+      ]
+      return history
+        .filter(event => event?.createdAt)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || null
     },
   },
 
@@ -592,6 +687,14 @@ export default {
       }
     },
 
+    closeReasonClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        'task-close-reason': true
+      }
+    },
+
     deadlineStyle () {
       return {
         color: this.task.deadline && this.task.deadline < Date.now() ? 'red' : 'black',
@@ -646,6 +749,7 @@ export default {
 th {
   text-align: left;
 }
+
 .truncate {
   max-width: 200px;
   white-space: nowrap;
@@ -747,6 +851,14 @@ th {
   white-space: nowrap;
   width: 79%;
   display: block;
+}
+
+.task-close-reason {
+  display: block;
+  max-width: 260px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 .highlighted {

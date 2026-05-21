@@ -1,7 +1,57 @@
 <template>
-  <q-page>
-    <div class="row" style="height: 100vh;">
-      <div class="col-3" style="min-width: fit-content">
+  <q-page class="settings-page">
+    <div v-if="isMobile" class="settings-mobile-layout">
+      <div v-if="mobileMenuOpen" class="settings-mobile-menu">
+        <div class="settings-mobile-title">
+          Настройки
+        </div>
+
+        <q-list class="settings-mobile-list">
+          <q-item
+            v-for="item in visibleMenuItems"
+            :key="item.link"
+            clickable
+            v-ripple
+            :active="isCurrentMenuItem(item)"
+            active-class="settings-mobile-item--active"
+            class="settings-mobile-item"
+            @click="openMobileSection(item)"
+          >
+            <q-item-section>
+              <q-item-label class="settings-mobile-item-title">
+                {{ item.title }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side>
+              <q-icon name="chevron_right" class="settings-mobile-item-icon" />
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </div>
+
+      <div v-else class="settings-mobile-content">
+        <div class="settings-mobile-header">
+          <q-btn
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="settings-mobile-back"
+            @click="showMobileMenu"
+          />
+          <div class="settings-mobile-header-title">
+            {{ currentSectionTitle }}
+          </div>
+        </div>
+
+        <div class="settings-mobile-view">
+          <router-view />
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="settings-desktop-layout row">
+      <div class="settings-desktop-menu col-3">
         <q-list>
           <essential-link
             v-for="(item, index) in menuItems"
@@ -11,8 +61,8 @@
           />
         </q-list>
       </div>
-      <div class="col" style="border-left: solid #e0e0e0;">
-        <router-view/>
+      <div class="settings-desktop-content col">
+        <router-view />
       </div>
     </div>
   </q-page>
@@ -28,6 +78,7 @@ export default {
   components: { EssentialLink },
 
   data: () => ({
+    mobileMenuOpen: false,
     menuItems: [
       {
         title: 'Профиль',
@@ -150,8 +201,88 @@ export default {
     ]
   }),
 
+  computed: {
+    isMobile () {
+      return this.$q.screen.lt.md
+    },
+
+    visibleMenuItems () {
+      return this.menuItems.filter(item => this.canShowMenuItem(item))
+    },
+
+    currentMenuItem () {
+      const currentPath = this.normalizePath(this.$route.path)
+      return [...this.visibleMenuItems]
+        .sort((a, b) => b.link.length - a.link.length)
+        .find(item => currentPath === this.normalizePath(item.link) || currentPath.startsWith(`${this.normalizePath(item.link)}/`)) || null
+    },
+
+    currentSectionTitle () {
+      return this.currentMenuItem?.title || 'Настройки'
+    },
+
+    isSettingsRootRoute () {
+      const currentPath = this.normalizePath(this.$route.path)
+      return currentPath === '/settings'
+    }
+  },
+
+  watch: {
+    isMobile: {
+      immediate: true,
+      handler (value) {
+        if (value) {
+          this.mobileMenuOpen = this.isSettingsRootRoute
+        }
+      }
+    },
+
+    '$route.path' () {
+      if (!this.isMobile) {
+        return
+      }
+      this.mobileMenuOpen = this.isSettingsRootRoute
+    }
+  },
+
   mounted () {
     document.title = 'ULDESK : Настройки'
+  },
+
+  methods: {
+    openMobileSection (item) {
+      this.mobileMenuOpen = false
+      if (this.normalizePath(this.$route.path) !== this.normalizePath(item.link)) {
+        this.$router.push(item.link)
+      }
+    },
+
+    showMobileMenu () {
+      this.mobileMenuOpen = true
+    },
+
+    isCurrentMenuItem (item) {
+      const currentPath = this.normalizePath(this.$route.path)
+      const itemPath = this.normalizePath(item.link)
+      return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`)
+    },
+
+    canShowMenuItem (item) {
+      if (!item.roles || !item.roles.length) {
+        return true
+      }
+
+      const authorities = this.store.currentUser?.authorities || this.store.currentUser?.roles || []
+      return item.roles.some(role => authorities.includes(role) || authorities.includes(`ROLE_${role}`))
+    },
+
+    normalizePath (path) {
+      if (!path) {
+        return ''
+      }
+      const normalized = String(path).trim().replace(/\/+$/, '')
+      return normalized || '/'
+    }
   },
 
   setup () {
@@ -160,3 +291,117 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.settings-page {
+  background: #f5f6fa;
+}
+
+.settings-desktop-layout {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.settings-desktop-menu {
+  min-width: fit-content;
+  background: #ffffff;
+}
+
+.settings-desktop-content {
+  min-width: 0;
+  border-left: solid #e0e0e0;
+  background: #ffffff;
+}
+
+.settings-mobile-layout {
+  min-height: 100vh;
+  background: #f5f6fa;
+}
+
+.settings-mobile-menu {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.settings-mobile-title {
+  padding: 22px 20px 14px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #252b36;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.settings-mobile-list {
+  padding: 8px 0 24px;
+}
+
+.settings-mobile-item {
+  min-height: 56px;
+  padding: 0 18px 0 20px;
+  border-bottom: 1px solid #f0f2f6;
+  color: #252b36;
+}
+
+.settings-mobile-item-title {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.settings-mobile-item-icon {
+  color: #9aa2ad;
+}
+
+.settings-mobile-item--active {
+  color: #5a35f0;
+  background: rgba(90, 53, 240, 0.08);
+}
+
+.settings-mobile-item--active .settings-mobile-item-title {
+  font-weight: 700;
+}
+
+.settings-mobile-item--active .settings-mobile-item-icon {
+  color: #5a35f0;
+}
+
+.settings-mobile-content {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.settings-mobile-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6e9ef;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+.settings-mobile-back {
+  color: #5a35f0;
+}
+
+.settings-mobile-header-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #252b36;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-mobile-view {
+  min-width: 0;
+  overflow-x: hidden;
+  background: #ffffff;
+}
+</style>

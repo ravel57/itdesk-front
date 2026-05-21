@@ -87,8 +87,7 @@
         option-label="type"
         style="width: 100%;"
         label="Тип заявки"
-        clearable
-        :rules="[val => val !== null || 'Обязательное поле']"
+        :rules="[val => this.isValidTaskTypeSelection(val) || 'Выберите тип заявки']"
       />
       <q-select
         v-if="this.action === 'tags'"
@@ -241,46 +240,68 @@ export default {
 
     getUserName (user) {
       if (user) {
-        return user.lastname + ' ' + user.firstname
+        return `${user.lastname} ${user.firstname}`
       } else {
         return ''
       }
     },
 
+    getMixedTaskTypeOption () {
+      return {
+        id: null,
+        type: 'Смешанные типы',
+        mixed: true
+      }
+    },
+
     getTaskTypeName (taskType) {
       if (!taskType) {
-        return 'Не указан'
+        return ''
       }
       if (typeof taskType === 'string') {
-        return taskType.trim() || 'Не указан'
+        return taskType.trim()
       }
-      return taskType.type || taskType.name || 'Не указан'
+      return String(taskType.type || taskType.name || '').trim()
     },
 
     getTaskTypeKey (taskType) {
-      if (!taskType) {
+      if (!taskType || taskType.mixed) {
         return 'none'
       }
       if (typeof taskType === 'object' && taskType.id != null) {
         return `id:${taskType.id}`
       }
-      return `name:${this.getTaskTypeName(taskType).toLowerCase()}`
+      const name = this.getTaskTypeName(taskType).toLowerCase()
+      return name ? `name:${name}` : 'none'
     },
 
     normalizeTaskTypeOption (taskType) {
       if (!taskType) {
-        return { id: null, type: 'Не указан' }
+        return null
+      }
+      if (taskType.mixed) {
+        return this.getMixedTaskTypeOption()
       }
       if (typeof taskType === 'string') {
-        return {
-          id: null,
-          type: taskType.trim() || 'Не указан'
-        }
+        const type = taskType.trim()
+        return type ? { id: null, type } : null
+      }
+      const type = this.getTaskTypeName(taskType)
+      if (!type) {
+        return null
       }
       return {
         ...taskType,
-        type: this.getTaskTypeName(taskType)
+        type
       }
+    },
+
+    isValidTaskTypeSelection (taskType) {
+      if (!taskType || taskType.mixed) {
+        return false
+      }
+      const type = this.getTaskTypeName(taskType)
+      return type.length > 0 && type.toLowerCase() !== 'не указан'
     },
 
     async loadTaskTypes () {
@@ -290,8 +311,8 @@ export default {
       } catch (e) {
         const typesByKey = new Map()
         ;(this.store.getTasks || []).forEach(task => {
-          if (task?.type && typeof task.type === 'object') {
-            const option = this.normalizeTaskTypeOption(task.type)
+          const option = this.normalizeTaskTypeOption(task?.type)
+          if (option) {
             typesByKey.set(this.getTaskTypeKey(option), option)
           }
         })
@@ -299,19 +320,200 @@ export default {
       }
     },
 
+    getEntityKey (entity, nameGetter) {
+      if (!entity) {
+        return 'none'
+      }
+      if (typeof entity === 'object' && entity.id != null) {
+        return `id:${entity.id}`
+      }
+      const rawName = typeof nameGetter === 'function'
+        ? nameGetter(entity)
+        : entity
+      const name = String(rawName || '').trim().toLowerCase()
+      return name ? `name:${name}` : 'none'
+    },
+
+    getExecutorKey (task) {
+      return this.getEntityKey(task?.executor, executor => this.getUserName(executor))
+    },
+
+    getExecutorValue (task) {
+      return task?.executor ? this.getUserName(task.executor) : ''
+    },
+
+    getPriorityKey (task) {
+      return this.getEntityKey(task?.priority, priority => priority?.name || priority)
+    },
+
+    getPriorityValue (task) {
+      return task?.priority?.name || ''
+    },
+
+    getStatusKey (task) {
+      return this.getEntityKey(task?.status, status => this.getStatusName(status))
+    },
+
+    getStatusValue (task) {
+      return this.getStatusName(task?.status)
+    },
+
+    getDeadlineKey (task) {
+      const value = task?.deadline
+      if (!value) {
+        return 'none'
+      }
+      const date = moment(value)
+      if (date.isValid()) {
+        return date.format('YYYY-MM-DDTHH:mm')
+      }
+      const strictDate = moment(String(value), 'DD.MM.YYYY HH:mm', true)
+      if (strictDate.isValid()) {
+        return strictDate.format('YYYY-MM-DDTHH:mm')
+      }
+      return `raw:${String(value).trim()}`
+    },
+
+    getDeadlineValue (task) {
+      const value = task?.deadline
+      if (!value) {
+        return ''
+      }
+      const date = moment(value)
+      if (date.isValid()) {
+        return date.format('DD.MM.YYYY HH:mm')
+      }
+      const strictDate = moment(String(value), 'DD.MM.YYYY HH:mm', true)
+      return strictDate.isValid()
+        ? strictDate.format('DD.MM.YYYY HH:mm')
+        : String(value)
+    },
+
+    getTagKey (tag) {
+      return this.getEntityKey(tag, item => item?.name || item)
+    },
+
+    getTagsKey (task) {
+      const tags = Array.isArray(task?.tags) ? task.tags : []
+      if (tags.length === 0) {
+        return 'none'
+      }
+      return tags
+        .map(tag => this.getTagKey(tag))
+        .sort()
+        .join('|')
+    },
+
+    getTagsValue (task) {
+      return Array.isArray(task?.tags)
+        ? task.tags.map(tag => tag?.name || String(tag || '')).filter(Boolean)
+        : []
+    },
+
+    getSameSelectedTaskValue (keyGetter, valueGetter, mixedValue) {
+      const tasks = Array.isArray(this.store.checkedTasks) ? this.store.checkedTasks : []
+      const firstTask = tasks[0]
+
+      if (!firstTask) {
+        return typeof valueGetter === 'function' ? valueGetter(null) : ''
+      }
+
+      const firstKey = keyGetter(firstTask)
+      const hasMixedValues = tasks.some(task => keyGetter(task) !== firstKey)
+
+      return hasMixedValues ? mixedValue : valueGetter(firstTask)
+    },
+
+    isMixedBulkValue (value) {
+      if (Array.isArray(value)) {
+        return value.length === 1 && this.isMixedBulkValue(value[0])
+      }
+      return String(value || '').trim().toLowerCase().startsWith('смешанные')
+    },
+
+    initBulkActionValues () {
+      const tasks = Array.isArray(this.store.checkedTasks) ? this.store.checkedTasks : []
+      const firstTask = tasks[0]
+
+      if (!firstTask) {
+        this.tasksExecutor = ''
+        this.tasksPriority = ''
+        this.tasksType = null
+        this.tasksStatus = ''
+        this.tasksTags = []
+        this.tasksDeadline = ''
+        return
+      }
+
+      this.tasksExecutor = this.getSameSelectedTaskValue(
+        task => this.getExecutorKey(task),
+        task => this.getExecutorValue(task),
+        'Смешанные исполнители'
+      )
+
+      this.tasksPriority = this.getSameSelectedTaskValue(
+        task => this.getPriorityKey(task),
+        task => this.getPriorityValue(task),
+        'Смешанные приоритеты'
+      )
+
+      this.tasksType = this.getSameSelectedTaskValue(
+        task => this.getTaskTypeKey(task?.type),
+        task => this.normalizeTaskTypeOption(task?.type),
+        this.getMixedTaskTypeOption()
+      )
+
+      this.tasksStatus = this.getSameSelectedTaskValue(
+        task => this.getStatusKey(task),
+        task => this.getStatusValue(task),
+        'Смешанные статусы'
+      )
+
+      this.tasksTags = this.getSameSelectedTaskValue(
+        task => this.getTagsKey(task),
+        task => this.getTagsValue(task),
+        ['Смешанные теги']
+      )
+
+      this.tasksDeadline = this.getSameSelectedTaskValue(
+        task => this.getDeadlineKey(task),
+        task => this.getDeadlineValue(task),
+        'Смешанные дедлайны'
+      )
+    },
+
     hasRequiredActionValue () {
       if (['close', 'open'].includes(this.action)) {
         return true
       }
       if (this.action === 'type') {
-        return this.tasksType !== null
+        return this.isValidTaskTypeSelection(this.tasksType)
       }
-      return String(this.tasksFreezeUntil || '').length > 0 ||
-        String(this.tasksExecutor || '').length > 0 ||
-        String(this.tasksStatus || '').length > 0 ||
-        String(this.tasksPriority || '').length > 0 ||
-        (Array.isArray(this.tasksTags) && this.tasksTags.length > 0) ||
-        String(this.tasksDeadline || '').length > 0
+      if (this.action === 'freeze') {
+        return String(this.tasksFreezeUntil || '').length > 0
+      }
+      if (this.action === 'status') {
+        if (!String(this.tasksStatus || '').length || this.isMixedBulkValue(this.tasksStatus)) {
+          return false
+        }
+        if (this.isFrozenStatusName(this.tasksStatus)) {
+          return String(this.taskFreezeUntil || this.tasksFreezeUntil || '').length > 0
+        }
+        return true
+      }
+      if (this.action === 'executor') {
+        return String(this.tasksExecutor || '').length > 0 && !this.isMixedBulkValue(this.tasksExecutor)
+      }
+      if (this.action === 'priority') {
+        return String(this.tasksPriority || '').length > 0 && !this.isMixedBulkValue(this.tasksPriority)
+      }
+      if (this.action === 'tags') {
+        return Array.isArray(this.tasksTags) && this.tasksTags.length > 0 && !this.isMixedBulkValue(this.tasksTags)
+      }
+      if (this.action === 'deadline') {
+        return String(this.tasksDeadline || '').length > 0 && !this.isMixedBulkValue(this.tasksDeadline)
+      }
+      return false
     },
 
     buildTaskForBulkAction (sourceTask, statusChangeReason) {
@@ -341,7 +543,7 @@ export default {
         const frozenStatus = this.getFrozenStatus()
         task.completed = false
         task.frozen = true
-        task.frozenFrom = new Date()
+        task.frozenFrom = sourceTask.frozen === true && sourceTask.frozenFrom ? sourceTask.frozenFrom : new Date()
         task.frozenUntil = moment(this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
         if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
           task.previousStatus = sourceTask.status
@@ -362,7 +564,7 @@ export default {
         } else if (selectedStatus && this.isFrozenStatusName(selectedStatus.name)) {
           task.completed = false
           task.frozen = true
-          task.frozenFrom = new Date()
+          task.frozenFrom = sourceTask.frozen === true && sourceTask.frozenFrom ? sourceTask.frozenFrom : new Date()
           task.frozenUntil = moment(this.taskFreezeUntil || this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
           if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
             task.previousStatus = sourceTask.status
@@ -376,9 +578,9 @@ export default {
       } else if (this.action === 'priority') {
         task.priority = this.store.priorities.find(priority => priority.name === this.tasksPriority)
       } else if (this.action === 'type') {
-        task.type = this.tasksType && this.tasksType.id != null
+        task.type = this.isValidTaskTypeSelection(this.tasksType)
           ? this.tasksType
-          : null
+          : sourceTask.type
       } else if (this.action === 'tags') {
         const taskTags = []
         this.tasksTags.forEach(tagName => taskTags.push(this.store.tags.find(tag => tag.name === tagName)))
@@ -475,15 +677,15 @@ export default {
           return rawValue
         }
         if (rawValue.length <= 4) {
-          return rawValue.slice(0, 2) + '.' + rawValue.slice(2)
+          return `${rawValue.slice(0, 2)}.${rawValue.slice(2)}`
         }
         if (rawValue.length <= 8) {
-          return rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8)
+          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)}`
         }
         if (rawValue.length <= 10) {
-          return rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8)
+          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8)}`
         }
-        return rawValue.slice(0, 2) + '.' + rawValue.slice(2, 4) + '.' + rawValue.slice(4, 8) + ' ' + rawValue.slice(8, 10) + ':' + rawValue.slice(10, 12)
+        return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
       }
       ;['tasksFreezeUntil', 'taskFreezeUntil', 'tasksDeadline'].forEach(field => {
         if (typeof this[field] === 'string') {
@@ -664,57 +866,20 @@ export default {
 
   created () {
     this.loadTaskTypes()
-    const firstTask = this.store.checkedTasks[0]
-    const sameExecutor = this.store.checkedTasks.every(task => task.executor && task.executor === firstTask.executor)
-    this.tasksExecutor = sameExecutor && firstTask.executor
-      ? `${firstTask.executor.lastname} ${firstTask.executor.firstname}`
-      : 'Смешанные исполнители'
-    const samePriority = this.store.checkedTasks.every(task => task.priority && task.priority === firstTask.priority)
-    this.tasksPriority = samePriority && firstTask.priority
-      ? firstTask.priority.name
-      : 'Смешанные приоритеты'
-    const sameType = this.store.checkedTasks.every(task => this.getTaskTypeKey(task.type) === this.getTaskTypeKey(firstTask.type))
-    this.tasksType = sameType
-      ? this.normalizeTaskTypeOption(firstTask.type)
-      : null
-    const sameStatus = this.store.checkedTasks.every(task => task.status && task.status === firstTask.status)
-    this.tasksStatus = sameStatus && firstTask.status
-      ? firstTask.status.name
-      : 'Смешанные статусы'
-    const sameTags = this.store.checkedTasks.every(task => Array.isArray(task.tags) && task.tags === firstTask.tags)
-    this.tasksTags = sameTags && Array.isArray(firstTask.tags)
-      ? firstTask.tags.map(tag => tag.name)
-      : ['Смешанные теги']
-    const sameDeadline = this.store.checkedTasks.every(task => task.deadline && task.deadline === firstTask.deadline)
-    this.tasksDeadline = sameDeadline && firstTask.deadline
-      ? moment(firstTask.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm')
-      : 'Смешанные дедлайны'
-    if (this.tasksDeadline === 'Invalid date') {
-      this.tasksDeadline = ''
-    }
+    this.initBulkActionValues()
   },
 
   computed: {
     taskTypeOptions () {
       const optionsByKey = new Map()
-      optionsByKey.set('none', {
-        id: null,
-        type: 'Не указан'
-      })
       ;(this.taskTypes || []).forEach(taskType => {
         const option = this.normalizeTaskTypeOption(taskType)
-        optionsByKey.set(this.getTaskTypeKey(option), option)
+        if (option && this.isValidTaskTypeSelection(option)) {
+          optionsByKey.set(this.getTaskTypeKey(option), option)
+        }
       })
       return Array.from(optionsByKey.values())
-        .sort((a, b) => {
-          if (a.id === null) {
-            return -1
-          }
-          if (b.id === null) {
-            return 1
-          }
-          return String(a.type || '').localeCompare(String(b.type || ''), 'ru')
-        })
+        .sort((a, b) => String(a.type || '').localeCompare(String(b.type || ''), 'ru'))
     },
 
     getHeader () {
@@ -723,8 +888,8 @@ export default {
           return 'Закрыть заявки'
         case 'open':
           return 'Открыть заявки'
-        case 'freeze':
-          return 'Заморозить заявки'
+        // case 'freeze':
+        //   return 'Заморозить заявки'
         case 'executor':
           return 'Изменить исполнителя заявок'
         case 'status':
@@ -781,8 +946,14 @@ export default {
     },
     tasksStatus: {
       deep: true,
-      handler () {
-        if (this.isFrozenStatusName(this.tasksStatus)) {
+      handler (newVal, oldVal) {
+        const oldName = String(oldVal || '').trim()
+        const newName = String(newVal || '').trim()
+        if (!newName || oldName.toLowerCase() === newName.toLowerCase()) {
+          return
+        }
+        if (this.isFrozenStatusName(newName)) {
+          this.taskFreezeUntil = ''
           this.freezeDialog = true
         }
       }
