@@ -5,7 +5,7 @@
         <div>
           <div class="sla-title">SLA по организациям и приоритетам</div>
           <div class="sla-subtitle">
-            Длы отключения SLA впишите 0 в время
+            Для отключения SLA впишите 0 или "выкл." в поле времени
           </div>
         </div>
       </div>

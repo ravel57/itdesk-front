@@ -455,114 +455,113 @@
 
               <q-separator />
 
-              <q-expansion-item
-                icon="timer"
-                label="SLA"
-                header-class="text-weight-medium"
-              >
-                <div class="q-pa-md row q-col-gutter-md">
-                  <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.slaAgreementName" label="Название SLA / регламента" outlined dense />
-                  </div>
-                  <div class="col-12 col-md-4">
-                    <q-input
-                      v-model.number="dialog.slaFirstResponseMinutes"
-                      type="number"
-                      min="0"
-                      label="Первый ответ"
-                      suffix="мин"
-                      outlined
-                      dense
-                    />
-                  </div>
-                  <div class="col-12 col-md-4">
-                    <q-input
-                      v-model.number="dialog.slaResolutionHours"
-                      type="number"
-                      min="0"
-                      label="Решение"
-                      suffix="ч"
-                      outlined
-                      dense
-                    />
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <q-select
-                      v-model="dialog.slaWorkCalendar"
-                      :options="slaCalendarOptions"
-                      emit-value
-                      map-options
-                      label="Как считать SLA"
-                      outlined
-                      dense
-                    />
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <q-toggle
-                      v-model="dialog.pauseSlaOnWaitingClient"
-                      label="Ставить SLA на паузу при ожидании клиента"
-                      color="primary"
-                    />
-                  </div>
+<!--              <q-expansion-item-->
+<!--                icon="timer"-->
+<!--                label="SLA"-->
+<!--                header-class="text-weight-medium"-->
+<!--              >-->
+<!--                <div class="q-pa-md row q-col-gutter-md">-->
+<!--                  <div class="col-12 col-md-4">-->
+<!--                    <q-input v-model="dialog.slaAgreementName" label="Название SLA / регламента" outlined dense />-->
+<!--                  </div>-->
+<!--                  <div class="col-12 col-md-4">-->
+<!--                    <q-input-->
+<!--                      v-model.number="dialog.slaFirstResponseMinutes"-->
+<!--                      type="number"-->
+<!--                      min="0"-->
+<!--                      label="Первый ответ"-->
+<!--                      suffix="мин"-->
+<!--                      outlined-->
+<!--                      dense-->
+<!--                    />-->
+<!--                  </div>-->
+<!--                  <div class="col-12 col-md-4">-->
+<!--                    <q-input-->
+<!--                      v-model.number="dialog.slaResolutionHours"-->
+<!--                      type="number"-->
+<!--                      min="0"-->
+<!--                      label="Решение"-->
+<!--                      suffix="ч"-->
+<!--                      outlined-->
+<!--                      dense-->
+<!--                    />-->
+<!--                  </div>-->
+<!--                  <div class="col-12 col-md-6">-->
+<!--                    <q-select-->
+<!--                      v-model="dialog.slaWorkCalendar"-->
+<!--                      :options="slaCalendarOptions"-->
+<!--                      emit-value-->
+<!--                      map-options-->
+<!--                      label="Как считать SLA"-->
+<!--                      outlined-->
+<!--                      dense-->
+<!--                    />-->
+<!--                  </div>-->
+<!--                  <div class="col-12 col-md-6">-->
+<!--                    <q-toggle-->
+<!--                      v-model="dialog.pauseSlaOnWaitingClient"-->
+<!--                      label="Ставить SLA на паузу при ожидании клиента"-->
+<!--                      color="primary"-->
+<!--                    />-->
+<!--                  </div>-->
 
-                  <div class="col-12">
-                    <div class="text-subtitle2 q-mb-sm">SLA по приоритетам из настроек</div>
-                    <q-markup-table flat bordered dense>
-                      <thead>
-                      <tr>
-                        <th class="text-left">Приоритет</th>
-                        <th class="text-left">Значение</th>
-                        <th class="text-left">Единица</th>
-                      </tr>
-                      </thead>
-                      <tbody>
-                      <tr v-for="priority in priorities" :key="priority.id">
-                        <td class="text-left">
-                          {{ priority.name }}
-                        </td>
-                        <td class="text-left sla-value-cell">
-                          <q-input
-                            v-model.number="dialogPrioritySla[priority.id].value"
-                            type="number"
-                            min="0"
-                            dense
-                            outlined
-                          />
-                        </td>
-                        <td class="text-left sla-unit-cell">
-                          <q-select
-                            v-model="dialogPrioritySla[priority.id].unit"
-                            :options="slaUnitOptions"
-                            emit-value
-                            map-options
-                            dense
-                            outlined
-                          />
-                        </td>
-                      </tr>
-                      <tr v-if="priorities.length === 0">
-                        <td colspan="3" class="text-center text-grey-7 q-pa-md">
-                          Приоритеты не найдены
-                        </td>
-                      </tr>
-                      </tbody>
-                    </q-markup-table>
-                  </div>
+<!--                  <div class="col-12">-->
+<!--                    <div class="text-subtitle2 q-mb-sm">SLA по приоритетам из настроек</div>-->
+<!--                    <q-markup-table flat bordered dense>-->
+<!--                      <thead>-->
+<!--                      <tr>-->
+<!--                        <th class="text-left">Приоритет</th>-->
+<!--                        <th class="text-left">Значение</th>-->
+<!--                        <th class="text-left">Единица</th>-->
+<!--                      </tr>-->
+<!--                      </thead>-->
+<!--                      <tbody>-->
+<!--                      <tr v-for="priority in priorities" :key="priority.id">-->
+<!--                        <td class="text-left">-->
+<!--                          {{ priority.name }}-->
+<!--                        </td>-->
+<!--                        <td class="text-left sla-value-cell">-->
+<!--                          <q-input-->
+<!--                            v-model.number="dialogPrioritySla[priority.id].value"-->
+<!--                            type="number"-->
+<!--                            min="0"-->
+<!--                            dense-->
+<!--                            outlined-->
+<!--                          />-->
+<!--                        </td>-->
+<!--                        <td class="text-left sla-unit-cell">-->
+<!--                          <q-select-->
+<!--                            v-model="dialogPrioritySla[priority.id].unit"-->
+<!--                            :options="slaUnitOptions"-->
+<!--                            emit-value-->
+<!--                            map-options-->
+<!--                            dense-->
+<!--                            outlined-->
+<!--                          />-->
+<!--                        </td>-->
+<!--                      </tr>-->
+<!--                      <tr v-if="priorities.length === 0">-->
+<!--                        <td colspan="3" class="text-center text-grey-7 q-pa-md">-->
+<!--                          Приоритеты не найдены-->
+<!--                        </td>-->
+<!--                      </tr>-->
+<!--                      </tbody>-->
+<!--                    </q-markup-table>-->
+<!--                  </div>-->
 
-                  <div class="col-12">
-                    <q-input
-                      v-model="dialog.slaComment"
-                      type="textarea"
-                      autogrow
-                      label="Комментарий по SLA"
-                      outlined
-                      dense
-                    />
-                  </div>
-                </div>
-              </q-expansion-item>
-
-              <q-separator />
+<!--                  <div class="col-12">-->
+<!--                    <q-input-->
+<!--                      v-model="dialog.slaComment"-->
+<!--                      type="textarea"-->
+<!--                      autogrow-->
+<!--                      label="Комментарий по SLA"-->
+<!--                      outlined-->
+<!--                      dense-->
+<!--                    />-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </q-expansion-item>-->
+<!--              <q-separator />-->
 
               <q-expansion-item
                 icon="notes"

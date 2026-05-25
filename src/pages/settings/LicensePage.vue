@@ -1,6 +1,6 @@
 <template>
   <div class="q-pa-md">
-    <p>Количество сотрудников в лицензии: {{ this.employeesCount }}</p>
+    <p>Количество пользователей в лицензии: {{ this.employeesCount }}</p>
     <p>Лицензия действует до: {{ this.licenseUntil }}</p>
   </div>
 </template>
