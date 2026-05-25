@@ -66,7 +66,7 @@
                 <q-btn
                   icon="sort"
                   flat
-                  color="dark"
+                  :color="this.selectedSorting.label ? 'primary' : 'dark'"
                 >
                   <q-tooltip>
                     <div v-if="this.selectedSorting.label">
@@ -89,10 +89,23 @@
                         :key="sorting.slug"
                         clickable
                         v-close-popup
+                        :active="this.selectedSorting.slug === sorting.slug"
+                        active-class="text-primary"
                         @click="this.setSortVariable(sorting)"
                       >
                         <q-item-section>
                           {{ sorting.label }}
+                        </q-item-section>
+
+                        <q-item-section
+                          v-if="this.selectedSorting.slug === sorting.slug"
+                          side
+                        >
+                          <q-icon
+                            name="check"
+                            color="primary"
+                            size="18px"
+                          />
                         </q-item-section>
                       </q-item>
                     </q-list>
@@ -103,7 +116,7 @@
                   v-if="this.selectedSorting.label"
                   @click="this.changeSortingAsc"
                   flat
-                  class="text-grey-7"
+                  class="text-primary"
                   style="width: 20px"
                   :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
                 >
@@ -1240,9 +1253,10 @@ export default {
       this.trackBulkActionHistoryAfterState(updatedTask)
       this.replaceTaskInLists(updatedTask)
 
-      const history = this.pendingBulkActionHistory
-      const delay = history && history.afterTasks.length >= history.taskIds.length ? 0 : 500
-      this.scheduleFinishBulkActionHistory(delay)
+      // Не завершаем историю сразу после первого обновления.
+      // Массовое действие может обновлять заявки последовательно, и быстрый finish
+      // сохранял в undo только первый успевший элемент пачки.
+      this.scheduleFinishBulkActionHistory(1000)
     },
 
     cloneBulkTask(task) {
@@ -1403,6 +1417,12 @@ export default {
         return
       }
 
+      // Пока открыта модалка массовых действий, пачка ещё может выполняться.
+      // Историю закрываем только после @close, иначе undo получает неполный список.
+      if (!force && this.isModalForBulkActions) {
+        return
+      }
+
       if (this.bulkActionHistoryFinishTimer) {
         clearTimeout(this.bulkActionHistoryFinishTimer)
       }
@@ -1430,6 +1450,10 @@ export default {
           this.scheduleFinishBulkActionHistory(500)
           return
         }
+      }
+
+      if (!force && this.isModalForBulkActions) {
+        return
       }
 
       const beforeById = new Map(history.beforeTasks.map(task => [task.id, task]))
@@ -1913,7 +1937,10 @@ export default {
 
     closeBulkActionModal() {
       this.isModalForBulkActions = false
-      this.scheduleFinishBulkActionHistory(0)
+
+      // Даём последним emit/update store попасть в pendingBulkActionHistory,
+      // после чего вся пачка сохранится одной записью undo/redo.
+      this.scheduleFinishBulkActionHistory(1000)
     },
 
     clearBulkActionReason() {
@@ -2837,7 +2864,7 @@ export default {
         }
 
         this.trackPendingBulkHistoryFromTasks(tasks)
-        this.scheduleFinishBulkActionHistory(500)
+        this.scheduleFinishBulkActionHistory(1000)
       }
     },
 

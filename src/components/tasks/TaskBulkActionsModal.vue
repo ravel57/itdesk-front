@@ -56,10 +56,18 @@
         v-if="this.action === 'executor'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksExecutor"
-        :options="this.store.users.filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0])).map(user => this.getUserName(user))"
+        :options="this.filteredExecutorOptions"
         label="Исполнитель"
-        :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+        :rules="[val => this.isValidExecutorSelection(val) || 'Выберите исполнителя']"
         use-input
+        fill-input
+        hide-selected
+        input-debounce="0"
+        style="width: 100%;"
+        @filter="this.filterExecutorOptions"
+        @input-value="this.updateExecutorInputValue"
+        @popup-show="this.clearExecutorFilter"
+        @update:model-value="this.onExecutorSelected"
       />
       <q-select
         v-if="this.action === 'status'"
@@ -140,8 +148,9 @@
         {{ this.getDeclension(this.store.checkedTasks.length) }}
       </div>
     </q-card-section>
-    <q-card-actions style="position: absolute;bottom: 0;width: 100%" align="right" data-tour="tasks-bulk-actions-buttons">
-      <q-btn flat label="Отменить" text-color="primary" v-close-popup />
+    <q-card-actions style="position: absolute;bottom: 0;width: 100%" align="right"
+                    data-tour="tasks-bulk-actions-buttons">
+      <q-btn flat label="Отменить" text-color="primary" v-close-popup/>
       <q-btn label="Применить" color="primary" @click="this.doAction()"/>
     </q-card-actions>
   </q-card>
@@ -191,9 +200,9 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Закрыть" color="primary" v-close-popup />
+          <q-btn flat label="Закрыть" color="primary" v-close-popup/>
           <div id="freeze-save-btn">
-            <q-btn label="Применить" color="primary" v-close-popup />
+            <q-btn label="Применить" color="primary" v-close-popup/>
           </div>
         </q-card-actions>
       </q-card>
@@ -202,7 +211,7 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
 import moment from 'moment'
 
@@ -211,15 +220,17 @@ export default {
   name: 'TaskBulkActionsModal',
 
   props: {
-    action: { type: String, required: true },
-    statusChangeReason: { type: String, default: '' },
-    requestStatusChangeReason: { type: Function, default: null }
+    action: {type: String, required: true},
+    statusChangeReason: {type: String, default: ''},
+    requestStatusChangeReason: {type: Function, default: null}
   },
 
   data: () => ({
     tasksPriority: '',
     tasksFreezeUntil: '',
     tasksExecutor: '',
+    executorFilter: '',
+    executorInputValue: '',
     tasksStatus: '',
     tasksType: null,
     taskTypes: [],
@@ -230,7 +241,7 @@ export default {
   }),
 
   methods: {
-    dateOption (date) {
+    dateOption(date) {
       const today = new Date()
       const year = today.getFullYear()
       const month = String(today.getMonth() + 1).padStart(2, '0')
@@ -238,15 +249,100 @@ export default {
       return date >= `${year}/${month}/${day}`
     },
 
-    getUserName (user) {
-      if (user) {
-        return `${user.lastname} ${user.firstname}`
-      } else {
+    getUserName(user) {
+      if (!user) {
         return ''
+      }
+      const lastname = String(user.lastname || '').trim()
+      const firstname = String(user.firstname || '').trim()
+      const fullName = [lastname, firstname].filter(Boolean).join(' ')
+      return fullName || String(user.username || user.email || '').trim()
+    },
+
+    updateExecutorInputValue (value) {
+      this.executorInputValue = value || ''
+      if (!this.normalizeExecutorSearchValue(value)) {
+        this.tasksExecutor = ''
+        this.executorFilter = ''
       }
     },
 
-    getMixedTaskTypeOption () {
+    onExecutorSelected (value) {
+      this.executorInputValue = value || ''
+      this.executorFilter = ''
+    },
+
+    normalizeExecutorSearchValue(value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+    },
+
+    isAssignableExecutor(user) {
+      if (!user) {
+        return false
+      }
+
+      const authorities = Array.isArray(user.authorities) ? user.authorities : []
+      const roles = Array.isArray(user.roles)
+        ? user.roles
+        : (user.roles ? [user.roles] : [])
+
+      const userRoles = [...authorities, ...roles]
+        .filter(Boolean)
+        .map(role => String(role).trim().toUpperCase())
+
+      return userRoles.includes('ADMIN') || userRoles.includes('OPERATOR')
+    },
+
+    getAssignableExecutorUsers() {
+      return (this.store.users || [])
+        .filter(user => user !== null)
+        .filter(user => this.isAssignableExecutor(user))
+    },
+
+    getExecutorSearchText(user) {
+      const firstname = String(user?.firstname || '').trim()
+      const lastname = String(user?.lastname || '').trim()
+      return this.normalizeExecutorSearchValue([
+        firstname,
+        lastname,
+        `${firstname} ${lastname}`,
+        `${lastname} ${firstname}`,
+        user?.username,
+        user?.email
+      ].filter(Boolean).join(' '))
+    },
+
+    filterExecutorOptions(val, update) {
+      update(() => {
+        this.executorFilter = val || ''
+      })
+    },
+
+    clearExecutorFilter() {
+      this.executorFilter = ''
+    },
+
+    findExecutorBySelectedValue(value) {
+      const normalizedValue = this.normalizeExecutorSearchValue(value)
+      if (!normalizedValue || this.isMixedBulkValue(value)) {
+        return null
+      }
+      return this.getAssignableExecutorUsers()
+        .find(user => this.normalizeExecutorSearchValue(this.getUserName(user)) === normalizedValue) || null
+    },
+
+    isValidExecutorSelection (value) {
+      const normalizedValue = this.normalizeExecutorSearchValue(value)
+      if (!normalizedValue) {
+        return false
+      }
+      return !!this.findExecutorBySelectedValue(value)
+    },
+
+    getMixedTaskTypeOption() {
       return {
         id: null,
         type: 'Смешанные типы',
@@ -254,7 +350,7 @@ export default {
       }
     },
 
-    getTaskTypeName (taskType) {
+    getTaskTypeName(taskType) {
       if (!taskType) {
         return ''
       }
@@ -264,7 +360,7 @@ export default {
       return String(taskType.type || taskType.name || '').trim()
     },
 
-    getTaskTypeKey (taskType) {
+    getTaskTypeKey(taskType) {
       if (!taskType || taskType.mixed) {
         return 'none'
       }
@@ -275,7 +371,7 @@ export default {
       return name ? `name:${name}` : 'none'
     },
 
-    normalizeTaskTypeOption (taskType) {
+    normalizeTaskTypeOption(taskType) {
       if (!taskType) {
         return null
       }
@@ -284,7 +380,7 @@ export default {
       }
       if (typeof taskType === 'string') {
         const type = taskType.trim()
-        return type ? { id: null, type } : null
+        return type ? {id: null, type} : null
       }
       const type = this.getTaskTypeName(taskType)
       if (!type) {
@@ -296,7 +392,7 @@ export default {
       }
     },
 
-    isValidTaskTypeSelection (taskType) {
+    isValidTaskTypeSelection(taskType) {
       if (!taskType || taskType.mixed) {
         return false
       }
@@ -304,7 +400,7 @@ export default {
       return type.length > 0 && type.toLowerCase() !== 'не указан'
     },
 
-    async loadTaskTypes () {
+    async loadTaskTypes() {
       try {
         const response = await axios.get('/api/v1/task-types')
         this.taskTypes = Array.isArray(response.data) ? response.data : []
@@ -320,7 +416,7 @@ export default {
       }
     },
 
-    getEntityKey (entity, nameGetter) {
+    getEntityKey(entity, nameGetter) {
       if (!entity) {
         return 'none'
       }
@@ -334,31 +430,31 @@ export default {
       return name ? `name:${name}` : 'none'
     },
 
-    getExecutorKey (task) {
+    getExecutorKey(task) {
       return this.getEntityKey(task?.executor, executor => this.getUserName(executor))
     },
 
-    getExecutorValue (task) {
+    getExecutorValue(task) {
       return task?.executor ? this.getUserName(task.executor) : ''
     },
 
-    getPriorityKey (task) {
+    getPriorityKey(task) {
       return this.getEntityKey(task?.priority, priority => priority?.name || priority)
     },
 
-    getPriorityValue (task) {
+    getPriorityValue(task) {
       return task?.priority?.name || ''
     },
 
-    getStatusKey (task) {
+    getStatusKey(task) {
       return this.getEntityKey(task?.status, status => this.getStatusName(status))
     },
 
-    getStatusValue (task) {
+    getStatusValue(task) {
       return this.getStatusName(task?.status)
     },
 
-    getDeadlineKey (task) {
+    getDeadlineKey(task) {
       const value = task?.deadline
       if (!value) {
         return 'none'
@@ -374,7 +470,7 @@ export default {
       return `raw:${String(value).trim()}`
     },
 
-    getDeadlineValue (task) {
+    getDeadlineValue(task) {
       const value = task?.deadline
       if (!value) {
         return ''
@@ -389,11 +485,11 @@ export default {
         : String(value)
     },
 
-    getTagKey (tag) {
+    getTagKey(tag) {
       return this.getEntityKey(tag, item => item?.name || item)
     },
 
-    getTagsKey (task) {
+    getTagsKey(task) {
       const tags = Array.isArray(task?.tags) ? task.tags : []
       if (tags.length === 0) {
         return 'none'
@@ -404,13 +500,13 @@ export default {
         .join('|')
     },
 
-    getTagsValue (task) {
+    getTagsValue(task) {
       return Array.isArray(task?.tags)
         ? task.tags.map(tag => tag?.name || String(tag || '')).filter(Boolean)
         : []
     },
 
-    getSameSelectedTaskValue (keyGetter, valueGetter, mixedValue) {
+    getSameSelectedTaskValue(keyGetter, valueGetter, mixedValue) {
       const tasks = Array.isArray(this.store.checkedTasks) ? this.store.checkedTasks : []
       const firstTask = tasks[0]
 
@@ -424,14 +520,14 @@ export default {
       return hasMixedValues ? mixedValue : valueGetter(firstTask)
     },
 
-    isMixedBulkValue (value) {
+    isMixedBulkValue(value) {
       if (Array.isArray(value)) {
         return value.length === 1 && this.isMixedBulkValue(value[0])
       }
       return String(value || '').trim().toLowerCase().startsWith('смешанные')
     },
 
-    initBulkActionValues () {
+    initBulkActionValues() {
       const tasks = Array.isArray(this.store.checkedTasks) ? this.store.checkedTasks : []
       const firstTask = tasks[0]
 
@@ -482,7 +578,7 @@ export default {
       )
     },
 
-    hasRequiredActionValue () {
+    hasRequiredActionValue() {
       if (['close', 'open'].includes(this.action)) {
         return true
       }
@@ -502,7 +598,7 @@ export default {
         return true
       }
       if (this.action === 'executor') {
-        return String(this.tasksExecutor || '').length > 0 && !this.isMixedBulkValue(this.tasksExecutor)
+        return this.isValidExecutorSelection(this.tasksExecutor)
       }
       if (this.action === 'priority') {
         return String(this.tasksPriority || '').length > 0 && !this.isMixedBulkValue(this.tasksPriority)
@@ -516,10 +612,32 @@ export default {
       return false
     },
 
-    buildTaskForBulkAction (sourceTask, statusChangeReason) {
+    getOriginalTaskForBulkAction(sourceTask) {
+      if (!sourceTask?.id) {
+        return sourceTask
+      }
+      return (this.store.getTasks || []).find(task => task?.id === sourceTask.id) || sourceTask
+    },
+
+    cloneChecklistForBulkAction(task) {
+      if (!Array.isArray(task?.checklist)) {
+        return []
+      }
+      return task.checklist
+        .filter(item => item && item.text !== undefined && item.text !== null)
+        .map(item => ({
+          id: item.id,
+          text: String(item.text || '').trim(),
+          completed: item.completed === true
+        }))
+    },
+
+    buildTaskForBulkAction(sourceTask, statusChangeReason) {
+      const originalTask = this.getOriginalTaskForBulkAction(sourceTask)
       let task = {
-        ...sourceTask,
-        tags: Array.isArray(sourceTask.tags) ? [...sourceTask.tags] : []
+        ...originalTask,
+        tags: Array.isArray(originalTask.tags) ? [...originalTask.tags] : [],
+        checklist: this.cloneChecklistForBulkAction(originalTask)
       }
       if (this.action === 'close') {
         const closedStatus = this.getClosedStatus()
@@ -545,14 +663,14 @@ export default {
         task.frozen = true
         task.frozenFrom = sourceTask.frozen === true && sourceTask.frozenFrom ? sourceTask.frozenFrom : new Date()
         task.frozenUntil = moment(this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
-        if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
-          task.previousStatus = sourceTask.status
+        if (originalTask.status && this.isOpenStatusName(originalTask.status.name)) {
+          task.previousStatus = originalTask.status
         }
         if (frozenStatus) {
           task.status = frozenStatus
         }
       } else if (this.action === 'executor') {
-        task.executor = this.store.users.find(user => this.getUserName(user) === this.tasksExecutor)
+        task.executor = this.findExecutorBySelectedValue(this.tasksExecutor)
       } else if (this.action === 'status') {
         const selectedStatus = this.store.statuses.find(status => status.name === this.tasksStatus)
         task.status = selectedStatus
@@ -566,8 +684,8 @@ export default {
           task.frozen = true
           task.frozenFrom = sourceTask.frozen === true && sourceTask.frozenFrom ? sourceTask.frozenFrom : new Date()
           task.frozenUntil = moment(this.taskFreezeUntil || this.tasksFreezeUntil, 'DD.MM.YYYY HH:mm').format()
-          if (sourceTask.status && this.isOpenStatusName(sourceTask.status.name)) {
-            task.previousStatus = sourceTask.status
+          if (originalTask.status && this.isOpenStatusName(originalTask.status.name)) {
+            task.previousStatus = originalTask.status
           }
         } else {
           task.completed = false
@@ -591,10 +709,18 @@ export default {
       task = this.withStatusChangeReason(task, statusChangeReason)
       delete task.client
       delete task.sla
+      delete task.originalSla
+      delete task.slaInfo
+      delete task.slaSecondsLeft
+      delete task.slaPercent
+      delete task.slaExpired
+      delete task.checklistCompleted
+      delete task.checklistTotal
+      delete task._bulkClientId
       return task
     },
 
-    async doAction () {
+    async doAction() {
       if (!this.hasRequiredActionValue()) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
@@ -641,7 +767,7 @@ export default {
       }
     },
 
-    getClient (task) {
+    getClient(task) {
       const directClientId = task?.client?.id || task?.clientId || task?.client_id || (typeof task?.client === 'number' ? task.client : null)
       if (directClientId) {
         return directClientId
@@ -653,7 +779,7 @@ export default {
       return client.id
     },
 
-    getDeclension (count) {
+    getDeclension(count) {
       const declensions = ['заявка', 'заявки', 'заявок']
       let form
       let selected
@@ -670,23 +796,23 @@ export default {
       return `${selected} ${count} ${form}`
     },
 
-    formatDateTime () {
+    formatDateTime() {
       const formatValue = value => {
-        const rawValue = String(value || '').replace(/\D/g, '')
-        if (rawValue.length <= 2) {
-          return rawValue
+          const rawValue = String(value || '').replace(/\D/g, '')
+          if (rawValue.length <= 2) {
+            return rawValue
+          }
+          if (rawValue.length <= 4) {
+            return `${rawValue.slice(0, 2)}.${rawValue.slice(2)}`
+          }
+          if (rawValue.length <= 8) {
+            return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)}`
+          }
+          if (rawValue.length <= 10) {
+            return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8)}`
+          }
+          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
         }
-        if (rawValue.length <= 4) {
-          return `${rawValue.slice(0, 2)}.${rawValue.slice(2)}`
-        }
-        if (rawValue.length <= 8) {
-          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)}`
-        }
-        if (rawValue.length <= 10) {
-          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8)}`
-        }
-        return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
-      }
       ;['tasksFreezeUntil', 'taskFreezeUntil', 'tasksDeadline'].forEach(field => {
         if (typeof this[field] === 'string') {
           this[field] = formatValue(this[field])
@@ -694,12 +820,12 @@ export default {
       })
     },
 
-    getNormalizedStatusChangeReason (reason = this.statusChangeReason) {
+    getNormalizedStatusChangeReason(reason = this.statusChangeReason) {
       const normalizedReason = String(reason || '').trim()
       return normalizedReason.length > 0 ? normalizedReason : null
     },
 
-    withStatusChangeReason (task, reason = this.statusChangeReason) {
+    withStatusChangeReason(task, reason = this.statusChangeReason) {
       const normalizedReason = this.getNormalizedStatusChangeReason(reason)
       if (!normalizedReason) {
         return task
@@ -710,35 +836,35 @@ export default {
       }
     },
 
-    getStatusName (status) {
+    getStatusName(status) {
       if (!status) {
         return ''
       }
       return typeof status === 'string' ? status : status.name || ''
     },
 
-    isClosedStatusName (statusName) {
+    isClosedStatusName(statusName) {
       return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
     },
 
-    isFrozenStatusName (statusName) {
+    isFrozenStatusName(statusName) {
       return ['заморожена', 'заморожено', 'заморожен'].includes(String(statusName || '').trim().toLowerCase())
     },
 
-    isOpenStatusName (statusName) {
+    isOpenStatusName(statusName) {
       return !!statusName && !this.isClosedStatusName(statusName) && !this.isFrozenStatusName(statusName)
     },
 
-    getSelectedStatus () {
+    getSelectedStatus() {
       return this.store.statuses.find(status => status.name === this.tasksStatus)
     },
 
-    getTargetStatusForCurrentAction () {
+    getTargetStatusForCurrentAction() {
       switch (this.action) {
         case 'close':
           return this.getClosedStatus()
         case 'freeze':
-          return this.getFrozenStatus() || { name: 'Заморожено' }
+          return this.getFrozenStatus() || {name: 'Заморожено'}
         case 'status':
           return this.getSelectedStatus()
         default:
@@ -746,7 +872,7 @@ export default {
       }
     },
 
-    needStatusChangeReason (oldStatusName, newStatusName, task = null) {
+    needStatusChangeReason(oldStatusName, newStatusName, task = null) {
       const oldName = String(oldStatusName || '').trim()
       const newName = String(newStatusName || '').trim()
 
@@ -770,7 +896,7 @@ export default {
       )
     },
 
-    async getStatusChangeReasonForBulkAction () {
+    async getStatusChangeReasonForBulkAction() {
       const existingReason = this.getNormalizedStatusChangeReason()
       if (existingReason) {
         return existingReason
@@ -796,7 +922,7 @@ export default {
           return ''
         }
 
-        const openStatus = this.getOpenStatus(affectedOpenTasks[0]) || { name: 'Открыто' }
+        const openStatus = this.getOpenStatus(affectedOpenTasks[0]) || {name: 'Открыто'}
         return this.requestStatusChangeReason({
           action: this.action,
           newStatus: openStatus,
@@ -806,7 +932,7 @@ export default {
       }
 
       if (this.action === 'freeze') {
-        const frozenStatus = this.getFrozenStatus() || { name: 'Заморожено' }
+        const frozenStatus = this.getFrozenStatus() || {name: 'Заморожено'}
         return this.requestStatusChangeReason({
           action: this.action,
           newStatus: frozenStatus,
@@ -847,15 +973,15 @@ export default {
       })
     },
 
-    getClosedStatus () {
+    getClosedStatus() {
       return this.store.statuses.find(status => this.isClosedStatusName(status.name))
     },
 
-    getFrozenStatus () {
+    getFrozenStatus() {
       return this.store.statuses.find(status => this.isFrozenStatusName(status.name))
     },
 
-    getOpenStatus (task) {
+    getOpenStatus(task) {
       if (task?.previousStatus && this.isOpenStatusName(task.previousStatus.name)) {
         return task.previousStatus
       }
@@ -864,12 +990,22 @@ export default {
     },
   },
 
-  created () {
+  created() {
     this.loadTaskTypes()
     this.initBulkActionValues()
   },
 
   computed: {
+    filteredExecutorOptions () {
+      const needle = this.normalizeExecutorSearchValue(this.executorFilter)
+      const users = this.getAssignableExecutorUsers()
+
+      return users
+        .filter(user => !needle || this.getExecutorSearchText(user).includes(needle))
+        .map(user => this.getUserName(user))
+        .filter(Boolean)
+    },
+
     taskTypeOptions () {
       const optionsByKey = new Map()
       ;(this.taskTypes || []).forEach(taskType => {
@@ -882,7 +1018,7 @@ export default {
         .sort((a, b) => String(a.type || '').localeCompare(String(b.type || ''), 'ru'))
     },
 
-    getHeader () {
+    getHeader() {
       switch (this.action) {
         case 'close':
           return 'Закрыть заявки'
@@ -907,7 +1043,7 @@ export default {
       }
     },
 
-    getNotify () {
+    getNotify() {
       switch (this.action) {
         case 'close':
           return 'Заявки закрыты'
@@ -936,7 +1072,7 @@ export default {
   watch: {
     tasksTags: {
       deep: true,
-      handler () {
+      handler() {
         if (this.tasksTags.length > 1) {
           if (this.tasksTags[0] === 'Смешанные теги') {
             this.tasksTags.splice(0, 1)
@@ -946,7 +1082,7 @@ export default {
     },
     tasksStatus: {
       deep: true,
-      handler (newVal, oldVal) {
+      handler(newVal, oldVal) {
         const oldName = String(oldVal || '').trim()
         const newName = String(newVal || '').trim()
         if (!newName || oldName.toLowerCase() === newName.toLowerCase()) {
@@ -960,9 +1096,9 @@ export default {
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    return { store }
+    return {store}
   }
 }
 </script>

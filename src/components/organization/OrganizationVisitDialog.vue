@@ -31,7 +31,7 @@
         />
       </q-toolbar>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-section class="organization-visit-dialog-body q-gutter-md">
         <q-banner
@@ -146,7 +146,7 @@
         />
       </q-card-section>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-actions
         align="right"
@@ -215,23 +215,23 @@ export default {
       selectedTask: null
     },
     visitTypeOptions: [
-      { label: 'Плановый выезд', value: 'Плановый выезд' },
-      { label: 'Срочный выезд', value: 'Срочный выезд' },
-      { label: 'Регламентные работы', value: 'Регламентные работы' },
-      { label: 'Аварийный выезд', value: 'Аварийный выезд' }
+      {label: 'Плановый выезд', value: 'Плановый выезд'},
+      {label: 'Срочный выезд', value: 'Срочный выезд'},
+      {label: 'Регламентные работы', value: 'Регламентные работы'},
+      {label: 'Аварийный выезд', value: 'Аварийный выезд'}
     ]
   }),
 
   computed: {
-    organizationName () {
+    organizationName() {
       return this.organization?.name || 'Организация не выбрана'
     },
 
-    selectedTaskLabel () {
+    selectedTaskLabel() {
       return this.normalizeTaskOption(this.selectedTask)?.label || ''
     },
 
-    normalizedTaskOptions () {
+    normalizedTaskOptions() {
       const options = []
       const selectedTask = this.normalizeTaskOption(this.selectedTask)
 
@@ -253,13 +253,13 @@ export default {
       return options
     },
 
-    visitStats () {
+    visitStats() {
       return this.getOrganizationVisitStats(this.organization)
     }
   },
 
   watch: {
-    modelValue (value) {
+    modelValue(value) {
       if (value) {
         this.resetForm()
       }
@@ -267,7 +267,7 @@ export default {
 
     selectedTask: {
       deep: true,
-      handler () {
+      handler() {
         if (this.modelValue) {
           this.visitForm.selectedTask = this.normalizeTaskOption(this.selectedTask)
         }
@@ -276,7 +276,7 @@ export default {
 
     organization: {
       deep: true,
-      handler () {
+      handler() {
         if (this.modelValue) {
           this.visitForm.countedInPackage = Boolean(this.visitStats.enabled)
         }
@@ -285,18 +285,18 @@ export default {
   },
 
   methods: {
-    updateModelValue (value) {
+    updateModelValue(value) {
       this.$emit('update:modelValue', value)
     },
 
-    closeDialog () {
+    closeDialog() {
       if (this.saving) {
         return
       }
       this.$emit('update:modelValue', false)
     },
 
-    resetForm () {
+    resetForm() {
       this.visitForm = {
         visitDate: moment().format('YYYY-MM-DDTHH:mm'),
         type: 'Плановый выезд',
@@ -307,7 +307,7 @@ export default {
       }
     },
 
-    normalizeTaskOption (task) {
+    normalizeTaskOption(task) {
       if (!task) {
         return null
       }
@@ -333,7 +333,7 @@ export default {
       return null
     },
 
-    onVisitTypeChanged (value) {
+    onVisitTypeChanged(value) {
       if (this.visitForm.price !== null && this.visitForm.price !== undefined && this.visitForm.price !== '') {
         return
       }
@@ -348,13 +348,13 @@ export default {
       }
     },
 
-    submitVisit () {
+    submitVisit() {
       if (!this.organization?.id) {
         this.$q.notify({
           message: 'Не выбрана организация для выезда',
           type: 'negative',
           position: 'top-right',
-          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
         })
         return
       }
@@ -390,7 +390,7 @@ export default {
             message: e.response?.data?.message || e.response?.data || e.message || 'Не удалось добавить выезд',
             type: 'negative',
             position: 'top-right',
-            actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+            actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
           })
         })
         .finally(() => {
@@ -398,7 +398,7 @@ export default {
         })
     },
 
-    getOrganizationVisitStats (organization) {
+    getOrganizationVisitStats(organization) {
       if (!organization || organization.useVisitsLimit !== true) {
         return this.emptyVisitStats()
       }
@@ -443,7 +443,7 @@ export default {
       }
     },
 
-    emptyVisitStats () {
+    emptyVisitStats() {
       return {
         enabled: false,
         limit: 0,
@@ -456,7 +456,7 @@ export default {
       }
     },
 
-    firstNumber (values, fallback = 0) {
+    firstNumber(values, fallback = 0) {
       for (const value of values) {
         const number = Number(value)
         if (Number.isFinite(number)) {
@@ -466,7 +466,7 @@ export default {
       return fallback
     },
 
-    formatMoney (value) {
+    formatMoney(value) {
       const number = Number(value)
       if (!Number.isFinite(number)) {
         return '—'

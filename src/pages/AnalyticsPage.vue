@@ -55,7 +55,7 @@
           emit-value
           map-options
           class="analytics-group-input"
-          @update:model-value="loadAnalytics"
+          @update:model-value="scheduleAnalyticsLoad"
         />
 
         <q-btn
@@ -81,7 +81,8 @@
               Фильтры и группировка аналитики
             </div>
             <div class="text-grey-7 text-caption">
-              Фильтрует заявки и связанные с ними показатели. Теги работают по принципу «любой из выбранных».
+              Фильтрует заявки и связанные с ними показатели. Теги работают по принципу «любой из
+              выбранных».
             </div>
           </div>
 
@@ -116,7 +117,7 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="loadAnalytics"
+              @update:model-value="scheduleAnalyticsLoad"
             />
           </div>
 
@@ -134,7 +135,7 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="loadAnalytics"
+              @update:model-value="scheduleAnalyticsLoad"
             />
           </div>
 
@@ -152,7 +153,7 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="loadAnalytics"
+              @update:model-value="scheduleAnalyticsLoad"
             />
           </div>
 
@@ -170,7 +171,7 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="loadAnalytics"
+              @update:model-value="scheduleAnalyticsLoad"
             />
           </div>
         </div>
@@ -265,7 +266,8 @@
                           Закрыто
                         </div>
                         <div class="bar-chart-track">
-                          <div class="bar-chart-fill" :style="{ width: row.closedPercent + '%' }"/>
+                          <div class="bar-chart-fill"
+                               :style="{ width: row.closedPercent + '%' }"/>
                         </div>
                         <div class="bar-chart-value">
                           {{ formatNumber(row.closedCount) }}
@@ -412,7 +414,6 @@
             </q-card>
           </div>
 
-
           <div class="col-12">
             <q-card flat bordered class="analytics-card">
               <q-card-section>
@@ -422,7 +423,8 @@
                       График нагрузки по часам
                     </div>
                     <div class="text-grey-7 text-caption">
-                      Входящие, исходящие, созданные, закрытые и переоткрытые заявки по часам суток
+                      Входящие, исходящие, созданные, закрытые и переоткрытые заявки по часам
+                      суток
                     </div>
                   </div>
                   <q-chip dense square color="grey-2" text-color="dark">
@@ -540,10 +542,13 @@
                       <q-chip dense square color="warning" text-color="dark">
                         Переоткр: {{ formatNumber(row.reopenedTasks) }}
                       </q-chip>
-                      <q-chip dense square :color="row.overdueSla > 0 ? 'negative' : 'grey-2'" :text-color="row.overdueSla > 0 ? 'white' : 'dark'">
+                      <q-chip dense square :color="row.overdueSla > 0 ? 'negative' : 'grey-2'"
+                              :text-color="row.overdueSla > 0 ? 'white' : 'dark'">
                         SLA: {{ formatNumber(row.overdueSla) }}
                       </q-chip>
-                      <q-chip dense square :color="row.overdueDeadlines > 0 ? 'warning' : 'grey-2'" text-color="dark">
+                      <q-chip dense square
+                              :color="row.overdueDeadlines > 0 ? 'warning' : 'grey-2'"
+                              text-color="dark">
                         Дедлайн: {{ formatNumber(row.overdueDeadlines) }}
                       </q-chip>
                     </div>
@@ -896,13 +901,13 @@
 
 <script>
 import moment from 'moment'
-import { api } from 'boot/axios'
-import { useStore } from 'stores/store'
+import {api} from 'boot/axios'
+import {useStore} from 'stores/store'
 
 export default {
   name: 'AnalyticsPage',
 
-  setup () {
+  setup() {
     return {
       store: useStore()
     }
@@ -911,6 +916,9 @@ export default {
   data: () => ({
     loading: false,
     analyticsSummary: {},
+    analyticsLoadTimer: null,
+    analyticsAbortController: null,
+    analyticsRequestSeq: 0,
     activeTab: 'overview',
     periodPreset: '7',
     fromDate: '',
@@ -1069,7 +1077,7 @@ export default {
   }),
 
   computed: {
-    summary () {
+    summary() {
       const localSummary = this.unwrapAnalyticsResponse(this.analyticsSummary)
       if (Object.keys(localSummary).length > 0) {
         return localSummary
@@ -1077,14 +1085,14 @@ export default {
       return this.unwrapAnalyticsResponse(this.store.analyticsSummary)
     },
 
-    activeFilterCount () {
+    activeFilterCount() {
       return this.analyticsFilterQuery.typeIds.length +
         this.analyticsFilterQuery.priorityIds.length +
         this.analyticsFilterQuery.executorIds.length +
         this.analyticsFilterQuery.tagIds.length
     },
 
-    analyticsFilterQuery () {
+    analyticsFilterQuery() {
       return {
         typeIds: this.normalizeSelectedIds(this.analyticsFilters.typeIds),
         priorityIds: this.normalizeSelectedIds(this.analyticsFilters.priorityIds),
@@ -1093,15 +1101,15 @@ export default {
       }
     },
 
-    taskTypeFilterOptions () {
+    taskTypeFilterOptions() {
       return this.toEntityOptions(this.store.taskTypes || [], 'Без названия')
     },
 
-    priorityFilterOptions () {
+    priorityFilterOptions() {
       return this.toEntityOptions(this.store.priorities || [], 'Без приоритета')
     },
 
-    executorFilterOptions () {
+    executorFilterOptions() {
       return (this.store.users || [])
         .filter(user => user && user.id !== undefined && user.id !== null)
         .map(user => ({
@@ -1111,16 +1119,16 @@ export default {
         .sort((left, right) => left.label.localeCompare(right.label))
     },
 
-    tagFilterOptions () {
+    tagFilterOptions() {
       return this.toEntityOptions(this.store.tags || [], 'Без тега')
     },
 
-    currentBreakdownTitle () {
+    currentBreakdownTitle() {
       const option = this.breakdownByOptions.find(item => item.value === this.breakdownBy)
       return option ? option.label : 'Разбивка'
     },
 
-    currentBreakdownRows () {
+    currentBreakdownRows() {
       const keyMap = {
         type: ['taskTypeBreakdown', 'typeBreakdown', 'tasksByType'],
         priority: ['priorityBreakdown', 'tasksByPriority'],
@@ -1131,70 +1139,70 @@ export default {
       return this.normalizeBreakdownRows(rows)
     },
 
-    newAppeals () {
+    newAppeals() {
       return this.getSummaryNumber(['newAppeals', 'newMessages', 'incomingAppeals'])
     },
 
-    openTasks () {
+    openTasks() {
       return this.getSummaryNumber(['openTasks', 'openedTasks', 'activeTasks'])
     },
 
-    closedTasks () {
+    closedTasks() {
       return this.getSummaryNumber(['closedTasks', 'closedTaskCount', 'resolvedTasks'])
     },
 
-    overdueSla () {
+    overdueSla() {
       return this.getSummaryNumber(['overdueSla', 'overdueSlaTasks', 'slaOverdueTasks'])
     },
 
-    overdueDeadlines () {
+    overdueDeadlines() {
       return this.getSummaryNumber(['overdueDeadlines', 'overdueDeadlineTasks', 'deadlineOverdueTasks'])
     },
 
-    deadlineWarnings () {
+    deadlineWarnings() {
       return this.getSummaryNumber(['deadlineWarnings', 'deadlineWarningTasks', 'deadlineAlmostOverdueTasks'])
     },
 
-    unassignedTasks () {
+    unassignedTasks() {
       return this.getSummaryNumber(['unassignedTasks', 'tasksWithoutAssignee'])
     },
 
-    unansweredMessages () {
+    unansweredMessages() {
       return this.getSummaryNumber(['unansweredMessages', 'messagesAwaitingResponse', 'needAnswerMessages'])
     },
 
-    reopenedTasks () {
+    reopenedTasks() {
       return this.getSummaryNumber(['reopenedTasks', 'reopenedTaskCount', 'returnedToWorkTasks'])
     },
 
-    avgFirstResponseSeconds () {
+    avgFirstResponseSeconds() {
       return this.getSummaryNumber(['avgFirstResponseSeconds', 'averageFirstResponseSeconds'])
     },
 
-    avgCloseTimeSeconds () {
+    avgCloseTimeSeconds() {
       return this.getSummaryNumber(['avgCloseTimeSeconds', 'averageCloseTimeSeconds'])
     },
 
-    totalClosedByPeriod () {
+    totalClosedByPeriod() {
       return this.closedTrendRows.reduce((sum, row) => sum + row.count, 0)
     },
 
-    totalReopenedByPeriod () {
+    totalReopenedByPeriod() {
       const total = this.reopenedTrendRows.reduce((sum, row) => sum + row.count, 0)
       return total || this.reopenedTasks
     },
 
-    closedTrendRows () {
+    closedTrendRows() {
       const rows = this.getSummaryRows(['closedByPeriod', 'closedTasksByPeriod'])
       return this.normalizePeriodRows(rows)
     },
 
-    reopenedTrendRows () {
+    reopenedTrendRows() {
       const rows = this.getSummaryRows(['reopenedByPeriod', 'reopenedTasksByPeriod', 'returnedToWorkByPeriod'])
       return this.normalizePeriodRows(rows)
     },
 
-    periodActivityRows () {
+    periodActivityRows() {
       const map = new Map()
 
       this.closedTrendRows.forEach(row => {
@@ -1233,7 +1241,7 @@ export default {
       }))
     },
 
-    periodActivityTableRows () {
+    periodActivityTableRows() {
       return this.periodActivityRows.map(row => ({
         period: row.period,
         closedCount: row.closedCount,
@@ -1242,7 +1250,7 @@ export default {
       }))
     },
 
-    hourlyLoadRows () {
+    hourlyLoadRows() {
       const rows = this.getSummaryRows(['hourlyLoad', 'loadByHour', 'hourLoad'])
       const normalized = rows.map(row => {
         const rawHour = row.hour !== undefined && row.hour !== null ? row.hour : row.hourOfDay
@@ -1274,11 +1282,11 @@ export default {
       }))
     },
 
-    totalHourlyLoad () {
+    totalHourlyLoad() {
       return this.hourlyLoadRows.reduce((sum, row) => sum + row.total, 0)
     },
 
-    operatorLoadRows () {
+    operatorLoadRows() {
       const rows = Array.isArray(this.summary.operatorLoad) ? this.summary.operatorLoad : []
       return rows.map(row => ({
         ...row,
@@ -1294,15 +1302,15 @@ export default {
       }))
     },
 
-    maxOperatorOpenTasks () {
+    maxOperatorOpenTasks() {
       return Math.max(...this.operatorLoadRows.map(row => Number(row.openTasks || 0)), 0)
     },
 
-    maxOperatorClosedTasks () {
+    maxOperatorClosedTasks() {
       return Math.max(...this.operatorLoadRows.map(row => Number(row.closedTasks || 0)), 0)
     },
 
-    operatorLoadColumns () {
+    operatorLoadColumns() {
       return [
         {
           name: 'name',
@@ -1368,7 +1376,7 @@ export default {
       ]
     },
 
-    metricCards () {
+    metricCards() {
       return [
         {
           key: 'newAppeals',
@@ -1453,7 +1461,7 @@ export default {
       ]
     },
 
-    queuePulseItems () {
+    queuePulseItems() {
       return [
         {
           key: 'overdueDeadlines',
@@ -1494,7 +1502,7 @@ export default {
       ]
     },
 
-    qualityGauges () {
+    qualityGauges() {
       return [
         {
           key: 'slaHealth',
@@ -1531,7 +1539,7 @@ export default {
       ]
     },
 
-    deadlineRisks () {
+    deadlineRisks() {
       return [
         {
           key: 'overdueDeadlines',
@@ -1572,7 +1580,7 @@ export default {
       ]
     },
 
-    periodCaption () {
+    periodCaption() {
       if (!this.fromDate || !this.toDate) {
         return 'Период не выбран'
       }
@@ -1580,14 +1588,19 @@ export default {
     }
   },
 
-  created () {
+  created() {
     this.applyPreset(false)
     this.loadAnalyticsDictionaries()
     this.loadAnalytics()
   },
 
+  beforeUnmount() {
+    this.clearAnalyticsLoadTimer()
+    this.cancelAnalyticsRequest(true)
+  },
+
   methods: {
-    loadAnalyticsDictionaries () {
+    loadAnalyticsDictionaries() {
       if (typeof this.store.fetchAnalyticsDictionaries === 'function') {
         this.store.fetchAnalyticsDictionaries()
           .catch(error => console.error(error))
@@ -1598,17 +1611,17 @@ export default {
       }
     },
 
-    resetAnalyticsFilters () {
+    resetAnalyticsFilters() {
       this.analyticsFilters = {
         typeIds: [],
         priorityIds: [],
         executorIds: [],
         tagIds: []
       }
-      this.loadAnalytics()
+      this.scheduleAnalyticsLoad()
     },
 
-    normalizeSelectedIds (value) {
+    normalizeSelectedIds(value) {
       if (!Array.isArray(value)) {
         return []
       }
@@ -1618,7 +1631,7 @@ export default {
         .filter(item => Number.isFinite(item))
     },
 
-    toEntityOptions (items, fallbackLabel) {
+    toEntityOptions(items, fallbackLabel) {
       return (items || [])
         .filter(item => item && item.id !== undefined && item.id !== null)
         .map(item => ({
@@ -1628,14 +1641,14 @@ export default {
         .sort((left, right) => left.label.localeCompare(right.label))
     },
 
-    getUserDisplayName (user) {
+    getUserDisplayName(user) {
       const lastname = user && user.lastname ? user.lastname : ''
       const firstname = user && user.firstname ? user.firstname : ''
       const fullName = `${lastname} ${firstname}`.trim()
       return fullName || (user && user.username) || 'Без имени'
     },
 
-    normalizeBreakdownRows (rows) {
+    normalizeBreakdownRows(rows) {
       const normalized = (rows || []).map(row => ({
         ...row,
         key: row.key || `${row.id !== undefined && row.id !== null ? row.id : row.name}`,
@@ -1661,7 +1674,7 @@ export default {
         }))
     },
 
-    unwrapAnalyticsResponse (value) {
+    unwrapAnalyticsResponse(value) {
       if (!value) {
         return {}
       }
@@ -1671,14 +1684,14 @@ export default {
       return value
     },
 
-    toCsvParam (value) {
+    toCsvParam(value) {
       if (!Array.isArray(value) || value.length === 0) {
         return undefined
       }
       return value.join(',')
     },
 
-    buildAnalyticsParams () {
+    buildAnalyticsParams() {
       const filters = this.analyticsFilterQuery
       return {
         from: this.toIsoParam(this.fromDate, false),
@@ -1691,7 +1704,7 @@ export default {
       }
     },
 
-    applyPreset (needLoad = true) {
+    applyPreset(needLoad = true) {
       const now = new Date()
       const from = new Date(now)
       if (this.periodPreset === 'today') {
@@ -1702,22 +1715,102 @@ export default {
       this.fromDate = this.formatDateInput(from)
       this.toDate = this.formatDateInput(now)
       if (needLoad) {
-        this.loadAnalytics()
+        this.scheduleAnalyticsLoad()
       }
     },
 
-    loadAnalytics () {
-      if (!this.fromDate || !this.toDate) {
+    clearAnalyticsLoadTimer() {
+      if (this.analyticsLoadTimer) {
+        clearTimeout(this.analyticsLoadTimer)
+        this.analyticsLoadTimer = null
+      }
+    },
+
+    cancelAnalyticsRequest(notifyBackend = false) {
+      const hasActiveRequest = Boolean(this.analyticsAbortController)
+      if (notifyBackend && hasActiveRequest) {
+        this.cancelAnalyticsOnBackend()
+      }
+      if (this.analyticsAbortController) {
+        this.analyticsAbortController.abort()
+        this.analyticsAbortController = null
+      }
+    },
+
+    cancelAnalyticsOnBackend() {
+      if (typeof fetch === 'function') {
+        fetch('/api/v1/analytics/summary/cancel', {
+          method: 'POST',
+          keepalive: true,
+          credentials: 'include'
+        }).catch(() => {})
         return
       }
+      api.post('/api/v1/analytics/summary/cancel').catch(() => {})
+    },
+
+    isAnalyticsRequestCanceled(error) {
+      return error &&
+        (
+          error.code === 'ERR_CANCELED' ||
+          error.name === 'CanceledError' ||
+          error.message === 'canceled' ||
+          error.__CANCEL__ === true
+        )
+    },
+
+    scheduleAnalyticsLoad(delay = 350) {
+      this.clearAnalyticsLoadTimer()
+      this.cancelAnalyticsRequest(true)
+
+      const requestId = ++this.analyticsRequestSeq
       this.loading = true
-      api.get('/api/v1/analytics/summary', {
+
+      this.analyticsLoadTimer = setTimeout(() => {
+        this.analyticsLoadTimer = null
+        this.loadAnalytics(requestId)
+      }, delay)
+    },
+
+    loadAnalytics(requestId = null) {
+      this.clearAnalyticsLoadTimer()
+      this.cancelAnalyticsRequest(true)
+
+      const currentRequestId = requestId || ++this.analyticsRequestSeq
+
+      if (!this.fromDate || !this.toDate) {
+        if (currentRequestId === this.analyticsRequestSeq) {
+          this.loading = false
+        }
+        return
+      }
+
+      const requestConfig = {
         params: this.buildAnalyticsParams()
-      })
-        .then(({ data }) => {
+      }
+
+      let controller = null
+      if (typeof AbortController !== 'undefined') {
+        controller = new AbortController()
+        this.analyticsAbortController = controller
+        requestConfig.signal = controller.signal
+      }
+
+      this.loading = true
+
+      api.get('/api/v1/analytics/summary', requestConfig)
+        .then(({data}) => {
+          if (currentRequestId !== this.analyticsRequestSeq) {
+            return
+          }
+
           this.analyticsSummary = data || {}
         })
         .catch(error => {
+          if (currentRequestId !== this.analyticsRequestSeq || this.isAnalyticsRequestCanceled(error)) {
+            return
+          }
+
           console.error(error)
           this.analyticsSummary = {}
           this.$q.notify({
@@ -1726,23 +1819,31 @@ export default {
           })
         })
         .finally(() => {
+          if (currentRequestId !== this.analyticsRequestSeq) {
+            return
+          }
+
+          if (this.analyticsAbortController === controller) {
+            this.analyticsAbortController = null
+          }
+
           this.loading = false
         })
     },
 
-    onManualPeriodChange () {
+    onManualPeriodChange() {
       this.periodPreset = 'custom'
-      this.loadAnalytics()
+      this.scheduleAnalyticsLoad()
     },
 
-    formatDateInput (date) {
+    formatDateInput(date) {
       const year = date.getFullYear()
       const month = `${date.getMonth() + 1}`.padStart(2, '0')
       const day = `${date.getDate()}`.padStart(2, '0')
       return `${year}-${month}-${day}`
     },
 
-    toIsoParam (dateValue, endOfDay) {
+    toIsoParam(dateValue, endOfDay) {
       if (!dateValue) {
         return undefined
       }
@@ -1750,7 +1851,7 @@ export default {
       return `${dateValue}T${time}`
     },
 
-    getSummaryNumber (keys) {
+    getSummaryNumber(keys) {
       for (const key of keys) {
         if (this.summary[key] !== undefined && this.summary[key] !== null) {
           return Number(this.summary[key] || 0)
@@ -1759,7 +1860,7 @@ export default {
       return 0
     },
 
-    getSummaryRows (keys) {
+    getSummaryRows(keys) {
       const summary = this.unwrapAnalyticsResponse(this.summary)
       for (const key of keys) {
         const value = summary[key]
@@ -1786,7 +1887,7 @@ export default {
       return []
     },
 
-    normalizePeriodRows (rows) {
+    normalizePeriodRows(rows) {
       const normalized = rows.map(row => ({
         period: row.period,
         label: this.formatPeriodDate(row.period),
@@ -1802,15 +1903,15 @@ export default {
         }))
     },
 
-    formatNumber (value) {
+    formatNumber(value) {
       return Number(value || 0).toLocaleString('ru-RU')
     },
 
-    formatPercent (value) {
+    formatPercent(value) {
       return `${Math.round(Number(value || 0))}%`
     },
 
-    formatDuration (seconds) {
+    formatDuration(seconds) {
       const totalSeconds = Number(seconds || 0)
       if (totalSeconds <= 0) {
         return '—'
@@ -1829,12 +1930,12 @@ export default {
       return restHours > 0 ? `${days} д ${restHours} ч` : `${days} д`
     },
 
-    selectPeriod (value) {
+    selectPeriod(value) {
       this.periodPreset = value
       this.applyPreset()
     },
 
-    formatPeriodDate (value) {
+    formatPeriodDate(value) {
       if (!value) {
         return '—'
       }
@@ -1845,7 +1946,7 @@ export default {
       return date.format('DD.MM.YYYY')
     },
 
-    calculateHealthPercent (total, badCount) {
+    calculateHealthPercent(total, badCount) {
       const safeTotal = Number(total || 0)
       const safeBadCount = Number(badCount || 0)
       if (safeTotal <= 0) {
@@ -1854,7 +1955,7 @@ export default {
       return Math.max(0, Math.min(100, ((safeTotal - safeBadCount) / safeTotal) * 100))
     },
 
-    getGaugeColor (value) {
+    getGaugeColor(value) {
       const percent = Number(value || 0)
       if (percent >= 85) {
         return 'positive'
@@ -1865,7 +1966,7 @@ export default {
       return 'negative'
     },
 
-    getProgressValue (value, max) {
+    getProgressValue(value, max) {
       const safeMax = Number(max || 0)
       if (safeMax <= 0) {
         return 0

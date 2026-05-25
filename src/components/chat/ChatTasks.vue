@@ -63,7 +63,7 @@
         <q-btn
           icon="sort"
           flat
-          class="text-grey-7"
+          :class="this.selectedSorting.label ? 'text-primary' : 'text-grey-7'"
           style="margin-right: 8px;"
         >
           <q-tooltip>
@@ -84,10 +84,22 @@
                 :key="sorting.slug"
                 clickable
                 v-close-popup
+                :active="this.selectedSorting.slug === sorting.slug"
+                active-class="text-primary"
                 @click="this.setSortVariable(sorting)"
               >
                 <q-item-section>
                   {{ sorting.label }}
+                </q-item-section>
+                <q-item-section
+                  v-if="this.selectedSorting.slug === sorting.slug"
+                  side
+                >
+                  <q-icon
+                    name="check"
+                    color="primary"
+                    size="18px"
+                  />
                 </q-item-section>
               </q-item>
             </q-list>
@@ -97,7 +109,7 @@
           v-if="this.selectedSorting.label"
           @click="this.changeSortingAsc"
           flat
-          class="text-grey-7"
+          class="text-primary"
           style="width: 20px"
           :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
         />
