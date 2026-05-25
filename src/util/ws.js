@@ -22,7 +22,9 @@ export function connect () {
   }
   stompClient.connect({}, () => {
     if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
-      stompClient.subscribe('/topic/clients-updated/', () => refreshClientsFromApi())
+      stompClient.subscribe('/user/topic/clients/', message => clientsCallback(message))
+      stompClient.subscribe('/topic/clients-updated/', () => refreshClientsFromSocket())
+      refreshClientsFromSocket()
     } else if (['OBSERVER'].includes(useStore().currentUser.authorities[0])) {
       stompClient.subscribe('/topic/clients-for-observer/', message => clientsForObserverCallback(message))
     }
@@ -310,7 +312,7 @@ function clientMessageCallback (message) {
   const incomingMessage = normalizeIncomingClientMessage(clientMessage.message)
   const client = store.clients.find(c => Number(c.id) === Number(clientMessage.client.id))
   if (!client) {
-    refreshClientsFromApi()
+    refreshClientsFromSocket()
     return
   } else if (!Array.isArray(client.messages)) {
     client.messages = []
@@ -559,17 +561,9 @@ function safeParseJson (value, fallback) {
   }
 }
 
-function refreshClientsFromApi () {
-  const store = useStore()
-
-  axios.get('/api/v1/clients')
-    .then(({ data }) => {
-      store.clients = Array.isArray(data)
-        ? data.map(client => normalizeClientFromSocket(
-          client,
-          store.clients.find(existingClient => Number(existingClient.id) === Number(client.id))
-        ))
-        : []
-    })
-    .catch(() => undefined)
+function refreshClientsFromSocket () {
+  if (!stompClient || !stompClient.connected) {
+    return
+  }
+  stompClient.send('/app/clients/refresh', {}, '{}')
 }

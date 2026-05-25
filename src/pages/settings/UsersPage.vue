@@ -247,20 +247,45 @@ export default {
     },
 
     dialogDeleteUser () {
-      axios.delete(`/api/v1/delete-user/${this.userId}`)
-        .then(response => {
-          this.store.users = this.store.users.filter(user => user.id !== this.userId)
-          this.dialogClose()
-        })
-        .catch(e =>
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          }))
+      const userName = `${this.dialogLastName || ''} ${this.dialogFirstName || ''}`.trim() || this.dialogUsername || 'пользователя'
+      this.$q.dialog({
+        title: 'Удалить пользователя?',
+        message: `Пользователь «${userName}» будет отключён и скрыт из интерфейса. Сообщения пользователя останутся в истории.`,
+        cancel: {
+          label: 'Отмена',
+          flat: true,
+          color: 'primary'
+        },
+        ok: {
+          label: 'Удалить',
+          color: 'negative'
+        },
+        persistent: true
+      }).onOk(() => {
+        axios.delete(`/api/v1/delete-user/${this.userId}`)
+          .then(() => {
+            this.store.users = this.store.users.filter(user => user.id !== this.userId)
+            this.dialogClose()
+
+            this.$q.notify({
+              message: 'Пользователь удалён из интерфейса',
+              type: 'positive',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            })
+          })
+          .catch(e =>
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close', color: 'white', dense: true, handler: () => undefined
+              }]
+            }))
+      })
     },
 
     getRoleName (role) {
