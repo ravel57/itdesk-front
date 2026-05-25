@@ -74,7 +74,11 @@
           v-if="this.showDialogOrganizations"
           v-model="this.dialogOrganization"
           :multiple="this.dialogRole === 'Оператор поддержки'"
-          :options="this.store.organizations.map(organization => organization.name)"
+          :options="this.organizationOptions"
+          option-label="name"
+          option-value="id"
+          emit-value
+          map-options
           label="Организация"
           use-input
         />
@@ -152,7 +156,7 @@ export default {
       this.dialogFirstName = ''
       this.dialogPassword = ''
       this.dialogRole = ''
-      this.dialogOrganization = ''
+      this.dialogOrganization = []
       setTimeout(() => this.$refs.lastname.focus(), 250)
     },
 
@@ -164,7 +168,9 @@ export default {
       this.dialogLastName = row.lastname
       this.dialogFirstName = row.firstname
       this.dialogRole = this.getRoleName(row.authorities[0])
-      this.dialogOrganization = row.availableOrganizations
+      this.dialogOrganization = this.dialogRole === 'Оператор поддержки'
+        ? (row.availableOrganizations || []).map(organization => organization.id)
+        : ((row.availableOrganizations || [])[0]?.id || null)
     },
 
     dialogClose () {
@@ -181,7 +187,7 @@ export default {
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
         authorities: this.dialogRole,
-        availableOrganizations: this.dialogRole === 'Менеджер организации' ? [this.dialogOrganization] : this.dialogOrganization
+        availableOrganizationIds: this.getSelectedOrganizationIdsForSave()
       }
       if ((this.isNewUser && user.username.length === 0) || (this.isNewUser && user.password.length === 0) ||
         user.lastname.length === 0 || user.firstname.length === 0 || user.authorities.length === 0) {
@@ -264,18 +270,53 @@ export default {
         case 'OBSERVER': return 'Менеджер организации'
         case 'CLIENT': return 'Клиент'
       }
-    }
+    },
+
+    getOrganizationById (organizationId) {
+      return (this.store.organizations || [])
+        .find(organization => Number(organization.id) === Number(organizationId)) || null
+    },
+
+    getSelectedOrganizationIdsForSave () {
+      if (!this.showDialogOrganizations) {
+        return []
+      }
+      const normalizeOrganizationId = value => {
+        if (value && typeof value === 'object') {
+          return Number(value.id)
+        }
+        return Number(value)
+      }
+      if (this.dialogRole === 'Оператор поддержки') {
+        return (Array.isArray(this.dialogOrganization) ? this.dialogOrganization : [])
+          .map(normalizeOrganizationId)
+          .filter(id => Number.isFinite(id))
+      }
+      const organizationId = normalizeOrganizationId(this.dialogOrganization)
+      return Number.isFinite(organizationId) ? [organizationId] : []
+    },
   },
+
   computed: {
+    organizationOptions () {
+      return (this.store.organizations || [])
+        .filter(organization => organization && organization.id)
+        .map(organization => ({
+          id: organization.id,
+          name: organization.name || `Организация ${organization.id}`
+        }))
+    },
     showDialogOrganizations () {
       return this.dialogRole === 'Оператор поддержки' || this.dialogRole === 'Менеджер организации'
     }
   },
+
   watch: {
     dialogRole (newVal) {
       this.dialogOrganization = []
     }
   },
+
   setup () {
     const store = useStore()
     return { store }

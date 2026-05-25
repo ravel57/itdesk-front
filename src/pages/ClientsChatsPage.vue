@@ -56,56 +56,66 @@
         >
           <q-item
             clickable
+            class="client-row-item"
             :data-tour="isFirstClient(client) ? 'client-row' : null"
           >
-            <q-item-section style="display: flow-root">
+            <q-item-section class="client-row-main">
               <router-link
                 :to="getClientChatRoute(client)"
-                style="text-decoration: none; display: flex; width: 100%;"
+                class="text-primary client-row-link"
                 @click="preventOnboardingDemoNavigation(client, $event)"
-                class="text-primary"
               >
-                <q-item-section side style="padding-right: 8px">
+                <q-item-section
+                  side
+                  class="client-avatar-section"
+                >
                   <div
+                    class="client-avatar"
                     :style="'background-color: ' + this.nameToPastelHex(`${client.lastname} ${client.firstname}`)"
-                    style="width: 50px;height: 50px;border-radius: 100%;display: flex;justify-content: center;align-items: center;color: white;font-size: 20px"
                   >
                     {{ this.getAbbreviation(client) }}
                   </div>
                 </q-item-section>
                 <q-item-section class="client-info-section">
                   <q-item-label
-                    style="align-items: center;display: flex;"
+                    class="client-name-row"
                     :data-tour="isFirstClient(client) ? 'client-name' : null"
                   >
                     <img
                       v-if="client.messageFrom === 'TELEGRAM'"
                       src="/telegram.png"
                       alt="tg"
-                      style="width: 16px;margin-right: 8px;filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);"
+                      class="client-channel-icon"
                     >
                     <img
                       v-else-if="client.messageFrom === 'WHATSAPP'"
                       src="/whatsapp.png"
                       alt="wa"
-                      style="width: 16px;margin-right: 8px;filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);"
+                      class="client-channel-icon"
                     >
                     <img
                       v-else-if="client.messageFrom === 'EMAIL'"
                       src="/email.png"
                       alt="email"
-                      style="width: 16px;margin-right: 8px;filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);"
+                      class="client-channel-icon"
                     >
-                    {{ client.lastname }} {{ client.firstname }}
+                    <span class="client-name-text">
+                      {{ client.lastname }} {{ client.firstname }}
+                    </span>
                     <div
-                      style="color: var(--q-primary);display: flex;align-items: center;margin-left: 8px;"
+                      v-if="this.getActualTasks(client).length > 0"
+                      class="client-open-tasks-counter"
                       :data-tour="isFirstClient(client) ? 'client-tasks-count' : null"
+                      title="Открытые заявки"
                     >
                       <q-icon
-                        color="primary"
                         name="description"
+                        class="client-open-tasks-counter__icon"
                       />
-                      {{ this.getActualTasks(client).length }}
+
+                      <span class="client-open-tasks-counter__value">
+                        {{ this.getActualTasks(client).length }}
+                      </span>
                     </div>
                     <div class="row items-center no-wrap">
                       <div
@@ -1641,5 +1651,219 @@ export default {
 .strikethrough {
   text-decoration: line-through;
   opacity: 0.6;
+}
+
+.client-open-tasks-counter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 34px;
+  height: 20px;
+  padding: 0 7px;
+  margin-left: 8px;
+  color: #fff;
+  background: var(--q-primary);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .16);
+}
+
+.client-open-tasks-counter__icon {
+  color: inherit;
+  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+}
+
+.client-open-tasks-counter__value {
+  color: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.client-row-link {
+  text-decoration: none;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.client-avatar-section {
+  padding-right: 8px;
+  flex: 0 0 auto;
+}
+
+.client-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 20px;
+  flex: 0 0 auto;
+}
+
+.client-name-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+
+.client-name-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.client-channel-icon {
+  width: 16px;
+  flex: 0 0 auto;
+  filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);
+}
+
+.client-row-main {
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 600px) {
+  .search-sort-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 36px;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .search-sort-row__search {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .search-sort-row__sort {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .search-sort-row > .q-btn {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .client-row-item {
+    padding: 7px 4px;
+  }
+
+  .client-row-link {
+    align-items: stretch;
+  }
+
+  .client-avatar-section {
+    padding-right: 8px;
+  }
+
+  .client-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+  }
+
+  .client-info-section {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .client-name-row {
+    flex-wrap: wrap;
+    gap: 3px 6px;
+    line-height: 1.15;
+  }
+
+  .client-channel-icon {
+    width: 15px;
+    margin-right: 0;
+  }
+
+  .client-name-text {
+    flex: 1 1 auto;
+    max-width: 100%;
+    font-size: 14px;
+  }
+
+  .client-open-tasks-counter {
+    height: 18px;
+    min-width: 30px;
+    padding: 0 6px;
+    margin-left: 0;
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .client-open-tasks-counter__icon {
+    font-size: 13px;
+    width: 13px;
+    height: 13px;
+    line-height: 13px;
+  }
+
+  .client-open-tasks-counter__value {
+    font-size: 11px;
+  }
+
+  .sla-pill {
+    width: 64px;
+    height: 12px;
+    margin-left: 0;
+  }
+
+  .sla-bar {
+    width: 64px !important;
+  }
+
+  .client-row-alerts {
+    flex: 0 0 70px;
+    max-width: 70px;
+    margin-left: 6px;
+    margin-right: 0;
+    justify-content: flex-end;
+  }
+
+  .client-row-alerts__separator {
+    margin-right: 8px;
+  }
+
+  .client-row-alerts__content {
+    gap: 4px;
+  }
+
+  .unanswered-timer {
+    font-size: 11px;
+    line-height: 1.1;
+    text-align: right;
+  }
+
+  .shorten-text {
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  .client-row-main {
+    min-width: 0;
+    overflow: hidden;
+  }
 }
 </style>

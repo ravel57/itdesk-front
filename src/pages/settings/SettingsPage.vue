@@ -105,12 +105,6 @@ export default {
         roles: ['ADMIN']
       },
       {
-        title: 'База знаний',
-        link: '/settings/knowledgeBase',
-        slug: 'knowledgeBase',
-        roles: ['ADMIN']
-      },
-      {
         title: 'Теги',
         link: '/settings/tags',
         slug: 'tags',

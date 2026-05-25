@@ -4,6 +4,7 @@ import { useStore } from 'stores/store'
 import moment from 'moment/moment'
 import { appConfig } from 'src/config/appConfig'
 import { useSystemNotifications } from 'src/composables/useSystemNotifications'
+import axios from 'axios'
 
 let stompClient = null
 
@@ -21,7 +22,7 @@ export function connect () {
   }
   stompClient.connect({}, () => {
     if (['ADMIN', 'OPERATOR'].includes(useStore().currentUser.authorities[0])) {
-      stompClient.subscribe('/topic/clients/', message => clientsCallback(message))
+      stompClient.subscribe('/topic/clients-updated/', () => refreshClientsFromApi())
     } else if (['OBSERVER'].includes(useStore().currentUser.authorities[0])) {
       stompClient.subscribe('/topic/clients-for-observer/', message => clientsForObserverCallback(message))
     }
@@ -307,10 +308,10 @@ function clientMessageCallback (message) {
   }
 
   const incomingMessage = normalizeIncomingClientMessage(clientMessage.message)
-  let client = store.clients.find(c => Number(c.id) === Number(clientMessage.client.id))
+  const client = store.clients.find(c => Number(c.id) === Number(clientMessage.client.id))
   if (!client) {
-    client = normalizeClientFromSocket(clientMessage.client)
-    store.clients.push(client)
+    refreshClientsFromApi()
+    return
   } else if (!Array.isArray(client.messages)) {
     client.messages = []
   }
@@ -556,4 +557,19 @@ function safeParseJson (value, fallback) {
   } catch (ignoredError) {
     return fallback
   }
+}
+
+function refreshClientsFromApi () {
+  const store = useStore()
+
+  axios.get('/api/v1/clients')
+    .then(({ data }) => {
+      store.clients = Array.isArray(data)
+        ? data.map(client => normalizeClientFromSocket(
+          client,
+          store.clients.find(existingClient => Number(existingClient.id) === Number(client.id))
+        ))
+        : []
+    })
+    .catch(() => undefined)
 }

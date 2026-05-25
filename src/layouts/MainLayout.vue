@@ -237,11 +237,17 @@ export default {
       //   link: '/phone'
       // },
       {
+        title: 'База знаний',
+        icon: 'menu_book',
+        link: '/knowledge-base',
+        roles: ['ADMIN', 'OPERATOR']
+      },
+      {
         title: 'Настройки',
         icon: 'settings',
         link: '/settings',
         roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
-      }
+      },
       // {
       //   title: 'Помощь',
       //   icon: 'contact_support',

@@ -507,6 +507,7 @@
                     emit-value
                     map-options
                     class="breakdown-select"
+                    @update:model-value="saveAnalyticsSettingsToLocalStorage"
                   />
                 </div>
               </q-card-section>
@@ -903,6 +904,8 @@
 import moment from 'moment'
 import {api} from 'boot/axios'
 import {useStore} from 'stores/store'
+
+const ANALYTICS_SETTINGS_STORAGE_KEY = 'uldesk.analytics.page.settings'
 
 export default {
   name: 'AnalyticsPage',
@@ -1589,7 +1592,10 @@ export default {
   },
 
   created() {
-    this.applyPreset(false)
+    const restored = this.restoreAnalyticsSettingsFromLocalStorage()
+    if (!restored) {
+      this.applyPreset(false)
+    }
     this.loadAnalyticsDictionaries()
     this.loadAnalytics()
   },
@@ -1600,6 +1606,100 @@ export default {
   },
 
   methods: {
+    getDefaultAnalyticsFilters() {
+      return {
+        typeIds: [],
+        priorityIds: [],
+        executorIds: [],
+        tagIds: []
+      }
+    },
+
+    normalizeAnalyticsSettingsIds(value) {
+      if (!Array.isArray(value)) {
+        return []
+      }
+
+      return value
+        .filter(item => item !== undefined && item !== null && item !== '')
+        .map(item => Number(item))
+        .filter(item => Number.isFinite(item))
+    },
+
+    buildAnalyticsSettingsForStorage() {
+      return {
+        periodPreset: this.periodPreset,
+        fromDate: this.fromDate,
+        toDate: this.toDate,
+        groupBy: this.groupBy,
+        breakdownBy: this.breakdownBy,
+        analyticsFilters: {
+          typeIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.typeIds),
+          priorityIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.priorityIds),
+          executorIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.executorIds),
+          tagIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.tagIds)
+        }
+      }
+    },
+
+    saveAnalyticsSettingsToLocalStorage() {
+      try {
+        localStorage.setItem(
+          ANALYTICS_SETTINGS_STORAGE_KEY,
+          JSON.stringify(this.buildAnalyticsSettingsForStorage())
+        )
+      } catch (e) {
+        console.warn('Не удалось сохранить настройки аналитики', e)
+      }
+    },
+
+    restoreAnalyticsSettingsFromLocalStorage() {
+      let settings = null
+      try {
+        const rawSettings = localStorage.getItem(ANALYTICS_SETTINGS_STORAGE_KEY)
+        if (!rawSettings) {
+          return false
+        }
+        settings = JSON.parse(rawSettings)
+      } catch (e) {
+        console.warn('Не удалось прочитать настройки аналитики', e)
+        return false
+      }
+      if (!settings || typeof settings !== 'object') {
+        return false
+      }
+      const allowedPeriodPresets = ['today', '7', '30', 'custom']
+      this.periodPreset = allowedPeriodPresets.includes(settings.periodPreset)
+        ? settings.periodPreset
+        : '7'
+      this.groupBy = ['DAY', 'WEEK'].includes(settings.groupBy)
+        ? settings.groupBy
+        : 'DAY'
+      this.breakdownBy = ['type', 'priority', 'executor', 'tag'].includes(settings.breakdownBy)
+        ? settings.breakdownBy
+        : 'type'
+      this.analyticsFilters = {
+        ...this.getDefaultAnalyticsFilters(),
+        typeIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.typeIds),
+        priorityIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.priorityIds),
+        executorIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.executorIds),
+        tagIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.tagIds)
+      }
+      if (this.periodPreset === 'custom') {
+        this.fromDate = settings.fromDate || ''
+        this.toDate = settings.toDate || ''
+
+        if (!this.fromDate || !this.toDate) {
+          this.periodPreset = '7'
+          this.applyPreset(false)
+        }
+
+        return true
+      }
+      this.applyPreset(false)
+      return true
+    },
+
     loadAnalyticsDictionaries() {
       if (typeof this.store.fetchAnalyticsDictionaries === 'function') {
         this.store.fetchAnalyticsDictionaries()
@@ -1612,12 +1712,7 @@ export default {
     },
 
     resetAnalyticsFilters() {
-      this.analyticsFilters = {
-        typeIds: [],
-        priorityIds: [],
-        executorIds: [],
-        tagIds: []
-      }
+      this.analyticsFilters = this.getDefaultAnalyticsFilters()
       this.scheduleAnalyticsLoad()
     },
 
@@ -1762,10 +1857,9 @@ export default {
     scheduleAnalyticsLoad(delay = 350) {
       this.clearAnalyticsLoadTimer()
       this.cancelAnalyticsRequest(true)
-
+      this.saveAnalyticsSettingsToLocalStorage()
       const requestId = ++this.analyticsRequestSeq
       this.loading = true
-
       this.analyticsLoadTimer = setTimeout(() => {
         this.analyticsLoadTimer = null
         this.loadAnalytics(requestId)
@@ -1775,42 +1869,35 @@ export default {
     loadAnalytics(requestId = null) {
       this.clearAnalyticsLoadTimer()
       this.cancelAnalyticsRequest(true)
-
       const currentRequestId = requestId || ++this.analyticsRequestSeq
-
       if (!this.fromDate || !this.toDate) {
         if (currentRequestId === this.analyticsRequestSeq) {
           this.loading = false
         }
         return
       }
-
+      this.saveAnalyticsSettingsToLocalStorage()
       const requestConfig = {
         params: this.buildAnalyticsParams()
       }
-
       let controller = null
       if (typeof AbortController !== 'undefined') {
         controller = new AbortController()
         this.analyticsAbortController = controller
         requestConfig.signal = controller.signal
       }
-
       this.loading = true
-
       api.get('/api/v1/analytics/summary', requestConfig)
         .then(({data}) => {
           if (currentRequestId !== this.analyticsRequestSeq) {
             return
           }
-
           this.analyticsSummary = data || {}
         })
         .catch(error => {
           if (currentRequestId !== this.analyticsRequestSeq || this.isAnalyticsRequestCanceled(error)) {
             return
           }
-
           console.error(error)
           this.analyticsSummary = {}
           this.$q.notify({
@@ -1822,11 +1909,9 @@ export default {
           if (currentRequestId !== this.analyticsRequestSeq) {
             return
           }
-
           if (this.analyticsAbortController === controller) {
             this.analyticsAbortController = null
           }
-
           this.loading = false
         })
     },

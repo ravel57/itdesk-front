@@ -12,6 +12,7 @@
     "build": "quasar build"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
     "@quasar/extras": "^1.16.4",
     "@quasar/icongenie": "^4.0.0",
     "@stomp/stompjs": "^7.0.0",

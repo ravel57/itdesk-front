@@ -58,6 +58,10 @@ const routes = [
         component: () => import('pages/SearchPage.vue')
       },
       {
+        path: 'knowledge-base',
+        component: () => import('pages/KnowledgeBasePage.vue')
+      },
+      {
         path: 'settings',
         component: () => import('pages/settings/SettingsPage.vue'),
         children: [
@@ -76,10 +80,6 @@ const routes = [
           {
             path: 'organizations',
             component: () => import('pages/settings/OrganizationsPage.vue')
-          },
-          {
-            path: 'knowledgeBase',
-            component: () => import('pages/settings/KnowledgeBasePage.vue')
           },
           {
             path: 'tags',

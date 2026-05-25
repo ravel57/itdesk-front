@@ -12,7 +12,7 @@
         @update:model-value="sendSearchRequest"
       >
         <template #prepend>
-          <q-icon name="search" />
+          <q-icon name="search"/>
         </template>
       </q-input>
 
@@ -56,7 +56,7 @@
             @click="openResult(result)"
           >
             <q-item-section avatar>
-              <q-icon :name="getResultIcon(result.entityType)" />
+              <q-icon :name="getResultIcon(result.entityType)"/>
             </q-item-section>
 
             <q-item-section>
@@ -87,13 +87,13 @@
             </q-item-section>
 
             <q-item-section side>
-              <q-icon name="chevron_right" />
+              <q-icon name="chevron_right"/>
             </q-item-section>
           </q-item>
         </q-list>
 
         <q-inner-loading :showing="loading">
-          <q-spinner size="32px" />
+          <q-spinner size="32px"/>
         </q-inner-loading>
       </div>
     </div>
@@ -101,9 +101,11 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
-import { useRoute } from 'vue-router'
+import {useStore} from 'stores/store'
+import {useRoute} from 'vue-router'
 import axios from 'axios'
+
+const GLOBAL_SEARCH_SETTINGS_STORAGE_KEY = 'uldesk.global-search.settings'
 
 export default {
   name: 'SearchPage',
@@ -112,20 +114,80 @@ export default {
     searchRequest: '',
     selectedCategories: [],
     categoryOptions: [
-      { label: 'Операторы', value: 'USER' },
-      { label: 'Клиенты', value: 'CLIENT' },
-      { label: 'Заявки', value: 'TASK' },
-      { label: 'Сообщения клиентов', value: 'CLIENT_MESSAGE' },
-      { label: 'Сообщения заявок', value: 'TASK_MESSAGE' }
+      {label: 'Операторы', value: 'USER'},
+      {label: 'Клиенты', value: 'CLIENT'},
+      {label: 'Заявки', value: 'TASK'},
+      {label: 'База знаний', value: 'KNOWLEDGE'},
+      {label: 'Сообщения клиентов', value: 'CLIENT_MESSAGE'},
+      {label: 'Сообщения заявок', value: 'TASK_MESSAGE'}
     ],
     results: [],
     loading: false
   }),
 
   methods: {
-    sendSearchRequest () {
-      const query = (this.searchRequest || '').trim()
+    getAllowedGlobalSearchCategories() {
+      return this.categoryOptions.map(category => category.value)
+    },
 
+    normalizeGlobalSearchCategories(value) {
+      if (!Array.isArray(value)) {
+        return []
+      }
+
+      const allowedCategories = this.getAllowedGlobalSearchCategories()
+
+      return value
+        .filter(category => allowedCategories.includes(category))
+    },
+
+    buildGlobalSearchSettingsForStorage() {
+      return {
+        searchRequest: this.searchRequest || '',
+        selectedCategories: this.normalizeGlobalSearchCategories(this.selectedCategories)
+      }
+    },
+
+    saveGlobalSearchSettingsToLocalStorage() {
+      try {
+        localStorage.setItem(
+          GLOBAL_SEARCH_SETTINGS_STORAGE_KEY,
+          JSON.stringify(this.buildGlobalSearchSettingsForStorage())
+        )
+      } catch (e) {
+        console.warn('Не удалось сохранить настройки глобального поиска', e)
+      }
+    },
+
+    restoreGlobalSearchSettingsFromLocalStorage() {
+      let settings = null
+
+      try {
+        const rawSettings = localStorage.getItem(GLOBAL_SEARCH_SETTINGS_STORAGE_KEY)
+
+        if (!rawSettings) {
+          return false
+        }
+
+        settings = JSON.parse(rawSettings)
+      } catch (e) {
+        console.warn('Не удалось прочитать настройки глобального поиска', e)
+        return false
+      }
+
+      if (!settings || typeof settings !== 'object') {
+        return false
+      }
+
+      this.searchRequest = String(settings.searchRequest || '')
+      this.selectedCategories = this.normalizeGlobalSearchCategories(settings.selectedCategories)
+
+      return true
+    },
+
+    sendSearchRequest() {
+      this.saveGlobalSearchSettingsToLocalStorage()
+      const query = (this.searchRequest || '').trim()
       if (query.length < 2) {
         this.results = []
         return
@@ -161,6 +223,15 @@ export default {
       if (!result) {
         return
       }
+      if (result.entityType === 'KNOWLEDGE') {
+        this.$router.push({
+          path: '/knowledge-base',
+          query: {
+            knowledgeId: result.entityId
+          }
+        })
+        return
+      }
       if (result.clientId) {
         const query = {}
         if (result.taskId) {
@@ -189,12 +260,14 @@ export default {
       }
     },
 
-    getEntityTypeLabel (entityType) {
+    getEntityTypeLabel(entityType) {
       switch (entityType) {
         case 'CLIENT':
           return 'Клиент'
         case 'TASK':
           return 'Заявка'
+        case 'KNOWLEDGE':
+          return 'База знаний'
         case 'CLIENT_MESSAGE':
           return 'Сообщение клиента'
         case 'TASK_MESSAGE':
@@ -206,7 +279,7 @@ export default {
       }
     },
 
-    getResultIcon (entityType) {
+    getResultIcon(entityType) {
       switch (entityType) {
         case 'CLIENT':
           return 'person'
@@ -218,6 +291,8 @@ export default {
           return 'chat'
         case 'USER':
           return 'support_agent'
+        case 'KNOWLEDGE':
+          return 'menu_book'
         default:
           return 'search'
       }
@@ -225,20 +300,23 @@ export default {
   },
 
   computed: {
-    isMobile () {
+    isMobile() {
       return this.$q.screen.width < 1023
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
     const route = useRoute()
-    return { store, route }
+    return {store, route}
   },
-
 
   mounted() {
     document.title = 'ULDESK : Поиск'
+    this.restoreGlobalSearchSettingsFromLocalStorage()
+    if ((this.searchRequest || '').trim().length >= 2) {
+      this.sendSearchRequest()
+    }
   }
 }
 </script>
