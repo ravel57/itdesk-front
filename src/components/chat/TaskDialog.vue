@@ -119,13 +119,24 @@
                   id="task-type"
                   data-tour="task-dialog-type"
                   v-model="this.dialogTaskType"
-                  :options="this.taskTypes.map(t => t.type)"
+                  :options="this.filteredTaskTypes"
                   label="Тип *"
+                  use-input
+                  input-debounce="0"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+                  @filter="filterTaskTypes"
                   @update:model-value="this.onTaskTypeChanged"
-                />
+                >
+                  <template v-slot:no-option>
+                    <q-item>
+                      <q-item-section class="text-grey">
+                        Типы заявок не найдены
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
                 <div
-                  v-if="this.selectedTaskTypeChecklist.length > 0"
+                  v-if="this.selectedTaskTypeChecklist.length > 0 && !this.isNewTask"
                   class="task-type-checklist-hint"
                 >
                   <div>
@@ -245,7 +256,8 @@
                   data-tour="task-dialog-executor"
                   v-model="this.dialogTaskExecutor"
                   :options="this.filteredUsers"
-                  label="Исполнитель"
+                  :label="this.isClosingDialogTask() ? 'Исполнитель *' : 'Исполнитель'"
+                  :rules="[val => !this.isClosingDialogTask() || (val && val.length > 0) || 'Исполнитель обязателен при закрытии']"
                   use-input
                   @filter="filterUsers"
                 />
@@ -333,7 +345,7 @@
               <q-tab-panel name="messages" class="q-pa-none task-messages-panel" data-tour="task-dialog-messages-panel">
                 <chat-dialog
                   :is-mobile="this.isMobile"
-                  :messages="this.task.messages"
+                  :messages="this.normalizedTaskMessages"
                   :input-field="this.inputField"
                   :templates="this.store.templates"
                   :isSending="this.isSending"
@@ -521,7 +533,7 @@
         <q-btn
           color="white"
           text-color="primary"
-          label="Закрыть"
+          label="Отмена"
           @click="this.openSubmitModal"
         />
         <q-btn
@@ -593,7 +605,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Закрыть" color="primary" v-close-popup/>
+          <q-btn flat label="Отмена" color="primary" v-close-popup/>
           <div id="freeze-save-btn">
             <q-btn @click="changeTaskFrozen" label="Заморозить" color="primary"/>
           </div>
@@ -871,6 +883,7 @@ export default {
 
     filteredUsers: [],
     filteredTags: [],
+    filteredTaskTypes: [],
 
     taskTypes: [],
     typeChecklistApplyDialog: false,
@@ -881,6 +894,7 @@ export default {
     newChecklistItemText: '',
 
     taskMessageUnsubscribe: null,
+    localTaskMessages: [],
 
     taskDialogOnboardingKey: 'task-dialog-onboarding-v1',
     taskDialogOnboardingActive: false,
@@ -1606,7 +1620,9 @@ export default {
         task.frozenUntil = null
         task.previousStatus = null
       }
-
+      if (!this.validateExecutorRequiredForClosingTask(task.executor, newStatusName, task.completed)) {
+        return
+      }
       const statusChangeReason = await this.requestStatusChangeReasonIfNeeded(oldStatusName, newStatusName)
       if (statusChangeReason === null) {
         return
@@ -1620,9 +1636,24 @@ export default {
         }
         this.taskOnCreateProcess = true
         axios.post(`/api/v1/client/${this.client.id}/task`, task)
-          .then(task => {
+          .then(response => {
+            this.$emit('updateTask', task, response.data)
             this.closeDialog()
-            this.$emit('newTask', task)
+          })
+          .catch(e => {
+            this.$q.notify({
+              message: e.message,
+              type: 'negative',
+              position: 'top-right',
+              actions: [{
+                icon: 'close',
+                color: 'white',
+                dense: true,
+                handler: () => undefined
+              }]
+            })
+          })
+          .finally(() => {
             this.taskOnCreateProcess = false
           })
           .catch(e =>
@@ -1668,6 +1699,9 @@ export default {
       const closedStatus = this.store.statuses.find(status => this.isClosedStatusName(status.name))
       const oldStatusName = this.getStatusName(sourceTask.status)
       const newStatusName = this.getStatusName(closedStatus) || 'Закрыта'
+      if (!this.validateExecutorRequiredForClosingTask(sourceTask.executor, newStatusName, true)) {
+        return
+      }
       const statusChangeReason = await this.requestStatusChangeReasonIfNeeded(oldStatusName, newStatusName)
       if (statusChangeReason === null) {
         return
@@ -2082,6 +2116,19 @@ export default {
       })
     },
 
+    filterTaskTypes (val, update) {
+      update(() => {
+        const needle = (val || '').toLowerCase().trim()
+        const taskTypes = this.taskTypes
+          .map(taskType => taskType.type)
+          .filter(Boolean)
+
+        this.filteredTaskTypes = needle
+          ? taskTypes.filter(type => type.toLowerCase().includes(needle))
+          : taskTypes
+      })
+    },
+
     formatDateTime () {
       const rawValue = this.dialogTaskDeadline.replace(/\D/g, '')
       let formattedValue = ''
@@ -2158,8 +2205,8 @@ export default {
         return changes
       }
 
-      const frozenUntil = this.getTaskHistoryPayloadValue(item, ['task', 'frozenUntil'])
-        || this.getTaskHistoryPayloadValue(item, ['frozenUntil'])
+      const frozenUntil = this.getTaskHistoryPayloadValue(item, ['task', 'frozenUntil']) ||
+        this.getTaskHistoryPayloadValue(item, ['frozenUntil'])
 
       if (!frozenUntil) {
         return changes
@@ -2341,6 +2388,9 @@ export default {
       return axios.get('/api/v1/task-types')
         .then(response => {
           this.taskTypes = response.data || []
+          this.filteredTaskTypes = this.taskTypes
+            .map(taskType => taskType.type)
+            .filter(Boolean)
           if (!this.dialogTaskType && this.taskTypes.length > 0) {
             this.dialogTaskType = this.getDefaultTaskType()?.type || ''
           }
@@ -2445,12 +2495,27 @@ export default {
       if (Number(payload.taskId) !== Number(this.task.id)) {
         return
       }
-      if (!this.task.messages) {
-        this.task.messages = []
+      const normalizedMessage = this.normalizeTaskMessage(payload.message)
+      if (!normalizedMessage?.id) {
+        return
       }
-      const exists = this.task.messages.some(message => Number(message.id) === Number(payload.message.id))
-      if (!exists) {
-        this.task.messages.push(payload.message)
+      const messageIndex = this.localTaskMessages.findIndex(message => {
+        return Number(message.id) === Number(normalizedMessage.id)
+      })
+      if (messageIndex === -1) {
+        this.localTaskMessages = [
+          ...this.localTaskMessages,
+          normalizedMessage
+        ]
+      } else {
+        this.localTaskMessages = this.localTaskMessages.map((message, index) => {
+          return index === messageIndex
+            ? {
+                ...message,
+                ...normalizedMessage
+              }
+            : message
+        })
       }
       if (payload.message?.fileUuid) {
         this.loadTaskFiles()
@@ -2471,15 +2536,15 @@ export default {
         text: event.text
       })
         .then(response => {
-          const updatedMessage = response.data
-          updatedMessage.date = new Date(updatedMessage.date)
-          if (updatedMessage.editedAt) {
-            updatedMessage.editedAt = new Date(updatedMessage.editedAt)
-          }
-          const localMessage = this.task.messages.find(m => Number(m.id) === Number(updatedMessage.id))
-          if (localMessage) {
-            Object.assign(localMessage, updatedMessage)
-          }
+          const updatedMessage = this.normalizeTaskMessage(response.data)
+          this.localTaskMessages = this.localTaskMessages.map(message => {
+            return Number(message.id) === Number(updatedMessage.id)
+              ? {
+                  ...message,
+                  ...updatedMessage
+                }
+              : message
+          })
           this.inputField = ''
         })
         .catch(e =>
@@ -2518,6 +2583,100 @@ export default {
         .catch(() => {
           this.taskFiles = []
         })
+    },
+
+    isClosingDialogTask () {
+      return Boolean(this.dialogTaskComplete) || this.isClosedStatusName(this.dialogTaskStatus)
+    },
+
+    hasTaskExecutor (executor) {
+      return !!executor && !!executor.id
+    },
+
+    notifyExecutorRequiredForClosingTask () {
+      this.$q.notify({
+        message: 'Перед закрытием заявки укажите исполнителя',
+        type: 'negative',
+        position: 'top-right',
+        actions: [{
+          icon: 'close',
+          color: 'white',
+          dense: true,
+          handler: () => undefined
+        }]
+      })
+    },
+
+    validateExecutorRequiredForClosingTask (executor, statusName, completed) {
+      const closing = Boolean(completed) || this.isClosedStatusName(statusName)
+      if (!closing) {
+        return true
+      }
+      if (this.hasTaskExecutor(executor)) {
+        return true
+      }
+      this.notifyExecutorRequiredForClosingTask()
+      return false
+    },
+
+    normalizeTaskMessages (messages) {
+      if (!Array.isArray(messages)) {
+        return []
+      }
+      return messages.map(message => this.normalizeTaskMessage(message))
+    },
+
+    normalizeTaskMessage (message) {
+      if (!message) {
+        return message
+      }
+      return {
+        ...message,
+        date: this.normalizeMessageDateValue(message.date),
+        editedAt: this.normalizeMessageDateValue(message.editedAt)
+      }
+    },
+
+    normalizeMessageDateValue (value) {
+      if (!value) {
+        return value
+      }
+      if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value
+      }
+      if (typeof value === 'number') {
+        // Если backend отдал Unix timestamp в секундах.
+        const millis = value < 100000000000 ? value * 1000 : value
+        const date = new Date(millis)
+        return Number.isNaN(date.getTime()) ? null : date
+      }
+      if (Array.isArray(value)) {
+        const [
+          year,
+          month,
+          day,
+          hour = 0,
+          minute = 0,
+          second = 0,
+          nano = 0
+        ] = value
+        const date = new Date(
+          Number(year),
+          Number(month) - 1,
+          Number(day),
+          Number(hour),
+          Number(minute),
+          Number(second),
+          Math.floor(Number(nano) / 1000000)
+        )
+        return Number.isNaN(date.getTime()) ? null : date
+      }
+      const date = new Date(value)
+      return Number.isNaN(date.getTime()) ? null : date
+    },
+
+    syncLocalTaskMessages() {
+      this.localTaskMessages = this.normalizeTaskMessages(this.task?.messages)
     },
   },
 
@@ -2645,12 +2804,17 @@ export default {
     selectedTaskTypeChecklist () {
       return this.normalizeChecklist(this.selectedTaskType?.checklistTemplate)
     },
+
+    normalizedTaskMessages () {
+      return this.localTaskMessages
+    },
   },
 
   watch: {
     getPossibilityToOpenDialogTask (value) {
       if (value) {
         this.getTaskField()
+        this.syncLocalTaskMessages()
         if (!this.isNewTask) {
           this.loadTaskFiles()
         }
@@ -2709,19 +2873,28 @@ export default {
     'task.id' () {
       this.taskHistory = []
       this.taskFiles = []
+      this.syncLocalTaskMessages()
       if (!this.isNewTask) {
         this.loadTaskFiles()
       }
       if (this.taskRightTab === 'history') {
         this.loadTaskHistory()
       }
-    }
+    },
+
+    'task.messages': {
+      deep: true,
+      handler () {
+        this.syncLocalTaskMessages()
+      }
+    },
   },
 
   mounted () {
     this.loadTaskTypes()
       .finally(() => {
         this.getTaskField()
+        this.syncLocalTaskMessages()
         if (!this.isNewTask) {
           this.loadTaskFiles()
         }

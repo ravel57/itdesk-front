@@ -246,10 +246,10 @@ export default {
   background-color: white;
   padding: 8px;
   width: 240px;
-  height: 296px;
-  border-radius: 4px;
   min-width: 240px;
   min-height: 296px;
+  height: auto;
+  border-radius: 4px;
 }
 
 .login-logo {
@@ -306,8 +306,8 @@ export default {
 }
 
 .input-field {
-  margin-top: 16px;
-  padding-bottom: 0;
+  margin-top: 12px;
+  margin-bottom: 4px;
 }
 
 .input-field-no-padding {
@@ -320,7 +320,8 @@ export default {
 
 .forgot-password-link {
   color: var(--q-primary);
-  margin-bottom: 15px;
+  margin-top: 2px;
+  margin-bottom: 14px;
   cursor: pointer;
   z-index: 1;
 }
@@ -392,4 +393,12 @@ export default {
   margin-top: 16px;
 }
 
+.input-field :deep(.q-field__bottom) {
+  min-height: 20px;
+  padding-top: 4px;
+}
+
+.login-form .q-btn[type="submit"] {
+  margin-top: 8px;
+}
 </style>

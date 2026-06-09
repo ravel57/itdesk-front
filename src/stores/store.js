@@ -71,6 +71,14 @@ export const useStore = defineStore('store', {
       isEnd: false
     },
     checkedTasks: [],
+    taskPage: {
+      tasks: [],
+      page: 0,
+      size: 10,
+      totalElements: 0,
+      totalPages: 0,
+      isEnd: false
+    },
     supportMessages: [],
     analyticsSummary: {
       from: null,
@@ -121,35 +129,204 @@ export const useStore = defineStore('store', {
   }),
 
   getters: {
-    getTasks: state => state.clients.map(client => {
-      client.tasks.forEach(task => { task.client = client })
-      return client.tasks
-    }).flat()
+    getTasks: state => state.taskPage.tasks,
+    getTaskPageTasks: state => state.taskPage.tasks
   },
 
   actions: {
+    normalizeClientForList (client) {
+      if (!client) {
+        return client
+      }
+
+      const normalizedClient = { ...client }
+
+      delete normalizedClient.tasks
+
+      if (normalizedClient.lastMessage && normalizedClient.lastMessage.date) {
+        normalizedClient.lastMessage = {
+          ...normalizedClient.lastMessage,
+          date: new Date(normalizedClient.lastMessage.date)
+        }
+      }
+
+      if (normalizedClient.firstUnansweredMessageDate) {
+        normalizedClient.firstUnansweredMessageDate = new Date(normalizedClient.firstUnansweredMessageDate)
+      }
+
+      if (!Array.isArray(normalizedClient.typingUsers)) {
+        normalizedClient.typingUsers = []
+      }
+
+      if (!Array.isArray(normalizedClient.watchingUsers)) {
+        normalizedClient.watchingUsers = []
+      }
+
+      if (!normalizedClient.unreadPingMessages) {
+        normalizedClient.unreadPingMessages = {}
+      }
+
+      return normalizedClient
+    },
+
+    normalizeTaskPageTask (task) {
+      if (!task) {
+        return task
+      }
+      const normalizedTask = { ...task }
+      if (normalizedTask.createdAt) {
+        normalizedTask.createdAt = new Date(normalizedTask.createdAt)
+      }
+      if (normalizedTask.deadline) {
+        normalizedTask.deadline = new Date(normalizedTask.deadline)
+      }
+      if (normalizedTask.frozenFrom) {
+        normalizedTask.frozenFrom = new Date(normalizedTask.frozenFrom)
+      }
+      if (normalizedTask.frozenUntil) {
+        normalizedTask.frozenUntil = new Date(normalizedTask.frozenUntil)
+      }
+      if (normalizedTask.closedAt) {
+        normalizedTask.closedAt = new Date(normalizedTask.closedAt)
+      }
+      if (normalizedTask.lastActivity) {
+        normalizedTask.lastActivity = new Date(normalizedTask.lastActivity)
+      }
+      if (normalizedTask.sla) {
+        normalizedTask.sla = { ...normalizedTask.sla }
+        if (normalizedTask.sla.startDate) {
+          normalizedTask.sla.startDate = moment(new Date(normalizedTask.sla.startDate), 'DD.MM.YYYY HH:mm')
+        }
+        if (normalizedTask.sla.duration !== undefined && normalizedTask.sla.duration !== null) {
+          normalizedTask.sla.duration = moment.duration(normalizedTask.sla.duration * 1000)
+        }
+      }
+      if (!Array.isArray(normalizedTask.messages)) {
+        normalizedTask.messages = []
+      }
+      normalizedTask.messages = this.sortMessagesByDateAndId(
+        normalizedTask.messages.map(message => ({
+          ...message,
+          date: message.date ? new Date(message.date) : message.date,
+          editedAt: message.editedAt ? new Date(message.editedAt) : message.editedAt
+        }))
+      )
+      return normalizedTask
+    },
+
+    mergeTaskPageTasks (currentTasks = [], newTasks = []) {
+      const taskById = new Map()
+      currentTasks.forEach(task => {
+        if (task?.id !== undefined && task?.id !== null) {
+          taskById.set(task.id, task)
+        }
+      })
+      newTasks.forEach(task => {
+        if (task?.id !== undefined && task?.id !== null) {
+          taskById.set(task.id, task)
+        }
+      })
+      return Array.from(taskById.values())
+    },
+
+    updateLoadedTaskPageTaskFromSocket (task) {
+      if (!task?.id || !Array.isArray(this.taskPage?.tasks)) {
+        return false
+      }
+
+      const index = this.taskPage.tasks.findIndex(item => {
+        return Number(item?.id) === Number(task.id)
+      })
+
+      if (index === -1) {
+        return false
+      }
+
+      const existingTask = this.taskPage.tasks[index]
+      const normalizedTask = this.normalizeTaskPageTask({
+        ...task,
+        client: task.client?.id ? task.client : existingTask.client
+      })
+
+      this.taskPage.tasks.splice(index, 1, {
+        ...existingTask,
+        ...normalizedTask
+      })
+
+      return true
+    },
+
+    resetTaskPage () {
+      this.taskPage = {
+        tasks: [],
+        page: 0,
+        size: this.taskPage?.size || 10,
+        totalElements: 0,
+        totalPages: 0,
+        isEnd: false
+      }
+    },
+
+    fetchTasksPage (params = {}, append = false) {
+      const request = {
+        ...params,
+        size: params.size || this.taskPage.size || 10
+      }
+
+      console.log('[tasks-page request]', request, 'append:', append)
+
+      return axios.post('/api/v1/tasks-page', request)
+        .then(response => {
+          console.log(
+            '[tasks-page response]',
+            'page:', response.data?.page,
+            'size:', response.data?.size,
+            'tasks:', response.data?.tasks?.length,
+            'total:', response.data?.totalElements,
+            'isEnd:', response.data?.isEnd
+          )
+
+          const tasks = Array.isArray(response.data?.tasks)
+            ? response.data.tasks.map(task => this.normalizeTaskPageTask(task))
+            : []
+
+          const mergedTasks = append
+            ? this.mergeTaskPageTasks(this.taskPage.tasks, tasks)
+            : tasks
+
+          this.taskPage = {
+            tasks: mergedTasks,
+            page: response.data?.page ?? request.page ?? 1,
+            size: response.data?.size ?? request.size ?? this.taskPage.size,
+            totalElements: response.data?.totalElements ?? tasks.length,
+            totalPages: response.data?.totalPages ?? 0,
+            isEnd: response.data?.isEnd ?? tasks.length === 0
+          }
+          console.log(
+            '[tasks-page state]',
+            this.taskPage.tasks.length,
+            'из',
+            this.taskPage.totalElements
+          )
+
+          return {
+            ...this.taskPage,
+            loadedTasks: tasks,
+            responsePage: response.data?.page ?? request.page ?? 1,
+            responseSize: response.data?.size ?? request.size ?? this.taskPage.size,
+            responseTotalElements: response.data?.totalElements ?? tasks.length,
+            responseTotalPages: response.data?.totalPages ?? 0,
+            responseIsEnd: response.data?.isEnd ?? tasks.length === 0
+          }
+        })
+    },
+
     fetchData () {
       axios.get('/api/v1/clients')
         .then(response => {
-          this.clients = response.data
-          this.clients.forEach(client => {
-            // client.messages.forEach(message => {
-            //   message.date = new Date(message.date)
-            // })
-            client.tasks.forEach(task => {
-              task.createdAt = new Date(task.createdAt)
-              if (task.deadline) {
-                task.deadline = new Date(task.deadline)
-              }
-              if (task.sla) {
-                task.sla.startDate = moment(new Date(task.sla.startDate), 'DD.MM.YYYY HH:mm')
-                task.sla.duration = moment.duration(task.sla.duration * 1000)
-              }
-              task.messages.forEach(message => {
-                message.date = new Date(message.date)
-              })
-            })
-          })
+          this.clients = Array.isArray(response.data)
+            ? response.data.map(client => this.normalizeClientForList(client))
+            : []
         })
 
       axios.get('/api/v1/tags')
@@ -375,6 +552,7 @@ export const useStore = defineStore('store', {
       this.currentSessionId = null
       this.clients = []
       this.currentClient = null
+      this.resetTaskPage()
       localStorage.removeItem('currentSessionId')
       window.location.replace('/login')
     },
@@ -406,6 +584,27 @@ export const useStore = defineStore('store', {
           this.generalSettings = response.data
           return response.data
         })
+    },
+
+    getMessageSortTime (message) {
+      const rawDate = message?.date
+      const time = rawDate instanceof Date
+        ? rawDate.getTime()
+        : new Date(rawDate || 0).getTime()
+      return Number.isFinite(time) ? time : 0
+    },
+
+    sortMessagesByDateAndId (messages) {
+      if (!Array.isArray(messages)) {
+        return []
+      }
+      return [...messages].sort((a, b) => {
+        const dateDiff = this.getMessageSortTime(a) - this.getMessageSortTime(b)
+        if (dateDiff !== 0) {
+          return dateDiff
+        }
+        return Number(a?.id || 0) - Number(b?.id || 0)
+      })
     },
   }
 })

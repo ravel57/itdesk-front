@@ -101,7 +101,7 @@
       >
         <div class="q-pa-md row justify-center q-gutter-md">
           <div
-            v-for="message in this.messages"
+            v-for="message in sortedMessages"
             :key="message.id"
             class="chat-message-row"
             style="position: relative;width: 100%; margin-top: 0"
@@ -471,22 +471,14 @@
         :style="'background-color: ' +  (this.isComment ? '#d1c4e9;' : '') + 'border-top: ' + (this.replyMessageId ? '' : '1px solid #0000001f;')"
       >
         <q-btn
-          v-if="this.scrollToBottomKey"
-          class="shadow-1"
+          v-if="this.scrollToBottomKey || this.pendingNewMessagesCount > 0 || this.hasTrimmedNewerMessages"
+          class="shadow-1 chat-go-latest-btn"
           icon="keyboard_double_arrow_down"
+          no-caps
+          dense
+          :label="this.getGoToLatestButtonLabel()"
           :style="this.replyMessageId !== null ? 'bottom: 210%;' : 'bottom: 100%;'"
-          style="
-            width: 36px;
-            height: 36px;
-            position: absolute;
-            z-index: 1;
-            right: 5px;
-            opacity: 0.5;
-            background-color: white;
-            border-radius: 4px;
-            margin-bottom: 5px;
-          "
-          @click="this.smoothScrollToBottom"
+          @click="this.handleGoToLatestClick"
         />
         <div
           v-if="this.attachedFiles.length > 0 ||
@@ -742,22 +734,43 @@
         />
       </q-toolbar>
       <q-card-section>
+        <div class="file-list-toolbar">
+          <div class="text-caption text-grey-7">
+            Файлов: {{ sortedFileList.length }}
+          </div>
+          <q-btn
+            dense
+            flat
+            no-caps
+            icon="sort"
+            :label="fileSortDirection === 'desc' ? 'Сначала новые' : 'Сначала старые'"
+            @click="toggleFileSortDirection"
+          />
+        </div>
         <div style="margin-bottom: 8px;">
           <div
             style="margin-bottom: 16px"
-            v-for="(file, index) in this.fileList"
-            :key="index"
+            v-for="(file, index) in sortedFileList"
+            :key="file.uuid || index"
           >
             <a
-              style="display: flex; align-items: center; padding: 4px; border: solid 1px rgba(108, 108, 108, 0.2); border-radius: 4px; text-decoration: none;"
+              class="file-list-item"
               :href="getFileUrl(file)"
               target="_blank"
             >
-              <div
-                style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
+              <div class="file-list-ext">
                 {{ getFileExt(file) }}
               </div>
-              <div class="truncate">{{ getFileTitle(file) }}</div>
+              <div class="file-list-info">
+                <div class="truncate">{{ getFileTitle(file) }}</div>
+                <div
+                  v-if="getFileDateText(file)"
+                  class="file-list-date"
+                >
+                  {{ getFileDateText(file) }}
+                </div>
+              </div>
+
               <q-space/>
             </a>
           </div>
@@ -802,6 +815,14 @@ export default {
     },
     client: { type: Object },
     isEnd: { type: Boolean },
+    pendingNewMessagesCount: {
+      type: Number,
+      default: 0
+    },
+    hasTrimmedNewerMessages: {
+      type: Boolean,
+      default: false
+    },
     comments: {
       default: true,
       type: Boolean
@@ -817,7 +838,7 @@ export default {
   },
 
   data: () => ({
-    textareaHeight: 'auto',
+    textareaHeight: 46,
     isComment: false,
     text: '',
     isShowCustomContextMenu: true,
@@ -846,19 +867,17 @@ export default {
     mentionTargetEl: null,
     isShowFileList: false,
     fileList: [],
+    fileSortDirection: 'desc',
     editingMessage: null,
 
     lastKnownLastMessageId: null,
     lastKnownMessagesLength: 0,
     isWheelScrollingMessages: false,
     wheelScrollingTimer: null,
+    highlightMessageTimers: {},
+    portionMessagesTimer: null,
+    markReadEmitTimer: null,
   }),
-
-  updated () {
-    setTimeout(() => {
-      this.$emit('updated')
-    }, 150)
-  },
 
   mounted () {
     try {
@@ -869,6 +888,10 @@ export default {
         this.scrollToBottom()
       }
       this.$refs.textInput.focus()
+      this.$nextTick(() => {
+        this.autoResize()
+        this.scheduleMessagesUpdatedEmit()
+      })
     } catch (ignoredError) {
     }
   },
@@ -979,12 +1002,18 @@ export default {
       }
       this.$nextTick(() => {
         const textarea = this.$refs.textInput
-        textarea.style.height = '46px'
+        if (textarea) {
+          textarea.style.height = '46px'
+          textarea.style.overflowY = 'hidden'
+        }
+        this.textareaHeight = 46
         let chat = document.getElementById('chat-dialog')
         if (this.isDialog) {
           chat = document.getElementById('chat-dialog-pop-up')
         }
-        chat.style.height = this.chatStyle.height
+        if (chat) {
+          chat.style.height = this.chatStyle.height
+        }
       })
       this.scrollToBottom(500)
     },
@@ -1097,18 +1126,36 @@ export default {
       if (!root) {
         return false
       }
-      const messageBubble = root.querySelector('.q-message-text') || root
+      const messageBubble =
+        root.querySelector('.q-message-text-content') ||
+        root.querySelector('.q-message-text') ||
+        root
       messageBubble.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       })
-      const currentColor = messageBubble.style.backgroundColor
-      messageBubble.style.backgroundColor = 'lightcoral'
-      setTimeout(() => {
-        messageBubble.style.backgroundColor = currentColor
+      this.highlightMessageElement(messageBubble, id)
+      return true
+    },
+
+    highlightMessageElement (element, id) {
+      if (!element) {
+        return
+      }
+      const key = String(id)
+      if (this.highlightMessageTimers[key]) {
+        clearTimeout(this.highlightMessageTimers[key])
+        delete this.highlightMessageTimers[key]
+      }
+      element.classList.remove('chat-message--highlighted')
+      void element.offsetWidth
+      element.classList.add('chat-message--highlighted')
+      this.highlightMessageTimers[key] = setTimeout(() => {
+        element.classList.remove('chat-message--highlighted')
+        element.style.removeProperty('background-color')
+        delete this.highlightMessageTimers[key]
         this.$emit('clearLinkedMessageId')
       }, 2500)
-      return true
     },
 
     scrollToMessageAfterSearch (messageId) {
@@ -1255,38 +1302,121 @@ export default {
           replyContainer = this.$refs.replyContainer.offsetHeight
         }
         const textarea = this.$refs.textInput
+        if (!textarea) {
+          return
+        }
+        const maxHeight = this.getTextareaMaxHeight()
         textarea.style.height = 'auto'
-        textarea.style.height = textarea.scrollHeight + 'px'
-        chat.style.height = this.chatStyle.height
-        chat.style.height = textarea.offsetHeight + replyContainer > 46 ? `calc(${this.chatStyle.height} - ${textarea.offsetHeight + (replyContainer !== 0 ? replyContainer + 1 : replyContainer) - 46 + 'px'})` : this.chatStyle.height
-        this.textareaHeight = textarea.style.height
+        textarea.style.overflowY = 'hidden'
+        const nextHeight = Math.max(46, Math.min(textarea.scrollHeight, maxHeight))
+        const isScrollable = textarea.scrollHeight > maxHeight
+        textarea.style.height = `${nextHeight}px`
+        textarea.style.overflowY = isScrollable ? 'auto' : 'hidden'
+        if (chat) {
+          chat.style.height = this.chatStyle.height
+          chat.style.height = nextHeight + replyContainer > 46
+            ? `calc(${this.chatStyle.height} - ${nextHeight + (replyContainer !== 0 ? replyContainer + 1 : replyContainer) - 46}px)`
+            : this.chatStyle.height
+        }
+        this.textareaHeight = nextHeight
       })
     },
 
     getPortionMessages () {
-      let scrollZone = null
-      const chatDialog = document.getElementById('chat-dialog')
-      const chatPopUp = document.getElementById('chat-dialog-pop-up')
-      if (chatDialog) {
-        scrollZone = chatDialog.children[0].children[0]
-      } else {
-        scrollZone = chatPopUp.children[0].children[0]
+      if (this.portionMessagesTimer) {
+        return
       }
+      this.portionMessagesTimer = setTimeout(() => {
+        this.portionMessagesTimer = null
+        this.handlePortionMessages()
+      }, 80)
+    },
 
-      this.scrollToBottomKey = (scrollZone.scrollHeight - scrollZone.clientHeight) - scrollZone.scrollTop >= 600
-
-      if ((scrollZone.scrollTop / (scrollZone.scrollHeight - scrollZone.clientHeight)) * 100 <= 3 && !this.requestPending && !this.isEnd) {
-        this.requestPending = true
-        const previousScrollHeight = scrollZone.scrollHeight
-        const previousScrollTop = scrollZone.scrollTop
-        this.$emit('getMessagePage', 1)
-        setTimeout(() => {
-          this.requestPending = false
-          const newScrollHeight = scrollZone.scrollHeight
-          const addedHeight = newScrollHeight - previousScrollHeight
-          scrollZone.scrollTop = previousScrollTop + addedHeight
-        }, 200)
+    handlePortionMessages () {
+      const scrollZone = this.getScrollZone()
+      if (!scrollZone) {
+        return
       }
+      const distanceToBottom = scrollZone.scrollHeight - scrollZone.clientHeight - scrollZone.scrollTop
+      this.scrollToBottomKey = distanceToBottom >= 600
+      const denominator = scrollZone.scrollHeight - scrollZone.clientHeight
+      if (denominator <= 0 || this.requestPending) {
+        return
+      }
+      const scrollPercent = (scrollZone.scrollTop / denominator) * 100
+      if (distanceToBottom <= 120 && !this.hasTrimmedNewerMessages) {
+        this.scheduleMessagesUpdatedEmit()
+      }
+      if (scrollPercent <= 3) {
+        this.loadOlderMessagesWithAnchor(scrollZone)
+        return
+      }
+      if (distanceToBottom <= 80 && this.hasTrimmedNewerMessages) {
+        this.loadNewerMessagesWithAnchor(scrollZone)
+      }
+    },
+
+    loadOlderMessagesWithAnchor (scrollZone) {
+      if (this.isEnd || this.requestPending) {
+        return
+      }
+      this.requestPending = true
+      const previousScrollHeight = scrollZone.scrollHeight
+      const previousScrollTop = scrollZone.scrollTop
+      this.$emit('getMessagePage', 1)
+      setTimeout(() => {
+        this.requestPending = false
+        const newScrollHeight = scrollZone.scrollHeight
+        const addedHeight = newScrollHeight - previousScrollHeight
+        scrollZone.scrollTop = previousScrollTop + addedHeight
+      }, 260)
+    },
+
+    loadNewerMessagesWithAnchor (scrollZone) {
+      if (this.requestPending) {
+        return
+      }
+      this.requestPending = true
+      const previousScrollTop = scrollZone.scrollTop
+      this.$emit('getNewerMessagePage')
+      setTimeout(() => {
+        this.requestPending = false
+        // Не прыгаем сразу в самый низ.
+        // Оставляем пользователя на старой позиции, чтобы он мог продолжить листать вниз.
+        scrollZone.scrollTop = previousScrollTop
+      }, 260)
+    },
+
+    handleGoToLatestClick () {
+      if (this.pendingNewMessagesCount > 0 || this.hasTrimmedNewerMessages) {
+        this.$emit('goToLatestMessages')
+        return
+      }
+      this.smoothScrollToBottom()
+    },
+
+    getGoToLatestButtonLabel () {
+      if (this.pendingNewMessagesCount > 0) {
+        return this.pendingNewMessagesCount
+      }
+      return ''
+    },
+
+    scheduleMessagesUpdatedEmit () {
+      if (this.markReadEmitTimer) {
+        clearTimeout(this.markReadEmitTimer)
+      }
+      this.markReadEmitTimer = setTimeout(() => {
+        this.markReadEmitTimer = null
+        const scrollZone = this.getScrollZone()
+        if (!this.isNearBottom(scrollZone, 220)) {
+          return
+        }
+        if (this.hasTrimmedNewerMessages) {
+          return
+        }
+        this.$emit('updated')
+      }, 250)
     },
 
     getSearchTitle (message) {
@@ -1461,7 +1591,6 @@ export default {
         if (event.key === 'Escape') {
           event.preventDefault()
           this.mentionMenu = false
-          return
         }
       }
     },
@@ -1469,14 +1598,12 @@ export default {
     showFiles () {
       this.isShowFileList = true
       if (this.isDialog) {
-        this.fileList = Array.isArray(this.clientFiles)
-          ? [...this.clientFiles]
-          : []
+        this.fileList = this.normalizeFileList(this.clientFiles)
         return
       }
       axios.get(`/api/v1/client-files/${this.client.id}`)
         .then(response => {
-          this.fileList = Array.isArray(response.data) ? response.data : []
+          this.fileList = this.normalizeFileList(response.data)
         })
         .catch(() => {
           this.fileList = []
@@ -1485,6 +1612,39 @@ export default {
 
     getFileName (file) {
       return file?.name || file?.uuid || 'Файл'
+    },
+
+    normalizeFileList (files) {
+      return Array.isArray(files)
+        ? files.filter(file => file && file.uuid)
+        : []
+    },
+
+    toggleFileSortDirection () {
+      this.fileSortDirection = this.fileSortDirection === 'desc' ? 'asc' : 'desc'
+    },
+
+    getFileDateTime (file) {
+      const value = file?.date || file?.createdAt || file?.messageDate
+      if (!value) {
+        return NaN
+      }
+      const date = new Date(value)
+      return Number.isNaN(date.getTime()) ? NaN : date.getTime()
+    },
+
+    getFileDateText (file) {
+      const time = this.getFileDateTime(file)
+      if (!Number.isFinite(time)) {
+        return ''
+      }
+      return new Date(time).toLocaleString('ru-RU', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     },
 
     getFileExt (file) {
@@ -1504,9 +1664,54 @@ export default {
     },
 
     getFileUrl (file) {
-      const type = file?.type || 'files/other'
-      const category = type.includes('/') ? type.split('/')[0] : 'files'
-      return `/files/${category}s/${file.uuid}`
+      if (!file?.uuid) {
+        return '#'
+      }
+      const category = this.getFileRouteCategory(file)
+      return `/files/${category}/${encodeURIComponent(file.uuid)}`
+    },
+
+    getFileRouteCategory (file) {
+      const type = String(file?.type || '').trim().toLowerCase()
+      const name = String(file?.name || '').trim().toLowerCase()
+      if (type.startsWith('image/')) {
+        return 'images'
+      }
+      if (type.startsWith('video/')) {
+        return 'videos'
+      }
+      if (type.startsWith('audio/')) {
+        return 'audios'
+      }
+      if (type === 'image' || type === 'images') {
+        return 'images'
+      }
+      if (type === 'video' || type === 'videos') {
+        return 'videos'
+      }
+      if (type === 'audio' || type === 'audios') {
+        return 'audios'
+      }
+      if (type === 'document' || type === 'documents') {
+        return 'documents'
+      }
+      if (
+        type.startsWith('application/') ||
+        type.startsWith('text/') ||
+        name.endsWith('.pdf') ||
+        name.endsWith('.doc') ||
+        name.endsWith('.docx') ||
+        name.endsWith('.xls') ||
+        name.endsWith('.xlsx') ||
+        name.endsWith('.txt') ||
+        name.endsWith('.csv') ||
+        name.endsWith('.zip') ||
+        name.endsWith('.rar') ||
+        name.endsWith('.7z')
+      ) {
+        return 'documents'
+      }
+      return 'documents'
     },
 
     isLastMessage (message) {
@@ -1916,6 +2121,31 @@ export default {
         this.isWheelScrollingMessages = false
       }, 180)
     },
+
+    getTextareaMaxHeight () {
+      return this.isDialog ? 300 : 400
+    },
+
+    getMessageSortTime (message) {
+      const rawDate = message?.date
+      const time = rawDate instanceof Date
+        ? rawDate.getTime()
+        : new Date(rawDate || 0).getTime()
+      return Number.isFinite(time) ? time : 0
+    },
+
+    sortMessagesByDateAndId (messages) {
+      if (!Array.isArray(messages)) {
+        return []
+      }
+      return [...messages].sort((a, b) => {
+        const dateDiff = this.getMessageSortTime(a) - this.getMessageSortTime(b)
+        if (dateDiff !== 0) {
+          return dateDiff
+        }
+        return Number(a?.id || 0) - Number(b?.id || 0)
+      })
+    },
   },
 
   computed: {
@@ -1961,14 +2191,16 @@ export default {
     },
 
     textareaStyle () {
+      const maxHeight = this.getTextareaMaxHeight()
       return {
         borderStyle: 'unset',
         margin: '0 8px',
         width: '100%',
-        overflow: 'hidden',
+        overflowX: 'hidden',
+        overflowY: this.textareaHeight >= maxHeight ? 'auto' : 'hidden',
         resize: 'none',
-        height: this.textareaHeight + 'px',
-        'max-height': this.isDialog ? '300px' : '400px',
+        height: `${this.textareaHeight}px`,
+        maxHeight: `${maxHeight}px`,
         transition: 'height 0.2s ease',
         backgroundColor: this.isComment ? '#d1c4e9' : ''
       }
@@ -1997,6 +2229,36 @@ export default {
         : users.filter(u => toSearchString(u).includes(q))
       return filtered.slice(0, 8)
     },
+
+    sortedFileList () {
+      const files = Array.isArray(this.fileList) ? [...this.fileList] : []
+      const direction = this.fileSortDirection === 'asc' ? 'asc' : 'desc'
+      return files.sort((left, right) => {
+        const leftTime = this.getFileDateTime(left)
+        const rightTime = this.getFileDateTime(right)
+        const leftHasDate = Number.isFinite(leftTime)
+        const rightHasDate = Number.isFinite(rightTime)
+        if (!leftHasDate && !rightHasDate) {
+          return this.getFileName(left).localeCompare(this.getFileName(right), 'ru')
+        }
+        if (!leftHasDate) {
+          return 1
+        }
+        if (!rightHasDate) {
+          return -1
+        }
+        if (leftTime === rightTime) {
+          return this.getFileName(left).localeCompare(this.getFileName(right), 'ru')
+        }
+        return direction === 'asc'
+          ? leftTime - rightTime
+          : rightTime - leftTime
+      })
+    },
+
+    sortedMessages () {
+      return this.sortMessagesByDateAndId(this.messages)
+    }
   },
 
   watch: {
@@ -2006,14 +2268,17 @@ export default {
         if (!this.isDialog || !this.isShowFileList) {
           return
         }
-        this.fileList = Array.isArray(value) ? [...value] : []
+        this.fileList = this.normalizeFileList(value)
       }
     },
 
     linkedMessageId () {
-      if (this.linkedMessageId) {
-        this.scrollToElementById(`message_${this.linkedMessageId}`)
+      if (!this.linkedMessageId) {
+        return
       }
+      this.$nextTick(() => {
+        this.goToMessage(this.linkedMessageId)
+      })
     },
 
     search (newVal) {
@@ -2036,7 +2301,8 @@ export default {
             }
             return
           }
-          const messages = Array.isArray(newVal) ? newVal : []
+          const messages = this.sortMessagesByDateAndId(newVal)
+          this.scheduleMessagesUpdatedEmit()
           const lastMessage = messages[messages.length - 1]
           const currentLastMessageId = this.getMessageId(lastMessage)
           const previousLastMessageId = this.lastKnownLastMessageId
@@ -2064,6 +2330,13 @@ export default {
         }
       },
       deep: true
+    },
+
+    inputField: {
+      immediate: true,
+      handler () {
+        this.autoResize()
+      }
     },
 
     replyMessageId () {
@@ -2134,8 +2407,20 @@ export default {
       router,
       getMediaMessageSize
     }
-  }
+  },
 
+  beforeUnmount () {
+    Object.values(this.highlightMessageTimers || {}).forEach(timer => clearTimeout(timer))
+    this.highlightMessageTimers = {}
+    if (this.portionMessagesTimer) {
+      clearTimeout(this.portionMessagesTimer)
+      this.portionMessagesTimer = null
+    }
+    if (this.markReadEmitTimer) {
+      clearTimeout(this.markReadEmitTimer)
+      this.markReadEmitTimer = null
+    }
+  },
 }
 </script>
 
@@ -2332,5 +2617,81 @@ textarea:focus {
   justify-content: center;
   padding-right: 0;
   pointer-events: none;
+}
+
+:deep(.q-message-text.chat-message--highlighted),
+:deep(.q-message-text-content.chat-message--highlighted) {
+  background-color: var(--q-primary) !important;
+  color: white !important;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+:deep(.q-message-text.chat-message--highlighted *),
+:deep(.q-message-text-content.chat-message--highlighted *) {
+  color: white !important;
+}
+
+:deep(.q-message-text.chat-message--highlighted a),
+:deep(.q-message-text-content.chat-message--highlighted a) {
+  color: white !important;
+  text-decoration-color: white;
+}
+
+.file-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.file-list-item {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border: solid 1px rgba(108, 108, 108, 0.2);
+  border-radius: 4px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.file-list-ext {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 149, 0, 1);
+  color: white;
+  font-size: 12px;
+  margin-right: 8px;
+  flex: 0 0 auto;
+}
+
+.file-list-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-list-date {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.chat-go-latest-btn {
+  width: auto;
+  min-width: 36px;
+  height: 36px;
+  position: absolute;
+  z-index: 1;
+  right: 5px;
+  opacity: 0.92;
+  background-color: white;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.chat-message-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 90px;
 }
 </style>

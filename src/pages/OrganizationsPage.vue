@@ -271,7 +271,7 @@
             {{ selectedOrganizationEmployees.length }} сотрудников
           </q-chip>
           <q-chip dense square color="grey-8" text-color="white">
-            {{ selectedOrganizationOpenTasks.length }} открытых заявок
+            {{ selectedOrganizationOpenTasksCount }} открытых заявок
           </q-chip>
           <q-chip
             v-if="selectedOrganizationOverdueTasks.length > 0"
@@ -454,7 +454,7 @@
 
                     <div class="info-row">
                       <span>Открытые заявки</span>
-                      <b>{{ selectedOrganizationOpenTasks.length }}</b>
+                      <b>{{ selectedOrganizationOpenTasksCount }}</b>
                     </div>
 
                     <div class="info-row">
@@ -610,7 +610,7 @@
               <q-item-section side>
                 <div class="row items-center q-gutter-xs">
                   <q-chip dense square color="grey-2" text-color="dark">
-                    {{ getClientOpenTasksCount(client) }} заявок
+                    {{ getClientOpenTasksCountText(client) }}
                   </q-chip>
                   <q-icon name="chevron_right" />
                 </div>
@@ -651,6 +651,7 @@
             flat
             bordered
             :rows="selectedOrganizationVisibleTasks"
+            :loading="organizationTasksLoading"
             :columns="taskColumns"
             row-key="id"
             :pagination="taskPagination"
@@ -888,6 +889,12 @@ export default {
     slaTimer: null,
     organizationInfoCardHeight: null,
     organizationInfoResizeObserver: null,
+    organizationTaskStatsById: {},
+    organizationTasks: [],
+    organizationTasksLoading: false,
+    organizationTasksLoadedOnce: false,
+    organizationTasksLoadSeq: 0,
+    organizationTasksPageSize: 100,
   }),
 
   computed: {
@@ -900,6 +907,9 @@ export default {
     },
 
     tasksSource () {
+      if (this.organizationTasksLoadedOnce) {
+        return this.organizationTasks
+      }
       return this.store.getTasks || []
     },
 
@@ -961,6 +971,18 @@ export default {
 
     selectedOrganizationOpenTasks () {
       return this.selectedOrganizationTasks.filter(task => !this.isTaskClosed(task))
+    },
+
+    selectedOrganizationTaskStats () {
+      return this.getOrganizationTaskStats(this.selectedOrganization)
+    },
+
+    selectedOrganizationOpenTasksCount () {
+      return Number(this.selectedOrganizationTaskStats.openTasks || 0)
+    },
+
+    selectedOrganizationTotalTasksCount () {
+      return Number(this.selectedOrganizationTaskStats.totalTasks || 0)
     },
 
     selectedOrganizationVisibleTasks () {
@@ -1087,6 +1109,14 @@ export default {
       this.nowTs = Date.now()
     }, 1000)
     this.selectInitialOrganization()
+    Promise.all([
+      this.loadOrganizationTaskStats(),
+      this.loadOrganizationTasksForPage(true)
+    ]).then(() => {
+      this.$nextTick(() => {
+        this.preloadSlaInfosForAllOpenTasks()
+      })
+    })
   },
 
   beforeUnmount () {
@@ -1126,6 +1156,11 @@ export default {
       const employeesList = this.getOrganizationClients(organization)
       const tasksList = this.getOrganizationTasks(organization)
       const openTasks = tasksList.filter(task => !this.isTaskClosed(task))
+      const taskStats = this.getOrganizationTaskStats(organization)
+      const totalTasks = Number(taskStats.totalTasks || 0)
+      const openTasksCount = Number(taskStats.openTasks || 0)
+      const overdueTasksCount = Number(taskStats.overdueTasks || 0)
+
       const slaLoading = this.hasLoadingSlaInfoForTasks(openTasks)
       const overdueTasks = openTasks.filter(task => this.isTaskSlaOverdue(task))
       const minimalSla = this.getOrganizationMinimalSla(organization)
@@ -1140,10 +1175,10 @@ export default {
         slaAgreementLabel: this.getOrganizationSlaAgreementLabel(organization),
         employees: employeesList.length,
         employeesList,
-        tasks: tasksList.length,
+        tasks: totalTasks,
         tasksList,
-        openTasks: openTasks.length,
-        overdueTasks: overdueTasks.length,
+        openTasks: openTasksCount,
+        overdueTasks: overdueTasksCount || overdueTasks.length,
         slaLoading,
         visits,
         minSlaLabel: minimalSla.label,
@@ -2080,9 +2115,70 @@ export default {
     },
 
     getClientOpenTasksCount (client) {
-      return (client?.tasks || [])
+      return this.getClientTasks(client)
         .filter(task => !this.isTaskClosed(task))
         .length
+    },
+
+    getClientTasks (client) {
+      if (!client) {
+        return []
+      }
+      return this.tasksSource.filter(task => this.isTaskBelongsToClient(task, client))
+    },
+
+    isTaskBelongsToClient (task, client) {
+      if (!task || !client) {
+        return false
+      }
+      const taskClientId = this.getTaskClientId(task)
+      const clientId = this.getClientId(client)
+      if (taskClientId !== null && clientId !== null) {
+        return taskClientId === clientId
+      }
+      const taskClient = task.client || task.clientDto || null
+      if (taskClient) {
+        return this.getClientName(taskClient) === this.getClientName(client)
+      }
+      return false
+    },
+
+    getTaskClientId (task) {
+      return this.firstFiniteNumber([
+        task?.client?.id,
+        task?.clientId,
+        task?.client_id,
+        task?.client?.clientId
+      ])
+    },
+
+    getClientId (client) {
+      return this.firstFiniteNumber([
+        client?.id,
+        client?.clientId,
+        client?.client_id
+      ])
+    },
+
+    getClientOpenTasksCountText (client) {
+      const count = this.getClientOpenTasksCount(client)
+      return `${count} ${this.getOpenTaskWord(count)}`
+    },
+
+    getOpenTaskWord (count) {
+      const value = Math.abs(Number(count || 0))
+      const lastTwo = value % 100
+      const lastOne = value % 10
+      if (lastTwo >= 11 && lastTwo <= 14) {
+        return 'откр. заявок'
+      }
+      if (lastOne === 1) {
+        return 'откр. заявка'
+      }
+      if (lastOne >= 2 && lastOne <= 4) {
+        return 'откр. заявки'
+      }
+      return 'откр. заявок'
     },
 
     upsertOrganizationInStore (organization) {
@@ -2208,7 +2304,7 @@ export default {
       } else if (organization) {
         this.loadOrganizationVisitHistory(organization)
       }
-
+      this.refreshOrganizationTasksData()
       this.$q.notify({
         message: 'Выезд добавлен',
         type: 'positive',
@@ -2250,6 +2346,7 @@ export default {
           } else {
             this.loadOrganizationVisitHistory(organization)
           }
+          this.refreshOrganizationTasksData()
           this.addVisitDialog = false
           this.$q.notify({
             message: 'Выезд добавлен',
@@ -2326,6 +2423,128 @@ export default {
         this.organizationInfoCardHeight = Math.ceil(element.getBoundingClientRect().height)
       })
     },
+
+    loadOrganizationTaskStats () {
+      return axios.get('/api/v1/organizations/task-stats')
+        .then(response => {
+          this.organizationTaskStatsById = response.data || {}
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message || 'Не удалось загрузить статистику организаций',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
+    },
+
+    refreshOrganizationTasksData () {
+      this.loadOrganizationTaskStats()
+      if (typeof this.loadOrganizationTasksForPage === 'function') {
+        this.loadOrganizationTasksForPage(true)
+      }
+    },
+
+    async loadOrganizationTasksForPage (reset = false) {
+      const requestSeq = ++this.organizationTasksLoadSeq
+      if (reset) {
+        this.organizationTasks = []
+        this.organizationTasksLoadedOnce = false
+      }
+      this.organizationTasksLoading = true
+      const loadedTasks = []
+      let page = 1
+      let isEnd = false
+
+      try {
+        while (!isEnd && requestSeq === this.organizationTasksLoadSeq) {
+          const response = await axios.post('/api/v1/tasks-page', {
+            page,
+            size: this.organizationTasksPageSize,
+            includeCompleted: true,
+            search: '',
+            filterJoinOperator: 'AND',
+            filterChain: [],
+            requiredFilterChain: [],
+            sortSlug: 'creating',
+            ascendingSort: false
+          })
+          const data = response.data || {}
+          const tasks = Array.isArray(data.tasks) ? data.tasks : []
+          loadedTasks.push(
+            ...tasks.map(task => this.normalizeOrganizationTask(task))
+          )
+          isEnd = Boolean(data.isEnd) || tasks.length === 0
+          page += 1
+        }
+        if (requestSeq !== this.organizationTasksLoadSeq) {
+          return
+        }
+        this.organizationTasks = this.uniqueTasksById(loadedTasks)
+        this.organizationTasksLoadedOnce = true
+      } catch (e) {
+        this.$q.notify({
+          message: e.message || 'Не удалось загрузить заявки организаций',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }]
+        })
+      } finally {
+        if (requestSeq === this.organizationTasksLoadSeq) {
+          this.organizationTasksLoading = false
+        }
+      }
+    },
+
+    normalizeOrganizationTask (task) {
+      if (!task) {
+        return task
+      }
+      if (this.store && typeof this.store.normalizeTaskPageTask === 'function') {
+        return this.store.normalizeTaskPageTask(task)
+      }
+      return task
+    },
+
+    uniqueTasksById (tasks) {
+      const map = new Map()
+      ;(tasks || []).forEach(task => {
+        if (!task || task.id === undefined || task.id === null) {
+          return
+        }
+        map.set(Number(task.id), task)
+      })
+      return [...map.values()]
+    },
+
+    getOrganizationTaskStats (organization) {
+      if (!organization || !organization.id) {
+        return {
+          openTasks: 0,
+          totalTasks: 0
+        }
+      }
+      return this.organizationTaskStatsById[organization.id] || {
+        openTasks: 0,
+        totalTasks: 0
+      }
+    },
+
+    getOrganizationOpenTasksCount (organization) {
+      return Number(this.getOrganizationTaskStats(organization).openTasks || 0)
+    },
+
+    getOrganizationTotalTasksCount (organization) {
+      return Number(this.getOrganizationTaskStats(organization).totalTasks || 0)
+    },
   },
 
   setup () {
@@ -2335,7 +2554,6 @@ export default {
   }
 }
 </script>
-
 
 <style scoped>
 .organizations-page {

@@ -52,9 +52,9 @@
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
-          v-if="this.isNewUser"
           v-model="this.dialogUsername"
           label="e-mail (username)"
+          :disable="!this.isNewUser"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
@@ -69,6 +69,7 @@
           :options="this.store.roles.map(role => getRoleName(role))"
           label="Роль"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+          @update:model-value="this.onDialogRoleChanged"
         />
         <q-select
           v-if="this.showDialogOrganizations"
@@ -81,6 +82,7 @@
           map-options
           label="Организация"
           use-input
+          @update:model-value="this.onDialogOrganizationChanged"
         />
       </q-card-section>
       <q-card-actions align="right">
@@ -142,6 +144,7 @@ export default {
     dialogLastName: '',
     dialogRole: '',
     dialogOrganization: [],
+    allOrganizationsOptionId: '__ALL_ORGANIZATIONS__',
 
     isNewUser: true,
     userId: null // for updates
@@ -168,9 +171,12 @@ export default {
       this.dialogLastName = row.lastname
       this.dialogFirstName = row.firstname
       this.dialogRole = this.getRoleName(row.authorities[0])
+      const availableOrganizations = row.availableOrganizations || []
       this.dialogOrganization = this.dialogRole === 'Оператор поддержки'
-        ? (row.availableOrganizations || []).map(organization => organization.id)
-        : ((row.availableOrganizations || [])[0]?.id || null)
+        ? (availableOrganizations.length > 0
+            ? availableOrganizations.map(organization => organization.id)
+            : [this.allOrganizationsOptionId])
+        : (availableOrganizations[0]?.id || null)
     },
 
     dialogClose () {
@@ -313,33 +319,68 @@ export default {
         return Number(value)
       }
       if (this.dialogRole === 'Оператор поддержки') {
-        return (Array.isArray(this.dialogOrganization) ? this.dialogOrganization : [])
+        const selected = Array.isArray(this.dialogOrganization) ? this.dialogOrganization : []
+        if (selected.includes(this.allOrganizationsOptionId)) {
+          return []
+        }
+        return selected
           .map(normalizeOrganizationId)
           .filter(id => Number.isFinite(id))
       }
+
       const organizationId = normalizeOrganizationId(this.dialogOrganization)
       return Number.isFinite(organizationId) ? [organizationId] : []
+    },
+
+    onDialogOrganizationChanged (value) {
+      if (this.dialogRole !== 'Оператор поддержки') {
+        return
+      }
+      const selected = Array.isArray(value) ? value : []
+      if (selected.includes(this.allOrganizationsOptionId)) {
+        this.dialogOrganization = [this.allOrganizationsOptionId]
+      }
+    },
+
+    onDialogRoleChanged (newVal) {
+      this.dialogOrganization = newVal === 'Оператор поддержки'
+        ? [this.allOrganizationsOptionId]
+        : null
     },
   },
 
   computed: {
+    showDialogOrganizations () {
+      return [
+        'Оператор поддержки',
+        'Менеджер организации',
+        'Клиент'
+      ].includes(this.dialogRole)
+    },
+
     organizationOptions () {
-      return (this.store.organizations || [])
+      const organizations = (this.store.organizations || [])
         .filter(organization => organization && organization.id)
         .map(organization => ({
           id: organization.id,
           name: organization.name || `Организация ${organization.id}`
         }))
-    },
-    showDialogOrganizations () {
-      return this.dialogRole === 'Оператор поддержки' || this.dialogRole === 'Менеджер организации'
+
+      if (this.dialogRole === 'Оператор поддержки') {
+        return [
+          {
+            id: this.allOrganizationsOptionId,
+            name: 'Все организации'
+          },
+          ...organizations
+        ]
+      }
+
+      return organizations
     }
   },
 
   watch: {
-    dialogRole (newVal) {
-      this.dialogOrganization = []
-    }
   },
 
   setup () {

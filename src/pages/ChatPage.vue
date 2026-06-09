@@ -41,12 +41,15 @@
             :typing="this.getClient.typingUsers"
             :currentUser="this.store.currentUser"
             :linkedMessageId="this.linkedMessageId"
-            :tasks="this.getClient.tasks"
+            :tasks="this.currentClientTasks"
             :task-watching-now="this.getClient.watchingUsers"
             :deleteClient="this.deleteClient"
             :isShowHelper="this.isShowHelper"
             :client="this.getClient"
             :isEnd="this.isEnd"
+            :pending-new-messages-count="this.pendingNewMessagesCount"
+            :has-trimmed-newer-messages="this.hasTrimmedNewerMessages"
+            @goToLatestMessages="this.goToLatestMessages"
             @sendMessage="this.sendMessage"
             @keyPressed="this.keyPressed($event)"
             @updated="this.markMessagesRead"
@@ -57,6 +60,7 @@
             @deleteMessage="this.deleteMessage"
             @showHelper="this.showHelper"
             @getMessagePage="this.getMessagePage"
+            @getNewerMessagePage="this.getNewerMessagePage"
             @scrollToMessageAfterSearch="this.getMessageOnSearch($event)"
             @setAnswerRequired="setAnswerRequired"
             @findInKnowledgeBase="this.findInKnowledgeBase"
@@ -103,7 +107,7 @@
         >
           <chat-tasks
             ref="chatTasks"
-            :tasks="this.getClient.tasks"
+            :tasks="this.currentClientTasks"
             :isNotificationEnabled="isNotificationEnabled"
             :tags="this.activeTags"
             :users="this.activeUsers"
@@ -115,6 +119,7 @@
             :request-status-change-reason="this.requestStatusChangeReasonIfNeeded"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
+            @tasksLoaded="this.onClientTasksLoaded"
             @scrollToElementById="this.getLinkedMessage($event)"
           />
         </div>
@@ -245,7 +250,7 @@ import ChatHelper from 'components/chat/ChatHelper.vue'
 import ChatTasks from 'components/chat/ChatTasks.vue'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
-import { markRead, typing } from 'src/util/ws'
+import { markRead, typing, onClientMessage } from 'src/util/ws'
 import axios from 'axios'
 
 export default {
@@ -263,6 +268,13 @@ export default {
     isEnd: false,
     pageCounter: 0,
     messagesLoadedForCurrentChat: false,
+    maxRenderedMessages: 400,
+    pendingNewMessagesCount: 0,
+    hasTrimmedNewerMessages: false,
+    oldestLoadedMessagePage: 1,
+    newestLoadedMessagePage: 1,
+    currentClientTasks: [],
+    clientMessageUnsubscribe: null,
 
     statusReasonDialog: false,
     statusReasonDialogTitle: '',
@@ -634,25 +646,70 @@ export default {
     },
 
     addOrUpdateClientMessage (message) {
-      if (!this.getClient || !Array.isArray(this.getClient.messages)) {
+      if (!this.getClient) {
         return
+      }
+      if (!Array.isArray(this.getClient.messages)) {
+        this.getClient.messages = []
       }
       const normalizedMessage = this.normalizeReplyMessage(
         this.normalizeClientMessage(message)
       )
-      const index = this.getClient.messages.findIndex(item =>
-        Number(item.id) === Number(normalizedMessage.id)
-      )
-      if (index === -1) {
-        this.getClient.messages.push(normalizedMessage)
-      } else {
-        this.getClient.messages.splice(index, 1, {
-          ...this.getClient.messages[index],
+      if (!normalizedMessage?.id) {
+        return
+      }
+      const index = this.getClient.messages.findIndex(item => {
+        return Number(item.id) === Number(normalizedMessage.id)
+      })
+      if (index !== -1) {
+        const nextMessages = [...this.getClient.messages]
+        nextMessages.splice(index, 1, {
+          ...nextMessages[index],
           ...normalizedMessage
         })
+        this.setClientMessages(nextMessages)
+        return
       }
-      this.getClient.messages = [...this.getClient.messages]
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
+      const isOutgoingMessage = Boolean(normalizedMessage.isSent)
+      const isIncomingClientMessage = !normalizedMessage.isSent && !normalizedMessage.isComment
+      const shouldAppendToDom =
+        isOutgoingMessage ||
+        (
+          !this.hasTrimmedNewerMessages &&
+          this.isCurrentChatNearBottom()
+        )
+      if (!shouldAppendToDom) {
+        if (isIncomingClientMessage) {
+          this.pendingNewMessagesCount += 1
+        }
+        return
+      }
+      this.setClientMessages(
+        this.trimMessagesForBottom([
+          ...this.getClient.messages,
+          normalizedMessage
+        ])
+      )
+      if (isIncomingClientMessage) {
+        this.$nextTick(() => {
+          this.scrollCurrentChatToBottom()
+          this.markMessagesRead()
+        })
+        return
+      }
+      this.$nextTick(() => {
+        this.scrollCurrentChatToBottom()
+      })
+    },
+
+    onClientMessageFromSocket (payload) {
+      if (!payload?.message || !payload?.client?.id) {
+        return
+      }
+      if (Number(payload.client.id) !== Number(this.getClient?.id)) {
+        return
+      }
+      this.addOrUpdateClientMessage(payload.message)
     },
 
     normalizeClientMessage (message) {
@@ -661,12 +718,8 @@ export default {
       }
       return {
         ...message,
-        date: message.date instanceof Date
-          ? message.date
-          : new Date(message.date),
-        editedAt: message.editedAt
-          ? new Date(message.editedAt)
-          : message.editedAt
+        date: this.normalizeDateValue(message.date) || new Date(),
+        editedAt: this.normalizeDateValue(message.editedAt)
       }
     },
 
@@ -693,13 +746,35 @@ export default {
       typing(this.getClient, this.store.currentUser, text)
     },
 
-    markMessagesRead() {
+    markMessagesRead(force = false) {
       if (this.isChatOnboardingActive) {
         return
       }
-      if (this.getClient.id) {
-        markRead(this.getClient)
+      if (!this.getClient?.id) {
+        return
       }
+      if (!force && !this.canMarkCurrentChatRead()) {
+        return
+      }
+      markRead(this.getClient)
+      this.pendingNewMessagesCount = 0
+      const client = this.store.clients.find(item => Number(item.id) === Number(this.getClient.id))
+      if (client) {
+        client.unreadMessagesCount = 0
+      }
+      if (this.getClient) {
+        this.getClient.unreadMessagesCount = 0
+      }
+    },
+
+    canMarkCurrentChatRead() {
+      if (this.hasTrimmedNewerMessages) {
+        return false
+      }
+      if (Number(this.newestLoadedMessagePage || 1) > 1) {
+        return false
+      }
+      return this.isCurrentChatNearBottom(220)
     },
 
     updateClient(newClient) {
@@ -707,15 +782,34 @@ export default {
     },
 
     newTask(task) {
-      this.getClient.tasks.push(task.data)
+      this.upsertCurrentClientTask(task?.data || task)
     },
 
     updateTask(oldTask, newTask) {
-      const updatedTask = newTask.data ? newTask.data : newTask
-      const index = this.getClient.tasks.findIndex(task => task.id === updatedTask.id)
-      if (index !== -1) {
-        this.getClient.tasks[index] = updatedTask
+      this.upsertCurrentClientTask(newTask?.data || newTask)
+    },
+
+    onClientTasksLoaded(tasks) {
+      this.currentClientTasks = Array.isArray(tasks) ? tasks : []
+      this.syncMessagesLinkedTaskIds()
+    },
+
+    upsertCurrentClientTask(task) {
+      if (!task || !task.id) {
+        return
       }
+      const index = this.currentClientTasks.findIndex(item => Number(item.id) === Number(task.id))
+      if (index === -1) {
+        this.currentClientTasks = [task, ...this.currentClientTasks]
+      } else {
+        const nextTasks = [...this.currentClientTasks]
+        nextTasks.splice(index, 1, {
+          ...nextTasks[index],
+          ...task
+        })
+        this.currentClientTasks = nextTasks
+      }
+      this.syncMessagesLinkedTaskIds()
     },
 
     pastToInputField(text) {
@@ -750,12 +844,12 @@ export default {
             linkedMessage.linkedTaskId = oldTask.id
           }
 
-          const previousTask = this.getClient.tasks.find(task => Number(task.linkedMessageId) === Number(message.id))
+          const previousTask = this.currentClientTasks.find(task => Number(task.linkedMessageId) === Number(message.id))
           if (previousTask && Number(previousTask.id) !== Number(oldTask.id)) {
             previousTask.linkedMessageId = null
           }
 
-          const linkedTask = this.getClient.tasks.find(task => Number(task.id) === Number(oldTask.id))
+          const linkedTask = this.currentClientTasks.find(task => Number(task.id) === Number(oldTask.id))
           if (linkedTask) {
             linkedTask.linkedMessageId = message.id
           }
@@ -789,9 +883,8 @@ export default {
     },
 
     findLinkedTaskByMessage (message) {
-      const tasks = this.getClient?.tasks || []
+      const tasks = this.getCurrentChatTasksForLinkedSearch()
       const linkedTaskId = this.getLinkedTaskIdFromMessage(message)
-
       if (linkedTaskId) {
         const taskById = tasks.find(task => Number(task.id) === linkedTaskId)
 
@@ -799,25 +892,22 @@ export default {
           return taskById
         }
       }
-
       if (message?.id) {
         const messageId = Number(message.id)
         const taskByMessageId = tasks.find(task => Number(task.linkedMessageId) === messageId)
-
         if (taskByMessageId) {
           return taskByMessageId
         }
       }
-
       return null
     },
 
-    openLinkedTask (message) {
-      const task = this.findLinkedTaskByMessage(message)
+    async openLinkedTask (message) {
+      const task = await this.resolveLinkedTaskByMessage(message)
       if (!task) {
         this.$q.notify({
-          message: 'Связанная заявка не найдена в текущем чате',
-          type: 'warning',
+          message: 'Связанная заявка не найдена',
+          type: 'negative',
           position: 'top-right',
           actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
         })
@@ -834,11 +924,104 @@ export default {
         }
         this.$q.notify({
           message: 'Не найден компонент заявок',
-          type: 'warning',
+          type: 'negative',
           position: 'top-right',
           actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
         })
       })
+    },
+
+    getCurrentChatTasksForLinkedSearch () {
+      return this.uniqueTasksById([
+        ...(Array.isArray(this.currentClientTasks) ? this.currentClientTasks : []),
+        ...(Array.isArray(this.getClient?.tasks) ? this.getClient.tasks : [])
+      ])
+    },
+
+    uniqueTasksById (tasks) {
+      const map = new Map()
+      ;(tasks || []).forEach(task => {
+        if (!task?.id) {
+          return
+        }
+        map.set(Number(task.id), task)
+      })
+      return [...map.values()]
+    },
+
+    syncMessagesLinkedTaskIds () {
+      const messages = this.getClient?.messages
+      const tasks = this.getCurrentChatTasksForLinkedSearch()
+      if (!Array.isArray(messages) || !tasks.length) {
+        return
+      }
+      messages.forEach(message => {
+        if (!message?.id) {
+          return
+        }
+        const linkedTask = tasks.find(task => {
+          return Number(task?.linkedMessageId) === Number(message.id)
+        })
+        if (linkedTask?.id) {
+          message.linkedTaskId = linkedTask.id
+        }
+      })
+    },
+
+    async resolveLinkedTaskByMessage (message) {
+      const localTask = this.findLinkedTaskByMessage(message)
+      if (localTask) {
+        return localTask
+      }
+      const linkedTaskId = this.getLinkedTaskIdFromMessage(message)
+      if (!linkedTaskId) {
+        return null
+      }
+      return this.loadLinkedTaskById(linkedTaskId, message)
+    },
+
+    async loadLinkedTaskById (taskId, message = null) {
+      if (!taskId || !this.getClient?.id) {
+        return null
+      }
+      try {
+        const response = await axios.post('/api/v1/tasks-page', {
+          page: 1,
+          size: 10,
+          includeCompleted: true,
+          search: String(taskId),
+          filterJoinOperator: 'AND',
+          filterChain: [],
+          requiredFilterChain: [],
+          sortSlug: 'creating',
+          ascendingSort: false,
+          clientId: this.getClient.id
+        })
+        const tasks = Array.isArray(response.data?.tasks) ? response.data.tasks : []
+        const task = tasks.find(item => Number(item?.id) === Number(taskId))
+        if (!task) {
+          return null
+        }
+        if (message?.id && !task.linkedMessageId) {
+          task.linkedMessageId = message.id
+        }
+        this.upsertCurrentClientTask(task)
+        const linkedMessage = this.getClient?.messages?.find(item => {
+          return Number(item?.id) === Number(message?.id)
+        })
+        if (linkedMessage) {
+          linkedMessage.linkedTaskId = task.id
+        }
+        return task
+      } catch (e) {
+        this.$q.notify({
+          message: e.message || 'Не удалось загрузить связанную заявку',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        })
+        return null
+      }
     },
 
     clearLinkedMessageId() {
@@ -879,24 +1062,282 @@ export default {
     },
 
     getMessagePage(pageCounter = 0) {
-      if (this.isChatOnboardingActive) {
+      if (this.isChatOnboardingActive || !this.getClient?.id) {
         return
       }
-      this.pageCounter += pageCounter
-      if (this.pageCounter <= 1) {
-        this.getClient.messages = this.store.currentChatMessageData.messages
-        this.isEnd = this.store.currentChatMessageData.isEnd
-      } else {
-        axios.get(`/api/v1/client/${this.getClient.id}/messages-page?page=${this.pageCounter}`)
-          .then(response => {
-            const messages = response.data.messages
-            this.isEnd = response.data.isEnd
-            messages.forEach(message => {
-              message.date = new Date(message.date)
-            })
-            this.getClient.messages = messages.concat(this.getClient.messages)
-          })
+      if (pageCounter > 0) {
+        this.loadOlderMessagePage()
+        return
       }
+      this.pageCounter = 1
+      this.oldestLoadedMessagePage = 1
+      this.newestLoadedMessagePage = 1
+      if (Array.isArray(this.store.currentChatMessageData?.messages)) {
+        const messages = this.normalizeClientMessages(this.store.currentChatMessageData.messages)
+        this.setClientMessages(this.trimMessagesForBottom(messages))
+        this.isEnd = Boolean(this.store.currentChatMessageData.isEnd)
+        this.pendingNewMessagesCount = 0
+        this.hasTrimmedNewerMessages = false
+        return
+      }
+      this.loadMessagePageFromServer(1, 'replace-bottom')
+    },
+
+    loadMessagePageFromServer(page, mode = 'top', scrollToBottomAfterLoad = false) {
+      if (!this.getClient?.id) {
+        return
+      }
+
+      axios.get(`/api/v1/client/${this.getClient.id}/messages-page?page=${page}`)
+        .then(response => {
+          const loadedMessages = this.normalizeClientMessages(response.data?.messages || [])
+          if (mode === 'replace-bottom') {
+            this.setClientMessages(this.trimMessagesForBottom(loadedMessages))
+            this.pageCounter = 1
+            this.oldestLoadedMessagePage = 1
+            this.newestLoadedMessagePage = 1
+            this.isEnd = Boolean(response.data?.isEnd)
+            this.pendingNewMessagesCount = 0
+            this.hasTrimmedNewerMessages = false
+            if (scrollToBottomAfterLoad) {
+              this.$nextTick(() => {
+                setTimeout(() => this.scrollCurrentChatToBottom(), 50)
+              })
+            }
+
+            return
+          }
+          if (mode === 'top') {
+            const currentMessages = Array.isArray(this.getClient.messages)
+              ? this.getClient.messages
+              : []
+            const mergedMessages = this.uniqueMessagesById([
+              ...loadedMessages,
+              ...currentMessages
+            ])
+            const trimmedMessages = this.trimMessagesForTop(mergedMessages)
+            this.setClientMessages(trimmedMessages)
+            this.oldestLoadedMessagePage = Math.max(this.oldestLoadedMessagePage, page)
+            this.recalculateMessageWindowPagesFromOldest()
+            this.pageCounter = this.oldestLoadedMessagePage
+            this.isEnd = Boolean(response.data?.isEnd)
+            this.hasTrimmedNewerMessages = this.newestLoadedMessagePage > 1
+
+            return
+          }
+          if (mode === 'bottom') {
+            const currentMessages = Array.isArray(this.getClient.messages)
+              ? this.getClient.messages
+              : []
+            const mergedMessages = this.uniqueMessagesById([
+              ...currentMessages,
+              ...loadedMessages
+            ])
+            const trimmedMessages = this.trimMessagesForBottom(mergedMessages)
+            this.setClientMessages(trimmedMessages)
+            this.newestLoadedMessagePage = Math.min(this.newestLoadedMessagePage, page)
+            this.recalculateMessageWindowPagesFromNewest()
+            this.pageCounter = this.oldestLoadedMessagePage
+            this.hasTrimmedNewerMessages = this.newestLoadedMessagePage > 1
+            // Если при движении вниз старые сообщения сверху отрезались,
+            // значит сверху снова можно догружать историю.
+            if (this.oldestLoadedMessagePage > 1) {
+              this.isEnd = false
+            }
+          }
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message || 'Не удалось загрузить сообщения',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
+          })
+        })
+    },
+
+    loadOlderMessagePage() {
+      if (this.isEnd) {
+        return
+      }
+      const nextPage = Math.max(1, Number(this.oldestLoadedMessagePage || 1)) + 1
+      this.loadMessagePageFromServer(nextPage, 'top')
+    },
+
+    getNewerMessagePage() {
+      if (this.newestLoadedMessagePage <= 1) {
+        this.hasTrimmedNewerMessages = false
+        return
+      }
+      const nextPage = this.newestLoadedMessagePage - 1
+      this.loadMessagePageFromServer(nextPage, 'bottom')
+    },
+
+    getRenderedMessagePageCount() {
+      const messagesCount = Array.isArray(this.getClient?.messages)
+        ? this.getClient.messages.length
+        : 0
+      return Math.max(1, Math.ceil(messagesCount / 100))
+    },
+
+    recalculateMessageWindowPagesFromOldest() {
+      const pageCount = this.getRenderedMessagePageCount()
+      this.newestLoadedMessagePage = Math.max(
+        1,
+        this.oldestLoadedMessagePage - pageCount + 1
+      )
+    },
+
+    recalculateMessageWindowPagesFromNewest() {
+      const pageCount = this.getRenderedMessagePageCount()
+      this.oldestLoadedMessagePage = this.newestLoadedMessagePage + pageCount - 1
+    },
+
+    goToLatestMessages() {
+      if (this.isChatOnboardingActive || !this.getClient?.id) {
+        return
+      }
+      this.pageCounter = 1
+      this.oldestLoadedMessagePage = 1
+      this.newestLoadedMessagePage = 1
+      this.pendingNewMessagesCount = 0
+      this.hasTrimmedNewerMessages = false
+      this.loadMessagePageFromServer(1, 'replace-bottom', true)
+    },
+
+    scrollCurrentChatToBottom() {
+      const chat = document.getElementById('chat-dialog')
+      const scrollZone = chat?.children?.[0]?.children?.[0]
+      if (!scrollZone) {
+        return
+      }
+      scrollZone.scrollTo(0, scrollZone.scrollHeight)
+    },
+
+    getCurrentChatScrollZone() {
+      const chat = document.getElementById('chat-dialog')
+      return chat?.children?.[0]?.children?.[0] || null
+    },
+
+    isCurrentChatNearBottom(threshold = 180) {
+      const scrollZone = this.getCurrentChatScrollZone()
+      if (!scrollZone) {
+        return true
+      }
+      return scrollZone.scrollHeight - scrollZone.clientHeight - scrollZone.scrollTop <= threshold
+    },
+
+    setClientMessages(messages) {
+      if (!this.getClient) {
+        return
+      }
+      this.getClient.messages = this.sortMessagesByDate(
+        this.uniqueMessagesById(messages || [])
+      )
+    },
+
+    trimMessagesForBottom(messages) {
+      const normalizedMessages = this.sortMessagesByDate(this.uniqueMessagesById(messages))
+      if (normalizedMessages.length <= this.maxRenderedMessages) {
+        return normalizedMessages
+      }
+      return normalizedMessages.slice(-this.maxRenderedMessages)
+    },
+
+    trimMessagesForTop(messages) {
+      const normalizedMessages = this.sortMessagesByDate(this.uniqueMessagesById(messages))
+      if (normalizedMessages.length <= this.maxRenderedMessages) {
+        return normalizedMessages
+      }
+      this.hasTrimmedNewerMessages = true
+      return normalizedMessages.slice(0, this.maxRenderedMessages)
+    },
+
+    uniqueMessagesById(messages) {
+      const map = new Map()
+      ;(messages || []).forEach(message => {
+        if (!message) {
+          return
+        }
+        if (message.id === undefined || message.id === null) {
+          map.set(Symbol(), message)
+          return
+        }
+        map.set(Number(message.id), message)
+      })
+      return [...map.values()]
+    },
+
+    sortMessagesByDate(messages) {
+      return [...(messages || [])].sort((left, right) => {
+        const leftTime = new Date(left?.date || 0).getTime()
+        const rightTime = new Date(right?.date || 0).getTime()
+        if (leftTime === rightTime) {
+          return Number(left?.id || 0) - Number(right?.id || 0)
+        }
+        return leftTime - rightTime
+      })
+    },
+
+    normalizeClientMessages(messages) {
+      return Array.isArray(messages)
+        ? messages.map(message => this.normalizeReplyMessage(this.normalizeClientMessage(message)))
+        : []
+    },
+
+    normalizeDateValue(value) {
+      if (!value) {
+        return value
+      }
+      if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value
+      }
+      if (typeof value === 'number') {
+        const millis = value < 100000000000 ? value * 1000 : value
+        const date = new Date(millis)
+        return Number.isNaN(date.getTime()) ? null : date
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim()
+        if (!trimmed) {
+          return null
+        }
+        const numericValue = Number(trimmed)
+        if (Number.isFinite(numericValue)) {
+          const millis = numericValue < 100000000000 ? numericValue * 1000 : numericValue
+          const date = new Date(millis)
+          return Number.isNaN(date.getTime()) ? null : date
+        }
+        const date = new Date(trimmed)
+        return Number.isNaN(date.getTime()) ? null : date
+      }
+      if (Array.isArray(value)) {
+        const [
+          year,
+          month,
+          day,
+          hour = 0,
+          minute = 0,
+          second = 0,
+          nano = 0
+        ] = value
+        const date = new Date(
+          Number(year),
+          Number(month) - 1,
+          Number(day),
+          Number(hour),
+          Number(minute),
+          Number(second),
+          Math.floor(Number(nano) / 1000000)
+        )
+        return Number.isNaN(date.getTime()) ? null : date
+      }
+      return null
     },
 
     getMessageOnSearch(messageId) {
@@ -909,13 +1350,15 @@ export default {
       }
       axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${id}`)
         .then(response => {
-          const messages = response.data.messages || []
-          this.pageCounter = response.data.page
-          this.isEnd = response.data.isEnd
-          messages.forEach(message => {
-            message.date = new Date(message.date)
-          })
-          this.getClient.messages = messages
+          const messages = this.normalizeClientMessages(response.data.messages || [])
+          const page = Math.max(1, Number(response.data?.page || 1))
+          this.pageCounter = page
+          this.oldestLoadedMessagePage = page
+          this.newestLoadedMessagePage = page
+          this.isEnd = Boolean(response.data?.isEnd)
+          this.pendingNewMessagesCount = 0
+          this.hasTrimmedNewerMessages = page > 1
+          this.setClientMessages(messages)
           this.$nextTick(() => {
             setTimeout(() => {
               this.linkedMessageId = id
@@ -935,13 +1378,15 @@ export default {
       } else {
         axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${task.linkedMessageId}`)
           .then(response => {
-            const messages = response.data.messages
-            this.pageCounter = response.data.page
-            this.isEnd = response.data.isEnd
-            messages.forEach(message => {
-              message.date = new Date(message.date)
-            })
-            this.getClient.messages = messages
+            const messages = this.normalizeClientMessages(response.data.messages || [])
+            const page = Math.max(1, Number(response.data?.page || 1))
+            this.pageCounter = page
+            this.oldestLoadedMessagePage = page
+            this.newestLoadedMessagePage = page
+            this.isEnd = Boolean(response.data?.isEnd)
+            this.pendingNewMessagesCount = 0
+            this.hasTrimmedNewerMessages = page > 1
+            this.setClientMessages(messages)
             setTimeout(() => {
               this.linkedMessageId = task.linkedMessageId
             }, 100)
@@ -1186,7 +1631,7 @@ export default {
       this.applyColumnWidthsFromRatios()
     },
 
-        setAnswerRequired ({ messageId, clientId, answerRequired, groupMessageIds = [], resetMessageIds = [] }) {
+    setAnswerRequired ({ messageId, clientId, answerRequired, groupMessageIds = [], resetMessageIds = [] }) {
       const id = Number(messageId)
       const cid = Number(clientId)
 
@@ -1677,6 +2122,10 @@ export default {
       this.routeMessageIdHandled = false
       this.handleRouteMessageId()
     },
+
+    'router.params.clientId'() {
+      this.currentClientTasks = []
+    },
   },
 
   mounted () {
@@ -1694,7 +2143,12 @@ export default {
       this.startChatOnboarding()
       return
     }
-    this.markMessagesRead()
+    this.clientMessageUnsubscribe = onClientMessage(this.onClientMessageFromSocket)
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.markMessagesRead()
+      }, 350)
+    })
     this.initCurrentChatDraft()
     this.$nextTick(() => {
       setTimeout(() => {
@@ -1719,6 +2173,10 @@ export default {
 
   beforeUnmount () {
     this.stopColumnResize()
+    if (this.clientMessageUnsubscribe) {
+      this.clientMessageUnsubscribe()
+      this.clientMessageUnsubscribe = null
+    }
     window.removeEventListener('resize', this.handleWindowResize)
     window.removeEventListener('resize', this.onChatOnboardingWindowChange)
     window.removeEventListener('scroll', this.onChatOnboardingWindowChange, true)

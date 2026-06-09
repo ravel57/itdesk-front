@@ -129,8 +129,9 @@
       <tr v-if="isCloseReasonVisible(task)" data-tour="tasks-task-close-reason">
         <th class="small-text text-grey row-label" v-text="'Причина закрытия: '"/>
         <th
-            :class="closeReasonClass"
-            v-text="getCloseReason(task)"
+          :class="closeReasonClass"
+          :title="getCloseReason(task)"
+          v-text="getShortCloseReason(task)"
         />
       </tr>
       <tr v-if="isSlaVisible(task)" data-tour="tasks-task-sla">
@@ -210,7 +211,8 @@ export default {
     slaIsPause: false,
     slaActionLoading: false,
     nowTs: Date.now(),
-    slaTimer: null
+    slaTimer: null,
+    slaReloadTimer: null,
   }),
 
   methods: {
@@ -435,6 +437,15 @@ export default {
       return String(task?.statusChangeReason || '').trim()
     },
 
+    getShortCloseReason (task) {
+      const reason = this.getCloseReason(task)
+      const maxLength = 50
+      if (reason.length <= maxLength) {
+        return reason
+      }
+      return `${reason.slice(0, maxLength).trim()}...`
+    },
+
     isCloseReasonVisible (task) {
       return Boolean(task?.completed) && this.getCloseReason(task).length > 0
     },
@@ -461,6 +472,16 @@ export default {
         this.slaInfo = null
         this.slaIsPause = false
       }
+    },
+
+    scheduleReloadSlaInfo () {
+      if (this.slaReloadTimer) {
+        clearTimeout(this.slaReloadTimer)
+      }
+      this.slaReloadTimer = setTimeout(() => {
+        this.nowTs = Date.now()
+        this.loadSlaInfo()
+      }, 150)
     },
 
     applySlaInfo (info) {
@@ -619,6 +640,10 @@ export default {
         .filter(event => event?.createdAt)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || null
     },
+
+    getTaskPriorityId (task) {
+      return task?.priority?.id || null
+    },
   },
 
   computed: {
@@ -728,12 +753,20 @@ export default {
   },
 
   beforeUnmount () {
-    clearInterval(this.slaTimer)
+    if (this.slaReloadTimer) {
+      clearTimeout(this.slaReloadTimer)
+    }
   },
 
   watch: {
     'task.id' () {
-      this.loadSlaInfo()
+      this.scheduleReloadSlaInfo()
+    },
+
+    'task.priority.id' (newVal, oldVal) {
+      if (newVal !== oldVal) {
+        this.scheduleReloadSlaInfo()
+      }
     }
   },
 
@@ -857,7 +890,10 @@ th {
   display: block;
   max-width: 260px;
   white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
   overflow-wrap: anywhere;
+  word-break: break-word;
   line-height: 1.35;
 }
 
@@ -890,6 +926,10 @@ th {
 
 .sla-bar {
   width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .task-card-checklist-progress-row {
@@ -902,5 +942,9 @@ th {
 .task-card-checklist-progress {
   width: 70px;
   flex: 0 0 70px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 </style>

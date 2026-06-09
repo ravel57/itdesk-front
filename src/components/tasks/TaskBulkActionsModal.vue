@@ -732,6 +732,9 @@ export default {
         })
         return
       }
+      if (!this.validateExecutorsForCloseAction()) {
+        return
+      }
       const selectedTasks = [...this.store.checkedTasks]
       const statusChangeReason = await this.getStatusChangeReasonForBulkAction()
       if (statusChangeReason === null) {
@@ -798,21 +801,21 @@ export default {
 
     formatDateTime() {
       const formatValue = value => {
-          const rawValue = String(value || '').replace(/\D/g, '')
-          if (rawValue.length <= 2) {
-            return rawValue
-          }
-          if (rawValue.length <= 4) {
-            return `${rawValue.slice(0, 2)}.${rawValue.slice(2)}`
-          }
-          if (rawValue.length <= 8) {
-            return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)}`
-          }
-          if (rawValue.length <= 10) {
-            return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8)}`
-          }
-          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
+        const rawValue = String(value || '').replace(/\D/g, '')
+        if (rawValue.length <= 2) {
+          return rawValue
         }
+        if (rawValue.length <= 4) {
+          return `${rawValue.slice(0, 2)}.${rawValue.slice(2)}`
+        }
+        if (rawValue.length <= 8) {
+          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)}`
+        }
+        if (rawValue.length <= 10) {
+          return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8)}`
+        }
+        return `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
+      }
       ;['tasksFreezeUntil', 'taskFreezeUntil', 'tasksDeadline'].forEach(field => {
         if (typeof this[field] === 'string') {
           this[field] = formatValue(this[field])
@@ -987,6 +990,50 @@ export default {
       }
       return this.store.statuses.find(status => this.isOpenStatusName(status.name) && status.defaultSelection === true) ||
         this.store.statuses.find(status => this.isOpenStatusName(status.name))
+    },
+
+    isClosingBulkAction () {
+      if (this.action === 'close') {
+        return true
+      }
+      if (this.action === 'status') {
+        return this.isClosedStatusName(this.tasksStatus)
+      }
+      return false
+    },
+
+    hasExecutorForClose (task) {
+      return !!task?.executor && !!task.executor.id
+    },
+
+    getTasksWithoutExecutorForCloseAction () {
+      if (!this.isClosingBulkAction()) {
+        return []
+      }
+      return (this.store.checkedTasks || [])
+        .filter(task => !this.hasExecutorForClose(task))
+    },
+
+    validateExecutorsForCloseAction () {
+      const tasksWithoutExecutor = this.getTasksWithoutExecutorForCloseAction()
+      if (tasksWithoutExecutor.length === 0) {
+        return true
+      }
+      const taskNumbers = tasksWithoutExecutor
+        .map(task => task?.id ? `№${task.id}` : null)
+        .filter(Boolean)
+        .join(', ')
+      this.$q.notify({
+        message: taskNumbers
+          ? `Перед закрытием укажите исполнителя у заявок: ${taskNumbers}`
+          : 'Перед закрытием заявок укажите исполнителя',
+        type: 'negative',
+        position: 'top-right',
+        actions: [{
+          icon: 'close', color: 'white', dense: true, handler: () => undefined
+        }]
+      })
+      return false
     },
   },
 

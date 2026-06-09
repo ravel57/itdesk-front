@@ -64,7 +64,7 @@
           flat
           round
           :loading="loading"
-          @click="loadAnalytics"
+          @click="loadAnalytics()"
         >
           <q-tooltip>
             Обновить
@@ -106,7 +106,11 @@
           <div class="col-12 col-sm-6 col-md-3">
             <q-select
               v-model="analyticsFilters.typeIds"
-              :options="taskTypeFilterOptions"
+              :options="visibleTaskTypeFilterOptions"
+              use-input
+              input-debounce="0"
+              @filter="(val, update) => filterAnalyticsSelect('type', val, update)"
+              @popup-hide="resetAnalyticsFilterSearch('type')"
               label="Типы заявок"
               dense
               outlined
@@ -117,14 +121,18 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="scheduleAnalyticsLoad"
+              @update:model-value="onAnalyticsFilterChanged('type')"
             />
           </div>
 
           <div class="col-12 col-sm-6 col-md-3">
             <q-select
               v-model="analyticsFilters.priorityIds"
-              :options="priorityFilterOptions"
+              :options="visiblePriorityFilterOptions"
+              use-input
+              input-debounce="0"
+              @filter="(val, update) => filterAnalyticsSelect('priority', val, update)"
+              @popup-hide="resetAnalyticsFilterSearch('priority')"
               label="Приоритеты"
               dense
               outlined
@@ -135,14 +143,18 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="scheduleAnalyticsLoad"
+              @update:model-value="onAnalyticsFilterChanged('priority')"
             />
           </div>
 
           <div class="col-12 col-sm-6 col-md-3">
             <q-select
               v-model="analyticsFilters.executorIds"
-              :options="executorFilterOptions"
+              :options="visibleExecutorFilterOptions"
+              use-input
+              input-debounce="0"
+              @filter="(val, update) => filterAnalyticsSelect('executor', val, update)"
+              @popup-hide="resetAnalyticsFilterSearch('executor')"
               label="Исполнители"
               dense
               outlined
@@ -153,14 +165,18 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="scheduleAnalyticsLoad"
+              @update:model-value="onAnalyticsFilterChanged('executor')"
             />
           </div>
 
           <div class="col-12 col-sm-6 col-md-3">
             <q-select
               v-model="analyticsFilters.tagIds"
-              :options="tagFilterOptions"
+              :options="visibleTagFilterOptions"
+              use-input
+              input-debounce="0"
+              @filter="(val, update) => filterAnalyticsSelect('tag', val, update)"
+              @popup-hide="resetAnalyticsFilterSearch('tag')"
               label="Теги"
               dense
               outlined
@@ -171,7 +187,7 @@
               map-options
               option-value="value"
               option-label="label"
-              @update:model-value="scheduleAnalyticsLoad"
+              @update:model-value="onAnalyticsFilterChanged('tag')"
             />
           </div>
         </div>
@@ -446,7 +462,18 @@
                       {{ row.label }}
                     </div>
                     <div class="hourly-load-track">
-                      <div class="hourly-load-fill" :style="{ width: row.percent + '%' }"/>
+                      <div
+                        class="hourly-load-fill"
+                        :style="{ width: row.percent + '%' }"
+                      >
+                        <div
+                          v-for="segment in row.segments"
+                          :key="segment.key"
+                          class="hourly-load-segment"
+                          :class="segment.class"
+                          :style="{ width: segment.percent + '%' }"
+                        />
+                      </div>
                     </div>
                     <div class="hourly-load-value">
                       {{ formatNumber(row.total) }}
@@ -935,6 +962,13 @@ export default {
       tagIds: []
     },
 
+    analyticsFilterSearch: {
+      type: '',
+      priority: '',
+      executor: '',
+      tag: ''
+    },
+
     periodOptions: [
       {
         label: 'Сегодня',
@@ -1113,13 +1147,20 @@ export default {
     },
 
     executorFilterOptions() {
-      return (this.store.users || [])
+      const users = (this.store.users || [])
         .filter(user => user && user.id !== undefined && user.id !== null)
         .map(user => ({
           label: this.getUserDisplayName(user),
           value: user.id
         }))
         .sort((left, right) => left.label.localeCompare(right.label))
+      return [
+        {
+          label: 'Без исполнителя',
+          value: -1
+        },
+        ...users
+      ]
     },
 
     tagFilterOptions() {
@@ -1151,6 +1192,10 @@ export default {
     },
 
     closedTasks() {
+      const closedFromBreakdown = this.getClosedTasksFromStableBreakdown()
+      if (closedFromBreakdown !== null) {
+        return closedFromBreakdown
+      }
       return this.getSummaryNumber(['closedTasks', 'closedTaskCount', 'resolvedTasks'])
     },
 
@@ -1187,6 +1232,10 @@ export default {
     },
 
     totalClosedByPeriod() {
+      const closedFromBreakdown = this.getClosedTasksFromStableBreakdown()
+      if (closedFromBreakdown !== null) {
+        return closedFromBreakdown
+      }
       return this.closedTrendRows.reduce((sum, row) => sum + row.count, 0)
     },
 
@@ -1265,6 +1314,39 @@ export default {
         const reopenedTasks = Number(row.reopenedTasks || row.reopened || row.returnedToWorkTasks || 0)
         const total = Number(row.total || row.count || incomingMessages + outgoingMessages + createdTasks + closedTasks + reopenedTasks)
 
+        const segmentTotal = incomingMessages + outgoingMessages + createdTasks + closedTasks + reopenedTasks
+        const segments = [
+          {
+            key: 'incoming',
+            value: incomingMessages,
+            class: 'hourly-load-segment-incoming'
+          },
+          {
+            key: 'outgoing',
+            value: outgoingMessages,
+            class: 'hourly-load-segment-outgoing'
+          },
+          {
+            key: 'created',
+            value: createdTasks,
+            class: 'hourly-load-segment-created'
+          },
+          {
+            key: 'closed',
+            value: closedTasks,
+            class: 'hourly-load-segment-closed'
+          },
+          {
+            key: 'reopened',
+            value: reopenedTasks,
+            class: 'hourly-load-segment-reopened'
+          }
+        ]
+          .filter(segment => segment.value > 0)
+          .map(segment => ({
+            ...segment,
+            percent: segmentTotal > 0 ? (segment.value / segmentTotal) * 100 : 0
+          }))
         return {
           hour,
           label: row.label || `${String(hour).padStart(2, '0')}:00`,
@@ -1273,7 +1355,8 @@ export default {
           createdTasks,
           closedTasks,
           reopenedTasks,
-          total
+          total,
+          segments
         }
       }).sort((left, right) => left.hour - right.hour)
 
@@ -1588,7 +1671,23 @@ export default {
         return 'Период не выбран'
       }
       return `${this.formatPeriodDate(this.fromDate)} — ${this.formatPeriodDate(this.toDate)}`
-    }
+    },
+
+    visibleTaskTypeFilterOptions() {
+      return this.filterOptionsBySearch(this.taskTypeFilterOptions, this.analyticsFilterSearch.type)
+    },
+
+    visiblePriorityFilterOptions() {
+      return this.filterOptionsBySearch(this.priorityFilterOptions, this.analyticsFilterSearch.priority)
+    },
+
+    visibleExecutorFilterOptions() {
+      return this.filterOptionsBySearch(this.executorFilterOptions, this.analyticsFilterSearch.executor)
+    },
+
+    visibleTagFilterOptions() {
+      return this.filterOptionsBySearch(this.tagFilterOptions, this.analyticsFilterSearch.tag)
+    },
   },
 
   created() {
@@ -1601,7 +1700,7 @@ export default {
   },
 
   beforeUnmount() {
-    this.clearAnalyticsLoadTimer()
+    this.clearAnalyticsLoadTimer(true)
     this.cancelAnalyticsRequest(true)
   },
 
@@ -1701,14 +1800,11 @@ export default {
     },
 
     loadAnalyticsDictionaries() {
-      if (typeof this.store.fetchAnalyticsDictionaries === 'function') {
-        this.store.fetchAnalyticsDictionaries()
-          .catch(error => console.error(error))
+      if (typeof this.store.fetchAnalyticsDictionaries !== 'function') {
         return
       }
-      if (typeof this.store.fetchData === 'function') {
-        this.store.fetchData()
-      }
+      this.store.fetchAnalyticsDictionaries()
+        .catch(error => console.error(error))
     },
 
     resetAnalyticsFilters() {
@@ -1758,15 +1854,31 @@ export default {
         overdueDeadlines: Number(row.overdueDeadlines || row.overdueDeadlineTasks || 0),
         unassignedTasks: Number(row.unassignedTasks || 0)
       }))
-
       const max = Math.max(...normalized.map(row => row.totalTasks), 0)
-
       return normalized
         .sort((left, right) => right.totalTasks - left.totalTasks)
         .map(row => ({
           ...row,
           percent: max > 0 ? Math.max((row.totalTasks / max) * 100, row.totalTasks > 0 ? 6 : 0) : 0
         }))
+    },
+
+    getClosedTasksFromStableBreakdown() {
+      const stableBreakdownKeyGroups = [
+        ['taskTypeBreakdown', 'typeBreakdown', 'tasksByType'],
+        ['priorityBreakdown', 'tasksByPriority'],
+        ['executorBreakdown', 'tasksByExecutor']
+      ]
+      for (const keys of stableBreakdownKeyGroups) {
+        const rows = this.getSummaryRows(keys)
+        if (rows.length === 0) {
+          continue
+        }
+        return rows.reduce((sum, row) => {
+          return sum + Number(row.closedTasks || row.closed || row.closedTaskCount || 0)
+        }, 0)
+      }
+      return null
     },
 
     unwrapAnalyticsResponse(value) {
@@ -1814,10 +1926,13 @@ export default {
       }
     },
 
-    clearAnalyticsLoadTimer() {
+    clearAnalyticsLoadTimer(resetLoading = false) {
       if (this.analyticsLoadTimer) {
         clearTimeout(this.analyticsLoadTimer)
         this.analyticsLoadTimer = null
+      }
+      if (resetLoading && !this.analyticsAbortController) {
+        this.loading = false
       }
     },
 
@@ -1902,17 +2017,23 @@ export default {
           this.analyticsSummary = {}
           this.$q.notify({
             type: 'negative',
-            message: 'Не удалось загрузить аналитику'
+            message: 'Не удалось загрузить аналитику',
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
           })
         })
         .finally(() => {
-          if (currentRequestId !== this.analyticsRequestSeq) {
-            return
-          }
           if (this.analyticsAbortController === controller) {
             this.analyticsAbortController = null
           }
-          this.loading = false
+          if (currentRequestId === this.analyticsRequestSeq) {
+            this.loading = false
+          }
         })
     },
 
@@ -2057,7 +2178,39 @@ export default {
         return 0
       }
       return Math.max(0, Math.min(1, Number(value || 0) / safeMax))
-    }
+    },
+
+    filterOptionsBySearch(options, search) {
+      const needle = String(search || '').trim().toLowerCase()
+      if (!needle) {
+        return options || []
+      }
+      return (options || []).filter(option => {
+        const label = String(option?.label || '').toLowerCase()
+        return label.includes(needle)
+      })
+    },
+
+    filterAnalyticsSelect(kind, val, update) {
+      update(() => {
+        this.analyticsFilterSearch = {
+          ...this.analyticsFilterSearch,
+          [kind]: val || ''
+        }
+      })
+    },
+
+    resetAnalyticsFilterSearch(kind) {
+      this.analyticsFilterSearch = {
+        ...this.analyticsFilterSearch,
+        [kind]: ''
+      }
+    },
+
+    onAnalyticsFilterChanged(kind) {
+      this.resetAnalyticsFilterSearch(kind)
+      this.scheduleAnalyticsLoad()
+    },
   },
 
   mounted() {
@@ -2402,9 +2555,34 @@ export default {
 }
 
 .hourly-load-fill {
+  display: flex;
   height: 100%;
+  overflow: hidden;
   border-radius: 999px;
-  background: #1976d2;
+}
+
+.hourly-load-segment {
+  height: 100%;
+}
+
+.hourly-load-segment-incoming {
+  background: #7c4dff;
+}
+
+.hourly-load-segment-outgoing {
+  background: #00c853;
+}
+
+.hourly-load-segment-created {
+  background: #9e9e9e;
+}
+
+.hourly-load-segment-closed {
+  background: #21ba45;
+}
+
+.hourly-load-segment-reopened {
+  background: #f2c037;
 }
 
 .hourly-load-value {

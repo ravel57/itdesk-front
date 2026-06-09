@@ -65,28 +65,26 @@
               </q-item-label>
 
               <q-item-label caption>
-                {{ getEntityTypeLabel(result.entityType) }}
-                <span v-if="result.subtitle"> · {{ result.subtitle }}</span>
+                {{ getResultSubtitle(result) }}
               </q-item-label>
 
               <q-item-label
-                v-if="result.entityType === 'TASK' && result.entityId"
-                caption
-                class="text-primary"
-              >
-                №{{ result.entityId }}
-              </q-item-label>
-
-              <q-item-label
-                v-if="result.text"
+                v-if="getResultDisplayText(result)"
                 caption
                 class="result-text"
               >
-                {{ result.text }}
+                {{ getResultDisplayText(result) }}
               </q-item-label>
             </q-item-section>
 
-            <q-item-section side>
+            <q-item-section side class="result-side">
+              <div
+                v-if="result._matchPercent !== null && result._matchPercent !== undefined"
+                class="match-percent"
+              >
+                {{ result._matchPercent }}%
+              </div>
+
               <q-icon name="chevron_right"/>
             </q-item-section>
           </q-item>
@@ -114,12 +112,12 @@ export default {
     searchRequest: '',
     selectedCategories: [],
     categoryOptions: [
-      {label: 'Операторы', value: 'USER'},
-      {label: 'Клиенты', value: 'CLIENT'},
       {label: 'Заявки', value: 'TASK'},
+      {label: 'Сообщения из чатов', value: 'CLIENT_MESSAGE'},
+      {label: 'Сообщения из заявок', value: 'TASK_MESSAGE'},
       {label: 'База знаний', value: 'KNOWLEDGE'},
-      {label: 'Сообщения клиентов', value: 'CLIENT_MESSAGE'},
-      {label: 'Сообщения заявок', value: 'TASK_MESSAGE'}
+      {label: 'Клиенты', value: 'CLIENT'},
+      {label: 'Операторы', value: 'USER'},
     ],
     results: [],
     loading: false
@@ -204,14 +202,18 @@ export default {
         }
       })
         .then(response => {
-          this.results = response.data || []
+          this.results = this.normalizeSearchResults(response.data || [])
         })
         .catch(error => {
           console.error(error)
           this.results = []
           this.$q.notify({
             type: 'negative',
-            message: 'Ошибка глобального поиска'
+            message: 'Ошибка глобального поиска',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
           })
         })
         .finally(() => {
@@ -260,6 +262,25 @@ export default {
       }
     },
 
+    getResultSubtitle(result) {
+      const entityLabel = this.getEntityTypeLabel(result?.entityType)
+      const subtitle = String(result?.subtitle || '').trim()
+      if (!subtitle || subtitle === entityLabel) {
+        return entityLabel
+      }
+      return `${entityLabel} · ${subtitle}`
+    },
+
+    getResultDisplayText(result) {
+      if (!result) {
+        return ''
+      }
+      if (result.entityType === 'TASK') {
+        return ''
+      }
+      return String(result.text || '').trim()
+    },
+
     getEntityTypeLabel(entityType) {
       switch (entityType) {
         case 'CLIENT':
@@ -269,9 +290,9 @@ export default {
         case 'KNOWLEDGE':
           return 'База знаний'
         case 'CLIENT_MESSAGE':
-          return 'Сообщение клиента'
+          return 'Сообщения из чатов'
         case 'TASK_MESSAGE':
-          return 'Сообщение заявки'
+          return 'Сообщения из заявок'
         case 'USER':
           return 'Оператор'
         default:
@@ -296,6 +317,43 @@ export default {
         default:
           return 'search'
       }
+    },
+
+    getResultScore(result) {
+      const score = Number(result?.score)
+      return Number.isFinite(score) ? score : 0
+    },
+
+    normalizeSearchResults(results) {
+      if (!Array.isArray(results) || results.length === 0) {
+        return []
+      }
+
+      const maxScore = results.reduce((max, result) => {
+        return Math.max(max, this.getResultScore(result))
+      }, 0)
+
+      return results
+        .map((result, index) => {
+          const score = this.getResultScore(result)
+
+          return {
+            ...result,
+            _originalIndex: index,
+            _matchPercent: maxScore > 0
+              ? Math.round((score / maxScore) * 100)
+              : 0
+          }
+        })
+        .sort((left, right) => {
+          const scoreDiff = this.getResultScore(right) - this.getResultScore(left)
+
+          if (scoreDiff !== 0) {
+            return scoreDiff
+          }
+
+          return left._originalIndex - right._originalIndex
+        })
     }
   },
 
@@ -346,5 +404,17 @@ export default {
 
 .search-category-filter {
   align-items: center;
+}
+
+.result-side {
+  min-width: 72px;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.match-percent {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 </style>

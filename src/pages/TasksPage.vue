@@ -208,10 +208,10 @@
                 </div>
                 <div
                   style="white-space: pre-wrap"
-                  v-for="(filter, index) in this.filterChain.map(it => ({label: it.label, selectedOptions: it.selectedOptions}))"
+                  v-for="(filter, index) in this.filterChain"
                   :key="index"
                 >
-                  {{ `${filter.label} : ${filter.selectedOptions.join(', ')}` }}
+                  {{ `${filter.label} : ${this.getFilterSelectedOptionsText(filter)}` }}
                 </div>
               </q-card-section>
               <q-card-actions align="right">
@@ -271,8 +271,74 @@
               style="display: flex; border-right: 16px; padding-right: 16px"
               :id="`filter_${filter.slug}`"
             >
+              <template v-if="this.isDateRangeFilter(filter)">
+                <div class="task-date-range-filter">
+                  <q-input
+                    v-model="filter.selectedOptions.from"
+                    clearable
+                    outlined
+                    :label="`${filter.label} от`"
+                    mask="##.##.####"
+                    style="width: 180px; height: 100%; min-height: 56px;"
+                  >
+                    <template v-slot:append>
+                      <q-icon
+                        name="event"
+                        class="cursor-pointer"
+                      >
+                        <q-popup-proxy
+                          cover
+                          transition-show="scale"
+                          transition-hide="scale"
+                        >
+                          <q-date
+                            v-model="filter.selectedOptions.from"
+                            first-day-of-week="1"
+                            locale="ru"
+                            today-btn
+                            mask="DD.MM.YYYY"
+                            v-close-popup
+                          />
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
+
+                  <q-input
+                    v-model="filter.selectedOptions.to"
+                    clearable
+                    outlined
+                    :label="`${filter.label} до`"
+                    mask="##.##.####"
+                    style="width: 180px; height: 100%; min-height: 56px;"
+                  >
+                    <template v-slot:append>
+                      <q-icon
+                        name="event"
+                        class="cursor-pointer"
+                      >
+                        <q-popup-proxy
+                          cover
+                          transition-show="scale"
+                          transition-hide="scale"
+                        >
+                          <q-date
+                            v-model="filter.selectedOptions.to"
+                            first-day-of-week="1"
+                            locale="ru"
+                            today-btn
+                            mask="DD.MM.YYYY"
+                            v-close-popup
+                          />
+                        </q-popup-proxy>
+                      </q-icon>
+                    </template>
+                  </q-input>
+                </div>
+              </template>
+
               <q-select
-                v-if="filter.slug !== 'deadline'"
+                v-else-if="filter.slug !== 'deadline'"
                 outlined
                 :label="filter.label"
                 multiple
@@ -295,6 +361,7 @@
                   </q-item>
                 </template>
               </q-select>
+
               <q-input
                 v-else
                 v-model="filter.selectedOptions"
@@ -314,9 +381,7 @@
                     @click.stop="filter.isBeforeDeadline = !filter.isBeforeDeadline"
                   />
                 </template>
-                <template
-                  v-slot:append
-                >
+                <template v-slot:append>
                   <q-icon
                     name="event"
                     class="cursor-pointer"
@@ -424,8 +489,17 @@
       </div>
     </div>
     <div
-      v-if="getFilteredTasks.length > 0"
+      v-if="this.taskPageLoading && !this.taskPageInitialLoaded"
+      class="tasks-page-loading"
+    >
+      <q-spinner size="40px" color="primary" />
+      <div class="q-mt-sm text-grey-7">Загрузка заявок...</div>
+    </div>
+    <div
+      v-else-if="getFilteredTasks.length > 0"
+      ref="tasksPageScroll"
       class="tasks-page-content"
+      @scroll.passive="this.onTasksScroll"
     >
       <tasks-component
         class="tasks-page-component"
@@ -442,7 +516,23 @@
         @onTaskClicked="this.onTaskClicked"
         @closeDialog="this.closeDialog"
         @addMessageToTask="this.addMessageToTask"
+        @onTableNeedMore="this.onTasksTableNeedMore"
       />
+      <div
+        ref="tasksInfiniteSentinel"
+        class="tasks-infinite-status"
+      >
+        <div v-if="this.taskPageLoading" class="row items-center justify-center q-gutter-sm text-grey-7">
+          <q-spinner size="22px" color="primary" />
+          <span>Подгружаю заявки...</span>
+        </div>
+        <div v-else-if="!this.taskPageIsEnd" class="text-grey-6">
+          Прокрутите ниже, чтобы загрузить ещё
+        </div>
+        <div v-else class="text-grey-6">
+          Показано {{ this.getFilteredTasks.length }} из {{ this.taskPageTotalElements }}
+        </div>
+      </div>
     </div>
     <div
       v-else
@@ -518,9 +608,9 @@
                @click="this.openBulkModal('open')">
           <q-tooltip>Открыть заявку</q-tooltip>
         </q-btn>
-<!--        <q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">-->
-<!--          <q-tooltip>Заморозить заявки</q-tooltip>-->
-<!--        </q-btn>-->
+        <!--<q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">-->
+        <!--  <q-tooltip>Заморозить заявки</q-tooltip>-->
+        <!--</q-btn>-->
         <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts"
                @click="this.openBulkModal('executor')">
           <q-tooltip>Сменить исполнителя заявок</q-tooltip>
@@ -704,7 +794,7 @@
 
         <q-btn
           color="primary"
-          label="Продолжить"
+          :label="this.getBulkReasonConfirmLabel()"
           @click="this.confirmBulkReasonDialog"
         />
       </q-card-actions>
@@ -721,6 +811,7 @@ import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import moment from 'moment/moment'
 import draggable from 'vuedraggable'
+import { onTaskUpdated } from 'src/util/ws'
 
 export default {
 
@@ -735,6 +826,8 @@ export default {
       {label: 'Статус', slug: 'status'},
       {label: 'Клиент', slug: 'client'},
       {label: 'Тип заявки', slug: 'type'},
+      {label: 'Дата создания', slug: 'createdAt'},
+      {label: 'Последняя активность', slug: 'lastActivity'},
       {label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false},
     ],
     selectedGroupType: {label: 'Исполнитель', slug: 'executor'},
@@ -814,6 +907,20 @@ export default {
     nowTs: Date.now(),
     slaTimer: null,
     selectedTaskType: null,
+
+    taskPageSize: 10,
+    taskPageLoading: false,
+    taskPageInitialLoaded: false,
+    taskPageReloadTimer: null,
+    taskPageScrollTimer: null,
+    taskPageAutoFillTimer: null,
+    tasksUserScrolled: false,
+    tasksInfiniteObserver: null,
+    lastTasksScrollTarget: null,
+    taskPageMaxSize: 100,
+    cardTaskPageByColumn: {},
+    cardTaskColumnsLoading: false,
+    taskUpdatedUnsubscribe: null,
   }),
 
   methods: {
@@ -823,6 +930,457 @@ export default {
       const month = String(today.getMonth() + 1).padStart(2, '0')
       const day = String(today.getDate()).padStart(2, '0')
       return date >= `${year}/${month}/${day}`
+    },
+
+    buildTasksPageRequest(page = 1, overrides = {}) {
+      const filterJoinOperator = this.isValidFilterJoinOperator(this.filterJoinOperator)
+        ? this.filterJoinOperator
+        : 'AND'
+      return {
+        page,
+        size: overrides.size || this.store.taskPage?.size || this.taskPageSize || 10,
+        search: this.searchRequest || '',
+        includeCompleted: this.isShowCompletedTasks,
+        sortSlug: this.selectedSorting?.slug || 'creating',
+        ascendingSort: Boolean(this.ascendingSort),
+        filterJoinOperator: overrides.filterJoinOperator || filterJoinOperator,
+        filterChain: overrides.filterChain || (this.isFilterSelected ? this.normalizeFiltersForServer(this.filterChain || []) : []),
+        requiredFilterChain: overrides.requiredFilterChain || []
+      }
+    },
+
+    normalizeFiltersForServer(filters) {
+      return filters.map(filter => ({
+        label: filter.label,
+        slug: filter.slug || this.filterTypes.find(type => type.label === filter.label)?.slug || '',
+        selectedOptions: this.cloneFilterSelectedOptions(filter.selectedOptions),
+        isBeforeDeadline: Boolean(filter.isBeforeDeadline)
+      }))
+    },
+
+    getCardTaskColumnDefinitions() {
+      const slug = this.selectedGroupType?.slug
+
+      let source = []
+
+      switch (slug) {
+        case 'executor':
+          source = this.groupExecutors
+          break
+        case 'tag':
+          source = this.tags
+          break
+        case 'priority':
+          source = this.priorities
+          break
+        case 'type':
+          source = this.taskTypes
+          break
+        case 'organization':
+          source = this.organizations
+          break
+        case 'status':
+          source = this.statuses
+          break
+        case 'client':
+          source = this.clients
+          break
+        default:
+          source = []
+      }
+
+      return [...new Set(source)]
+        .map(value => String(value || '').trim())
+        .filter(value => value.length > 0)
+        .map(value => ({
+          key: `${slug}:${value}`,
+          slug,
+          title: value,
+          requiredFilterChain: [this.buildCardTaskColumnFilter(slug, value)]
+        }))
+    },
+
+    buildCardTaskColumnFilter(slug, value) {
+      return {
+        label: this.selectedGroupType?.label || '',
+        slug,
+        selectedOptions: [value],
+        isBeforeDeadline: false
+      }
+    },
+
+    getCardTaskColumnState(column) {
+      return this.cardTaskPageByColumn[column.key] || {
+        page: 0,
+        totalElements: 0,
+        totalPages: 0,
+        isEnd: false
+      }
+    },
+
+    setCardTaskColumnState(column, patch) {
+      this.cardTaskPageByColumn = {
+        ...this.cardTaskPageByColumn,
+        [column.key]: {
+          ...this.getCardTaskColumnState(column),
+          ...patch
+        }
+      }
+    },
+
+    async loadCardTaskColumns(reset = false) {
+      if (this.cardTaskColumnsLoading || this.taskPageLoading) {
+        return
+      }
+      const columns = this.getCardTaskColumnDefinitions()
+      if (columns.length === 0) {
+        await this.loadTasksPage(reset)
+        return
+      }
+      const columnsToLoad = reset
+        ? columns
+        : columns.filter(column => !this.getCardTaskColumnState(column).isEnd)
+      if (columnsToLoad.length === 0) {
+        return
+      }
+      this.cardTaskColumnsLoading = true
+      this.taskPageLoading = true
+      try {
+        const responses = await Promise.all(
+          columnsToLoad.map(column => {
+            const state = this.getCardTaskColumnState(column)
+            const page = reset ? 1 : state.page + 1
+
+            return this.store.fetchTasksPage(
+              this.buildTasksPageRequest(page, {
+                size: this.taskPageMaxSize,
+                requiredFilterChain: column.requiredFilterChain
+              }),
+              true
+            ).then(taskPage => {
+              this.setCardTaskColumnState(column, {
+                page: taskPage.responsePage,
+                totalElements: taskPage.responseTotalElements,
+                totalPages: taskPage.responseTotalPages,
+                isEnd: taskPage.responseIsEnd
+              })
+
+              return taskPage
+            })
+          })
+        )
+        const loadedTasks = responses
+          .flatMap(response => response.loadedTasks || [])
+          .filter(task => task && task.id)
+
+        this.loadSlaInfoForTasks(loadedTasks)
+      } catch (e) {
+        this.$q.notify({
+          message: e.message || 'Не удалось загрузить заявки',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      } finally {
+        this.cardTaskColumnsLoading = false
+        this.taskPageLoading = false
+        this.taskPageInitialLoaded = true
+
+        this.$nextTick(() => {
+          this.setupTasksInfiniteObserver()
+          this.loadMoreTasksIfViewportIsNotFilled()
+        })
+      }
+    },
+
+    async resetTasksPageAndLoad() {
+      if (this.taskPageReloadTimer) {
+        clearTimeout(this.taskPageReloadTimer)
+        this.taskPageReloadTimer = null
+      }
+      this.destroyTasksInfiniteObserver()
+      this.tasksUserScrolled = false
+      this.lastTasksScrollTarget = null
+      this.cardTaskPageByColumn = {}
+      this.store.resetTaskPage()
+      this.taskPageInitialLoaded = false
+      if (this.isShowTableMode) {
+        await this.loadTasksPage(true)
+      } else {
+        await this.loadCardTaskColumns(true)
+      }
+      this.$nextTick(() => {
+        const scrollContainer = this.$refs.tasksPageScroll
+        if (scrollContainer) {
+          scrollContainer.scrollTop = 0
+        }
+        this.setupTasksInfiniteObserver()
+        this.loadMoreTasksIfViewportIsNotFilled()
+      })
+    },
+
+    reloadTasksPageDebounced() {
+      if (this.taskPageReloadTimer) {
+        clearTimeout(this.taskPageReloadTimer)
+      }
+      this.taskPageReloadTimer = setTimeout(() => {
+        this.resetTasksPageAndLoad()
+      }, 250)
+    },
+
+    async loadTasksPage(reset = false) {
+      if (this.taskPageLoading) {
+        return
+      }
+
+      if (!reset && this.taskPageIsEnd) {
+        return
+      }
+
+      this.taskPageLoading = true
+
+      const page = reset ? 1 : (this.store.taskPage.page || 0) + 1
+      const beforeCount = reset ? 0 : (this.store.taskPage.tasks || []).length
+
+      try {
+        const taskPage = await this.store.fetchTasksPage(this.buildTasksPageRequest(page), !reset)
+
+        const loadedTasks = reset
+          ? (taskPage.tasks || [])
+          : (taskPage.tasks || []).slice(beforeCount)
+
+        this.loadSlaInfoForTasks(loadedTasks)
+      } catch (e) {
+        this.$q.notify({
+          message: e.message || 'Не удалось загрузить заявки',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      } finally {
+        this.taskPageLoading = false
+        this.taskPageInitialLoaded = true
+        this.$nextTick(() => {
+          this.setupTasksInfiniteObserver()
+          this.loadMoreTasksIfViewportIsNotFilled()
+        })
+      }
+    },
+
+    onTasksScroll(event) {
+      if (!this.isTasksPageScrollEvent(event)) {
+        return
+      }
+      this.tasksUserScrolled = true
+      this.lastTasksScrollTarget = this.resolveTasksScrollTarget(event?.target)
+      this.scheduleTryLoadNextTasksPage()
+    },
+
+    onTasksScrollIntent(event) {
+      if (!this.isTasksPageInteractionTarget(event?.target)) {
+        return
+      }
+      this.tasksUserScrolled = true
+      this.lastTasksScrollTarget = this.resolveTasksScrollTarget(event?.target)
+      this.scheduleTryLoadNextTasksPage()
+    },
+
+    onTasksPointerIntent(event) {
+      if (event?.button !== 1) {
+        return
+      }
+      if (!this.isTasksPageInteractionTarget(event?.target)) {
+        return
+      }
+      this.tasksUserScrolled = true
+      this.lastTasksScrollTarget = this.resolveTasksScrollTarget(event?.target)
+    },
+
+    onTasksKeydownIntent(event) {
+      const keys = ['PageDown', 'End', 'ArrowDown', 'Space', ' ']
+      if (!keys.includes(event?.key)) {
+        return
+      }
+      this.tasksUserScrolled = true
+      this.lastTasksScrollTarget = this.resolveTasksScrollTarget(document.activeElement)
+      this.scheduleTryLoadNextTasksPage()
+    },
+
+    onAnyTasksScroll(event) {
+      if (!this.isTasksPageScrollEvent(event)) {
+        return
+      }
+      this.tasksUserScrolled = true
+      this.lastTasksScrollTarget = this.resolveTasksScrollTarget(event?.target)
+      this.scheduleTryLoadNextTasksPage()
+    },
+
+    onTasksTableNeedMore() {
+      this.tasksUserScrolled = true
+      this.scheduleTryLoadNextTasksPage(true)
+    },
+
+    scheduleTryLoadNextTasksPage(force = false) {
+      if (force && this.taskPageScrollTimer) {
+        clearTimeout(this.taskPageScrollTimer)
+        this.taskPageScrollTimer = null
+      }
+      if (this.taskPageScrollTimer) {
+        return
+      }
+      this.taskPageScrollTimer = setTimeout(() => {
+        this.taskPageScrollTimer = null
+        this.tryLoadNextTasksPage(force)
+      }, 100)
+    },
+
+    isTasksPageScrollEvent(event) {
+      const root = this.$refs.tasksPageScroll
+      const target = event?.target
+      if (!root || !target) {
+        return false
+      }
+      if (target === document || target === window || target === document.documentElement || target === document.body) {
+        return document.body.contains(root)
+      }
+      return target === root || root.contains(target)
+    },
+
+    isTasksPageInteractionTarget(target) {
+      const root = this.$refs.tasksPageScroll
+      if (!root) {
+        return false
+      }
+      if (!target || target === document || target === window || target === document.documentElement || target === document.body) {
+        return document.body.contains(root)
+      }
+      return target === root || root.contains(target)
+    },
+
+    resolveTasksScrollTarget(target) {
+      const root = this.$refs.tasksPageScroll
+      if (!root) {
+        return null
+      }
+      if (!target || target === document || target === window || target === document.documentElement || target === document.body) {
+        return root
+      }
+      let node = target
+      while (node && node !== document.body) {
+        if (node === root) {
+          return root
+        }
+        if (root.contains(node)) {
+          const style = window.getComputedStyle(node)
+          const canScrollY = ['auto', 'scroll', 'overlay'].includes(style.overflowY)
+          if (canScrollY && node.scrollHeight > node.clientHeight + 5) {
+            return node
+          }
+        }
+        node = node.parentElement
+      }
+      return root
+    },
+
+    getTasksDistanceToBottom() {
+      const target = this.lastTasksScrollTarget || this.$refs.tasksPageScroll
+      if (!target) {
+        return Number.POSITIVE_INFINITY
+      }
+      return target.scrollHeight - target.scrollTop - target.clientHeight
+    },
+
+    setupTasksInfiniteObserver() {
+      this.destroyTasksInfiniteObserver()
+
+      const sentinel = this.$refs.tasksInfiniteSentinel
+      const root = this.$refs.tasksPageScroll || null
+
+      if (!sentinel) {
+        return
+      }
+
+      this.tasksInfiniteObserver = new IntersectionObserver(
+        entries => {
+          const entry = entries[0]
+          if (!entry || !entry.isIntersecting) {
+            return
+          }
+
+          this.tryLoadNextTasksPage(true)
+        },
+        {
+          root,
+          rootMargin: '300px 0px 300px 0px',
+          threshold: 0.01
+        }
+      )
+
+      this.tasksInfiniteObserver.observe(sentinel)
+    },
+
+    destroyTasksInfiniteObserver() {
+      if (this.tasksInfiniteObserver) {
+        this.tasksInfiniteObserver.disconnect()
+        this.tasksInfiniteObserver = null
+      }
+    },
+
+    tryLoadNextTasksPage(force = false) {
+      if (!this.taskPageInitialLoaded) {
+        return
+      }
+      if (!force && !this.tasksUserScrolled) {
+        return
+      }
+      if (this.taskPageLoading || this.taskPageIsEnd) {
+        return
+      }
+      const distanceToBottom = this.getTasksDistanceToBottom()
+      if (!force && distanceToBottom > this.tasksLoadScrollThreshold) {
+        return
+      }
+      this.tasksUserScrolled = false
+      if (this.isShowTableMode) {
+        this.loadTasksPage(false)
+      } else {
+        this.loadCardTaskColumns(false)
+      }
+    },
+
+    loadMoreTasksIfViewportIsNotFilled(attempt = 0) {
+      if (attempt > 8) {
+        return
+      }
+      if (this.taskPageLoading || this.taskPageIsEnd) {
+        return
+      }
+      if (this.taskPageAutoFillTimer) {
+        clearTimeout(this.taskPageAutoFillTimer)
+      }
+      this.taskPageAutoFillTimer = setTimeout(async () => {
+        this.taskPageAutoFillTimer = null
+        const root = this.$refs.tasksPageScroll
+        if (!root || this.taskPageLoading || this.taskPageIsEnd) {
+          return
+        }
+        const viewportIsNotFilled = root.scrollHeight <= root.clientHeight + 80
+        if (!viewportIsNotFilled) {
+          return
+        }
+        if (this.isShowTableMode) {
+          await this.loadTasksPage(false)
+        } else {
+          await this.loadCardTaskColumns(false)
+        }
+        this.$nextTick(() => {
+          this.loadMoreTasksIfViewportIsNotFilled(attempt + 1)
+        })
+      }, 80)
     },
 
     filterFn(filter, input) {
@@ -844,6 +1402,8 @@ export default {
       this.isMenuActive = false
       const slug = this.filterTypes.filter(el => el.label === label)[0].slug
       let options
+      let selectedOptions = []
+
       switch (slug) {
         case 'executor':
           options = this.executors
@@ -866,11 +1426,17 @@ export default {
         case 'type':
           options = this.taskTypes
           break
+        case 'createdAt':
+        case 'lastActivity':
+          options = null
+          selectedOptions = this.createEmptyDateRange()
+          break
         default:
           options = null
           break
       }
-      this.filterChain.push({label, options, selectedOptions: [], slug})
+
+      this.filterChain.push({label, options, selectedOptions, slug})
       this.addNewFilterSelectorText = ''
       this.isFilterOpen = false
     },
@@ -976,6 +1542,7 @@ export default {
         this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
       }
       this.saveActiveFilterToLocalStorage()
+      this.reloadTasksPageDebounced()
     },
 
     getOrganizationName(task) {
@@ -1079,6 +1646,11 @@ export default {
           case 'type':
             normalizedFilter.options = this.taskTypes
             break
+          case 'createdAt':
+          case 'lastActivity':
+            normalizedFilter.options = null
+            normalizedFilter.selectedOptions = this.normalizeDateRangeSelectedOptions(normalizedFilter.selectedOptions)
+            break
           default:
             normalizedFilter.options = null
             break
@@ -1175,9 +1747,7 @@ export default {
     normalizeFilterForSave(filter) {
       const normalizedFilter = {
         label: filter.label,
-        selectedOptions: Array.isArray(filter.selectedOptions)
-          ? [...filter.selectedOptions]
-          : filter.selectedOptions
+        selectedOptions: this.cloneFilterSelectedOptions(filter.selectedOptions)
       }
       if (filter.isBeforeDeadline !== undefined) {
         normalizedFilter.isBeforeDeadline = filter.isBeforeDeadline
@@ -1208,40 +1778,73 @@ export default {
     },
 
     onTaskClicked(task) {
-      this.isTaskDialogShow = true
+      this.openTaskDialog(task, true)
+    },
+
+    openTaskDialog(task, updateUrl = true) {
+      if (!task || !task.id) {
+        return
+      }
       this.selectedTask = task
-      this.updateUrlWithTask(task.id)
+      this.isNewTaskDialogShow = false
+      this.isTaskDialogShow = true
+      if (updateUrl) {
+        this.updateUrlWithTask(task.id)
+      }
     },
 
     closeDialog() {
-      const queryParams = new URLSearchParams(window.location.search)
-      queryParams.delete('task')
-      this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
+      const query = {...this.$route.query}
+      if (query.task) {
+        delete query.task
+        this.$router.replace({
+          path: this.$route.path,
+          query
+        })
+      }
       this.isNewTaskDialogShow = false
       this.isTaskDialogShow = false
+      this.selectedTask = null
     },
 
     updateUrlWithTask(openedTaskId) {
-      const queryParams = new URLSearchParams(window.location.search)
-      queryParams.set('task', openedTaskId)
-      this.$router.push({path: this.$route.path, query: Object.fromEntries(queryParams.entries())})
+      if (!openedTaskId) {
+        return
+      }
+      const currentTaskId = this.$route.query.task
+      if (String(currentTaskId || '') === String(openedTaskId)) {
+        return
+      }
+      this.$router.replace({
+        path: this.$route.path,
+        query: {
+          ...this.$route.query,
+          task: String(openedTaskId)
+        }
+      })
     },
 
     initializeTaskFromUrl() {
-      const queryParams = new URLSearchParams(window.location.search)
-      const taskIdFromUrl = queryParams.get('task')
-      if (!taskIdFromUrl && this.isTaskDialogShow) {
-        this.closeDialog()
-      }
-      if (taskIdFromUrl) {
-        const taskFromUrl = this.store.getTasks.find(task => task.id === Number(taskIdFromUrl))
-        if (taskFromUrl.completed) {
-          this.isShowCompletedTasks = true
-        }
-        this.onTaskClicked(taskFromUrl)
-      } else {
+      const taskIdFromUrl = this.$route.query.task
+      if (!taskIdFromUrl) {
         this.isNewTaskDialogShow = false
+        this.isTaskDialogShow = false
+        this.selectedTask = null
+        return
       }
+      const taskId = Number(taskIdFromUrl)
+      if (!Number.isFinite(taskId)) {
+        return
+      }
+      const taskFromUrl = this.getStoreTaskById(taskId)
+      if (!taskFromUrl) {
+        return
+      }
+      if (taskFromUrl.completed && !this.isShowCompletedTasks) {
+        this.isShowCompletedTasks = true
+        return
+      }
+      this.openTaskDialog(taskFromUrl, false)
     },
 
     updateTask(task, newTask) {
@@ -1283,7 +1886,9 @@ export default {
     },
 
     getStoreTaskById(taskId) {
-      return this.store.getTasks.find(task => task?.id === taskId) || null
+      return this.store.getTaskPageTasks.find(task => task?.id === taskId) ||
+        this.store.getTasks.find(task => task?.id === taskId) ||
+        null
     },
 
     getCheckedTaskById(taskId) {
@@ -1291,24 +1896,43 @@ export default {
     },
 
     replaceTaskInLists(task) {
+      if (!task?.id) {
+        return
+      }
+      const loadedTask = this.store.getTaskPageTasks.find(item => item?.id === task.id)
+      const normalizedTask = this.store.normalizeTaskPageTask({
+        ...task,
+        client: task.client || loadedTask?.client
+      })
+      const shouldHideFromCurrentList =
+        !this.isShowCompletedTasks &&
+        (Boolean(normalizedTask.completed) || Boolean(normalizedTask.frozen))
+      const loadedTaskIndex = this.store.taskPage.tasks.findIndex(item => item?.id === normalizedTask.id)
+      if (loadedTaskIndex !== -1) {
+        if (shouldHideFromCurrentList) {
+          this.store.taskPage.tasks.splice(loadedTaskIndex, 1)
+          this.store.taskPage.totalElements = Math.max(0, Number(this.store.taskPage.totalElements || 0) - 1)
+        } else {
+          this.store.taskPage.tasks.splice(loadedTaskIndex, 1, normalizedTask)
+        }
+      } else if (!shouldHideFromCurrentList) {
+        this.reloadTasksPageDebounced()
+      }
       const tasks = this.store.getTasks
-      const taskIndex = tasks.findIndex(item => item?.id === task.id)
+      const taskIndex = tasks.findIndex(item => item?.id === normalizedTask.id)
       if (taskIndex !== -1) {
-        tasks.splice(taskIndex, 1, task)
+        tasks.splice(taskIndex, 1, normalizedTask)
       }
-
-      const checkedTaskIndex = this.store.checkedTasks.findIndex(item => item?.id === task.id)
+      const checkedTaskIndex = this.store.checkedTasks.findIndex(item => item?.id === normalizedTask.id)
       if (checkedTaskIndex !== -1) {
-        this.store.checkedTasks.splice(checkedTaskIndex, 1, task)
+        this.store.checkedTasks.splice(checkedTaskIndex, 1, normalizedTask)
       }
-
-      if (this.selectedTask?.id === task.id) {
-        this.selectedTask = task
+      if (this.selectedTask?.id === normalizedTask.id) {
+        this.selectedTask = normalizedTask
       }
-
-      if (Object.prototype.hasOwnProperty.call(this.slaInfoByTaskId, task.id)) {
+      if (Object.prototype.hasOwnProperty.call(this.slaInfoByTaskId, normalizedTask.id)) {
         const slaInfo = {...this.slaInfoByTaskId}
-        delete slaInfo[task.id]
+        delete slaInfo[normalizedTask.id]
         this.slaInfoByTaskId = slaInfo
       }
     },
@@ -1714,6 +2338,9 @@ export default {
     },
 
     openBulkModal(action) {
+      if (action === 'close' && !this.validateBulkCloseExecutors()) {
+        return
+      }
       this.pendingBulkAction = action
       if (this.isBulkReasonRequired(action)) {
         this.bulkStatusChangeReason = ''
@@ -1726,6 +2353,41 @@ export default {
 
     isBulkReasonRequired(action) {
       return ['close', 'open'].includes(action)
+    },
+
+    hasExecutorForClose(task) {
+      const actualTask = this.getStoreTaskById(task?.id) || task
+      return !!actualTask?.executor && !!actualTask.executor.id
+    },
+
+    getBulkCloseTasksWithoutExecutor() {
+      return (this.store.checkedTasks || [])
+        .filter(task => !this.hasExecutorForClose(task))
+    },
+
+    validateBulkCloseExecutors() {
+      const tasksWithoutExecutor = this.getBulkCloseTasksWithoutExecutor()
+      if (tasksWithoutExecutor.length === 0) {
+        return true
+      }
+      const taskNumbers = tasksWithoutExecutor
+        .map(task => task?.id ? `№${task.id}` : null)
+        .filter(Boolean)
+        .join(', ')
+      this.$q.notify({
+        message: taskNumbers
+          ? `Перед закрытием укажите исполнителя у заявок: ${taskNumbers}`
+          : 'Перед закрытием заявок укажите исполнителя',
+        type: 'negative',
+        position: 'top-right',
+        actions: [{
+          icon: 'close',
+          color: 'white',
+          dense: true,
+          handler: () => undefined
+        }]
+      })
+      return false
     },
 
     getBulkReasonDialogTitle() {
@@ -1892,12 +2554,13 @@ export default {
 
     confirmBulkReasonDialog() {
       const reason = String(this.bulkStatusChangeReason || '').trim()
-
       if (!reason) {
         this.bulkReasonError = true
         return
       }
-
+      if (this.pendingBulkAction === 'close' && !this.validateBulkCloseExecutors()) {
+        return
+      }
       if (this.bulkReasonResolve) {
         const resolve = this.bulkReasonResolve
         this.isBulkReasonDialogShow = false
@@ -1905,12 +2568,100 @@ export default {
         resolve(reason)
         return
       }
-
       const action = this.pendingBulkAction
+      if (action === 'close') {
+        this.executeBulkCloseWithoutSecondConfirm(reason)
+        return
+      }
       this.bulkStatusChangeReason = reason
       this.pendingBulkAction = null
       this.isBulkReasonDialogShow = false
       this.showBulkActionModal(action)
+    },
+
+    getBulkReasonConfirmLabel() {
+      if (this.pendingBulkAction === 'close') {
+        return 'Закрыть'
+      }
+
+      return 'Продолжить'
+    },
+
+    getBulkClosedStatus() {
+      return this.store.statuses.find(status => this.isClosedStatusName(status.name))
+    },
+
+    buildBulkCloseTask(sourceTask, reason) {
+      const originalTask = this.getStoreTaskById(sourceTask?.id) || sourceTask
+      const closedStatus = this.getBulkClosedStatus()
+
+      const task = {
+        ...this.cloneBulkTask(originalTask),
+        completed: true,
+        frozen: false,
+        frozenFrom: null,
+        frozenUntil: null,
+        statusChangeReason: reason
+      }
+
+      if (closedStatus) {
+        task.status = closedStatus
+      }
+
+      return this.sanitizeBulkTaskForSave(task)
+    },
+
+    async executeBulkCloseWithoutSecondConfirm(reason) {
+      if (!this.validateBulkCloseExecutors()) {
+        return
+      }
+      const selectedTasks = [...this.store.checkedTasks]
+      if (selectedTasks.length === 0) {
+        this.clearBulkReasonDialogState()
+        this.isBulkReasonDialogShow = false
+        return
+      }
+      this.isBulkReasonDialogShow = false
+      this.pendingBulkAction = null
+      try {
+        this.beginBulkActionHistory('close')
+        for (const sourceTask of selectedTasks) {
+          const task = this.buildBulkCloseTask(sourceTask, reason)
+          const clientId = this.getBulkTaskClientId(sourceTask, task)
+          if (!clientId) {
+            throw new Error(`Не найден clientId для заявки ${sourceTask?.id || ''}`)
+          }
+          const response = await axios.patch(`/api/v1/client/${clientId}/task`, task)
+          this.updateTask(task, response)
+        }
+        this.store.checkedTasks = []
+        this.$q.notify({
+          message: `Закрыто заявок: ${selectedTasks.length}`,
+          type: 'positive',
+          position: 'top-right',
+          actions: [{
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }]
+        })
+      } catch (e) {
+        this.$q.notify({
+          message: e.message || 'Не удалось закрыть заявки',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close',
+            color: 'white',
+            dense: true,
+            handler: () => undefined
+          }]
+        })
+      } finally {
+        this.clearBulkReasonDialogState()
+        this.scheduleFinishBulkActionHistory(1000)
+      }
     },
 
     cancelBulkReasonDialog() {
@@ -2479,14 +3230,152 @@ export default {
           return new Date(moment(filter.selectedOptions, 'DD.MM.YYYY HH:mm').format()) <= new Date(task.deadline)
         }
 
+        case 'createdAt': {
+          return this.isTaskDateInRange(task.createdAt, filter.selectedOptions)
+        }
+
+        case 'lastActivity': {
+          return this.isTaskDateInRange(task.lastActivity || task.updatedAt, filter.selectedOptions)
+        }
+
         default:
           return true
       }
     },
 
+    createEmptyDateRange() {
+      return {
+        from: '',
+        to: ''
+      }
+    },
+
+    isDateRangeFilter(filter) {
+      return ['createdAt', 'lastActivity'].includes(filter?.slug)
+    },
+
+    normalizeDateRangeSelectedOptions(value) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return this.createEmptyDateRange()
+      }
+      return {
+        from: value.from || '',
+        to: value.to || ''
+      }
+    },
+
+    cloneFilterSelectedOptions(value) {
+      if (Array.isArray(value)) {
+        return [...value]
+      }
+      if (value && typeof value === 'object') {
+        return {...value}
+      }
+      return value
+    },
+
+    getFilterSelectedOptionsText(filter) {
+      if (!filter) {
+        return ''
+      }
+      if (this.isDateRangeFilter(filter)) {
+        const range = this.normalizeDateRangeSelectedOptions(filter.selectedOptions)
+        const parts = []
+        if (range.from) {
+          parts.push(`от ${range.from}`)
+        }
+        if (range.to) {
+          parts.push(`до ${range.to}`)
+        }
+        return parts.length > 0 ? parts.join(', ') : 'не выбрано'
+      }
+
+      if (Array.isArray(filter.selectedOptions)) {
+        return filter.selectedOptions.join(', ')
+      }
+      return filter.selectedOptions || ''
+    },
+
+    parseFilterDateStart(value) {
+      const date = moment(String(value || ''), 'DD.MM.YYYY', true)
+      return date.isValid() ? date.startOf('day').toDate() : null
+    },
+
+    parseFilterDateEnd(value) {
+      const date = moment(String(value || ''), 'DD.MM.YYYY', true)
+      return date.isValid() ? date.endOf('day').toDate() : null
+    },
+
+    isTaskDateInRange(taskDateValue, selectedOptions) {
+      if (!taskDateValue) {
+        return false
+      }
+      const range = this.normalizeDateRangeSelectedOptions(selectedOptions)
+      const taskDate = new Date(taskDateValue)
+      if (Number.isNaN(taskDate.getTime())) {
+        return false
+      }
+      const from = this.parseFilterDateStart(range.from)
+      const to = this.parseFilterDateEnd(range.to)
+      if (from && taskDate < from) {
+        return false
+      }
+      return !(to && taskDate > to);
+    },
+
+    onTaskUpdatedFromSocket (payload) {
+      const socketTask = payload?.task
+
+      if (!socketTask?.id) {
+        return
+      }
+
+      const loadedTask = this.store.taskPage.tasks.find(item => {
+        return Number(item?.id) === Number(socketTask.id)
+      })
+
+      if (!loadedTask) {
+        return
+      }
+
+      const normalizedTask = this.store.normalizeTaskPageTask({
+        ...socketTask,
+        client: socketTask.client?.id ? socketTask.client : loadedTask.client
+      })
+
+      this.replaceTaskInLists(normalizedTask)
+
+      this.$nextTick(() => {
+        this.loadSlaInfoForTask(normalizedTask, true)
+      })
+    },
   },
 
   computed: {
+    taskPageIsEnd() {
+      if (this.isShowTableMode) {
+        return Boolean(this.store.taskPage?.isEnd)
+      }
+      const columns = this.getCardTaskColumnDefinitions()
+      if (columns.length === 0) {
+        return Boolean(this.store.taskPage?.isEnd)
+      }
+      return columns.every(column => this.getCardTaskColumnState(column).isEnd)
+    },
+
+    taskPageTotalElements() {
+      if (this.isShowTableMode) {
+        return Number(this.store.taskPage?.totalElements || 0)
+      }
+      const columns = this.getCardTaskColumnDefinitions()
+      if (columns.length === 0) {
+        return Number(this.store.taskPage?.totalElements || 0)
+      }
+      return columns.reduce((sum, column) => {
+        return sum + Number(this.getCardTaskColumnState(column).totalElements || 0)
+      }, 0)
+    },
+
     canUndoBulkAction() {
       return this.bulkActionHistory.length > 0 || this.hasPendingBulkActionHistoryChanges()
     },
@@ -2518,79 +3407,7 @@ export default {
     },
 
     getFilteredTasks() {
-      let tasks = this.store.getTasks.filter(task => {
-        let matchesSearchRequest = true
-        if (this.searchRequest) {
-          const search = this.searchRequest.toLowerCase()
-          const checklistText = this.getChecklistItems(task)
-            .map(item => item.text)
-            .join(' ')
-            .toLowerCase()
-          matchesSearchRequest = task.name.toLowerCase().includes(search) ||
-            task.id.toString().toLowerCase().includes(search) ||
-            task.priority.name.toLowerCase().includes(search) ||
-            task.status.name.toLowerCase().includes(search) ||
-            this.getTaskTypeName(task).toLowerCase().includes(search) ||
-            checklistText.includes(search)
-        }
-        return ((!task.frozen && !task.completed) || this.isShowCompletedTasks) && matchesSearchRequest
-      })
-      if (this.selectedSorting.slug) {
-        if (this.ascendingSort) {
-          tasks.sort((a, b) => {
-            switch (this.selectedSorting.slug) {
-              case 'deadline':
-                return new Date(a.deadline) - new Date(b.deadline)
-              case 'creating':
-                return new Date(a.createdAt) - new Date(b.createdAt)
-              case 'priority':
-                return b.priority.orderNumber - a.priority.orderNumber
-              case 'sla':
-                return this.getSlaDeadlineMs(a) - this.getSlaDeadlineMs(b)
-              case 'status':
-                return b.status.orderNumber - a.status.orderNumber
-              default:
-                return 0
-            }
-          })
-        } else {
-          tasks.sort((a, b) => {
-            switch (this.selectedSorting.slug) {
-              case 'deadline':
-                return new Date(b.deadline) - new Date(a.deadline)
-              case 'creating':
-                return new Date(b.createdAt) - new Date(a.createdAt)
-              case 'priority':
-                return a.priority.orderNumber - b.priority.orderNumber
-              case 'sla':
-                return this.getSlaDeadlineMs(b) - this.getSlaDeadlineMs(a)
-              case 'status':
-                return a.status.orderNumber - b.status.orderNumber
-              default:
-                return 0
-            }
-          })
-        }
-      }
-      const activeFilters = this.filterChain.filter(filter => {
-        const slug = this.filterTypes.find(ft => ft.label === filter.label)?.slug
-        if (slug === 'deadline') {
-          return !!filter.selectedOptions
-        }
-        return filter.selectedOptions && filter.selectedOptions.length > 0
-      })
-      if (activeFilters.length > 0) {
-        if (this.filterJoinOperator === 'AND') {
-          tasks = tasks.filter(task =>
-            activeFilters.every(filter => this.isTaskMatchesFilter(task, filter))
-          )
-        } else {
-          tasks = tasks.filter(task =>
-            activeFilters.some(filter => this.isTaskMatchesFilter(task, filter))
-          )
-        }
-      }
-      return tasks
+      return this.store.getTaskPageTasks
     },
 
     getGroupedTasks() {
@@ -2679,9 +3496,13 @@ export default {
         })
       } else {
         source.forEach(el => {
+          const taskCards = options[el] || []
+          if (taskCards.length === 0) {
+            return
+          }
           groupedCards.push({
-            title: options[el] ? `${el} (${options[el].length})` : el,
-            taskCards: options[el]
+            title: `${el} (${taskCards.length})`,
+            taskCards
           })
         })
       }
@@ -2732,10 +3553,10 @@ export default {
 
     groupExecutors() {
       return [
+        this.unassignedExecutorLabel,
         ...this.store.users.filter(user => user !== null)
           .filter(user => user.roles !== 'OBSERVER')
           .map(user => `${user.firstname} ${user.lastname}`),
-        this.unassignedExecutorLabel,
       ]
     },
 
@@ -2760,9 +3581,10 @@ export default {
     },
 
     taskTypes() {
-      return Array.from(
-        new Set(this.store.getTasks.map(task => this.getTaskTypeName(task)))
-      ).sort((a, b) => a.localeCompare(b, 'ru'))
+      return (this.store.taskTypes || [])
+        .map(taskType => taskType?.type || taskType?.name || '')
+        .filter(type => type)
+        .sort((a, b) => a.localeCompare(b, 'ru'))
     },
 
     isMobile() {
@@ -2782,7 +3604,7 @@ export default {
     },
 
     getFilterType() {
-      return this.filterTypes.filter(filter => filter.slug !== 'deadline')
+      return this.filterTypes.filter(filter => !['deadline', 'createdAt', 'lastActivity'].includes(filter.slug))
     },
 
     taskTypeOptions() {
@@ -2813,6 +3635,7 @@ export default {
               this.selectedSavedFilter = ''
             }
           }
+          this.reloadTasksPageDebounced()
         } catch (e) {
         }
       },
@@ -2821,6 +3644,7 @@ export default {
 
     isShowTableMode(newValue) {
       localStorage.setItem('isShowListMode', newValue ? 'true' : 'false')
+      this.reloadTasksPageDebounced()
     },
 
     selectedSavedFilter: {
@@ -2831,9 +3655,16 @@ export default {
       deep: true
     },
 
-    '$route'(to) {
-      this.initializeFilterChainFromUrl()
+    '$route.query.task'() {
       this.initializeTaskFromUrl()
+    },
+
+    '$route.query.filterChain'() {
+      this.initializeFilterChainFromUrl()
+    },
+
+    '$route.query.filterJoinOperator'() {
+      this.initializeFilterChainFromUrl()
     },
 
     selectedGroupType() {
@@ -2842,6 +3673,7 @@ export default {
 
     isShowCompletedTasks() {
       localStorage.setItem('isShowCompletedTasks', this.isShowCompletedTasks)
+      this.reloadTasksPageDebounced()
     },
 
     showBulkActionsMenu() {
@@ -2886,6 +3718,21 @@ export default {
       }
     },
 
+    searchRequest() {
+      this.reloadTasksPageDebounced()
+    },
+
+    selectedSorting: {
+      deep: true,
+      handler() {
+        this.reloadTasksPageDebounced()
+      }
+    },
+
+    ascendingSort() {
+      this.reloadTasksPageDebounced()
+    },
+
     filterJoinOperator() {
       if (this.isFilterSelected && this.filterChain.length > 0) {
         this.updateUrlWithFilterChain(this.filterChain)
@@ -2898,18 +3745,24 @@ export default {
           this.selectedSavedFilter = ''
         }
       }
+
+      this.reloadTasksPageDebounced()
     },
   },
 
   mounted() {
-    document.title = 'ULDESK : Заявки'
-    this.store.checkedTasks = []
-    window.addEventListener('keydown', this.handleBulkHistoryShortcut)
+    this.taskUpdatedUnsubscribe = onTaskUpdated(this.onTaskUpdatedFromSocket)
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)
-    setTimeout(() => this.initializeTaskFromUrl(), 300)
-    setTimeout(() => this.initializeFilterChainFromUrl(), 300)
+    window.addEventListener('wheel', this.onTasksScrollIntent, { passive: true })
+    window.addEventListener('touchmove', this.onTasksScrollIntent, { passive: true })
+    window.addEventListener('keydown', this.onTasksKeydownIntent)
+    window.addEventListener('keydown', this.handleBulkHistoryShortcut)
+    document.addEventListener('scroll', this.onAnyTasksScroll, true)
+    document.addEventListener('mousedown', this.onTasksPointerIntent, true)
+    document.addEventListener('auxclick', this.onTasksPointerIntent, true)
+    this.initializeFilterChainFromUrl()
     axios.get('/api/v1/filters')
       .then(response => {
         this.savedFilters = response.data
@@ -2924,6 +3777,11 @@ export default {
             icon: 'close', color: 'white', dense: true, handler: () => undefined
           }]
         }))
+      .finally(() => {
+        this.resetTasksPageAndLoad()
+          .then(() => this.initializeTaskFromUrl())
+      })
+    this.$nextTick(() => this.setupTasksInfiniteObserver())
   },
 
   created() {
@@ -2948,10 +3806,30 @@ export default {
   },
 
   beforeUnmount() {
+    window.removeEventListener('wheel', this.onTasksScrollIntent)
+    window.removeEventListener('touchmove', this.onTasksScrollIntent)
+    window.removeEventListener('keydown', this.onTasksKeydownIntent)
     window.removeEventListener('keydown', this.handleBulkHistoryShortcut)
+    document.removeEventListener('scroll', this.onAnyTasksScroll, true)
+    document.removeEventListener('mousedown', this.onTasksPointerIntent, true)
+    document.removeEventListener('auxclick', this.onTasksPointerIntent, true)
+    this.destroyTasksInfiniteObserver()
     clearInterval(this.slaTimer)
     if (this.bulkActionHistoryFinishTimer) {
       clearTimeout(this.bulkActionHistoryFinishTimer)
+    }
+    if (this.taskPageReloadTimer) {
+      clearTimeout(this.taskPageReloadTimer)
+    }
+    if (this.taskPageScrollTimer) {
+      clearTimeout(this.taskPageScrollTimer)
+    }
+    if (this.taskPageAutoFillTimer) {
+      clearTimeout(this.taskPageAutoFillTimer)
+    }
+    if (this.taskUpdatedUnsubscribe) {
+      this.taskUpdatedUnsubscribe()
+      this.taskUpdatedUnsubscribe = null
     }
   },
 }
@@ -3053,17 +3931,43 @@ export default {
 .tasks-page-content {
   display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
   width: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .tasks-page-component {
   display: flex;
+  flex: 0 0 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: visible;
+}
+
+.tasks-page-loading {
+  display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  height: 100%;
   width: 100%;
-  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.tasks-infinite-status {
+  flex: 0 0 auto;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 0 18px;
+}
+
+.task-date-range-filter {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
 }
 </style>

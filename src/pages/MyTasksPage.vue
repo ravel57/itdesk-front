@@ -23,7 +23,14 @@
     </div>
     <div style="padding: 16px">
       <div
-        v-if="this.myTasksDisplayedTasks.length > 0"
+        v-if="this.isInitialMyTasksLoading"
+        class="absolute-center text-grey-6"
+      >
+        Загружаю заявки...
+      </div>
+
+      <div
+        v-else-if="this.myTasksDisplayedTasks.length > 0"
         data-my-tasks-tour="task-list"
         style="display: flex; flex-wrap: wrap; flex-direction: row"
         :style="this.isMobile ? 'justify-content: center;' : 'justify-content: start;'"
@@ -72,8 +79,24 @@
           </q-item>
         </q-item>
       </div>
+
       <div
-        v-else
+        v-if="!this.myTasksOnboardingActive && this.myTasksDisplayedTasks.length > 0"
+        class="text-grey-6 text-center q-py-md full-width"
+      >
+        <div v-if="this.myTasksPageLoading">
+          Загружаю заявки...
+        </div>
+        <div v-else-if="!this.myTasksPageIsEnd">
+          Прокрутите ниже, чтобы загрузить ещё
+        </div>
+        <div v-else>
+          Показано {{ this.myTasksDisplayedTasks.length }} из {{ this.myTasksTotalElements }}
+        </div>
+      </div>
+
+      <div
+        v-else-if="this.shouldShowMyTasksPlaceholder"
         class="absolute-center"
       >
         <div style="display: flex;flex-direction: row;align-items: center">
@@ -165,6 +188,8 @@
 <script>
 import {useStore} from 'stores/store'
 import {useRoute} from 'vue-router'
+import axios from 'axios'
+import moment from 'moment'
 import TaskCard from 'components/TaskCard.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
@@ -182,6 +207,18 @@ export default {
     isFilterSelected: false,
     selectedTask: {},
     searchRequest: '',
+    myTasksPagedTasks: [],
+    myTasksPage: 0,
+    myTasksPageSize: 50,
+    myTasksTotalElements: 0,
+    myTasksTotalPages: 0,
+    myTasksPageIsEnd: false,
+    myTasksPageLoading: false,
+    myTasksPageLoadedOnce: false,
+    myTasksReloadTimer: null,
+    myTasksScrollTimer: null,
+    myTasksUserScrolled: false,
+    myTasksLoadScrollThreshold: 700,
     myTasksOnboardingActive: false,
     myTasksOnboardingStepIndex: 0,
     myTasksOnboardingTooltipStyle: {},
@@ -240,6 +277,257 @@ export default {
   }),
 
   methods: {
+    normalizeMyTask(task) {
+      if (!task) {
+        return task
+      }
+
+      const normalizedTask = { ...task }
+
+      if (normalizedTask.createdAt) {
+        normalizedTask.createdAt = new Date(normalizedTask.createdAt)
+      }
+      if (normalizedTask.deadline) {
+        normalizedTask.deadline = new Date(normalizedTask.deadline)
+      }
+      if (normalizedTask.frozenFrom) {
+        normalizedTask.frozenFrom = new Date(normalizedTask.frozenFrom)
+      }
+      if (normalizedTask.frozenUntil) {
+        normalizedTask.frozenUntil = new Date(normalizedTask.frozenUntil)
+      }
+      if (normalizedTask.closedAt) {
+        normalizedTask.closedAt = new Date(normalizedTask.closedAt)
+      }
+      if (normalizedTask.lastActivity) {
+        normalizedTask.lastActivity = new Date(normalizedTask.lastActivity)
+      }
+
+      if (normalizedTask.sla) {
+        normalizedTask.sla = { ...normalizedTask.sla }
+
+        if (normalizedTask.sla.startDate) {
+          normalizedTask.sla.startDate = moment(new Date(normalizedTask.sla.startDate), 'DD.MM.YYYY HH:mm')
+        }
+
+        if (normalizedTask.sla.duration !== undefined && normalizedTask.sla.duration !== null) {
+          normalizedTask.sla.duration = moment.duration(normalizedTask.sla.duration * 1000)
+        }
+      }
+
+      if (!Array.isArray(normalizedTask.messages)) {
+        normalizedTask.messages = []
+      }
+
+      normalizedTask.messages = normalizedTask.messages.map(message => ({
+        ...message,
+        date: message.date ? new Date(message.date) : message.date
+      }))
+
+      return normalizedTask
+    },
+
+    buildMyTasksPageRequest(page = 1) {
+      return {
+        page,
+        size: this.myTasksPageSize,
+        search: this.searchRequest || '',
+        includeCompleted: false,
+        sortSlug: 'creating',
+        ascendingSort: false,
+        filterJoinOperator: 'AND',
+        filterChain: [
+          {
+            label: 'Исполнитель',
+            slug: 'executor',
+            selectedOptions: ['Вы']
+          }
+        ],
+        requiredFilterChain: []
+      }
+    },
+
+    mergeMyTasks(currentTasks = [], newTasks = []) {
+      const taskById = new Map()
+
+      currentTasks.forEach(task => {
+        if (task?.id !== undefined && task?.id !== null) {
+          taskById.set(Number(task.id), task)
+        }
+      })
+
+      newTasks.forEach(task => {
+        if (task?.id !== undefined && task?.id !== null) {
+          taskById.set(Number(task.id), task)
+        }
+      })
+
+      return Array.from(taskById.values())
+    },
+
+    async loadMyTasksPage(reset = false) {
+      if (this.myTasksPageLoading) {
+        return
+      }
+
+      if (!reset && this.myTasksPageIsEnd) {
+        return
+      }
+
+      this.myTasksPageLoading = true
+
+      const page = reset ? 1 : this.myTasksPage + 1
+      const requestSearch = this.searchRequest || ''
+
+      try {
+        const response = await axios.post('/api/v1/tasks-page', this.buildMyTasksPageRequest(page))
+
+        if ((this.searchRequest || '') !== requestSearch) {
+          return
+        }
+
+        const loadedTasks = Array.isArray(response.data?.tasks)
+          ? response.data.tasks.map(task => this.normalizeMyTask(task))
+          : []
+
+        this.myTasksPagedTasks = reset
+          ? loadedTasks
+          : this.mergeMyTasks(this.myTasksPagedTasks, loadedTasks)
+
+        this.myTasksPage = response.data?.page ?? page
+        this.myTasksTotalElements = response.data?.totalElements ?? this.myTasksPagedTasks.length
+        this.myTasksTotalPages = response.data?.totalPages ?? 0
+        this.myTasksPageIsEnd = response.data?.isEnd ?? loadedTasks.length === 0
+        this.myTasksPageLoadedOnce = true
+      } catch (e) {
+        this.$q.notify({
+          message: e.message || 'Не удалось загрузить мои заявки',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      } finally {
+        this.myTasksPageLoading = false
+      }
+    },
+
+    resetMyTasksPageAndLoad() {
+      if (this.myTasksReloadTimer) {
+        clearTimeout(this.myTasksReloadTimer)
+        this.myTasksReloadTimer = null
+      }
+
+      this.myTasksPagedTasks = []
+      this.myTasksPage = 0
+      this.myTasksTotalElements = 0
+      this.myTasksTotalPages = 0
+      this.myTasksPageIsEnd = false
+      this.myTasksPageLoadedOnce = false
+      this.myTasksUserScrolled = false
+
+      this.loadMyTasksPage(true)
+    },
+
+    reloadMyTasksPageDebounced() {
+      if (this.myTasksReloadTimer) {
+        clearTimeout(this.myTasksReloadTimer)
+      }
+
+      this.myTasksReloadTimer = setTimeout(() => {
+        this.myTasksReloadTimer = null
+        this.resetMyTasksPageAndLoad()
+      }, 300)
+    },
+
+    onMyTasksScrollIntent(event) {
+      if (event?.type === 'keydown') {
+        const allowedKeys = ['PageDown', 'End', 'ArrowDown', 'Space', ' ']
+        if (!allowedKeys.includes(event.key)) {
+          return
+        }
+      }
+      this.myTasksUserScrolled = true
+      this.scheduleTryLoadNextMyTasksPage()
+    },
+
+    onAnyMyTasksScroll() {
+      this.myTasksUserScrolled = true
+      this.scheduleTryLoadNextMyTasksPage()
+    },
+
+    scheduleTryLoadNextMyTasksPage() {
+      if (this.myTasksScrollTimer) {
+        return
+      }
+
+      this.myTasksScrollTimer = setTimeout(() => {
+        this.myTasksScrollTimer = null
+        this.tryLoadNextMyTasksPage()
+      }, 100)
+    },
+
+    tryLoadNextMyTasksPage() {
+      if (!this.myTasksPageLoadedOnce) {
+        return
+      }
+
+      if (!this.myTasksUserScrolled) {
+        return
+      }
+
+      if (this.myTasksPageLoading || this.myTasksPageIsEnd) {
+        return
+      }
+
+      const distanceToBottom = this.getMyTasksDistanceToBottom()
+
+      if (distanceToBottom > this.myTasksLoadScrollThreshold) {
+        return
+      }
+
+      this.myTasksUserScrolled = false
+      this.loadMyTasksPage(false)
+    },
+
+    getMyTasksDistanceToBottom() {
+      const documentElement = document.documentElement
+      const body = document.body
+      const scrollTop = window.scrollY || documentElement.scrollTop || body.scrollTop || 0
+      const scrollHeight = Math.max(
+        body.scrollHeight,
+        documentElement.scrollHeight,
+        body.offsetHeight,
+        documentElement.offsetHeight
+      )
+      const clientHeight = window.innerHeight || documentElement.clientHeight
+      return scrollHeight - scrollTop - clientHeight
+    },
+
+    upsertMyTask(task) {
+      const normalizedTask = this.normalizeMyTask(task)
+      if (!normalizedTask?.id) {
+        return
+      }
+      if (normalizedTask.completed || normalizedTask.frozen) {
+        this.myTasksPagedTasks = this.myTasksPagedTasks.filter(item => Number(item.id) !== Number(normalizedTask.id))
+        this.myTasksTotalElements = Math.max(0, Number(this.myTasksTotalElements || 0) - 1)
+        return
+      }
+      const index = this.myTasksPagedTasks.findIndex(item => Number(item.id) === Number(normalizedTask.id))
+      if (index === -1) {
+        this.myTasksPagedTasks = [normalizedTask, ...this.myTasksPagedTasks]
+        this.myTasksTotalElements = Number(this.myTasksTotalElements || 0) + 1
+      } else {
+        const nextTasks = [...this.myTasksPagedTasks]
+        nextTasks.splice(index, 1, {
+          ...nextTasks[index],
+          ...normalizedTask
+        })
+        this.myTasksPagedTasks = nextTasks
+      }
+    },
 
     startMyTasksOnboarding(force = false) {
       if (!force && this.isMyTasksOnboardingPassed()) {
@@ -403,7 +691,13 @@ export default {
     },
 
     updateTask(task, newTask) {
-      this.selectedTask = newTask.data
+      const updatedTask = newTask?.data || newTask
+      if (updatedTask?.id) {
+        this.upsertMyTask(updatedTask)
+        this.selectedTask = this.normalizeMyTask(updatedTask)
+        return
+      }
+      this.selectedTask = updatedTask
     },
 
     updateUrlWithTask(openedTaskId) {
@@ -422,7 +716,7 @@ export default {
         this.closeDialog()
       }
       if (taskIdFromUrl) {
-        const taskFromUrl = this.getFilteredTasks.find(task => task.id === Number(taskIdFromUrl))
+        const taskFromUrl = this.getFilteredTasks.find(task => Number(task.id) === Number(taskIdFromUrl))
         if (taskFromUrl) {
           this.onTaskClicked(taskFromUrl)
         }
@@ -448,8 +742,11 @@ export default {
     },
 
     addMessageToTask(event) {
+      if (!this.selectedTask.messages) {
+        this.selectedTask.messages = []
+      }
       this.selectedTask.messages.push(event.message)
-    }
+    },
   },
 
   computed: {
@@ -556,27 +853,31 @@ export default {
     },
 
     getFilteredTasks() {
-      return this.store.getTasks.filter(task => task.executor && task.executor.id === this.store.currentUser.id)
-        .filter(task => {
-          let matchesSearchRequest = true
-          if (this.searchRequest) {
-            matchesSearchRequest = task.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-              task.id.toString().toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-              task.priority.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-              // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-              task.status.name.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-              (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase())
-          }
-          return !task.completed && matchesSearchRequest
-        })
+      return this.myTasksPagedTasks
     },
 
     isMobile() {
       return this.$q.screen.width < 1023
-    }
+    },
+
+    isInitialMyTasksLoading() {
+      return this.myTasksPageLoading && !this.myTasksPageLoadedOnce && !this.myTasksOnboardingActive
+    },
+
+    shouldShowMyTasksPlaceholder() {
+      if (this.myTasksOnboardingActive) {
+        return false
+      }
+      return this.myTasksPageLoadedOnce && !this.myTasksPageLoading && this.myTasksDisplayedTasks.length === 0
+    },
   },
 
   mounted() {
+    window.addEventListener('wheel', this.onMyTasksScrollIntent, { passive: true })
+    window.addEventListener('touchmove', this.onMyTasksScrollIntent, { passive: true })
+    window.addEventListener('keydown', this.onMyTasksScrollIntent)
+    document.addEventListener('scroll', this.onAnyMyTasksScroll, true)
+    this.resetMyTasksPageAndLoad()
     setTimeout(() => this.initializeTaskFromUrl(), 300)
     setTimeout(() => {
       const queryParams = new URLSearchParams(window.location.search)
@@ -590,11 +891,25 @@ export default {
   beforeUnmount() {
     window.removeEventListener('resize', this.updateMyTasksOnboardingPosition)
     window.removeEventListener('scroll', this.updateMyTasksOnboardingPosition, true)
+    window.removeEventListener('wheel', this.onMyTasksScrollIntent)
+    window.removeEventListener('touchmove', this.onMyTasksScrollIntent)
+    window.removeEventListener('keydown', this.onMyTasksScrollIntent)
+    document.removeEventListener('scroll', this.onAnyMyTasksScroll, true)
+    if (this.myTasksReloadTimer) {
+      clearTimeout(this.myTasksReloadTimer)
+    }
+    if (this.myTasksScrollTimer) {
+      clearTimeout(this.myTasksScrollTimer)
+    }
   },
 
   watch: {
     '$route'(to) {
       this.initializeTaskFromUrl()
+    },
+
+    searchRequest() {
+      this.reloadMyTasksPageDebounced()
     }
   },
 

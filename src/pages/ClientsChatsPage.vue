@@ -103,7 +103,7 @@
                       {{ client.lastname }} {{ client.firstname }}
                     </span>
                     <div
-                      v-if="this.getActualTasks(client).length > 0"
+                      v-if="getOpenTasksCount(client) > 0"
                       class="client-open-tasks-counter"
                       :data-tour="isFirstClient(client) ? 'client-tasks-count' : null"
                       title="Открытые заявки"
@@ -114,20 +114,20 @@
                       />
 
                       <span class="client-open-tasks-counter__value">
-                        {{ this.getActualTasks(client).length }}
+                        {{ getOpenTasksCount(client) }}
                       </span>
                     </div>
                     <div class="row items-center no-wrap">
                       <div
                         v-if="isSlaVisible(client)"
                         class="sla-pill q-ml-sm"
-                        :class="{ 'sla-pill--expired': isSlaExpired(this.getActualTasks(client)) }"
+                        :class="{ 'sla-pill--expired': isClientSlaExpired(client) }"
                         :data-tour="isFirstClient(client) ? 'client-sla' : null"
                       >
                         <q-linear-progress
                           :value="getClientSlaPercent(client) ?? 0"
-                          :color="this.isSlaExpired(this.getActualTasks(client)) ? 'negative' : getSlaColor(this.getActualTasks(client))"
-                          :track-color="isSlaExpired(this.getActualTasks(client)) ? 'negative-2' : 'grey-3'"
+                          :color="isClientSlaExpired(client) ? 'negative' : getClientSlaColor(client)"
+                          :track-color="isClientSlaExpired(client) ? 'negative-2' : 'grey-3'"
                           reverse
                           rounded
                           class="sla-bar"
@@ -755,10 +755,38 @@ export default {
     },
 
     getActualTasks (client) {
-      if (client.tasks) {
-        return client.tasks.filter(task => !task.completed)
-      } else {
-        return []
+      if (this.isOnboardingDemoClient(client)) {
+        return (client.tasks || []).filter(task => !task.completed)
+      }
+      return []
+    },
+
+    getOpenTasksCount (client) {
+      if (this.isOnboardingDemoClient(client)) {
+        return this.getActualTasks(client).length
+      }
+      return Number(client?.openTasksCount || 0)
+    },
+
+    getClientSlaPreviewTask (client) {
+      if (this.isOnboardingDemoClient(client)) {
+        return this.getMinimalSlaTask(this.getActualTasks(client))
+      }
+      if (!client?.minimalSlaTaskId || !client?.minimalSlaStartDate || !client?.minimalSlaDurationSeconds) {
+        return null
+      }
+      return {
+        id: client.minimalSlaTaskId,
+        completed: false,
+        frozen: false,
+        sla: {
+          startDate: client.minimalSlaStartDate,
+          duration: Number(client.minimalSlaDurationSeconds)
+        },
+        slaInfo: {
+          paused: client.minimalSlaPaused === true,
+          deadline: client.minimalSlaDeadline
+        }
       }
     },
 
@@ -1087,7 +1115,7 @@ export default {
     },
 
     getClientMinimalSlaLeftMs (client) {
-      const task = this.getMinimalSlaTask(this.getActualTasks(client))
+      const task = this.getClientSlaPreviewTask(client)
       if (!task) {
         return null
       }
@@ -1141,14 +1169,7 @@ export default {
       } else if (clientPing) {
         count += 1
       }
-      ;(client.tasks || []).forEach(task => {
-        const taskPing = task.unreadPingTasksMessages?.[userId]
-        if (typeof taskPing === 'number') {
-          count += taskPing
-        } else if (taskPing) {
-          count += 1
-        }
-      })
+      count += Number(client.taskPingCount || 0)
       return count
     },
 
@@ -1173,7 +1194,10 @@ export default {
     },
 
     getTasksWithoutAssigneeCount (client) {
-      return this.getActualTasks(client).filter(task => this.isTaskWithoutAssignee(task)).length
+      if (this.isOnboardingDemoClient(client)) {
+        return this.getActualTasks(client).filter(task => this.isTaskWithoutAssignee(task)).length
+      }
+      return Number(client?.tasksWithoutAssigneeCount || 0)
     },
 
     sortByPings (a, b) {
@@ -1244,10 +1268,7 @@ export default {
         return false
       }
       const hasClientPing = Boolean(client.unreadPingMessages?.[userId])
-      const hasTaskPing = (client.tasks || []).some(task =>
-        Boolean(task.unreadPingTasksMessages?.[userId])
-      )
-      return hasClientPing || hasTaskPing
+      return hasClientPing || client.hasTaskPing === true || Number(client.taskPingCount || 0) > 0
     },
 
     getSlaInfo (task) {
@@ -1274,11 +1295,13 @@ export default {
     async preloadSlaInfosForClients (clients) {
       const ids = []
       ;(clients || []).forEach(client => {
-        this.getActualTasks(client).forEach(task => {
-          if (task?.id && !task.completed && !task.frozen) {
-            ids.push(task.id)
-          }
-        })
+        if (this.isOnboardingDemoClient(client)) {
+          this.getActualTasks(client).forEach(task => {
+            if (task?.id && !task.completed && !task.frozen) {
+              ids.push(task.id)
+            }
+          })
+        }
       })
       const uniqIds = [...new Set(ids)]
       await Promise.all(uniqIds.map(id => this.loadSlaInfoForTaskId(id)))
@@ -1359,16 +1382,29 @@ export default {
     },
 
     getClientSlaPercent (client) {
-      const tasks = this.getActualTasks(client)
-      return this.getSlaPercent(tasks) // вернёт number или null
+      const task = this.getClientSlaPreviewTask(client)
+      return task ? this.getSlaPercent([task]) : null
     },
 
     hasClientSla (client) {
-      return this.getActualTasks(client).some(task => this.hasTaskSla(task))
+      return this.getClientSlaPreviewTask(client) !== null
     },
 
     hasCriticalTasks (client) {
-      return client.tasks?.some(task => task.priority?.critical && !task.completed) === true
+      if (this.isOnboardingDemoClient(client)) {
+        return client.tasks?.some(task => task.priority?.critical && !task.completed) === true
+      }
+      return client.hasCriticalTasks === true
+    },
+
+    isClientSlaExpired (client) {
+      const task = this.getClientSlaPreviewTask(client)
+      return task ? this.isSlaExpired([task]) : false
+    },
+
+    getClientSlaColor (client) {
+      const task = this.getClientSlaPreviewTask(client)
+      return task ? this.getSlaColor([task]) : 'grey'
     },
 
     getLastMessageObject (client) {
@@ -1393,7 +1429,7 @@ export default {
     },
 
     isSlaVisible (client) {
-      const task = this.getMinimalSlaTask(this.getActualTasks(client))
+      const task = this.getClientSlaPreviewTask(client)
       if (!task || task.completed) {
         return false
       }
@@ -1583,10 +1619,10 @@ export default {
 }
 
 .client-info-section {
-  flex: 0 0 300px;
-  width: 300px;
+  flex: 0 0 400px;
+  width: 400px;
   min-width: 0;
-  max-width: 300px;
+  max-width: 400px;
 }
 
 .client-critical-icon {

@@ -4,7 +4,6 @@ import { useStore } from 'stores/store'
 import moment from 'moment/moment'
 import { appConfig } from 'src/config/appConfig'
 import { useSystemNotifications } from 'src/composables/useSystemNotifications'
-import axios from 'axios'
 
 let stompClient = null
 
@@ -44,6 +43,8 @@ export function connect () {
     stompClient.subscribe('/topic/user-notification/', message => userNotificationCallback(message))
 
     stompClient.subscribe('/topic/task-messages/', message => taskMessageCallback(message))
+
+    stompClient.subscribe('/topic/task-updated/', message => taskUpdatedCallback(message))
 
     stompClient.subscribe('/topic/force-logout/', message => forceLogoutCallback(message))
   })
@@ -87,13 +88,11 @@ function normalizeClientFromSocket (client, existingClient = null) {
 
 function normalizeClientMessages (client, existingClient = null) {
   if (Array.isArray(client?.messages)) {
-    return client.messages.map(normalizeIncomingClientMessage)
+    return sortMessagesByDateAndId(client.messages.map(normalizeIncomingClientMessage))
   }
-
   if (Array.isArray(existingClient?.messages)) {
-    return existingClient.messages.map(normalizeIncomingClientMessage)
+    return sortMessagesByDateAndId(existingClient.messages.map(normalizeIncomingClientMessage))
   }
-
   return []
 }
 
@@ -102,11 +101,14 @@ function normalizeTaskFromSocket (task) {
     ...task,
     createdAt: task?.createdAt ? new Date(task.createdAt) : task?.createdAt,
     deadline: task?.deadline ? new Date(task.deadline) : task?.deadline,
+    lastActivity: task?.lastActivity ? new Date(task.lastActivity) : task?.lastActivity,
+    closedAt: task?.closedAt ? new Date(task.closedAt) : task?.closedAt,
+    frozenFrom: task?.frozenFrom ? new Date(task.frozenFrom) : task?.frozenFrom,
+    frozenUntil: task?.frozenUntil ? new Date(task.frozenUntil) : task?.frozenUntil,
     messages: Array.isArray(task?.messages)
-      ? task.messages.map(normalizeIncomingClientMessage)
+      ? sortMessagesByDateAndId(task.messages.map(normalizeIncomingClientMessage))
       : []
   }
-
   if (normalizedTask.sla) {
     normalizedTask.sla = {
       ...normalizedTask.sla,
@@ -116,7 +118,6 @@ function normalizeTaskFromSocket (task) {
       duration: normalizeSlaDuration(normalizedTask.sla.duration)
     }
   }
-
   return normalizedTask
 }
 
@@ -310,18 +311,27 @@ function clientMessageCallback (message) {
   }
 
   const incomingMessage = normalizeIncomingClientMessage(clientMessage.message)
-  const client = store.clients.find(c => Number(c.id) === Number(clientMessage.client.id))
+  const clientId = Number(clientMessage.client.id)
+
+  const client = store.clients.find(c => Number(c.id) === clientId)
+  const isCurrentClient = Number(store.currentClient?.id) === clientId
+
   if (!client) {
     refreshClientsFromSocket()
     return
-  } else if (!Array.isArray(client.messages)) {
-    client.messages = []
-  }
-  upsertClientMessage(client, incomingMessage)
-  if (Number(store.currentClient?.id) === Number(client.id)) {
-    upsertClientMessage(store.currentClient, incomingMessage)
   }
   client.lastMessage = incomingMessage
+  if (!Boolean.TRUE && !incomingMessage.isSent && !incomingMessage.isComment) {
+    client.unreadMessagesCount = Number(client.unreadMessagesCount || 0) + 1
+  }
+  if (!isCurrentClient) {
+    upsertClientMessage(client, incomingMessage)
+    return
+  }
+  notifyClientMessageListeners({
+    client: clientMessage.client,
+    message: incomingMessage
+  })
 }
 
 function normalizeIncomingClientMessage (message) {
@@ -346,7 +356,6 @@ function upsertClientMessage (client, message) {
   if (!Array.isArray(client.messages)) {
     client.messages = []
   }
-
   const normalizedMessage = hydrateReplyMessageFromClient(client, normalizeIncomingClientMessage(message))
   const index = client.messages.findIndex(item =>
     Number(item.id) === Number(normalizedMessage.id)
@@ -359,9 +368,7 @@ function upsertClientMessage (client, message) {
       ...normalizedMessage
     })
   }
-
-  client.messages = [...client.messages]
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
+  client.messages = sortMessagesByDateAndId(client.messages)
 }
 
 function hydrateReplyMessageFromClient (client, message) {
@@ -384,7 +391,7 @@ function hydrateReplyMessageFromClient (client, message) {
 function supportMessagesCallback (message) {
   const supportMessages = safeParseJson(message.body, [])
   useStore().supportMessages = Array.isArray(supportMessages)
-    ? supportMessages.map(normalizeIncomingClientMessage)
+    ? sortMessagesByDateAndId(supportMessages.map(normalizeIncomingClientMessage))
     : []
 }
 
@@ -400,11 +407,11 @@ function editedMessageCallback (message) {
   }
 
   const normalizedMessage = normalizeIncomingClientMessage(clientMessage.message)
+
   const updateMessage = client => {
     if (!client || !Array.isArray(client.messages)) {
       return
     }
-
     const localMessage = client.messages.find(m => Number(m.id) === Number(normalizedMessage.id))
     if (localMessage) {
       Object.assign(localMessage, normalizedMessage)
@@ -495,15 +502,22 @@ export function onTaskMessage (listener) {
   }
 }
 
+const taskUpdatedListeners = new Set()
+
+export function onTaskUpdated (listener) {
+  taskUpdatedListeners.add(listener)
+
+  return () => {
+    taskUpdatedListeners.delete(listener)
+  }
+}
+
 function taskMessageCallback (message) {
   const payload = safeParseJson(message.body, null)
-
   if (!payload || !payload.taskId || !payload.message) {
     return
   }
-
   payload.message = normalizeIncomingClientMessage(payload.message)
-
   addMessageToTaskInClient(useStore().clients.find(c => Number(c.id) === Number(payload.clientId)), payload)
   addMessageToTaskInClient(
     Number(useStore().currentClient?.id) === Number(payload.clientId)
@@ -527,12 +541,14 @@ function addMessageToTaskInClient (client, payload) {
   if (!Array.isArray(task.messages)) {
     task.messages = []
   }
-  const existingMessage = task.messages.find(m => Number(m.id) === Number(payload.message.id))
+  const normalizedMessage = normalizeIncomingClientMessage(payload.message)
+  const existingMessage = task.messages.find(m => Number(m.id) === Number(normalizedMessage.id))
   if (existingMessage) {
-    Object.assign(existingMessage, payload.message)
+    Object.assign(existingMessage, normalizedMessage)
   } else {
-    task.messages.push(payload.message)
+    task.messages.push(normalizedMessage)
   }
+  task.messages = sortMessagesByDateAndId(task.messages.map(normalizeIncomingClientMessage))
 }
 
 function forceLogoutCallback (message) {
@@ -566,4 +582,109 @@ function refreshClientsFromSocket () {
     return
   }
   stompClient.send('/app/clients/refresh', {}, '{}')
+}
+
+function taskUpdatedCallback (message) {
+  const payload = safeParseJson(message.body, null)
+
+  if (!payload || !payload.task || !payload.task.id) {
+    return
+  }
+
+  const store = useStore()
+
+  const normalizedTask = store.normalizeTaskPageTask
+    ? store.normalizeTaskPageTask(payload.task)
+    : normalizeTaskFromSocket(payload.task)
+
+  const normalizedPayload = {
+    ...payload,
+    task: normalizedTask
+  }
+
+  if (typeof store.updateLoadedTaskPageTaskFromSocket === 'function') {
+    store.updateLoadedTaskPageTaskFromSocket(normalizedTask)
+  }
+
+  updateTaskInClient(
+    store.clients.find(client => Number(client.id) === Number(payload.clientId)),
+    normalizedTask
+  )
+
+  if (Number(store.currentClient?.id) === Number(payload.clientId)) {
+    updateTaskInClient(store.currentClient, normalizedTask)
+  }
+
+  taskUpdatedListeners.forEach(listener => {
+    listener(normalizedPayload)
+  })
+}
+
+function updateTaskInClient (client, task) {
+  if (!client || !Array.isArray(client.tasks) || !task?.id) {
+    return
+  }
+
+  const index = client.tasks.findIndex(item => {
+    return Number(item?.id) === Number(task.id)
+  })
+
+  if (index === -1) {
+    return
+  }
+
+  const existingTask = client.tasks[index]
+
+  client.tasks.splice(index, 1, {
+    ...existingTask,
+    ...normalizeTaskFromSocket({
+      ...task,
+      client: task.client || existingTask.client || client
+    })
+  })
+}
+
+const clientMessageListeners = new Set()
+
+export function onClientMessage (listener) {
+  clientMessageListeners.add(listener)
+
+  return () => {
+    clientMessageListeners.delete(listener)
+  }
+}
+
+function notifyClientMessageListeners (payload) {
+  clientMessageListeners.forEach(listener => {
+    try {
+      listener(payload)
+    } catch (e) {
+      console.error(e)
+    }
+  })
+}
+
+function sortMessagesByDateAndId (messages) {
+  if (!Array.isArray(messages)) {
+    return []
+  }
+
+  return [...messages].sort((a, b) => {
+    const dateDiff = getMessageTime(a) - getMessageTime(b)
+
+    if (dateDiff !== 0) {
+      return dateDiff
+    }
+
+    return Number(a?.id || 0) - Number(b?.id || 0)
+  })
+}
+
+function getMessageTime (message) {
+  const rawDate = message?.date
+  const time = rawDate instanceof Date
+    ? rawDate.getTime()
+    : new Date(rawDate || 0).getTime()
+
+  return Number.isFinite(time) ? time : 0
 }

@@ -20,7 +20,9 @@
         virtual-scroll
         :rows="this.displayedTableRows"
         :columns="this.filterTableColumns"
-        :rows-per-page-options="[10, 20, 40, 60, 100]"
+        :pagination="{ rowsPerPage: 0 }"
+        :rows-per-page-options="[0]"
+        hide-pagination
         :sortable="true"
         row-key="id"
         bordered
@@ -28,8 +30,8 @@
         selection="multiple"
         v-model:selected="this.store.checkedTasks"
         :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
-        rows-per-page-label="Строк на странице"
-    >
+        @virtual-scroll="this.onTableVirtualScroll"
+      >
       <!-- кастомный хедер -->
       <template v-slot:header="props">
         <tr>
@@ -81,16 +83,13 @@
               {{ col.value }}
             </div>
 
-            <div
-              v-else-if="col.name === 'type'"
+            <span
+              v-else-if="col.name === 'status'"
+              class="task-table-status-badge"
+              :style="getStatusBadgeStyle(col.value)"
             >
-              <q-badge
-                dense
-                outline
-                color="primary"
-                :label="col.value"
-              />
-            </div>
+              {{ col.value }}
+            </span>
 
             <div
               v-else-if="col.name === 'checklist'"
@@ -115,18 +114,6 @@
                 :animation-speed="0"
               />
             </div>
-
-            <!-- обведённый бейдж для статуса -->
-            <q-badge
-              v-else-if="col.name === 'status'"
-              dense
-              :color="col.value === 'Заморожена'
-            ? 'rgba(50, 173, 230, 1)'
-            : col.value === 'Закрыта'
-              ? 'rgba(16, 181, 92, 1)'
-              : 'grey'"
-              :label="col.value"
-            />
 
             <!-- всё остальное -->
             <div v-else>
@@ -224,7 +211,7 @@ import { QBadge } from 'quasar'
 
 export default {
 
-  components: { TaskDialog, CardTasksView, QBadge },
+  components: { TaskDialog, CardTasksView },
 
   name: 'TasksComponent',
 
@@ -424,7 +411,9 @@ export default {
         name: 'status',
         label: 'Статус',
         align: 'left',
-        field: row => row.status.name,
+        field: row => typeof row.status === 'string'
+          ? row.status
+          : row.status?.name || '',
         sortable: true
       },
       {
@@ -593,7 +582,42 @@ export default {
           width: `${tooltipWidth}px`
         }
       }, 220)
-    }
+    },
+
+    getStatusBadgeColor (status) {
+      const statusName = String(status || '').trim().toLowerCase()
+      if (['заморожена', 'заморожено', 'заморожен'].includes(statusName)) {
+        return 'rgba(50, 173, 230, 1)'
+      }
+      if (['закрыта', 'закрыто', 'закрыт'].includes(statusName)) {
+        return 'rgba(16, 181, 92, 1)'
+      }
+      return 'var(--q-primary)'
+    },
+
+    getStatusBadgeStyle (status) {
+      const color = this.getStatusBadgeColor(status)
+      return {
+        color,
+        borderColor: color
+      }
+    },
+
+    onTableVirtualScroll(details) {
+      if (!this.isShowTableMode || this.tasksOnboardingActive) {
+        return
+      }
+      const rowsCount = this.displayedTableRows.length
+      if (rowsCount <= 0) {
+        return
+      }
+      const lastVisibleIndex = Number.isFinite(Number(details?.to))
+        ? Number(details.to)
+        : Number(details?.index || 0)
+      if (lastVisibleIndex >= rowsCount - 5) {
+        this.$emit('onTableNeedMore')
+      }
+    },
   },
 
   computed: {
@@ -773,5 +797,21 @@ export default {
 .task-table-checklist-progress {
   width: 72px;
   flex: 0 0 72px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.task-table-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
 }
 </style>

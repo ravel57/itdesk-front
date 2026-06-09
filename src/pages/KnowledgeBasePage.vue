@@ -150,12 +150,6 @@
           <div class="text-h6 ellipsis">
             {{ this.selectedKnowledgeTitle }}
           </div>
-          <div class="text-caption text-grey-7">
-            База знаний
-            <span v-if="this.selectedKnowledge && this.selectedKnowledge.id">
-              · статья #{{ this.selectedKnowledge.id }}
-            </span>
-          </div>
         </div>
 
         <q-btn
@@ -268,14 +262,25 @@
         </div>
         <q-select
           v-model="this.dialogTags"
-          :options="this.store.tags.map(t => t.name)"
+          :options="this.dialogTagOptions"
           multiple
           label="Теги"
           use-chips
           use-input
+          input-debounce="0"
           dense
           style="padding-top: 16px"
-        />
+          @filter="filterDialogTags"
+          @popup-show="dialogTagOptions = getAllDialogTagOptions()"
+        >
+          <template v-slot:no-option>
+            <q-item>
+              <q-item-section class="text-grey">
+                Теги не найдены
+              </q-item-section>
+            </q-item>
+          </template>
+        </q-select>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
@@ -317,6 +322,7 @@ export default {
     dialogTitle: '',
     dialogTexts: [],
     dialogTags: [],
+    dialogTagOptions: [],
     dialogTextsCounter: 1,
 
     isNewKnowledge: true,
@@ -357,9 +363,8 @@ export default {
       if (!this.selectedKnowledge) {
         return 'Статья не найдена'
       }
-
       return this.selectedKnowledge.title || `Статья #${this.selectedKnowledge.id}`
-    }
+    },
   },
 
   watch: {
@@ -550,6 +555,7 @@ export default {
       this.dialogTitle = row.title
       this.dialogTexts = structuredClone(row.texts || [''])
       this.dialogTags = this.getKnowledgeTags(row).map(tag => tag.name)
+      this.dialogTagOptions = this.getAllDialogTagOptions()
     },
 
     dialogNewKnowledge () {
@@ -558,6 +564,7 @@ export default {
       this.dialogTitle = ''
       this.dialogTexts = ['']
       this.dialogTags = []
+      this.dialogTagOptions = this.getAllDialogTagOptions()
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
@@ -566,8 +573,9 @@ export default {
     },
 
     dialogSaveNewOrUpdateKnowledge () {
-      const tags = []
-      this.dialogTags.forEach(tagName => tags.push(this.store.tags.find(tag => tag.name === tagName)))
+      const tags = this.dialogTags
+        .map(tagName => (this.store.tags || []).find(tag => tag.name === tagName))
+        .filter(Boolean)
       const knowledge = {
         id: this.isNewKnowledge ? null : this.knowledgeId,
         title: this.dialogTitle,
@@ -678,6 +686,31 @@ export default {
         this.pendingKnowledgeId = null
         this.removeKnowledgeIdFromRoute()
       }
+    },
+
+    normalizeKnowledgeTagSearch (value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replaceAll('ё', 'е')
+    },
+
+    getAllDialogTagOptions () {
+      return (this.store.tags || [])
+        .filter(tag => tag && tag.name)
+        .map(tag => tag.name)
+        .filter((name, index, array) => array.indexOf(name) === index)
+        .sort((left, right) => left.localeCompare(right, 'ru'))
+    },
+
+    filterDialogTags (value, update) {
+      update(() => {
+        const search = this.normalizeKnowledgeTagSearch(value)
+        const options = this.getAllDialogTagOptions()
+        this.dialogTagOptions = search
+          ? options.filter(tagName => this.normalizeKnowledgeTagSearch(tagName).includes(search))
+          : options
+      })
     },
   },
 

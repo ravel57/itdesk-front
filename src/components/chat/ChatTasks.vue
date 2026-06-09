@@ -23,7 +23,7 @@
           <span
             class="text-h6"
             style="margin-top: 3px"
-            v-text="this.getDeclension(this.getActualTasks.length)"
+            v-text="this.getDeclension(this.getTasksTotalForHeader)"
           />
           <div class="container q-pa-none q-gutter-md q-position-relative">
             <q-toggle
@@ -131,8 +131,18 @@
     </div>
     <div
       id="task-vertical-carousel"
+      ref="taskScroll"
       style="overflow: auto;position: relative;width: 100%;height: 100%"
+      @scroll.passive="this.onTaskScroll"
     >
+      <div
+        v-if="!this.isDemoClient"
+        class="text-grey-6 text-center q-py-md"
+      >
+        <div v-if="this.isInitialTasksLoading">
+          Загружаю заявки...
+        </div>
+      </div>
 <!--      :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 280px)'"-->
       <div class="row justify-center">
         <div v-if="this.getActualTasks.length > 0" style="width: 100%;">
@@ -195,7 +205,7 @@
           </q-card-section>
         </div>
         <div
-          v-else
+          v-else-if="this.shouldShowNoTasksPlaceholder"
           style="text-align: center;position: absolute;width: 100%"
         >
           <div style="display: flex;width: 100%">
@@ -213,6 +223,20 @@
           <div style="font-size: 20px">Заявок нет</div>
           <no-tasks-placeholder/>
         </div>
+        <div
+          v-if="!this.isDemoClient && this.getActualTasks.length > 0"
+          class="text-grey-6 text-center q-py-md"
+        >
+          <div v-if="this.taskPageLoading">
+            Загружаю заявки...
+          </div>
+          <div v-else-if="!this.taskPageIsEnd">
+            Прокрутите ниже, чтобы загрузить ещё
+          </div>
+          <div v-else>
+            Показано {{ this.getActualTasks.length }} из {{ this.taskPageTotalElements }}
+          </div>
+        </div>
       </div>
     </div>
   </q-card>
@@ -228,6 +252,7 @@
     @closeDialog="this.closeDialog"
     @addMessageToTask="this.addMessageToTask"
     @updateTask="updateTask"
+    @newTask="onNewTaskCreated"
   />
 </template>
 
@@ -239,6 +264,7 @@ import TaskCard from 'components/TaskCard.vue'
 import { useStore } from 'stores/store'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import moment from "moment";
+import { onTaskUpdated } from 'src/util/ws'
 
 export default {
 
@@ -303,10 +329,247 @@ export default {
     nowTs: Date.now(),
     slaTimer: null,
 
-    showSearch: false
+    showSearch: false,
+
+    pagedTasks: [],
+    taskPage: 0,
+    taskPageSize: 30,
+    taskPageTotalElements: 0,
+    taskPageTotalPages: 0,
+    taskPageIsEnd: false,
+    taskPageLoading: false,
+    taskPageReloadTimer: null,
+    taskScrollTimer: null,
+    taskPageLoadedOnce: false,
+    loadedClientId: null,
+    taskUpdatedUnsubscribe: null,
+    openingTaskFromUrl: false,
+    lastOpenedTaskIdFromUrl: null,
   }),
 
   methods: {
+    normalizeTaskPageTask(task) {
+      if (!task) {
+        return task
+      }
+      const normalizedTask = { ...task }
+      if (normalizedTask.createdAt) {
+        normalizedTask.createdAt = new Date(normalizedTask.createdAt)
+      }
+      if (normalizedTask.deadline) {
+        normalizedTask.deadline = new Date(normalizedTask.deadline)
+      }
+      if (normalizedTask.frozenFrom) {
+        normalizedTask.frozenFrom = new Date(normalizedTask.frozenFrom)
+      }
+      if (normalizedTask.frozenUntil) {
+        normalizedTask.frozenUntil = new Date(normalizedTask.frozenUntil)
+      }
+      if (normalizedTask.closedAt) {
+        normalizedTask.closedAt = new Date(normalizedTask.closedAt)
+      }
+      if (normalizedTask.lastActivity) {
+        normalizedTask.lastActivity = new Date(normalizedTask.lastActivity)
+      }
+      if (normalizedTask.sla) {
+        normalizedTask.sla = { ...normalizedTask.sla }
+      }
+      if (!Array.isArray(normalizedTask.messages)) {
+        normalizedTask.messages = []
+      }
+      normalizedTask.messages = this.sortMessagesByDateAndId(
+        normalizedTask.messages.map(this.normalizeTaskMessage)
+      )
+
+      return normalizedTask
+    },
+
+    buildTasksPageRequest(page = 1) {
+      return {
+        clientId: this.client?.id,
+        page,
+        size: this.taskPageSize,
+        search: this.search || '',
+        includeCompleted: this.isShowCompletedTasks,
+        sortSlug: this.selectedSorting?.slug || 'creating',
+        ascendingSort: Boolean(this.ascendingSort),
+        filterJoinOperator: 'AND',
+        filterChain: [],
+        requiredFilterChain: []
+      }
+    },
+
+    mergePagedTasks(currentTasks = [], newTasks = []) {
+      const taskById = new Map()
+      currentTasks.forEach(task => {
+        if (task?.id !== undefined && task?.id !== null) {
+          taskById.set(Number(task.id), task)
+        }
+      })
+      newTasks.forEach(task => {
+        if (task?.id !== undefined && task?.id !== null) {
+          taskById.set(Number(task.id), task)
+        }
+      })
+      return Array.from(taskById.values())
+    },
+
+    async loadTasksPage(reset = false) {
+      if (this.isDemoClient || !this.client?.id) {
+        return
+      }
+
+      if (this.taskPageLoading) {
+        return
+      }
+
+      if (!reset && this.taskPageIsEnd) {
+        return
+      }
+
+      const requestClientId = Number(this.client.id)
+      this.taskPageLoading = true
+
+      const page = reset ? 1 : this.taskPage + 1
+
+      try {
+        const response = await axios.post('/api/v1/tasks-page', this.buildTasksPageRequest(page))
+
+        if (Number(this.client?.id) !== requestClientId) {
+          return
+        }
+
+        const loadedTasks = Array.isArray(response.data?.tasks)
+          ? response.data.tasks.map(task => this.normalizeTaskPageTask(task))
+          : []
+
+        this.pagedTasks = reset
+          ? loadedTasks
+          : this.mergePagedTasks(this.pagedTasks, loadedTasks)
+
+        this.taskPage = response.data?.page ?? page
+        this.taskPageTotalElements = response.data?.totalElements ?? this.pagedTasks.length
+        this.taskPageTotalPages = response.data?.totalPages ?? 0
+        this.taskPageIsEnd = response.data?.isEnd ?? loadedTasks.length === 0
+        this.taskPageLoadedOnce = true
+        this.loadedClientId = requestClientId
+
+        this.$emit('tasksLoaded', this.pagedTasks)
+
+        loadedTasks
+          .filter(task => task?.sla)
+          .forEach(task => this.loadSlaInfoForTask(task))
+      } catch (e) {
+        this.$q.notify({
+          message: e.message || 'Не удалось загрузить заявки',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+      } finally {
+        this.taskPageLoading = false
+      }
+    },
+
+    resetTasksPageAndLoad(force = false) {
+      if (this.taskPageReloadTimer) {
+        clearTimeout(this.taskPageReloadTimer)
+        this.taskPageReloadTimer = null
+      }
+      const clientId = Number(this.client?.id || 0)
+      if (!clientId || this.isDemoClient) {
+        this.loadedClientId = null
+        this.pagedTasks = []
+        this.taskPage = 0
+        this.taskPageTotalElements = 0
+        this.taskPageTotalPages = 0
+        this.taskPageIsEnd = false
+        this.taskPageLoadedOnce = false
+        this.taskPageLoading = false
+        this.$emit('tasksLoaded', [])
+        return
+      }
+      if (!force && this.loadedClientId === clientId && this.taskPageLoadedOnce) {
+        return
+      }
+      this.loadedClientId = clientId
+      this.pagedTasks = []
+      this.taskPage = 0
+      this.taskPageTotalElements = 0
+      this.taskPageTotalPages = 0
+      this.taskPageIsEnd = false
+      this.taskPageLoadedOnce = false
+      this.$emit('tasksLoaded', [])
+      this.loadTasksPage(true)
+    },
+
+    reloadTasksPageDebounced(force = true) {
+      if (this.taskPageReloadTimer) {
+        clearTimeout(this.taskPageReloadTimer)
+      }
+      this.taskPageReloadTimer = setTimeout(() => {
+        this.taskPageReloadTimer = null
+        this.resetTasksPageAndLoad(force)
+      }, 300)
+    },
+
+    onTaskScroll(event) {
+      if (this.taskScrollTimer) {
+        return
+      }
+      this.taskScrollTimer = setTimeout(() => {
+        this.taskScrollTimer = null
+        const target = event?.target || this.$refs.taskScroll
+        if (!target || this.taskPageLoading || this.taskPageIsEnd) {
+          return
+        }
+        const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight
+        if (distanceToBottom <= 500) {
+          this.loadTasksPage(false)
+        }
+      }, 100)
+    },
+
+    upsertPagedTask(task) {
+      const normalizedTask = this.normalizeTaskPageTask(task)
+      if (!normalizedTask?.id) {
+        return
+      }
+      const shouldHide = !this.isShowCompletedTasks &&
+        (Boolean(normalizedTask.completed) || Boolean(normalizedTask.frozen))
+      const index = this.pagedTasks.findIndex(item => {
+        return Number(item.id) === Number(normalizedTask.id)
+      })
+      if (shouldHide) {
+        if (index !== -1) {
+          this.pagedTasks = this.pagedTasks.filter(item => {
+            return Number(item.id) !== Number(normalizedTask.id)
+          })
+        }
+        this.$emit('tasksLoaded', this.pagedTasks)
+        return
+      }
+      if (index === -1) {
+        this.pagedTasks = [
+          normalizedTask,
+          ...this.pagedTasks
+        ]
+        this.taskPageTotalElements = Number(this.taskPageTotalElements || 0) + 1
+      } else {
+        this.pagedTasks = this.pagedTasks.map(item => {
+          return Number(item.id) === Number(normalizedTask.id)
+            ? {
+                ...item,
+                ...normalizedTask
+              }
+            : item
+        })
+      }
+      this.$emit('tasksLoaded', this.pagedTasks)
+    },
+
     updateClient (newClient) {
       this.store.clients[this.store.clients.indexOf(this.getClient)] = newClient
     },
@@ -329,24 +592,55 @@ export default {
     updateTask (task, newTask) {
       const updatedTask = newTask?.data || newTask
       const taskId = updatedTask?.id || task?.id
-
+      const isCreatedTask = Boolean(updatedTask?.id) && (!task?.id || this.isNewTask)
       if (taskId) {
         const slaInfoByTaskId = { ...this.slaInfoByTaskId }
         delete slaInfoByTaskId[taskId]
         this.slaInfoByTaskId = slaInfoByTaskId
       }
-
+      if (updatedTask?.id) {
+        this.upsertPagedTask(updatedTask)
+      }
       this.$emit('updateTask', task, newTask)
-
       this.$nextTick(() => {
-        this.loadSlaInfoForTask(updatedTask || task)
+        this.loadSlaInfoForTask(updatedTask || task, true)
       })
+      if (isCreatedTask) {
+        this.isNewTask = false
+        this.isNewLinkedTask = false
+        this.isNewTaskDialogShow = false
+        this.isTaskDialogShow = false
+        this.selectedTask = {}
+        this.resetTasksPageAndLoad(true)
+      }
+    },
+
+    onNewTaskCreated(response) {
+      const createdTask = response?.data || response
+
+      if (!createdTask?.id) {
+        this.resetTasksPageAndLoad(true)
+        return
+      }
+
+      this.updateTask({}, createdTask)
     },
 
     async setTaskCompleted (task) {
       const closedStatus = this.getClosedStatus()
       const oldStatusName = this.getStatusName(task.status)
       const newStatusName = this.getStatusName(closedStatus) || 'Закрыта'
+      if (!task.executor || !task.executor.id) {
+        this.$q.notify({
+          message: 'Перед закрытием заявки укажите исполнителя',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{
+            icon: 'close', color: 'white', dense: true, handler: () => undefined
+          }]
+        })
+        return
+      }
       const statusChangeReason = typeof this.requestStatusChangeReason === 'function'
         ? await this.requestStatusChangeReason(oldStatusName, newStatusName)
         : ''
@@ -425,25 +719,61 @@ export default {
       this.$router.push({ path: this.$route.path, query: Object.fromEntries(queryParams.entries()) })
     },
 
-    initializeTaskFromUrl () {
+    async initializeTaskFromUrl () {
       const queryParams = new URLSearchParams(window.location.search)
-      const taskIdFromUrl = queryParams.get('task')
+      const taskIdFromUrl = this.getRouteTaskId()
       const messageId = queryParams.get('newTaskFromMessage')
       if (messageId && !taskIdFromUrl && !this.isTaskDialogShow) {
         this.isNewLinkedTask = true
         this.dialogNewTask()
-      } else if (!messageId && this.isNewTask && this.isNewLinkedTask) {
+        return
+      }
+      if (!messageId && this.isNewTask && this.isNewLinkedTask) {
         this.isNewLinkedTask = false
         this.isTaskDialogShow = false
       }
-      if (taskIdFromUrl) {
-        const taskFromUrl = this.getActualTasks.find(task => task.id === Number(taskIdFromUrl))
-        if (taskFromUrl.completed) {
+      if (!taskIdFromUrl) {
+        this.lastOpenedTaskIdFromUrl = null
+        if (!messageId) {
+          this.isNewTaskDialogShow = false
+        }
+        return
+      }
+      if (
+        this.isNewTaskDialogShow &&
+        Number(this.selectedTask?.id) === Number(taskIdFromUrl)
+      ) {
+        return
+      }
+      if (this.openingTaskFromUrl) {
+        return
+      }
+      this.openingTaskFromUrl = true
+      try {
+        let taskFromUrl = this.findLoadedTaskById(taskIdFromUrl)
+        if (!taskFromUrl) {
+          taskFromUrl = await this.loadTaskByIdForUrl(taskIdFromUrl)
+        }
+        if (!taskFromUrl) {
+          this.$q.notify({
+            message: `Заявка #${taskIdFromUrl} не найдена или нет доступа`,
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
+          })
+          return
+        }
+        if (taskFromUrl.completed || taskFromUrl.frozen) {
           this.isShowCompletedTasks = true
         }
-        this.onTaskClick(taskFromUrl)
-      } else {
-        this.isNewTaskDialogShow = false
+        this.openTaskDialogFromUrl(taskFromUrl)
+      } finally {
+        this.openingTaskFromUrl = false
       }
     },
 
@@ -483,15 +813,28 @@ export default {
     setSortVariable (sort) {
       this.selectedSorting = sort
       this.saveSortingSettings()
+      this.resetTasksPageAndLoad(true)
     },
 
     changeSortingAsc () {
       this.ascendingSort = !this.ascendingSort
       this.saveSortingSettings()
+      this.resetTasksPageAndLoad(true)
     },
 
     addMessageToTask (event) {
-      this.selectedTask.messages.push(event.message)
+      if (!this.selectedTask) {
+        return
+      }
+      if (!Array.isArray(this.selectedTask.messages)) {
+        this.selectedTask.messages = []
+      }
+      this.selectedTask.messages = this.sortMessagesByDateAndId(
+        this.uniqueMessagesById([
+          ...this.selectedTask.messages,
+          this.normalizeTaskMessage(event.message)
+        ])
+      )
     },
 
     getDeclension (count) {
@@ -529,14 +872,20 @@ export default {
       return moment(task.sla.startDate).add(this.getSlaDuration(task.sla.duration))
     },
 
-    async loadSlaInfoForTask (task) {
+    async loadSlaInfoForTask (task, force = false) {
       if (!task?.id) return
-      if (!task?.sla) return
-      if (this.slaInfoByTaskId[task.id]) return
+      if (!task?.sla || task?.completed || task?.frozen) {
+        const slaInfoByTaskId = { ...this.slaInfoByTaskId }
+        delete slaInfoByTaskId[task.id]
+        this.slaInfoByTaskId = slaInfoByTaskId
+        return
+      }
+      if (!force && this.slaInfoByTaskId[task.id]) return
       if (this.slaInfoLoadingByTaskId[task.id]) return
-
-      this.slaInfoLoadingByTaskId[task.id] = true
-
+      this.slaInfoLoadingByTaskId = {
+        ...this.slaInfoLoadingByTaskId,
+        [task.id]: true
+      }
       try {
         const response = await axios.get(`/api/v1/task/${task.id}/sla/info`)
         this.slaInfoByTaskId = {
@@ -546,15 +895,18 @@ export default {
       } catch (e) {
         console.warn('SLA info load failed', task.id, e)
       } finally {
-        this.slaInfoLoadingByTaskId[task.id] = false
+        this.slaInfoLoadingByTaskId = {
+          ...this.slaInfoLoadingByTaskId,
+          [task.id]: false
+        }
       }
     },
 
     loadSlaInfosForTasks () {
-      if (this.client?.id === -100500) {
+      if (this.isDemoClient) {
         return
       }
-      this.tasks
+      this.pagedTasks
         .filter(task => task?.sla)
         .forEach(task => this.loadSlaInfoForTask(task))
     },
@@ -767,25 +1119,151 @@ export default {
         this.onTaskClick(task)
       })
     },
+
+    onTaskUpdatedFromSocket (payload) {
+      const socketTask = payload?.task
+      if (!socketTask?.id) {
+        return
+      }
+      if (payload?.clientId && Number(payload.clientId) !== Number(this.client?.id)) {
+        return
+      }
+      const existingTask = this.pagedTasks.find(item => {
+        return Number(item?.id) === Number(socketTask.id)
+      })
+      if (!existingTask) {
+        return
+      }
+      const normalizedTask = this.normalizeTaskPageTask({
+        ...socketTask,
+        client: socketTask.client?.id ? socketTask.client : existingTask.client || this.client
+      })
+      this.upsertPagedTask(normalizedTask)
+      if (Number(this.selectedTask?.id) === Number(normalizedTask.id)) {
+        this.selectedTask = normalizedTask
+      }
+      this.$nextTick(() => {
+        this.loadSlaInfoForTask(normalizedTask, true)
+      })
+    },
+
+    getRouteTaskId () {
+      const taskId = Number(this.$route.query.task)
+      return Number.isFinite(taskId) && taskId > 0
+        ? taskId
+        : null
+    },
+
+    findLoadedTaskById (taskId) {
+      const id = Number(taskId)
+      return [...(this.pagedTasks || []), ...(this.tasks || [])]
+        .find(task => Number(task?.id) === id)
+    },
+
+    openTaskDialogFromUrl (task) {
+      if (!task?.id) {
+        return
+      }
+      this.selectedTask = task
+      this.isNewTask = false
+      this.isTaskDialogShow = true
+      this.isNewTaskDialogShow = true
+      this.lastOpenedTaskIdFromUrl = Number(task.id)
+    },
+
+    async loadTaskByIdForUrl (taskId) {
+      if (this.isDemoClient || !this.client?.id) {
+        return this.findLoadedTaskById(taskId)
+      }
+      const response = await axios.post('/api/v1/tasks-page', {
+        ...this.buildTasksPageRequest(1),
+        page: 1,
+        size: 1,
+        search: '',
+        taskId: Number(taskId),
+        includeCompleted: true,
+        filterChain: [],
+        requiredFilterChain: []
+      })
+      const task = Array.isArray(response.data?.tasks)
+        ? response.data.tasks
+          .map(item => this.normalizeTaskPageTask(item))
+          .find(item => Number(item?.id) === Number(taskId))
+        : null
+      return task || null
+    },
+
+    normalizeTaskMessage (message) {
+      if (!message) {
+        return message
+      }
+      return {
+        ...message,
+        date: message.date ? new Date(message.date) : message.date,
+        editedAt: message.editedAt ? new Date(message.editedAt) : message.editedAt
+      }
+    },
+
+    getMessageSortTime (message) {
+      const rawDate = message?.date
+      const time = rawDate instanceof Date
+        ? rawDate.getTime()
+        : new Date(rawDate || 0).getTime()
+      return Number.isFinite(time) ? time : 0
+    },
+
+    sortMessagesByDateAndId (messages) {
+      if (!Array.isArray(messages)) {
+        return []
+      }
+      return [...messages].sort((a, b) => {
+        const dateDiff = this.getMessageSortTime(a) - this.getMessageSortTime(b)
+        if (dateDiff !== 0) {
+          return dateDiff
+        }
+        return Number(a?.id || 0) - Number(b?.id || 0)
+      })
+    },
+
+    uniqueMessagesById (messages) {
+      const map = new Map()
+      ;(messages || []).forEach(message => {
+        if (!message) {
+          return
+        }
+        if (message.id === undefined || message.id === null) {
+          map.set(Symbol(), message)
+          return
+        }
+        map.set(Number(message.id), message)
+      })
+      return [...map.values()]
+    },
   },
 
   computed: {
     getActualTasks () {
-      const filteredTasks = this.tasks.filter(task => {
+      const sourceTasks = this.isDemoClient
+        ? (this.tasks || [])
+        : this.pagedTasks
+      const filteredTasks = sourceTasks.filter(task => {
+        if (!task) {
+          return false
+        }
         const showCompleted = (!task.frozen && !task.completed) || this.isShowCompletedTasks
         let matchSearch = true
         if (this.search) {
-          matchSearch = task.name.toLowerCase().includes(this.search.toLowerCase()) ||
-            task.id.toString().toLowerCase().includes(this.search.toLowerCase()) ||
-            task.priority.name.toLowerCase().includes(this.search.toLowerCase()) ||
-            // task.createdAt.toLowerCase().includes(this.searchRequest.toLowerCase()) ||
-            task.status.name.toLowerCase().includes(this.search.toLowerCase()) ||
-          // task.executor ? (task.executor.firstname + ' ' + task.executor.lastname).toLowerCase().includes(this.searchRequest.toLowerCase()) : true
-            task.tags.filter(tag => tag.name.toLowerCase().includes(this.search.toLowerCase())).length > 0
+          const search = this.search.toLowerCase()
+          matchSearch =
+            String(task.name || '').toLowerCase().includes(search) ||
+            String(task.id || '').toLowerCase().includes(search) ||
+            String(task.priority?.name || '').toLowerCase().includes(search) ||
+            String(task.status?.name || '').toLowerCase().includes(search) ||
+            (Array.isArray(task.tags) && task.tags.some(tag => String(tag?.name || '').toLowerCase().includes(search)))
         }
         return showCompleted && matchSearch
       })
-      if (this.selectedSorting.slug) {
+      if (this.isDemoClient && this.selectedSorting.slug) {
         if (this.ascendingSort) {
           filteredTasks.sort((a, b) => {
             switch (this.selectedSorting.slug) {
@@ -794,11 +1272,11 @@ export default {
               case 'creating':
                 return new Date(a.createdAt) - new Date(b.createdAt)
               case 'priority':
-                return b.priority.orderNumber - a.priority.orderNumber
+                return Number(b.priority?.orderNumber || 0) - Number(a.priority?.orderNumber || 0)
               case 'sla':
                 return this.compareTasksBySla(a, b)
               case 'status':
-                return b.status.orderNumber - a.status.orderNumber
+                return Number(b.status?.orderNumber || 0) - Number(a.status?.orderNumber || 0)
               default:
                 return 0
             }
@@ -811,11 +1289,11 @@ export default {
               case 'creating':
                 return new Date(b.createdAt) - new Date(a.createdAt)
               case 'priority':
-                return a.priority.orderNumber - b.priority.orderNumber
+                return Number(a.priority?.orderNumber || 0) - Number(b.priority?.orderNumber || 0)
               case 'sla':
                 return this.compareTasksBySla(a, b)
               case 'status':
-                return a.status.orderNumber - b.status.orderNumber
+                return Number(a.status?.orderNumber || 0) - Number(b.status?.orderNumber || 0)
               default:
                 return 0
             }
@@ -823,6 +1301,27 @@ export default {
         }
       }
       return filteredTasks
+    },
+
+    isDemoClient () {
+      return Number(this.client?.id) < 0
+    },
+
+    getTasksTotalForHeader () {
+      return this.isDemoClient
+        ? this.getActualTasks.length
+        : this.taskPageTotalElements
+    },
+
+    isInitialTasksLoading () {
+      return !this.isDemoClient && this.taskPageLoading && !this.taskPageLoadedOnce
+    },
+
+    shouldShowNoTasksPlaceholder () {
+      if (this.isDemoClient) {
+        return this.getActualTasks.length === 0
+      }
+      return this.taskPageLoadedOnce && !this.taskPageLoading && this.getActualTasks.length === 0
     },
 
     getPossibilityToOpenDialogTask () {
@@ -845,27 +1344,65 @@ export default {
 
     isShowCompletedTasks () {
       localStorage.setItem('isShowCompletedTasks', this.isShowCompletedTasks)
+      this.resetTasksPageAndLoad(true)
     },
 
     tasks: {
       handler () {
-        this.loadSlaInfosForTasks()
+        if (this.isDemoClient) {
+          this.loadSlaInfosForTasks()
+        }
       },
       deep: true
-    }
+    },
+
+    'client.id': {
+      handler (newClientId, oldClientId) {
+        if (Number(newClientId || 0) === Number(oldClientId || 0)) {
+          return
+        }
+        this.resetTasksPageAndLoad(true)
+      }
+    },
+
+    search () {
+      this.reloadTasksPageDebounced(true)
+    },
+
+    '$route.query.task' () {
+      this.initializeTaskFromUrl()
+    },
+
+    taskPageLoadedOnce () {
+      this.initializeTaskFromUrl()
+    },
   },
 
   mounted () {
-    this.initializeTaskTimer = setInterval(() => this.initializeTaskFromUrl(), 500)
-    this.loadSlaInfosForTasks()
+    this.taskUpdatedUnsubscribe = onTaskUpdated(this.onTaskUpdatedFromSocket)
+    this.initializeTaskFromUrl()
+    if (this.isDemoClient) {
+      this.loadSlaInfosForTasks()
+    } else {
+      this.resetTasksPageAndLoad(true)
+    }
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)
   },
 
   beforeUnmount () {
-    clearInterval(this.initializeTaskTimer)
     clearInterval(this.slaTimer)
+    if (this.taskPageReloadTimer) {
+      clearTimeout(this.taskPageReloadTimer)
+    }
+    if (this.taskScrollTimer) {
+      clearTimeout(this.taskScrollTimer)
+    }
+    if (this.taskUpdatedUnsubscribe) {
+      this.taskUpdatedUnsubscribe()
+      this.taskUpdatedUnsubscribe = null
+    }
   },
 
   created () {
