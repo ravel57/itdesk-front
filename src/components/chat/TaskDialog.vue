@@ -1691,6 +1691,23 @@ export default {
       }
     },
 
+    mergeUpdatedTaskRuntimeFields (sourceTask, requestTask, responseTask) {
+      const updatedTask = {
+        ...(sourceTask || {}),
+        ...(requestTask || {}),
+        ...(responseTask || {})
+      }
+
+      if (!updatedTask.sla && sourceTask?.sla) {
+        updatedTask.sla = sourceTask.sla
+      }
+      if (!updatedTask.lastActivity) {
+        updatedTask.lastActivity = requestTask?.lastActivity || sourceTask?.lastActivity || new Date()
+      }
+
+      return updatedTask
+    },
+
     async setTaskCompleted (sourceTask, options = {}) {
       if (!options.skipUnsavedCheck && this.hasUnsavedTaskChanges()) {
         this.openSubmitModal('closeTask', sourceTask)
@@ -1713,6 +1730,8 @@ export default {
           return newObj
         }, {})
       task.completed = true
+      task.sla = sourceTask.sla
+      task.lastActivity = new Date()
       if (closedStatus) {
         task.status = closedStatus
       }
@@ -1721,8 +1740,9 @@ export default {
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
+          const updatedTask = this.mergeUpdatedTaskRuntimeFields(sourceTask, task, newTask.data)
           this.closeDialog()
-          this.$emit('updateTask', task, newTask.data)
+          this.$emit('updateTask', task, updatedTask)
           this.$q.notify({
             message: 'Заявка закрыта',
             type: 'positive',
@@ -1783,13 +1803,16 @@ export default {
         }, {})
       task.completed = false
       task.status = reopenStatus
+      task.sla = sourceTask.sla
+      task.lastActivity = new Date()
       if (statusChangeReason) {
         task.statusChangeReason = statusChangeReason
       }
       axios.patch(`/api/v1/client/${this.client.id}/task`, task)
         .then(newTask => {
+          const updatedTask = this.mergeUpdatedTaskRuntimeFields(sourceTask, task, newTask.data)
           this.closeDialog()
-          this.$emit('updateTask', task, newTask.data)
+          this.$emit('updateTask', task, updatedTask)
         })
         .catch(e =>
           this.$q.notify({

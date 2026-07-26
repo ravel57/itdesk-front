@@ -593,6 +593,12 @@ export default {
       const updatedTask = newTask?.data || newTask
       const taskId = updatedTask?.id || task?.id
       const isCreatedTask = Boolean(updatedTask?.id) && (!task?.id || this.isNewTask)
+      const shouldReloadTask = Boolean(taskId) &&
+        !isCreatedTask &&
+        !updatedTask?.completed &&
+        !updatedTask?.frozen &&
+        !updatedTask?.sla
+
       if (taskId) {
         const slaInfoByTaskId = { ...this.slaInfoByTaskId }
         delete slaInfoByTaskId[taskId]
@@ -603,6 +609,10 @@ export default {
       }
       this.$emit('updateTask', task, newTask)
       this.$nextTick(() => {
+        if (shouldReloadTask) {
+          this.reloadTaskAfterUpdate(taskId, updatedTask || task)
+          return
+        }
         this.loadSlaInfoForTask(updatedTask || task, true)
       })
       if (isCreatedTask) {
@@ -612,6 +622,30 @@ export default {
         this.isTaskDialogShow = false
         this.selectedTask = {}
         this.resetTasksPageAndLoad(true)
+      }
+    },
+
+    async reloadTaskAfterUpdate (taskId, fallbackTask) {
+      if (!taskId || this.isDemoClient) {
+        await this.loadSlaInfoForTask(fallbackTask, true)
+        return
+      }
+
+      try {
+        const freshTask = await this.loadTaskByIdForUrl(taskId)
+        if (!freshTask) {
+          await this.loadSlaInfoForTask(fallbackTask, true)
+          return
+        }
+
+        this.upsertPagedTask(freshTask)
+        if (Number(this.selectedTask?.id) === Number(taskId)) {
+          this.selectedTask = freshTask
+        }
+        await this.loadSlaInfoForTask(freshTask, true)
+      } catch (e) {
+        console.warn('Task reload after update failed', taskId, e)
+        await this.loadSlaInfoForTask(fallbackTask, true)
       }
     },
 
@@ -1370,6 +1404,10 @@ export default {
     },
 
     '$route.query.task' () {
+      this.initializeTaskFromUrl()
+    },
+
+    '$route.query.newTaskFromMessage' () {
       this.initializeTaskFromUrl()
     },
 

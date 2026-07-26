@@ -73,9 +73,10 @@
             >
               {{ this.getAbbreviation(this.client) }}
             </div>
-            <div class="truncate">
-              {{ message.text }}
-            </div>
+            <div
+              class="truncate"
+              v-html="this.highlightSearchText(message.text)"
+            />
           </div>
           <div class="">
             {{ this.getTimeLastMessage(message) }}
@@ -467,8 +468,8 @@
       <q-card
         data-tour="chat-message-composer"
         class="input-item no-shadow"
-        style="border-bottom: 1px solid #0000001f;"
-        :style="'background-color: ' +  (this.isComment ? '#d1c4e9;' : '') + 'border-top: ' + (this.replyMessageId ? '' : '1px solid #0000001f;')"
+        :class="{ 'input-item--comment': this.isComment }"
+        :style="composerStyle"
       >
         <q-btn
           v-if="this.scrollToBottomKey || this.pendingNewMessagesCount > 0 || this.hasTrimmedNewerMessages"
@@ -571,6 +572,8 @@
         />
 
         <q-menu
+          v-if="isComment"
+          ref="mentionSuggestionsMenu"
           v-model="mentionMenu"
           :target="mentionTargetEl"
           anchor="top left"
@@ -602,6 +605,55 @@
             </q-item>
 
             <q-item v-if="filteredMentionUsers.length === 0">
+              <q-item-section class="text-grey-6 text-caption">
+                Нет совпадений
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-menu>
+
+        <q-menu
+          ref="templateSuggestionsMenu"
+          v-model="templateMenu"
+          :target="templateTargetEl"
+          anchor="top left"
+          self="bottom left"
+          :offset="[0, 8]"
+          fit
+          no-parent-event
+          :auto-close="false"
+          no-focus
+          no-refocus
+        >
+          <q-list dense class="template-suggestions-list">
+            <q-item
+              v-for="(template, index) in filteredTemplateSuggestions"
+              :key="template.id || template.shortcut || index"
+              clickable
+              :active="index === templateIndex"
+              active-class="bg-grey-3"
+              class="template-suggestion-item"
+              @mousedown.prevent
+              @click="selectTemplateSuggestion(template)"
+            >
+              <q-item-section side top>
+                <q-badge
+                  outline
+                  color="primary"
+                  class="template-suggestion-shortcut"
+                >
+                  :{{ template.shortcut }}
+                </q-badge>
+              </q-item-section>
+
+              <q-item-section>
+                <q-item-label lines="2" class="template-suggestion-text">
+                  {{ template.text }}
+                </q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item v-if="filteredTemplateSuggestions.length === 0">
               <q-item-section class="text-grey-6 text-caption">
                 Нет совпадений
               </q-item-section>
@@ -865,6 +917,14 @@ export default {
     mentionQuery: '',
     mentionIndex: 0,
     mentionTargetEl: null,
+
+    templateMenu: false,
+    templateQuery: '',
+    templateIndex: 0,
+    templateTargetEl: null,
+    templateMatchStart: null,
+    templateMatchEnd: null,
+
     isShowFileList: false,
     fileList: [],
     fileSortDirection: 'desc',
@@ -882,6 +942,7 @@ export default {
   mounted () {
     try {
       this.mentionTargetEl = this.$refs.textInput
+      this.templateTargetEl = this.$refs.textInput
       if (this.getRouteMessageId()) {
         this.scrollToRouteMessage()
       } else {
@@ -953,6 +1014,7 @@ export default {
     },
 
     sendMessage () {
+      this.closeTemplateMenu()
       const textarea = this.$refs.textInput
       if (this.editingMessage !== null) {
         const text = String(textarea.value || '').trim()
@@ -1019,18 +1081,36 @@ export default {
     },
 
     handleTabPressed (event) {
-      if (this.$refs.textInput.value) {
-        try {
-          const matches = this.$refs.textInput.value.match(/:([^\\x00-\\7F]*)/)
-          const value = matches[0].trim()
-          if (event.keyCode === 9 /* tab */ && value.startsWith(':')) {
-            event.preventDefault()
-            const replaceValue = this.templates.find(e => e.shortcut === value.replace(':', '')).text
-            this.$refs.textInput.value = this.$refs.textInput.value.replace(value, replaceValue)
-          }
-          this.textChanged()
-        } catch (ignoredError) {
+      if (this.templateMenu) {
+        const template = this.filteredTemplateSuggestions[this.templateIndex]
+        if (template) {
+          event.preventDefault()
+          this.selectTemplateSuggestion(template)
+          return
         }
+      }
+
+      const textarea = this.$refs.textInput
+      if (!textarea?.value) {
+        return
+      }
+
+      const caret = textarea.selectionStart ?? textarea.value.length
+      const before = textarea.value.slice(0, caret)
+      const shortcutMatch = before.match(/(?:^|\s):([^\s:]*)$/)
+      if (!shortcutMatch) {
+        return
+      }
+
+      const shortcut = shortcutMatch[1].toLowerCase()
+      const template = (Array.isArray(this.templates) ? this.templates : [])
+        .find(item => String(item.shortcut || '').replace(/^:/, '').toLowerCase() === shortcut)
+
+      if (template) {
+        event.preventDefault()
+        this.templateMatchStart = caret - shortcutMatch[0].trimStart().length
+        this.templateMatchEnd = caret
+        this.selectTemplateSuggestion(template)
       }
     },
 
@@ -1114,11 +1194,58 @@ export default {
       })
     },
 
+    escapeHtml (value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+    },
+
+    escapeRegExp (value) {
+      return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    },
+
+    highlightSearchText (text) {
+      const value = String(text ?? '')
+      const query = String(this.search || '').trim()
+      if (!query) {
+        return this.escapeHtml(value)
+      }
+      const searchRegex = new RegExp(this.escapeRegExp(query), 'gi')
+      let result = ''
+      let lastIndex = 0
+
+      value.replace(searchRegex, (match, offset) => {
+        result += this.escapeHtml(value.slice(lastIndex, offset))
+        result += `<mark class="chat-search-highlight">${this.escapeHtml(match)}</mark>`
+        lastIndex = offset + match.length
+        return match
+      })
+
+      result += this.escapeHtml(value.slice(lastIndex))
+      return result
+    },
+
     findLinks (message) {
-      const urlRegex = /(https?:\/\/\S+)/g
+      const urlRegex = /https?:\/\/\S+/g
       const decodedText = document.createElement('textarea')
-      decodedText.innerHTML = message
-      return decodedText.value.replace(urlRegex, '<a href="$&" target="_blank">$&</a>')
+      decodedText.innerHTML = String(message ?? '')
+      const text = decodedText.value
+      let result = ''
+      let lastIndex = 0
+
+      text.replace(urlRegex, (url, offset) => {
+        result += this.highlightSearchText(text.slice(lastIndex, offset))
+        const safeUrl = this.escapeHtml(url)
+        result += `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${this.highlightSearchText(url)}</a>`
+        lastIndex = offset + url.length
+        return url
+      })
+
+      result += this.highlightSearchText(text.slice(lastIndex))
+      return result
     },
 
     scrollToElementById (id) {
@@ -1265,6 +1392,15 @@ export default {
 
     switchToComment () {
       this.isComment = !this.isComment
+
+      if (!this.isComment) {
+        this.closeMentionMenu()
+        return
+      }
+
+      this.$nextTick(() => {
+        this.updateMentionState()
+      })
     },
 
     shortenLine (string, offset = 25) {
@@ -1460,6 +1596,173 @@ export default {
       this.$emit('keyPressed', this.$refs.textInput.value)
       this.autoResize()
       this.updateMentionState()
+      this.updateTemplateState()
+    },
+
+    normalizeTemplateSearch (value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/^:/, '')
+    },
+
+    getMatchingTemplates (value) {
+      const query = this.normalizeTemplateSearch(value)
+      const templates = Array.isArray(this.templates) ? this.templates : []
+
+      if (!query) {
+        return templates.slice(0, 8)
+      }
+
+      const score = template => {
+        const text = String(template.text || '').toLowerCase()
+        const shortcut = String(template.shortcut || '')
+          .toLowerCase()
+          .replace(/^:/, '')
+
+        if (shortcut === query) return 0
+        if (shortcut.startsWith(query)) return 1
+        if (text.startsWith(query)) return 2
+        if (shortcut.includes(query)) return 3
+        if (text.includes(query)) return 4
+        return 5
+      }
+
+      return templates
+        .filter(template => {
+          const text = String(template.text || '').toLowerCase()
+          const shortcut = String(template.shortcut || '')
+            .toLowerCase()
+            .replace(/^:/, '')
+
+          return text.includes(query) || shortcut.includes(query)
+        })
+        .sort((left, right) => score(left) - score(right))
+        .slice(0, 8)
+    },
+
+    closeTemplateMenu () {
+      this.templateMenu = false
+      this.templateQuery = ''
+      this.templateIndex = 0
+      this.templateMatchStart = null
+      this.templateMatchEnd = null
+    },
+
+    getTemplateSearchContext (textarea) {
+      const caret = textarea.selectionStart ?? textarea.value.length
+      const before = textarea.value.slice(0, caret)
+
+      // Упоминания пользователей имеют приоритет над шаблонами только в режиме комментария.
+      if (this.isComment && /(?:^|\s)@[^\s@]*$/.test(before)) {
+        return null
+      }
+
+      const shortcutMatch = before.match(/(?:^|\s)(:([^\s:]*))$/)
+      if (shortcutMatch) {
+        const rawValue = shortcutMatch[1]
+        return {
+          query: shortcutMatch[2] || '',
+          start: caret - rawValue.length,
+          end: caret
+        }
+      }
+
+      const lineStart = before.lastIndexOf('\n') + 1
+      const currentLine = before.slice(lineStart)
+
+      if (!currentLine.trim() || /\s$/.test(currentLine)) {
+        return null
+      }
+
+      const tokens = [...currentLine.matchAll(/\S+/g)]
+      if (tokens.length === 0) {
+        return null
+      }
+
+      // Ищем сначала по длинному фрагменту, затем по последним словам.
+      const maxTokenCount = Math.min(4, tokens.length)
+      for (let count = maxTokenCount; count >= 1; count--) {
+        const token = tokens[tokens.length - count]
+        const relativeStart = token.index
+        const rawQuery = currentLine.slice(relativeStart)
+        const query = rawQuery.replace(/\s+/g, ' ').trim()
+
+        if (query.length < 2) {
+          continue
+        }
+
+        if (this.getMatchingTemplates(query).length > 0) {
+          return {
+            query,
+            start: lineStart + relativeStart,
+            end: caret
+          }
+        }
+      }
+
+      return null
+    },
+
+    updateTemplateState () {
+      const textarea = this.$refs.textInput
+      if (!textarea || !Array.isArray(this.templates) || this.templates.length === 0) {
+        this.closeTemplateMenu()
+        return
+      }
+
+      this.templateTargetEl = textarea
+      const context = this.getTemplateSearchContext(textarea)
+
+      if (!context) {
+        this.closeTemplateMenu()
+        return
+      }
+
+      this.templateQuery = context.query
+      this.templateMatchStart = context.start
+      this.templateMatchEnd = context.end
+      this.templateIndex = 0
+
+      this.$nextTick(() => {
+        const shouldShowMenu = this.filteredTemplateSuggestions.length > 0
+        this.templateMenu = shouldShowMenu
+
+        if (shouldShowMenu) {
+          // После фильтрации высота списка меняется. Пересчитываем позицию,
+          // чтобы нижний край меню оставался возле поля ввода.
+          this.$nextTick(() => {
+            this.$refs.templateSuggestionsMenu?.updatePosition()
+          })
+        }
+      })
+    },
+
+    selectTemplateSuggestion (template) {
+      const textarea = this.$refs.textInput
+      if (!textarea || !template) {
+        return
+      }
+
+      const start = Number.isInteger(this.templateMatchStart)
+        ? this.templateMatchStart
+        : (textarea.selectionStart ?? textarea.value.length)
+      const end = Number.isInteger(this.templateMatchEnd)
+        ? this.templateMatchEnd
+        : (textarea.selectionStart ?? textarea.value.length)
+      const insertedText = String(template.text || '')
+      const newText = textarea.value.slice(0, start) + insertedText + textarea.value.slice(end)
+      const newCaret = start + insertedText.length
+
+      textarea.value = newText
+      this.$emit('keyPressed', newText)
+      this.autoResize()
+      this.closeTemplateMenu()
+
+      this.$nextTick(() => {
+        textarea.setSelectionRange(newCaret, newCaret)
+        textarea.focus()
+      })
     },
 
     getTypingWatchingUsers () {
@@ -1474,9 +1777,23 @@ export default {
       }
     },
 
+    closeMentionMenu () {
+      this.mentionMenu = false
+      this.mentionQuery = ''
+      this.mentionIndex = 0
+    },
+
     updateMentionState () {
+      if (!this.isComment) {
+        this.closeMentionMenu()
+        return
+      }
+
       const textarea = this.$refs.textInput
-      if (!textarea) return
+      if (!textarea) {
+        this.closeMentionMenu()
+        return
+      }
 
       // ВАЖНО: обновляем target каждый раз (на случай если компонент пересоздали)
       this.mentionTargetEl = textarea
@@ -1488,9 +1805,7 @@ export default {
       const match = before.match(/(?:^|\s)@([^\s@]*)$/)
 
       if (!match) {
-        this.mentionMenu = false
-        this.mentionQuery = ''
-        this.mentionIndex = 0
+        this.closeMentionMenu()
         return
       }
 
@@ -1498,25 +1813,29 @@ export default {
 
       // если просто "@" и юзер начал стирать — не держим меню открытым
       if (this.mentionQuery.length === 0 && textarea.value.endsWith('@') === false) {
-        this.mentionMenu = false
+        this.closeMentionMenu()
         return
       }
 
       this.mentionIndex = 0
+
+      // После фильтрации количество пользователей и высота списка меняются.
+      // Открываем меню и пересчитываем позицию относительно поля ввода.
       this.$nextTick(() => {
         this.mentionMenu = true
-      })
 
-      this.mentionQuery = match[1] || ''
-      this.mentionIndex = 0
-
-      // Открываем меню после обновления DOM
-      this.$nextTick(() => {
-        this.mentionMenu = true
+        this.$nextTick(() => {
+          this.$refs.mentionSuggestionsMenu?.updatePosition()
+        })
       })
     },
 
     selectMention (user) {
+      if (!this.isComment) {
+        this.closeMentionMenu()
+        return
+      }
+
       const textarea = this.$refs.textInput
       if (!textarea) return
 
@@ -1538,9 +1857,7 @@ export default {
       this.$emit('keyPressed', newText)
       this.autoResize()
 
-      this.mentionMenu = false
-      this.mentionQuery = ''
-      this.mentionIndex = 0
+      this.closeMentionMenu()
 
       this.$nextTick(() => {
         const newCaret = atPos + inserted.length
@@ -1569,7 +1886,7 @@ export default {
         return
       }
 
-      if (this.mentionMenu) {
+      if (this.isComment && this.mentionMenu) {
         if (event.key === 'ArrowDown') {
           event.preventDefault()
           this.mentionIndex = Math.min(this.mentionIndex + 1, this.filteredMentionUsers.length - 1)
@@ -1591,6 +1908,35 @@ export default {
         if (event.key === 'Escape') {
           event.preventDefault()
           this.mentionMenu = false
+          return
+        }
+      }
+
+      if (this.templateMenu) {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault()
+          this.templateIndex = Math.min(
+            this.templateIndex + 1,
+            this.filteredTemplateSuggestions.length - 1
+          )
+          return
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault()
+          this.templateIndex = Math.max(this.templateIndex - 1, 0)
+          return
+        }
+        if (event.key === 'Enter') {
+          const template = this.filteredTemplateSuggestions[this.templateIndex]
+          if (template) {
+            event.preventDefault()
+            this.selectTemplateSuggestion(template)
+            return
+          }
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          this.closeTemplateMenu()
         }
       }
     },
@@ -2166,7 +2512,7 @@ export default {
     },
 
     renderShortcutPlaceholder () {
-      return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
+      return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : this.isComment ? '\nВведите @ для пинга' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
     },
 
     isMacOs () {
@@ -2190,6 +2536,14 @@ export default {
       }
     },
 
+    composerStyle () {
+      return {
+        borderBottom: '1px solid #0000001f',
+        borderTop: this.replyMessageId ? 'none' : '1px solid #0000001f',
+        backgroundColor: this.isComment ? '#d1c4e9' : '#ffffff'
+      }
+    },
+
     textareaStyle () {
       const maxHeight = this.getTextareaMaxHeight()
       return {
@@ -2201,8 +2555,9 @@ export default {
         resize: 'none',
         height: `${this.textareaHeight}px`,
         maxHeight: `${maxHeight}px`,
-        transition: 'height 0.2s ease',
-        backgroundColor: this.isComment ? '#d1c4e9' : ''
+        transition: 'height 0.2s ease, background-color 0.2s ease',
+        backgroundColor: this.isComment ? '#d1c4e9' : '#ffffff',
+        color: '#242424'
       }
     },
 
@@ -2218,7 +2573,15 @@ export default {
       }
     },
 
+    filteredTemplateSuggestions () {
+      return this.getMatchingTemplates(this.templateQuery)
+    },
+
     filteredMentionUsers () {
+      if (!this.isComment) {
+        return []
+      }
+
       const users = Array.isArray(this.store?.users) ? this.store.users : []
       const q = (this.mentionQuery || '').trim().toLowerCase()
       const toSearchString = (u) => (
@@ -2507,6 +2870,32 @@ textarea:focus {
   outline: none;
 }
 
+.template-suggestions-list {
+  min-width: 320px;
+  max-height: 280px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+.template-suggestion-item {
+  min-height: 58px;
+  padding: 8px 12px;
+}
+
+.template-suggestion-shortcut {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.template-suggestion-text {
+  white-space: normal;
+  line-height: 1.35;
+}
+
 .search-container {
   border-radius: 0;
   z-index: 0
@@ -2540,6 +2929,12 @@ textarea:focus {
   flex-wrap: nowrap;
   align-items: end;
   border-radius: 0;
+  background-color: #ffffff;
+  transition: background-color 0.2s ease;
+}
+
+.input-item--comment {
+  background-color: #d1c4e9;
 }
 
 .input-clouds-container {
@@ -2567,6 +2962,19 @@ textarea:focus {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+:deep(.chat-search-highlight) {
+  padding: 1px 4px;
+  margin: 0 1px;
+  border: 1px solid rgba(147, 0, 245, 0.32);
+  border-radius: 5px;
+  background-color: rgba(174, 92, 255, 0.72);
+  box-shadow: 0 1px 2px rgba(93, 64, 0, 0.16);
+  color: #2f2a18;
+  font-weight: 600;
+  line-height: 1.35;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 .answer-required-actions {
