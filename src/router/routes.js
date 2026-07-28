@@ -110,6 +110,10 @@ const routes = [
             component: () => import('pages/settings/TaskTypePage.vue')
           },
           {
+            path: 'support-lines',
+            component: () => import('pages/settings/SupportLinesPage.vue')
+          },
+          {
             path: 'telegram',
             component: () => import('pages/settings/TelegramPage.vue')
           },

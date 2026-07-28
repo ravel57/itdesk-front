@@ -252,6 +252,14 @@
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                 />
                 <q-select
+                  id="task-support-line"
+                  data-tour="task-dialog-support-line"
+                  v-model="this.dialogTaskSupportLine"
+                  :options="this.activeSupportLineNames"
+                  label="Линия поддержки"
+                  @update:model-value="this.onSupportLineChanged"
+                />
+                <q-select
                   id="task-executor"
                   data-tour="task-dialog-executor"
                   v-model="this.dialogTaskExecutor"
@@ -825,7 +833,7 @@ import ChatDialog from 'components/chat/ChatDialog.vue'
 import OrganizationVisitDialog from 'components/organization/OrganizationVisitDialog.vue'
 import draggable from 'vuedraggable'
 import { useRoute } from 'vue-router'
-import { onTaskMessage } from 'src/util/ws'
+import { onTaskMessage, onTaskUpdated } from 'src/util/ws'
 
 export default {
 
@@ -853,6 +861,7 @@ export default {
     dialogTaskName: '',
     dialogTaskDescription: '',
     dialogTaskPriority: '',
+    dialogTaskSupportLine: '',
     dialogTaskExecutor: '',
     dialogTaskTags: [],
     dialogTaskStatus: '',
@@ -894,6 +903,8 @@ export default {
     newChecklistItemText: '',
 
     taskMessageUnsubscribe: null,
+    taskUpdatedUnsubscribe: null,
+    taskHistoryRefreshTimer: null,
     localTaskMessages: [],
 
     taskDialogOnboardingKey: 'task-dialog-onboarding-v1',
@@ -1474,6 +1485,7 @@ export default {
         this.dialogTaskPriority !== this.task.priority.name ||
         this.dialogTaskType !== (this.task.type?.type || '') ||
         JSON.stringify(this.normalizeChecklist(this.dialogTaskChecklist)) !== JSON.stringify(this.normalizeChecklist(this.task.checklist)) ||
+        this.dialogTaskSupportLine !== (this.task.supportLine?.name || '') ||
         this.dialogTaskExecutor !== this.getUserName(this.task.executor) ||
         JSON.stringify(this.dialogTaskTags) !== JSON.stringify(this.task.tags.map(tag => tag.name)) ||
         dialogTaskDeadline !== taskDeadline ||
@@ -1488,6 +1500,8 @@ export default {
         this.dialogTaskName = ''
         this.dialogTaskDescription = messageText
         this.dialogTaskPriority = this.store.priorities.find(priority => priority.defaultSelection === true).name
+        this.dialogTaskSupportLine = this.store.supportLines.find(line => line.defaultSelection === true && line.active !== false)?.name ||
+          this.store.supportLines.find(line => line.active !== false)?.name || ''
         this.dialogTaskExecutor = ''
         this.dialogTaskTags = []
         this.dialogTaskDeadline = ''
@@ -1506,6 +1520,7 @@ export default {
         this.dialogTaskName = this.task.name
         this.dialogTaskDescription = this.task.description
         this.dialogTaskPriority = this.task.priority.name
+        this.dialogTaskSupportLine = this.task.supportLine?.name || ''
         this.dialogTaskExecutor = this.getUserName(this.task.executor)
         this.dialogTaskTags = this.task.tags.map(tag => tag.name)
         this.dialogTaskDeadline = this.task.deadline ? moment(this.task.deadline, 'DD.MM.YYYY HH:mm').format('DD.MM.YYYY HH:mm') : ''
@@ -1567,6 +1582,7 @@ export default {
         checklist: this.normalizeChecklist(this.dialogTaskChecklist),
         status: this.store.statuses.find(status => status.name === this.dialogTaskStatus),
         priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
+        supportLine: this.store.supportLines.find(line => line.name === this.dialogTaskSupportLine) || null,
         executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
         completed: false,
@@ -1921,6 +1937,7 @@ export default {
         description: this.dialogTaskDescription,
         status: nextStatus,
         priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
+        supportLine: this.store.supportLines.find(line => line.name === this.dialogTaskSupportLine) || null,
         executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
         type: this.getSelectedTaskType(),
@@ -2115,19 +2132,28 @@ export default {
       return generateHSLAColor(hue)
     },
 
+    getSupportLineUsers () {
+      const selectedLine = this.store.supportLines.find(line => line.name === this.dialogTaskSupportLine)
+      const lineMembers = selectedLine?.members || []
+      const source = lineMembers.length > 0 ? lineMembers : this.store.users
+      return source.filter(user => ['ADMIN', 'OPERATOR'].some(role => (user.authorities || []).includes(role)))
+    },
+
+    onSupportLineChanged () {
+      const availableIds = new Set(this.getSupportLineUsers().map(user => user.id))
+      const selectedUser = this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor)
+      if (selectedUser && !availableIds.has(selectedUser.id)) {
+        this.dialogTaskExecutor = ''
+      }
+      this.filteredUsers = this.getSupportLineUsers().map(user => this.getUserName(user))
+    },
+
     filterUsers (val, update) {
       update(() => {
-        if (val) {
-          this.filteredUsers = this.store.users
-            .filter(user =>
-              ['ADMIN', 'OPERATOR'].includes(user.authorities[0]) && this.getUserName(user).toLowerCase().includes(val.toLowerCase())
-            )
-            .map(user => this.getUserName(user))
-        } else {
-          this.filteredUsers = this.store.users
-            .filter(user => ['ADMIN', 'OPERATOR'].includes(user.authorities[0]))
-            .map(user => this.getUserName(user))
-        }
+        const needle = (val || '').toLowerCase()
+        this.filteredUsers = this.getSupportLineUsers()
+          .filter(user => !needle || this.getUserName(user).toLowerCase().includes(needle))
+          .map(user => this.getUserName(user))
       })
     },
 
@@ -2329,6 +2355,8 @@ export default {
           return 'published_with_changes'
         case 'TASK_PRIORITY_CHANGED':
           return 'priority_high'
+        case 'TASK_TYPE_CHANGED':
+          return 'category'
         case 'TASK_ASSIGNEE_CHANGED':
         case 'TASK_EXECUTOR_CHANGED':
           return 'person'
@@ -2550,6 +2578,25 @@ export default {
       }
     },
 
+    onTaskUpdated (payload) {
+      const updatedTaskId = payload?.task?.id
+      if (!updatedTaskId || Number(updatedTaskId) !== Number(this.getCurrentTaskId())) {
+        return
+      }
+      if (this.taskRightTab !== 'history') {
+        return
+      }
+      if (this.taskHistoryRefreshTimer) {
+        clearTimeout(this.taskHistoryRefreshTimer)
+      }
+      // Событие истории сохраняется в той же транзакции, что и действие
+      // автоматизации. Небольшая задержка не даёт запросу опередить commit.
+      this.taskHistoryRefreshTimer = setTimeout(() => {
+        this.taskHistoryRefreshTimer = null
+        this.loadTaskHistory()
+      }, 300)
+    },
+
     editMessage (event) {
       if (!event.message || !event.message.id) {
         this.isSending = false
@@ -2704,6 +2751,13 @@ export default {
   },
 
   computed: {
+    activeSupportLineNames () {
+      return (this.store.supportLines || [])
+        .filter(line => line.active !== false)
+        .sort((a, b) => Number(a.orderNumber || 0) - Number(b.orderNumber || 0))
+        .map(line => line.name)
+    },
+
     getPossibilityToOpenDialogTask () {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     },
@@ -2932,6 +2986,7 @@ export default {
           this.startTaskDialogOnboarding(false)
         })
         this.taskMessageUnsubscribe = onTaskMessage(this.onTaskMessage)
+        this.taskUpdatedUnsubscribe = onTaskUpdated(this.onTaskUpdated)
       })
   },
 
@@ -2939,6 +2994,14 @@ export default {
     if (this.taskMessageUnsubscribe) {
       this.taskMessageUnsubscribe()
       this.taskMessageUnsubscribe = null
+    }
+    if (this.taskUpdatedUnsubscribe) {
+      this.taskUpdatedUnsubscribe()
+      this.taskUpdatedUnsubscribe = null
+    }
+    if (this.taskHistoryRefreshTimer) {
+      clearTimeout(this.taskHistoryRefreshTimer)
+      this.taskHistoryRefreshTimer = null
     }
     this.removeTaskDialogOnboardingListeners()
   },

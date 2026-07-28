@@ -23,6 +23,7 @@ export const useStore = defineStore('store', {
     statuses: [],
     priorities: [],
     taskTypes: [],
+    supportLines: [],
     templates: [],
     knowledgeBase: [],
     triggers: [],
@@ -43,6 +44,7 @@ export const useStore = defineStore('store', {
       'TASK_UPDATED',
       'TASK_STATUS_CHANGED',
       'TASK_PRIORITY_CHANGED',
+      'TASK_TYPE_CHANGED',
       'TASK_ASSIGNEE_CHANGED',
       'TASK_GROUP_CHANGED',
       'TASK_TAG_ADDED',
@@ -367,6 +369,11 @@ export const useStore = defineStore('store', {
       axios.get('/api/v1/task-types')
         .then(response => {
           this.taskTypes = response.data
+        })
+
+      axios.get('/api/v1/support-lines')
+        .then(response => {
+          this.supportLines = Array.isArray(response.data) ? response.data : []
         })
 
       axios.get('/api/v1/templates')

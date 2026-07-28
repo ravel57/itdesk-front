@@ -230,6 +230,7 @@
                   {{ message.fileName }}
                 </a>
                 <div
+                  class="chat-message-text"
                   v-html="this.findLinks(message.text)"
                   style="max-width: 400px;"
                 />
@@ -2868,6 +2869,16 @@ textarea {
 
 textarea:focus {
   outline: none;
+}
+
+.chat-message-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+:deep(.q-message-text-content) {
+  white-space: pre-wrap;
 }
 
 .template-suggestions-list {

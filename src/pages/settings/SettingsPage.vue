@@ -145,6 +145,12 @@ export default {
         roles: ['ADMIN']
       },
       {
+        title: 'Линии поддержки',
+        link: '/settings/support-lines',
+        slug: 'account_tree',
+        roles: ['ADMIN']
+      },
+      {
         title: 'Telegram',
         link: '/settings/telegram',
         slug: 'telegram',

@@ -74,6 +74,10 @@
           v-text="task.tags.map(tag => tag.name).join(', ')"
         />
       </tr>
+      <tr v-if="task.supportLine" data-tour="tasks-task-support-line">
+        <th class="small-text text-grey row-label" v-text="'Линия: '"/>
+        <th class="text-body2" v-text="task.supportLine.name"/>
+      </tr>
       <tr data-tour="tasks-task-priority">
         <th
           class="small-text text-grey row-label"
