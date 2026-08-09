@@ -6,11 +6,14 @@
   >
     <q-card class="organization-visit-dialog-card">
       <q-toolbar class="organization-visit-dialog-toolbar justify-between">
-        <div>
+        <div class="organization-visit-dialog-title">
           <div class="text-h6">
             Добавить выезд
           </div>
-          <div class="text-caption text-grey-7">
+          <div
+            class="text-caption text-grey-7 organization-name-ellipsis"
+            :title="organizationName"
+          >
             {{ organizationName }}
           </div>
           <div
@@ -104,10 +107,20 @@
           dense
           emit-value
           map-options
-          label="Тип выезда"
-          :options="visitTypeOptions"
-          @update:model-value="onVisitTypeChanged"
+          label="Причина выезда"
+          :options="visitReasonOptions"
+          :loading="visitReasonsLoading"
+          :disable="visitReasonsLoading || visitReasonOptions.length === 0"
+          @update:model-value="onVisitReasonChanged"
         />
+
+        <q-banner
+          v-if="!visitReasonsLoading && visitReasonOptions.length === 0"
+          rounded
+          class="bg-orange-1 text-orange-10"
+        >
+          Причины выездов не настроены. Добавьте их в разделе «Настройки → Причины выездов».
+        </q-banner>
 
         <q-select
           v-model="visitForm.selectedTask"
@@ -164,7 +177,7 @@
           color="primary"
           label="Добавить"
           :loading="saving"
-          :disable="!organization?.id"
+          :disable="!organization?.id || !visitForm.type || visitReasonsLoading"
           @click="submitVisit"
         />
       </q-card-actions>
@@ -206,20 +219,16 @@ export default {
 
   data: () => ({
     saving: false,
+    visitReasonsLoading: false,
+    visitReasons: [],
     visitForm: {
       visitDate: null,
-      type: 'Плановый выезд',
+      type: null,
       comment: '',
       price: null,
       countedInPackage: true,
       selectedTask: null
-    },
-    visitTypeOptions: [
-      {label: 'Плановый выезд', value: 'Плановый выезд'},
-      {label: 'Срочный выезд', value: 'Срочный выезд'},
-      {label: 'Регламентные работы', value: 'Регламентные работы'},
-      {label: 'Аварийный выезд', value: 'Аварийный выезд'}
-    ]
+    }
   }),
 
   computed: {
@@ -229,6 +238,16 @@ export default {
 
     selectedTaskLabel() {
       return this.normalizeTaskOption(this.selectedTask)?.label || ''
+    },
+
+    visitReasonOptions() {
+      return this.visitReasons
+        .filter(reason => reason?.name)
+        .map(reason => ({
+          label: reason.name,
+          value: reason.name,
+          urgent: reason.urgent === true
+        }))
     },
 
     normalizedTaskOptions() {
@@ -262,6 +281,7 @@ export default {
     modelValue(value) {
       if (value) {
         this.resetForm()
+        this.loadVisitReasons()
       }
     },
 
@@ -299,12 +319,36 @@ export default {
     resetForm() {
       this.visitForm = {
         visitDate: moment().format('YYYY-MM-DDTHH:mm'),
-        type: 'Плановый выезд',
+        type: null,
         comment: '',
         price: null,
         countedInPackage: Boolean(this.visitStats.enabled),
         selectedTask: this.normalizeTaskOption(this.selectedTask)
       }
+    },
+
+    loadVisitReasons() {
+      this.visitReasonsLoading = true
+      axios.get('/api/v1/visit-reasons')
+        .then(response => {
+          this.visitReasons = Array.isArray(response.data) ? response.data : []
+          if (!this.visitForm.type && this.visitReasons.length > 0) {
+            this.visitForm.type = this.visitReasons[0].name
+            this.onVisitReasonChanged(this.visitForm.type)
+          }
+        })
+        .catch(e => {
+          this.visitReasons = []
+          this.$q.notify({
+            message: e.response?.data?.message || e.response?.data || e.message || 'Не удалось загрузить причины выездов',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          })
+        })
+        .finally(() => {
+          this.visitReasonsLoading = false
+        })
     },
 
     normalizeTaskOption(task) {
@@ -333,14 +377,13 @@ export default {
       return null
     },
 
-    onVisitTypeChanged(value) {
+    onVisitReasonChanged(value) {
       if (this.visitForm.price !== null && this.visitForm.price !== undefined && this.visitForm.price !== '') {
         return
       }
 
-      const normalizedType = String(value || '').toLowerCase()
-
-      if (normalizedType.includes('сроч') || normalizedType.includes('авар')) {
+      const selectedReason = this.visitReasons.find(reason => reason?.name === value)
+      if (selectedReason?.urgent === true) {
         const urgentPrice = Number(this.organization?.urgentVisitPrice)
         if (Number.isFinite(urgentPrice) && urgentPrice > 0) {
           this.visitForm.price = urgentPrice
@@ -359,10 +402,20 @@ export default {
         return
       }
 
+      if (!this.visitForm.type) {
+        this.$q.notify({
+          message: 'Выберите причину выезда',
+          type: 'negative',
+          position: 'top-right',
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        })
+        return
+      }
+
       const selectedTask = this.normalizeTaskOption(this.visitForm.selectedTask)
       const payload = {
         visitDate: this.visitForm.visitDate || null,
-        type: this.visitForm.type || 'Выезд',
+        type: this.visitForm.type,
         comment: this.visitForm.comment || null,
         price: this.visitForm.price || null,
         countedInPackage: Boolean(this.visitForm.countedInPackage),
@@ -486,6 +539,12 @@ export default {
 
 .organization-visit-dialog-toolbar {
   padding: 18px 20px;
+}
+
+.organization-visit-dialog-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .organization-visit-dialog-body {

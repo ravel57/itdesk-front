@@ -6,7 +6,9 @@
         v-text="this.getClientName"
       />
       <q-btn
+        data-tour="chat-client-edit"
         class="edit-client-btn"
+        :class="{ 'edit-client-btn--onboarding': this.onboardingDemo }"
         icon="edit"
         @click="dialogShow"
         dense
@@ -65,12 +67,13 @@
       style="margin-right: 8px;color: black !important"
     />
     <div
-      class="text-subtitle2"
-      style="overflow: hidden;display: -webkit-box;-webkit-line-clamp: 1;-webkit-box-orient: vertical;"
+      class="text-subtitle2 organization-name-ellipsis"
+      :title="this.getOrganization"
       v-text="this.getOrganization"
     />
   </div>
   <div
+    data-tour="chat-client-extra"
     class="truncate text-subtitle2"
     style="margin-top: 4px"
     v-text="this.client.moreInfo"
@@ -131,6 +134,8 @@
           v-model="this.dialogOrganization"
           :options="getOrganizations"
           label="Организация"
+          class="organization-select"
+          popup-content-class="organization-select-popup"
           use-input
         />
         <q-input
@@ -141,14 +146,16 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить клиента"
-          text-color="primary"
           @click="this.openSubmitDeleteClientWindow"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="this.dialogClose"
         />
@@ -181,9 +188,13 @@
           v-close-popup
         />
         <q-btn
-          color="primary"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          @click="dialogDeleteClient"/>
+          @click="dialogDeleteClient"
+        />
       </q-card-actions>
     </q-card>
   </q-dialog>
@@ -198,7 +209,7 @@ export default {
 
   components: {PluginExtensionPoint},
 
-  props: ['client', 'organizations', 'isMobile'],
+  props: ['client', 'organizations', 'isMobile', 'onboardingDemo'],
 
   data: () => ({
     isNotificationEnabled: true,
@@ -369,7 +380,8 @@ export default {
 }
 
 .client-name-edit-row:hover .edit-client-btn,
-.edit-client-btn:hover {
+.edit-client-btn:hover,
+.edit-client-btn--onboarding {
   visibility: visible;
   opacity: 1;
 }

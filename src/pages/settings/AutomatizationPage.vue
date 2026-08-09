@@ -1,13 +1,26 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить триггер"
-      @click="this.newTrigger"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Автоматизации</div>
+        <div class="settings-content-description">
+          Создавайте сценарии, которые автоматически реагируют на события и выполняют действия.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить триггер"
+          @click="this.newTrigger"
+        />
+      </div>
+    </div>
     <q-list
       bordered
-      class="rounded-borders"
+      class="rounded-borders settings-row-list"
       separator
       style="margin-top: 8px"
     >
@@ -19,6 +32,7 @@
         item-key="id"
         class="list-group"
         ghost-class="ghost"
+        handle=".settings-drag-handle"
         @start="dragging = true"
         @end="dragging = false"
       >
@@ -26,8 +40,10 @@
           <q-item
             class="list-group-item"
             :class="{ 'not-draggable': true }"
-            style="cursor: grab"
           >
+            <q-item-section side class="settings-drag-handle cursor-grab">
+              <q-icon name="drag_indicator" color="grey-6"/>
+            </q-item-section>
             <q-item-section top class="justify-center">
               <q-item-label class="row items-center q-gutter-sm">
                 <span>{{ element.name }}</span>
@@ -51,6 +67,7 @@
               <div class="row items-center no-wrap">
                 <q-toggle
                   :model-value="element.automationRuleStatus !== 'DISABLED'"
+                  :disable="this.togglingTriggerIds.includes(element.id)"
                   color="primary"
                   @update:model-value="toggleTrigger(element, $event)"
                 />
@@ -75,13 +92,13 @@
   >
     <q-card class="dialog-width automation-dialog">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewTrigger ? 'Новый триггер' : 'Изменить триггер'" />
+        <div class="text-h6" v-text="this.isNewTrigger ? 'Новый триггер' : 'Изменить триггер'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section class="automation-editor-section">
         <q-input
           v-model="this.dialogTriggerName"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogTriggerName"
         />
@@ -107,18 +124,18 @@
           </div>
         </div>
 
-<!--        <q-btn-toggle-->
-<!--          v-model="this.editorMode"-->
-<!--          class="automation-mode-toggle"-->
-<!--          no-caps-->
-<!--          dense-->
-<!--          toggle-color="primary"-->
-<!--          :options="[-->
-<!--            { label: 'Правило', value: 'graph', icon: 'schema' },-->
-<!--            { label: 'Цепочка', value: 'workflow', icon: 'account_tree' },-->
-<!--            // { label: 'Скрипт', value: 'script', icon: 'code' }-->
-<!--          ]"-->
-<!--        />-->
+        <!--        <q-btn-toggle-->
+        <!--          v-model="this.editorMode"-->
+        <!--          class="automation-mode-toggle"-->
+        <!--          no-caps-->
+        <!--          dense-->
+        <!--          toggle-color="primary"-->
+        <!--          :options="[-->
+        <!--            { label: 'Правило', value: 'graph', icon: 'schema' },-->
+        <!--            { label: 'Цепочка', value: 'workflow', icon: 'account_tree' },-->
+        <!--            // { label: 'Скрипт', value: 'script', icon: 'code' }-->
+        <!--          ]"-->
+        <!--        />-->
 
         <div v-if="this.editorMode === 'workflow'" class="automation-workflow-wrapper">
           <automation-flow-editor
@@ -126,6 +143,7 @@
             :trigger-types="this.store.triggerTypes"
             :triggers="this.store.triggers"
             :task-types="this.store.taskTypes"
+            :services="this.store.services"
             :priorities="this.store.priorities"
             :statuses="this.store.statuses"
             :support-lines="this.supportLines"
@@ -142,10 +160,12 @@
             :class="this.workflowValidation.errors.length ? 'automation-workflow-validation-error' : 'automation-workflow-validation-warning'"
           >
             <div v-for="error in this.workflowValidation.errors" :key="`error-${error}`">
-              <q-icon name="error" class="q-mr-xs"/>{{ error }}
+              <q-icon name="error" class="q-mr-xs"/>
+              {{ error }}
             </div>
             <div v-for="warning in this.workflowValidation.warnings" :key="`warning-${warning}`">
-              <q-icon name="warning" class="q-mr-xs"/>{{ warning }}
+              <q-icon name="warning" class="q-mr-xs"/>
+              {{ warning }}
             </div>
           </q-banner>
         </div>
@@ -155,7 +175,7 @@
             <div class="automation-node-title">Событие</div>
             <q-select
               v-model="this.selectedTriggerType"
-              label="Когда выполнять"
+              label="Когда выполнять *"
               :options="this.store.triggerTypes"
             />
           </div>
@@ -206,7 +226,7 @@
                 >
                   <q-select
                     v-model="condition.field"
-                    label="Поле"
+                    label="Поле *"
                     :options="this.graphConditionFields"
                     emit-value
                     map-options
@@ -216,7 +236,7 @@
 
                   <q-select
                     v-model="condition.operator"
-                    label="Оператор"
+                    label="Оператор *"
                     :options="this.conditionOperatorOptions(condition)"
                     emit-value
                     map-options
@@ -227,7 +247,7 @@
                   <q-select
                     v-if="this.conditionValueOptions(condition).length"
                     v-model="condition.value"
-                    label="Значение"
+                    label="Значение *"
                     :options="this.conditionValueOptions(condition)"
                     emit-value
                     map-options
@@ -237,7 +257,7 @@
                   <q-input
                     v-else
                     v-model="condition.value"
-                    label="Значение"
+                    label="Значение *"
                     class="condition-value"
                   />
 
@@ -303,7 +323,7 @@
               >
                 <q-select
                   v-model="action.type"
-                  label="Что сделать"
+                  label="Что сделать *"
                   :options="this.graphActionTypes"
                   emit-value
                   map-options
@@ -314,7 +334,7 @@
                 <q-select
                   v-if="this.actionNeedsValue(action)"
                   v-model="action.value"
-                  label="Значение"
+                  label="Значение *"
                   :options="this.actionValueOptions(action)"
                   emit-value
                   map-options
@@ -358,7 +378,7 @@
                 >
                   <q-select
                     v-model="action.type"
-                    label="Что сделать"
+                    label="Что сделать *"
                     :options="this.graphActionTypes"
                     emit-value
                     map-options
@@ -369,7 +389,7 @@
                   <q-select
                     v-if="this.actionNeedsValue(action)"
                     v-model="action.value"
-                    label="Значение"
+                    label="Значение *"
                     :options="this.actionValueOptions(action)"
                     emit-value
                     map-options
@@ -488,19 +508,19 @@
           <q-select
             id="task-executor"
             v-model="this.selectedTriggerType"
-            label="Событие"
+            label="Событие *"
             :options="this.store.triggerTypes"
           />
           <automation-expression-input
             v-model="this.dialogTriggerExpression"
             :variables="this.expressionVariables"
-            label="Выражение условия"
+            label="Выражение условия *"
             :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           />
           <automation-expression-input
             v-model="this.dialogTriggerAction"
             :variables="this.expressionVariables"
-            label="Действия ветки ДА"
+            label="Действия ветки ДА *"
             :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           />
           <automation-expression-input
@@ -513,14 +533,16 @@
       <q-card-actions align="right" class="automation-dialog-actions">
         <q-btn
           v-if="!this.isNewTrigger"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="this.dialogDeleteTrigger"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="this.dialogClose"
         />
@@ -539,8 +561,8 @@ import draggable from 'vuedraggable'
 import axios from 'axios'
 import AutomationFlowEditor from 'components/automation/AutomationFlowEditor.vue'
 import AutomationExpressionInput from 'components/automation/AutomationExpressionInput.vue'
-import { useStore } from 'stores/store'
-import { watch } from 'vue'
+import {useStore} from 'stores/store'
+import {watch} from 'vue'
 import {
   createDefaultWorkflow,
   getWorkflowTriggerType,
@@ -583,12 +605,13 @@ export default {
     testLoading: false,
     testResult: null,
     workflow: createDefaultWorkflow('TASK_CREATED'),
-    workflowValidation: { errors: [], warnings: [] },
-    saving: false
+    workflowValidation: {errors: [], warnings: []},
+    saving: false,
+    togglingTriggerIds: [],
   }),
 
   computed: {
-    expressionVariables () {
+    expressionVariables() {
       const variables = new Set()
       for (const node of this.workflow?.nodes || []) {
         const config = node?.config || {}
@@ -602,41 +625,47 @@ export default {
       return [...variables].filter(Boolean).sort((left, right) => left.localeCompare(right))
     },
 
-    graphConditionFields () {
+    graphConditionFields() {
       return [
-        { label: 'Тип заявки', value: 'task.type.id', kind: 'entity', source: 'taskTypes' },
-        { label: 'Приоритет', value: 'task.priority.id', kind: 'entity', source: 'priorities' },
-        { label: 'Статус', value: 'task.status.id', kind: 'entity', source: 'statuses' },
-        { label: 'Текущая линия', value: 'task.supportLine.id', kind: 'entity-nullable', source: 'supportLines' },
-        { label: 'Исполнитель', value: 'task.executor.id', kind: 'entity-nullable', source: 'users' },
-        { label: 'Тег заявки', value: 'task.tags', kind: 'tag', source: 'tags' },
-        { label: 'Название заявки', value: 'task.name', kind: 'text' },
-        { label: 'Описание заявки', value: 'task.description', kind: 'text' },
-        { label: 'Заявка закрыта', value: 'task.completed', kind: 'boolean' },
-        { label: 'Заявка приостановлена', value: 'task.frozen', kind: 'boolean' },
-        { label: 'Организация клиента', value: 'client.organization.id', kind: 'entity-nullable', source: 'organizations' },
-        { label: 'Канал обращения', value: 'client.sourceChannel', kind: 'text' }
+        {label: 'Тип заявки', value: 'task.type.id', kind: 'entity', source: 'taskTypes'},
+        {label: 'Приоритет', value: 'task.priority.id', kind: 'entity', source: 'priorities'},
+        {label: 'Статус', value: 'task.status.id', kind: 'entity', source: 'statuses'},
+        {label: 'Текущая линия', value: 'task.supportLine.id', kind: 'entity-nullable', source: 'supportLines'},
+        {label: 'Исполнитель', value: 'task.executor.id', kind: 'entity-nullable', source: 'users'},
+        {label: 'Тег заявки', value: 'task.tags', kind: 'tag', source: 'tags'},
+        {label: 'Название заявки', value: 'task.name', kind: 'text'},
+        {label: 'Описание заявки', value: 'task.description', kind: 'text'},
+        {label: 'Заявка закрыта', value: 'task.completed', kind: 'boolean'},
+        {label: 'Заявка приостановлена', value: 'task.frozen', kind: 'boolean'},
+        {
+          label: 'Организация клиента',
+          value: 'client.organization.id',
+          kind: 'entity-nullable',
+          source: 'organizations'
+        },
+        {label: 'Канал обращения', value: 'client.sourceChannel', kind: 'text'}
       ]
     },
 
-    graphActionTypes () {
+    graphActionTypes() {
       return [
-        { label: 'Назначить линию поддержки', value: 'ASSIGN_LINE' },
-        { label: 'Назначить наименее загруженного участника линии', value: 'ASSIGN_LEAST_LOADED' },
-        { label: 'Назначить исполнителя', value: 'ASSIGN_USER' },
-        { label: 'Очистить исполнителя', value: 'CLEAR_ASSIGNEE' },
-        { label: 'Изменить приоритет', value: 'SET_PRIORITY' },
-        { label: 'Изменить статус', value: 'SET_STATUS' },
-        { label: 'Добавить тег', value: 'ADD_TAG' },
-        { label: 'Удалить тег', value: 'REMOVE_TAG' }
+        {label: 'Назначить линию поддержки', value: 'ASSIGN_LINE'},
+        {label: 'Назначить наименее загруженного участника линии', value: 'ASSIGN_LEAST_LOADED'},
+        {label: 'Назначить исполнителя', value: 'ASSIGN_USER'},
+        {label: 'Очистить исполнителя', value: 'CLEAR_ASSIGNEE'},
+        {label: 'Изменить приоритет', value: 'SET_PRIORITY'},
+        {label: 'Изменить статус', value: 'SET_STATUS'},
+        {label: 'Добавить тег', value: 'ADD_TAG'},
+        {label: 'Удалить тег', value: 'REMOVE_TAG'},
+        {label: 'Установить «Требует ответа»', value: 'SET_ANSWER_REQUIRED'}
       ]
     },
 
-    supportLineOptions () {
+    supportLineOptions() {
       return this.toOptions(this.supportLines, item => item.name)
     },
 
-    userOptions () {
+    userOptions() {
       return (this.store.users || [])
         .filter(user => user && user.id !== undefined && user.id !== null)
         .map(user => ({
@@ -645,7 +674,7 @@ export default {
         }))
     },
 
-    graphExpression () {
+    graphExpression() {
       if (this.graphConditionGroups.length === 0) {
         return 'true'
       }
@@ -664,7 +693,7 @@ export default {
       return groups.join(' or ')
     },
 
-    graphAction () {
+    graphAction() {
       const actions = this.graphActions.map(action => this.buildActionExpression(action))
       if (!actions.length || actions.some(value => !value)) {
         return ''
@@ -672,7 +701,7 @@ export default {
       return actions.join('; ')
     },
 
-    graphElseAction () {
+    graphElseAction() {
       if (!this.elseBranchEnabled) {
         return ''
       }
@@ -685,19 +714,19 @@ export default {
   },
 
   methods: {
-    nextGraphId () {
+    nextGraphId() {
       const id = this.graphSequence
       this.graphSequence += 1
       return id
     },
 
-    toOptions (items, labelGetter, valueGetter = item => item.id) {
+    toOptions(items, labelGetter, valueGetter = item => item.id) {
       return (items || [])
         .filter(item => item && item.id !== undefined && item.id !== null && item.active !== false)
-        .map(item => ({ label: labelGetter(item), value: valueGetter(item) }))
+        .map(item => ({label: labelGetter(item), value: valueGetter(item)}))
     },
 
-    newCondition () {
+    newCondition() {
       return {
         id: this.nextGraphId(),
         field: 'task.type.id',
@@ -706,7 +735,7 @@ export default {
       }
     },
 
-    newAction () {
+    newAction() {
       return {
         id: this.nextGraphId(),
         type: 'ASSIGN_LINE',
@@ -714,22 +743,22 @@ export default {
       }
     },
 
-    addConditionGroup () {
+    addConditionGroup() {
       this.graphConditionGroups.push({
         id: this.nextGraphId(),
         conditions: [this.newCondition()]
       })
     },
 
-    removeConditionGroup (groupIndex) {
+    removeConditionGroup(groupIndex) {
       this.graphConditionGroups.splice(groupIndex, 1)
     },
 
-    addCondition (groupIndex) {
+    addCondition(groupIndex) {
       this.graphConditionGroups[groupIndex].conditions.push(this.newCondition())
     },
 
-    removeCondition (groupIndex, conditionIndex) {
+    removeCondition(groupIndex, conditionIndex) {
       const group = this.graphConditionGroups[groupIndex]
       group.conditions.splice(conditionIndex, 1)
       if (group.conditions.length === 0) {
@@ -737,32 +766,32 @@ export default {
       }
     },
 
-    branchActions (branch) {
+    branchActions(branch) {
       return branch === 'no' ? this.graphElseActions : this.graphActions
     },
 
-    addAction (branch = 'yes') {
+    addAction(branch = 'yes') {
       this.branchActions(branch).push(this.newAction())
     },
 
-    removeAction (branch, actionIndex) {
+    removeAction(branch, actionIndex) {
       const actions = this.branchActions(branch)
       if (actions.length > 1) {
         actions.splice(actionIndex, 1)
       }
     },
 
-    onElseBranchToggle (enabled) {
+    onElseBranchToggle(enabled) {
       if (enabled && this.graphElseActions.length === 0) {
         this.graphElseActions = [this.newAction()]
       }
     },
 
-    conditionFieldMeta (field) {
-      return this.graphConditionFields.find(item => item.value === field) || { kind: 'text' }
+    conditionFieldMeta(field) {
+      return this.graphConditionFields.find(item => item.value === field) || {kind: 'text'}
     },
 
-    resetCondition (condition) {
+    resetCondition(condition) {
       condition.operator = 'equals'
       condition.value = null
       const meta = this.conditionFieldMeta(condition.field)
@@ -773,29 +802,29 @@ export default {
       }
     },
 
-    conditionOperatorOptions (condition) {
+    conditionOperatorOptions(condition) {
       const kind = this.conditionFieldMeta(condition.field).kind
       if (kind === 'tag') {
         return [
-          { label: 'содержит тег', value: 'has_tag' },
-          { label: 'не содержит тег', value: 'no_tag' }
+          {label: 'содержит тег', value: 'has_tag'},
+          {label: 'не содержит тег', value: 'no_tag'}
         ]
       }
       if (kind === 'text') {
         return [
-          { label: 'содержит', value: 'contains' },
-          { label: 'не содержит', value: 'not_contains' },
-          { label: 'равно', value: 'equals' },
-          { label: 'не равно', value: 'not_equals' }
+          {label: 'содержит', value: 'contains'},
+          {label: 'не содержит', value: 'not_contains'},
+          {label: 'равно', value: 'equals'},
+          {label: 'не равно', value: 'not_equals'}
         ]
       }
       return [
-        { label: 'равно', value: 'equals' },
-        { label: 'не равно', value: 'not_equals' }
+        {label: 'равно', value: 'equals'},
+        {label: 'не равно', value: 'not_equals'}
       ]
     },
 
-    conditionValueOptions (condition) {
+    conditionValueOptions(condition) {
       const meta = this.conditionFieldMeta(condition.field)
       let options = []
       switch (meta.source) {
@@ -825,21 +854,21 @@ export default {
       }
       if (meta.kind === 'boolean') {
         return [
-          { label: 'Да', value: true },
-          { label: 'Нет', value: false }
+          {label: 'Да', value: true},
+          {label: 'Нет', value: false}
         ]
       }
       if (meta.kind === 'entity-nullable') {
-        return [{ label: 'Не назначено', value: '__NULL__' }, ...options]
+        return [{label: 'Не назначено', value: '__NULL__'}, ...options]
       }
       return options
     },
 
-    actionNeedsValue (action) {
-      return action.type !== 'CLEAR_ASSIGNEE'
+    actionNeedsValue(action) {
+      return !['CLEAR_ASSIGNEE', 'SET_ANSWER_REQUIRED'].includes(action.type)
     },
 
-    actionValueOptions (action) {
+    actionValueOptions(action) {
       switch (action.type) {
         case 'ASSIGN_LINE':
         case 'ASSIGN_LEAST_LOADED':
@@ -858,13 +887,13 @@ export default {
       }
     },
 
-    escapeScriptString (value) {
+    escapeScriptString(value) {
       return String(value ?? '')
         .replaceAll('\\', '\\\\')
         .replaceAll("'", "\\'")
     },
 
-    buildConditionExpression (condition) {
+    buildConditionExpression(condition) {
       if (!condition || !condition.field || condition.value === null || condition.value === undefined || condition.value === '') {
         return ''
       }
@@ -896,7 +925,7 @@ export default {
       return condition.operator === 'not_equals' ? `!(${expression})` : expression
     },
 
-    buildActionExpression (action) {
+    buildActionExpression(action) {
       if (!action || !action.type) {
         return ''
       }
@@ -905,19 +934,30 @@ export default {
       }
       const value = this.escapeScriptString(action.value)
       switch (action.type) {
-        case 'ASSIGN_LINE': return `task.assignToGroup(${action.value})`
-        case 'ASSIGN_LEAST_LOADED': return `task.assignToLeastLoadedMember(${action.value})`
-        case 'ASSIGN_USER': return `task.assignToUser(${action.value})`
-        case 'CLEAR_ASSIGNEE': return 'task.clearAssignee()'
-        case 'SET_PRIORITY': return `task.setPriority('${value}')`
-        case 'SET_STATUS': return `task.setStatus('${value}')`
-        case 'ADD_TAG': return `task.addTag('${value}')`
-        case 'REMOVE_TAG': return `task.removeTag('${value}')`
-        default: return ''
+        case 'ASSIGN_LINE':
+          return `task.assignToGroup(${action.value})`
+        case 'ASSIGN_LEAST_LOADED':
+          return `task.assignToLeastLoadedMember(${action.value})`
+        case 'ASSIGN_USER':
+          return `task.assignToUser(${action.value})`
+        case 'CLEAR_ASSIGNEE':
+          return 'task.clearAssignee()'
+        case 'SET_PRIORITY':
+          return `task.setPriority('${value}')`
+        case 'SET_STATUS':
+          return `task.setStatus('${value}')`
+        case 'ADD_TAG':
+          return `task.addTag('${value}')`
+        case 'REMOVE_TAG':
+          return `task.removeTag('${value}')`
+        case 'SET_ANSWER_REQUIRED':
+          return 'client.setAnswerRequired()'
+        default:
+          return ''
       }
     },
 
-    resetGraph () {
+    resetGraph() {
       this.graphSequence = 1
       this.graphConditionGroups = []
       this.graphActions = [this.newAction()]
@@ -925,7 +965,7 @@ export default {
       this.elseBranchEnabled = false
     },
 
-    splitTopLevel (value, separator) {
+    splitTopLevel(value, separator) {
       const result = []
       let start = 0
       let depth = 0
@@ -953,14 +993,14 @@ export default {
       return result.filter(Boolean)
     },
 
-    stripOuterBrackets (value) {
+    stripOuterBrackets(value) {
       const trimmed = String(value || '').trim()
       return trimmed.startsWith('(') && trimmed.endsWith(')')
         ? trimmed.slice(1, -1).trim()
         : trimmed
     },
 
-    parseGraphCondition (rawCondition) {
+    parseGraphCondition(rawCondition) {
       let source = String(rawCondition || '').trim()
       let negative = false
       if (source.startsWith('!(') && source.endsWith(')')) {
@@ -1021,27 +1061,28 @@ export default {
       }
     },
 
-    parseGraphAction (rawAction) {
+    parseGraphAction(rawAction) {
       const source = String(rawAction || '').trim()
       let match = source.match(/^task\.assignToGroup\((\d+)\)$/)
-      if (match) return { id: this.nextGraphId(), type: 'ASSIGN_LINE', value: Number(match[1]) }
+      if (match) return {id: this.nextGraphId(), type: 'ASSIGN_LINE', value: Number(match[1])}
       match = source.match(/^task\.assignToLeastLoadedMember\((\d+)\)$/)
-      if (match) return { id: this.nextGraphId(), type: 'ASSIGN_LEAST_LOADED', value: Number(match[1]) }
+      if (match) return {id: this.nextGraphId(), type: 'ASSIGN_LEAST_LOADED', value: Number(match[1])}
       match = source.match(/^task\.assignToUser\((\d+)\)$/)
-      if (match) return { id: this.nextGraphId(), type: 'ASSIGN_USER', value: Number(match[1]) }
-      if (source === 'task.clearAssignee()') return { id: this.nextGraphId(), type: 'CLEAR_ASSIGNEE', value: null }
+      if (match) return {id: this.nextGraphId(), type: 'ASSIGN_USER', value: Number(match[1])}
+      if (source === 'task.clearAssignee()') return {id: this.nextGraphId(), type: 'CLEAR_ASSIGNEE', value: null}
       match = source.match(/^task\.setPriority\('((?:\\'|[^'])*)'\)$/)
-      if (match) return { id: this.nextGraphId(), type: 'SET_PRIORITY', value: match[1].replaceAll("\\'", "'") }
+      if (match) return {id: this.nextGraphId(), type: 'SET_PRIORITY', value: match[1].replaceAll("\\'", "'")}
       match = source.match(/^task\.setStatus\('((?:\\'|[^'])*)'\)$/)
-      if (match) return { id: this.nextGraphId(), type: 'SET_STATUS', value: match[1].replaceAll("\\'", "'") }
+      if (match) return {id: this.nextGraphId(), type: 'SET_STATUS', value: match[1].replaceAll("\\'", "'")}
       match = source.match(/^task\.addTag\('((?:\\'|[^'])*)'\)$/)
-      if (match) return { id: this.nextGraphId(), type: 'ADD_TAG', value: match[1].replaceAll("\\'", "'") }
+      if (match) return {id: this.nextGraphId(), type: 'ADD_TAG', value: match[1].replaceAll("\\'", "'")}
       match = source.match(/^task\.removeTag\('((?:\\'|[^'])*)'\)$/)
-      if (match) return { id: this.nextGraphId(), type: 'REMOVE_TAG', value: match[1].replaceAll("\\'", "'") }
+      if (match) return {id: this.nextGraphId(), type: 'REMOVE_TAG', value: match[1].replaceAll("\\'", "'")}
+      if (source === 'client.setAnswerRequired()') return {id: this.nextGraphId(), type: 'SET_ANSWER_REQUIRED', value: null}
       return null
     },
 
-    readGraph (expression, action, elseAction) {
+    readGraph(expression, action, elseAction) {
       this.resetGraph()
       const normalizedExpression = String(expression || '').trim()
       const normalizedAction = String(action || '').trim()
@@ -1056,7 +1097,7 @@ export default {
             if (!parsed) return false
             conditions.push(parsed)
           }
-          parsedGroups.push({ id: this.nextGraphId(), conditions })
+          parsedGroups.push({id: this.nextGraphId(), conditions})
         }
         this.graphConditionGroups = parsedGroups
       }
@@ -1084,7 +1125,7 @@ export default {
       return true
     },
 
-    editTrigger (row) {
+    editTrigger(row) {
       this.isNewTigger = false
       this.isNewTrigger = false
       this.dialogVisible = true
@@ -1102,7 +1143,7 @@ export default {
       const parsedWorkflow = parseWorkflowDefinition(row.workflowDefinition, row.triggerType)
       if (parsedWorkflow) {
         this.workflow = parsedWorkflow
-        this.workflowValidation = { errors: [], warnings: [] }
+        this.workflowValidation = {errors: [], warnings: []}
         this.editorMode = 'workflow'
       } else {
         this.workflow = legacyRuleToWorkflow(row)
@@ -1110,7 +1151,7 @@ export default {
       }
     },
 
-    newTrigger () {
+    newTrigger() {
       this.dialogVisible = true
       this.isNewTrigger = true
       this.dialogTriggerName = ''
@@ -1124,17 +1165,17 @@ export default {
       this.testTaskId = null
       this.testResult = null
       this.workflow = createDefaultWorkflow('TASK_CREATED')
-      this.workflowValidation = { errors: [], warnings: [] }
+      this.workflowValidation = {errors: [], warnings: []}
       this.editorMode = 'workflow'
       this.resetGraph()
       setTimeout(() => this.$refs.dialogTriggerName.focus(), 250)
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    async dialogSaveNewOrUpdateTrigger () {
+    async dialogSaveNewOrUpdateTrigger() {
       let workflowDefinition = null
       let workflowVersion = 1
 
@@ -1143,7 +1184,13 @@ export default {
           this.$q.notify({
             message: this.workflowValidation.errors[0],
             type: 'negative',
-            position: 'top-right'
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
           })
           return
         }
@@ -1197,7 +1244,7 @@ export default {
       this.saving = true
       try {
         if (this.editorMode === 'workflow') {
-          const validationResponse = await axios.post('/api/v1/automation/validate', { workflowDefinition })
+          const validationResponse = await axios.post('/api/v1/automation/validate', {workflowDefinition})
           if (validationResponse.data?.valid === false) {
             throw new Error(validationResponse.data.errors?.[0] || 'Цепочка содержит ошибки')
           }
@@ -1228,26 +1275,33 @@ export default {
       }
     },
 
-    toggleTrigger (trigger, enabled) {
+    async toggleTrigger(trigger, enabled) {
+      if (this.togglingTriggerIds.includes(trigger.id)) return
+
+      this.togglingTriggerIds.push(trigger.id)
       const payload = {
         ...trigger,
         automationRuleStatus: enabled ? 'ENABLED' : 'DISABLED'
       }
-      axios.patch('/api/v1/trigger', payload)
-        .then(response => {
-          const index = this.store.triggers.findIndex(item => item.id === response.data.id)
-          if (index >= 0) {
-            this.store.triggers.splice(index, 1, response.data)
-          }
-        })
-        .catch(e => this.$q.notify({
+
+      try {
+        const response = await axios.patch('/api/v1/trigger', payload)
+        const index = this.store.triggers.findIndex(item => item.id === response.data.id)
+        if (index >= 0) {
+          this.store.triggers.splice(index, 1, response.data)
+        }
+      } catch (e) {
+        this.$q.notify({
           message: e.response?.data?.message || e.message,
           type: 'negative',
           position: 'top-right'
-        }))
+        })
+      } finally {
+        this.togglingTriggerIds = this.togglingTriggerIds.filter(id => id !== trigger.id)
+      }
     },
 
-    runRoutingTest () {
+    runRoutingTest() {
       if (!this.testTaskId) {
         this.$q.notify({
           message: 'Укажите ID заявки',
@@ -1309,18 +1363,18 @@ export default {
         })
     },
 
-    isWorkflowTestResult (result) {
+    isWorkflowTestResult(result) {
       return result?.mode === 'WORKFLOW' || Array.isArray(result?.trace)
     },
 
-    workflowTestResultTitle (result) {
+    workflowTestResultTitle(result) {
       if (result?.executed) return 'Действия будут выполнены'
       if (result?.scheduled) return 'Маршрут остановится на ожидающем узле'
       if (result?.completed) return 'Маршрут завершится без выполнения действий'
       return 'Маршрут не дошёл до выполняемого действия'
     },
 
-    workflowTraceStatusLabel (status) {
+    workflowTraceStatusLabel(status) {
       const labels = {
         PASSED: 'пройдено',
         ROUTED: 'выбрана ветка',
@@ -1347,14 +1401,14 @@ export default {
       return labels[status] || status || 'пройдено'
     },
 
-    formatDateTime (value) {
+    formatDateTime(value) {
       if (!value) return ''
       const date = new Date(value)
       if (Number.isNaN(date.getTime())) return value
       return date.toLocaleString('ru-RU')
     },
 
-    dialogDeleteTrigger () {
+    dialogDeleteTrigger() {
       axios.delete(`/api/v1/trigger/${this.triggerId}`)
         .then(() => {
           this.store.triggers = this.store.triggers.filter(trigger => trigger.id !== this.triggerId)
@@ -1371,7 +1425,7 @@ export default {
           }))
     },
 
-    loadSupportLines () {
+    loadSupportLines() {
       axios.get('/api/v1/support-lines')
         .then(response => {
           this.supportLines = response.data || []
@@ -1399,16 +1453,21 @@ export default {
     // }
   },
 
-  mounted () {
+  mounted() {
     this.loadSupportLines()
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    watch(() => store.triggers, () => {
-      axios.patch('/api/v1/triggers/resort', store.triggers)
-    }, { deep: true })
-    return { store }
+    watch(
+      () => store.triggers.map(trigger => trigger.id).join(','),
+      (currentOrder, previousOrder) => {
+        if (!previousOrder || currentOrder === previousOrder) return
+        axios.patch('/api/v1/triggers/resort', store.triggers)
+          .catch(error => console.warn('Trigger resort failed', error))
+      }
+    )
+    return {store}
   }
 }
 </script>
@@ -1575,8 +1634,13 @@ export default {
   background: #ffe0b2;
 }
 
-.automation-logic-divider::before { left: 0; }
-.automation-logic-divider::after { right: 0; }
+.automation-logic-divider::before {
+  left: 0;
+}
+
+.automation-logic-divider::after {
+  right: 0;
+}
 
 .automation-workflow-wrapper {
   min-height: 560px;

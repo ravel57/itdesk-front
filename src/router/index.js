@@ -42,6 +42,21 @@ export default route(function () {
     if (!auth.isAuthenticated) {
       return '/login'
     }
+
+    const authorities = Array.isArray(auth.user?.authorities) ? auth.user.authorities : []
+    const isClientPortalUser = authorities.includes('CLIENT')
+
+    if (isClientPortalUser && !to.path.startsWith('/portal')) {
+      return '/portal'
+    }
+    if (!isClientPortalUser && to.path.startsWith('/portal')) {
+      return '/chats'
+    }
+    const allowedRoles = Array.isArray(to.meta?.roles) ? to.meta.roles : []
+    if (allowedRoles.length > 0 && !authorities.some(role => allowedRoles.includes(role))) {
+      return isClientPortalUser ? '/portal' : '/chats'
+    }
+
     return true
   })
 

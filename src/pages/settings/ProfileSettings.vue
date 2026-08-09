@@ -1,16 +1,14 @@
 <template>
   <q-page class="profile-page q-pa-md">
     <div class="profile-page__content column q-gutter-md">
-      <q-card flat bordered class="profile-card">
-        <q-card-section>
-          <div class="text-h6">
-            Профиль
+      <div class="settings-content-header q-mb-none">
+        <div class="settings-content-heading">
+          <div class="settings-content-title">Профиль</div>
+          <div class="settings-content-description">
+            Управляйте уведомлениями, безопасностью и личными параметрами аккаунта.
           </div>
-          <div class="text-caption text-grey-7">
-            Личные настройки пользователя
-          </div>
-        </q-card-section>
-      </q-card>
+        </div>
+      </div>
 
       <q-card flat bordered class="profile-card">
         <q-card-section>
@@ -159,13 +157,13 @@
         <q-card-section class="column q-gutter-md">
           <q-input
             v-model="newPassword"
-            label="Новый пароль"
+            label="Новый пароль *"
             :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
             type="password"
           />
           <q-input
             v-model="newPasswordReenter"
-            label="Повторите новый пароль"
+            label="Повторите новый пароль *"
             :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
             type="password"
           />
@@ -191,13 +189,13 @@
 
 <script>
 import axios from 'axios'
-import { useStore } from 'stores/store'
-import { useSystemNotifications } from 'src/composables/useSystemNotifications'
+import {useStore} from 'stores/store'
+import {useSystemNotifications} from 'src/composables/useSystemNotifications'
 
 export default {
   name: 'ProfileSettings',
 
-  data () {
+  data() {
     const {
       requestPermission,
       notify,
@@ -226,7 +224,7 @@ export default {
   },
 
   methods: {
-    changePassword () {
+    changePassword() {
       if (this.newPassword.length === 0 || this.newPasswordReenter.length === 0) {
         this.showNegativeNotify('Не заполнены обязательные поля')
         return
@@ -236,7 +234,7 @@ export default {
         return
       }
 
-      axios.post('/api/v1/user/change-password', { password: this.newPassword })
+      axios.post('/api/v1/user/change-password', {password: this.newPassword})
         .then(() => {
           this.newPasswordDialogClose()
         })
@@ -245,21 +243,21 @@ export default {
         })
     },
 
-    newPasswordDialogShow () {
+    newPasswordDialogShow() {
       this.isNewPasswordDialogShow = true
       this.newPassword = ''
       this.newPasswordReenter = ''
     },
 
-    newPasswordDialogClose () {
+    newPasswordDialogClose() {
       this.isNewPasswordDialogShow = false
     },
 
-    async ask () {
+    async ask() {
       this.perm = await this.myRequestPermission()
     },
 
-    notify () {
+    notify() {
       const n = this.myNotify('ULDesk', {
         body: 'Новая заявка назначена на вас',
         tag: 'new-task'
@@ -270,7 +268,7 @@ export default {
       }
     },
 
-    showNegativeNotify (message) {
+    showNegativeNotify(message) {
       this.$q.notify({
         message,
         type: 'negative',
@@ -284,10 +282,10 @@ export default {
       })
     },
 
-    loadNotificationSettings () {
+    loadNotificationSettings() {
       this.isLoadingNotificationSettings = true
       axios.get('/api/v1/user/notification-settings')
-        .then(({ data }) => {
+        .then(({data}) => {
           this.notifyChatPing = !!data.notifyChatPing
           this.notifyTaskChatPing = !!data.notifyTaskChatPing
           this.notifyNewAssignedTask = !!data.notifyNewAssignedTask
@@ -316,7 +314,7 @@ export default {
         })
     },
 
-    async saveNotificationSettings () {
+    async saveNotificationSettings() {
       if (!this.validateNotificationSettings()) {
         return
       }
@@ -325,7 +323,13 @@ export default {
           this.$q.notify({
             message: 'Настройки уведомлений сохранены',
             type: 'positive',
-            position: 'top-right'
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
           })
         })
         .catch(e => {
@@ -333,7 +337,7 @@ export default {
         })
     },
 
-    saveNotificationSettingsSilent () {
+    saveNotificationSettingsSilent() {
       if (this.isLoadingNotificationSettings) {
         return
       }
@@ -343,7 +347,7 @@ export default {
         })
     },
 
-    getNotificationSettingsPayload () {
+    getNotificationSettingsPayload() {
       const minutes = Number(this.notifyChatUnansweredTooLongMinutes)
       const deadlineOverdueBeforeMinutes = Number(this.notifyDeadlineOverdueBeforeMinutes)
       return {
@@ -365,7 +369,7 @@ export default {
       }
     },
 
-    validateNotificationSettings () {
+    validateNotificationSettings() {
       const deadlineOverdueBeforeMinutes = Number(this.notifyDeadlineOverdueBeforeMinutes)
       const chatUnansweredTooLongMinutes = Number(this.notifyChatUnansweredTooLongMinutes)
       if (this.notifyDeadlineOverdueBeforeMinutesEnabled && (!Number.isFinite(deadlineOverdueBeforeMinutes) || deadlineOverdueBeforeMinutes < 1)) {
@@ -394,13 +398,13 @@ export default {
     notifyDeadlineOverdueBeforeMinutesEnabled: 'saveNotificationSettingsSilent',
   },
 
-  mounted () {
+  mounted() {
     this.loadNotificationSettings()
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    return { store }
+    return {store}
   },
 }
 </script>

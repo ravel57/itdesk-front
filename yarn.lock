@@ -3531,6 +3531,11 @@ common-ancestor-path@^1.0.1:
   resolved "https://registry.yarnpkg.com/common-ancestor-path/-/common-ancestor-path-1.0.1.tgz#4f7d2d1394d91b7abdf51871c62f71eadb0182a7"
   integrity sha512-L3sHRo1pXXEqX8VU28kfgUY+YGsk09hPqZiZmLacNib6XNTCM8ubYeT7ryXQw8asB1sKgcU5lkB7ONug08aB8w==
 
+components@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/components/-/components-0.1.0.tgz#2057c08e9c7bf2662feec95c49e5ff2a9ab85ed5"
+  integrity sha512-4xKUO3dL9LBs8WiOKy2kvLfnwKZLps9xDT5cFS0GL4UiXrr/dNUYus7Uf1bRPG66cUpEmwFAWVOlE9cxQgG+QA==
+
 compress-commons@^4.1.2:
   version "4.1.2"
   resolved "https://registry.yarnpkg.com/compress-commons/-/compress-commons-4.1.2.tgz#6542e59cb63e1f46a8b21b0e06f9a32e4c8b06df"

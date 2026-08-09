@@ -3,12 +3,27 @@
     padding
     style="display: flex; flex-direction: column; height: 100vh; min-height: 0; padding-bottom: 0; overflow: hidden"
   >
+    <q-banner
+      v-if="this.isMyLinesScope"
+      dense
+      rounded
+      class="bg-blue-1 text-primary q-mb-sm"
+    >
+      <template v-slot:avatar>
+        <q-icon name="support_agent" color="primary"/>
+      </template>
+      <div class="text-weight-medium">Заявки моих линий</div>
+      <div class="text-caption text-grey-8">
+        Показаны заявки линий, где вы являетесь ответственным, участником или наблюдателем.
+      </div>
+    </q-banner>
     <div id="task-control-container" style="display: flex;flex-direction: column;">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
         <div style="display: flex; width: 100%;">
           <q-input
             outlined
             dense
+            data-tour="tasks-page-search"
             v-model="this.searchRequest"
             label="Поиск"
             style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
@@ -35,14 +50,27 @@
             </template>
             <q-list>
               <q-item
-                v-for="(grouper, index) in this.getFilterType"
-                :key="index"
+                v-for="grouper in this.getFilterType"
+                :key="grouper.slug"
                 clickable
                 v-close-popup
+                :active="this.selectedGroupType.slug === grouper.slug"
+                active-class="text-primary"
                 @click="this.selectedGroupType = grouper"
               >
                 <q-item-section>
                   <q-item-label>{{ grouper.label }}</q-item-label>
+                </q-item-section>
+
+                <q-item-section
+                  v-if="this.selectedGroupType.slug === grouper.slug"
+                  side
+                >
+                  <q-icon
+                    name="check"
+                    color="primary"
+                    size="18px"
+                  />
                 </q-item-section>
               </q-item>
             </q-list>
@@ -52,6 +80,7 @@
             :style=" this.isMobile && this.isShowTableMode ? 'justify-content: center; width: 100%;' : ''"
           >
             <q-btn
+              data-tour="tasks-page-filter"
               icon="filter_alt"
               flat
               @click="this.changeFilterSelection"
@@ -140,6 +169,7 @@
             </div>
 
             <q-toggle
+              data-tour="tasks-page-view-mode"
               v-model="this.isShowTableMode"
               color="grey"
               left-label
@@ -153,6 +183,7 @@
               </q-tooltip>
             </q-toggle>
             <q-toggle
+              data-tour="tasks-page-completed"
               v-model="this.isShowCompletedTasks"
               color="primary"
               left-label
@@ -164,6 +195,7 @@
               </q-tooltip>
             </q-toggle>
             <q-btn
+              v-if="!this.isObserverUser"
               icon="undo"
               flat
               class="text-grey-7"
@@ -175,6 +207,7 @@
               </q-tooltip>
             </q-btn>
             <q-btn
+              v-if="!this.isObserverUser"
               icon="redo"
               flat
               class="text-grey-7"
@@ -193,16 +226,33 @@
           >
             <q-card class="dialog-width">
               <q-toolbar class="justify-between">
-                <div class="text-h6" v-text="'Сохранить шаблон фильтров?'"/>
+                <div
+                  class="text-h6"
+                  v-text="this.selectedSavedFilter ? 'Пересохранить шаблон фильтров?' : 'Сохранить шаблон фильтров?'"
+                />
                 <q-btn flat round dense icon="close" v-close-popup/>
               </q-toolbar>
               <q-card-section style="padding-top: 0">
                 <q-input
-                  label="Название"
+                  label="Название *"
                   v-model="this.dialogNewFilterName"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
                   ref="dialogNewFilterName"
                 />
+                <q-select
+                  v-if="this.canManageGlobalFilters"
+                  v-model="this.dialogFilterScope"
+                  :options="this.filterScopeOptions"
+                  label="Доступ *"
+                  emit-value
+                  map-options
+                  outlined
+                  dense
+                  class="q-mb-md"
+                />
+                <div v-else class="text-caption text-grey-7 q-mb-md">
+                  Доступ: персональный
+                </div>
                 <div style="margin-bottom: 8px">
                   Условие между фильтрами: {{ this.filterJoinOperator === 'AND' ? 'И' : 'ИЛИ' }}
                 </div>
@@ -218,7 +268,7 @@
                 <q-btn
                   color="white"
                   text-color="primary"
-                  label="Закрыть"
+                  label="Отмена"
                   @click="this.dialogSaveFilterClose"
                 />
                 <q-btn
@@ -239,14 +289,51 @@
       >
         <q-select
           v-model="this.selectedSavedFilter"
-          :options="this.savedFilters.map(it => it.label)"
+          :options="this.savedFilterOptions"
+          option-label="label"
+          option-value="value"
+          emit-value
+          map-options
           label="Шаблоны фильтров"
           style="width: 12.5%; align-content: center; min-width: 300px; margin-right: 8px"
           :style="this.isMobile ? 'width: 100%; margin-bottom: 8px' : ''"
           @update:model-value="this.onSavedFilterSelected"
           outlined
           clearable
-        />
+        >
+          <template v-slot:option="scope">
+            <q-item v-bind="scope.itemProps">
+              <q-item-section>
+                <q-item-label>{{ scope.opt.label }}</q-item-label>
+                <q-item-label caption>
+                  {{ scope.opt.scope === 'GLOBAL' ? 'Глобальный фильтр' : 'Персональный фильтр' }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon
+                  :name="scope.opt.scope === 'GLOBAL' ? 'groups' : 'person'"
+                  :color="scope.opt.scope === 'GLOBAL' ? 'deep-purple-5' : 'blue-grey-6'"
+                  size="20px"
+                />
+              </q-item-section>
+            </q-item>
+          </template>
+          <template v-slot:append>
+            <q-icon
+              v-if="this.selectedSavedFilterObject"
+              :name="this.normalizeSavedFilterScope(this.selectedSavedFilterObject.scope) === 'GLOBAL' ? 'groups' : 'person'"
+              :color="this.normalizeSavedFilterScope(this.selectedSavedFilterObject.scope) === 'GLOBAL' ? 'deep-purple-5' : 'blue-grey-6'"
+              size="20px"
+              class="q-mr-xs"
+            >
+              <q-tooltip>
+                {{ this.normalizeSavedFilterScope(this.selectedSavedFilterObject.scope) === 'GLOBAL'
+                  ? 'Глобальный фильтр — доступен команде'
+                  : 'Персональный фильтр — доступен только вам' }}
+              </q-tooltip>
+            </q-icon>
+          </template>
+        </q-select>
         <q-select
           v-model="filterJoinOperator"
           :options="filterJoinOptions"
@@ -350,6 +437,8 @@
                 input-debounce="0"
                 style="width: 250px; height: 100%; min-height: 56px;"
                 behavior="menu"
+                :class="{ 'organization-select': filter.slug === 'organization' }"
+                :popup-content-class="filter.slug === 'organization' ? 'organization-select-popup' : ''"
                 @input="filterFn(filter, $event)"
                 @focus="onFilterFocused(filter)"
               >
@@ -448,20 +537,23 @@
             </q-menu>
           </q-btn>
           <q-btn
-            v-if="this.selectedSavedFilter.length === 0 && this.filterChain.length > 0"
+            v-if="this.filterChain.length > 0"
             ref="saveFilterButton"
             icon="save"
             color="grey"
             @click="this.dialogSaveFilter"
+            :disable="!this.canSaveCurrentFilter"
             flat
             style="height: 40px"
           >
             <q-tooltip>
-              Сохранить шаблон
+              {{ !this.canSaveCurrentFilter
+                ? 'Глобальные фильтры могут изменять администратор и менеджер поддержки'
+                : (this.selectedSavedFilter ? 'Пересохранить шаблон' : 'Сохранить шаблон') }}
             </q-tooltip>
           </q-btn>
           <q-btn
-            v-else-if="this.isShowDelFilterPreset"
+            v-if="this.isShowDelFilterPreset && this.canDeleteSelectedSavedFilter"
             ref="deleteSavedFilterButton"
             icon="delete"
             color="grey"
@@ -492,7 +584,7 @@
       v-if="this.taskPageLoading && !this.taskPageInitialLoaded"
       class="tasks-page-loading"
     >
-      <q-spinner size="40px" color="primary" />
+      <q-spinner size="40px" color="primary"/>
       <div class="q-mt-sm text-grey-7">Загрузка заявок...</div>
     </div>
     <div
@@ -509,12 +601,14 @@
         :isFilterSelected="this.isFilterSelected"
         :groupedTasks="this.getGroupedTasks"
         :selectedGroupType="this.selectedGroupType"
+        :selectedSorting="this.selectedSorting"
         :isNewTaskDialogShow="this.isNewTaskDialogShow"
         :isTaskDialogShow="this.isTaskDialogShow"
         :selectedTask="this.selectedTask"
         :activeColumns="this.activeColumns"
         @onTaskClicked="this.onTaskClicked"
         @closeDialog="this.closeDialog"
+        @updateTask="this.updateTask"
         @addMessageToTask="this.addMessageToTask"
         @onTableNeedMore="this.onTasksTableNeedMore"
       />
@@ -523,7 +617,7 @@
         class="tasks-infinite-status"
       >
         <div v-if="this.taskPageLoading" class="row items-center justify-center q-gutter-sm text-grey-7">
-          <q-spinner size="22px" color="primary" />
+          <q-spinner size="22px" color="primary"/>
           <span>Подгружаю заявки...</span>
         </div>
         <div v-else-if="!this.taskPageIsEnd" class="text-grey-6">
@@ -595,7 +689,7 @@
       </div>
     </div>
     <div
-      v-if="this.isShowBulkActionsMenu"
+      v-if="this.isShowBulkActionsMenu && !this.isObserverUser"
       class="mass-container"
       :class="{ 'mass-container--mobile': this.isMobile }"
     >
@@ -611,6 +705,10 @@
         <!--<q-btn class="mass-actions-btn" flat text-color="white" icon="ac_unit" @click="this.openBulkModal('freeze')">-->
         <!--  <q-tooltip>Заморозить заявки</q-tooltip>-->
         <!--</q-btn>-->
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="support_agent"
+               @click="this.openBulkModal('supportLine')">
+          <q-tooltip>Сменить линию поддержки</q-tooltip>
+        </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="manage_accounts"
                @click="this.openBulkModal('executor')">
           <q-tooltip>Сменить исполнителя заявок</q-tooltip>
@@ -625,6 +723,10 @@
         <q-btn class="mass-actions-btn" flat text-color="white" icon="category"
                @click="this.openBulkModal('type')">
           <q-tooltip>Изменить тип заявки</q-tooltip>
+        </q-btn>
+        <q-btn class="mass-actions-btn" flat text-color="white" icon="dns"
+               @click="this.openBulkModal('service')">
+          <q-tooltip>Изменить сервис заявок</q-tooltip>
         </q-btn>
         <q-btn class="mass-actions-btn" flat text-color="white" icon="sell" @click="this.openBulkModal('tags')">
           <q-tooltip>Изменить теги заявок</q-tooltip>
@@ -657,7 +759,7 @@
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
-        Удалить фильтр {{ this.selectedSavedFilter }}?
+        Удалить фильтр {{ this.selectedSavedFilterLabel }}?
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
@@ -667,7 +769,10 @@
           @click="this.isDeleteSavedFilterDialogShow = false"
         />
         <q-btn
-          color="primary"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
           @click="deleteSavedFilter"
         />
@@ -675,6 +780,7 @@
     </q-card>
   </q-dialog>
   <q-dialog
+    v-if="!this.isObserverUser"
     v-model="this.isModalForBulkActions"
     persistent
     @hide="this.clearBulkActionReason"
@@ -811,7 +917,7 @@ import TaskBulkActionsModal from 'components/tasks/TaskBulkActionsModal.vue'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import moment from 'moment/moment'
 import draggable from 'vuedraggable'
-import { onTaskUpdated } from 'src/util/ws'
+import {onTaskUpdated} from 'src/util/ws'
 
 export default {
 
@@ -820,12 +926,15 @@ export default {
   data: () => ({
     filterTypes: [
       {label: 'Исполнитель', slug: 'executor'},
+      {label: 'Линия поддержки', slug: 'supportLine'},
+      {label: 'Уровень линии', slug: 'supportLineLevel'},
       {label: 'Тег', slug: 'tag'},
       {label: 'Организация', slug: 'organization'},
       {label: 'Приоритет', slug: 'priority'},
       {label: 'Статус', slug: 'status'},
       {label: 'Клиент', slug: 'client'},
       {label: 'Тип заявки', slug: 'type'},
+      {label: 'Сервис', slug: 'service'},
       {label: 'Дата создания', slug: 'createdAt'},
       {label: 'Последняя активность', slug: 'lastActivity'},
       {label: 'Дедлайн', slug: 'deadline', isBeforeDeadline: false},
@@ -836,20 +945,24 @@ export default {
       {label: 'По дате создания', slug: 'creating'},
       {label: 'Приоритету', slug: 'priority'},
       {label: 'SLA', slug: 'sla'},
+      {label: 'OLA', slug: 'ola'},
       {label: 'По статусу', slug: 'status'}
     ],
     activeColumns: [
       {name: 'id', label: 'ID', active: true},
       {name: 'name', label: 'Название', active: true},
       {name: 'type', label: 'Тип', active: true},
+      {name: 'service', label: 'Сервис', active: true},
       {name: 'checklist', label: 'Чек-лист', active: true},
       {name: 'tags', label: 'Теги', active: true},
       {name: 'priority', label: 'Приоритет', active: true},
       {name: 'createdAt', label: 'Создана', active: true},
       {name: 'status', label: 'Статус', active: true},
       {name: 'deadline', label: 'Дедлайн', active: true},
+      {name: 'supportLine', label: 'Линия поддержки', active: true},
       {name: 'executor', label: 'Исполнитель', active: true},
-      {name: 'sla', label: 'SLA', active: true}
+      {name: 'sla', label: 'SLA', active: true},
+      {name: 'ola', label: 'OLA', active: true},
     ],
     filterChain: [],
     addNewFilterSelectorText: '',
@@ -859,6 +972,7 @@ export default {
     isApplyingSavedFilter: false,
     isRestoringActiveFilter: false,
     dialogNewFilterName: '',
+    dialogFilterScope: 'PERSONAL',
     dialogSaveFilterVisible: false,
     isShowTableMode: false,
     isMenuActive: false,
@@ -924,6 +1038,18 @@ export default {
   }),
 
   methods: {
+    ensureSelectedGroupTypeAvailable() {
+      const availableGroupTypes = this.getFilterType || []
+      if (availableGroupTypes.some(type => type.slug === this.selectedGroupType?.slug)) {
+        return
+      }
+
+      const fallback = availableGroupTypes.find(type => type.slug === 'status') || availableGroupTypes[0]
+      if (fallback) {
+        this.selectedGroupType = fallback
+      }
+    },
+
     dateOption(date) {
       const today = new Date()
       const year = today.getFullYear()
@@ -936,7 +1062,7 @@ export default {
       const filterJoinOperator = this.isValidFilterJoinOperator(this.filterJoinOperator)
         ? this.filterJoinOperator
         : 'AND'
-      return {
+      const request = {
         page,
         size: overrides.size || this.store.taskPage?.size || this.taskPageSize || 10,
         search: this.searchRequest || '',
@@ -947,6 +1073,10 @@ export default {
         filterChain: overrides.filterChain || (this.isFilterSelected ? this.normalizeFiltersForServer(this.filterChain || []) : []),
         requiredFilterChain: overrides.requiredFilterChain || []
       }
+      if (this.isMyLinesScope) {
+        request.scope = 'MY_SUPPORT_LINES'
+      }
+      return request
     },
 
     normalizeFiltersForServer(filters) {
@@ -967,6 +1097,12 @@ export default {
         case 'executor':
           source = this.groupExecutors
           break
+        case 'supportLine':
+          source = this.supportLines
+          break
+        case 'supportLineLevel':
+          source = this.supportLineLevels
+          break
         case 'tag':
           source = this.tags
           break
@@ -975,6 +1111,9 @@ export default {
           break
         case 'type':
           source = this.taskTypes
+          break
+        case 'service':
+          source = this.services
           break
         case 'organization':
           source = this.organizations
@@ -1096,6 +1235,11 @@ export default {
     },
 
     async resetTasksPageAndLoad() {
+      if (this.taskPageLoading || this.cardTaskColumnsLoading) {
+        this.reloadTasksPageDebounced()
+        return
+      }
+
       if (this.taskPageReloadTimer) {
         clearTimeout(this.taskPageReloadTimer)
         this.taskPageReloadTimer = null
@@ -1408,6 +1552,12 @@ export default {
         case 'executor':
           options = this.executors
           break
+        case 'supportLine':
+          options = this.supportLines
+          break
+        case 'supportLineLevel':
+          options = this.supportLineLevels
+          break
         case 'tag':
           options = this.tags
           break
@@ -1426,6 +1576,9 @@ export default {
         case 'type':
           options = this.taskTypes
           break
+        case 'service':
+          options = this.services
+          break
         case 'createdAt':
         case 'lastActivity':
           options = null
@@ -1443,22 +1596,50 @@ export default {
 
     deleteFilter(index) {
       this.filterChain.splice(index, 1)
-      this.selectedSavedFilter = ''
+    },
+
+    normalizeSavedFilterScope(scope) {
+      return scope === 'PERSONAL' ? 'PERSONAL' : 'GLOBAL'
     },
 
     saveFilter() {
-      if (this.dialogNewFilterName.length > 0) {
-        const newFilter = {
-          id: null,
-          label: this.dialogNewFilterName,
+      const filterName = this.dialogNewFilterName.trim()
+      const selectedFilter = this.selectedSavedFilterObject
+      if (selectedFilter && !this.canEditSelectedSavedFilter) {
+        this.$q.notify({
+          message: 'У вас нет прав на изменение этого фильтра',
+          type: 'negative',
+          position: 'top-right'
+        })
+        return
+      }
+      if (filterName.length > 0) {
+        const savedFilter = {
+          id: selectedFilter?.id ?? null,
+          label: filterName,
           filterJoinOperator: this.filterJoinOperator,
-          selectedOptions: this.normalizeFiltersForSave(this.filterChain)
+          selectedOptions: this.normalizeFiltersForSave(this.filterChain),
+          scope: this.canManageGlobalFilters ? this.dialogFilterScope : 'PERSONAL'
         }
-        axios.post('/api/v1/filter', newFilter)
+        axios.post('/api/v1/filter', savedFilter)
           .then(response => {
-            this.savedFilters.push(response.data)
+            if (selectedFilter) {
+              const index = this.savedFilters.findIndex(filter => filter.id === selectedFilter.id)
+              if (index !== -1) {
+                this.savedFilters.splice(index, 1, response.data)
+              }
+            } else {
+              this.savedFilters.push(response.data)
+            }
             this.dialogSaveFilterClose()
-            this.selectedSavedFilter = response.data.label
+            this.selectedSavedFilter = response.data.id
+            this.saveActiveFilterToLocalStorage()
+            this.$q.notify({
+              message: selectedFilter ? 'Фильтр обновлён' : 'Фильтр сохранён',
+              type: 'positive',
+              position: 'top-right',
+              timeout: 1500
+            })
           })
           .catch(e =>
             this.$q.notify({
@@ -1482,8 +1663,8 @@ export default {
     },
 
     onSavedFilterSelected() {
-      const filterElement = this.savedFilters.find(el => this.selectedSavedFilter === el.label)
-      if (filterElement !== undefined) {
+      const filterElement = this.selectedSavedFilterObject
+      if (filterElement !== null) {
         this.isApplyingSavedFilter = true
         this.filterJoinOperator = this.isValidFilterJoinOperator(filterElement.filterJoinOperator)
           ? filterElement.filterJoinOperator
@@ -1503,8 +1684,18 @@ export default {
     },
 
     dialogSaveFilter() {
+      const selectedFilter = this.selectedSavedFilterObject
+      if (selectedFilter && !this.canEditSelectedSavedFilter) {
+        return
+      }
+      this.dialogNewFilterName = selectedFilter?.label || ''
+      this.dialogFilterScope = selectedFilter
+        ? this.normalizeSavedFilterScope(selectedFilter.scope)
+        : 'PERSONAL'
+      if (!this.canManageGlobalFilters) {
+        this.dialogFilterScope = 'PERSONAL'
+      }
       this.dialogSaveFilterVisible = true
-      this.dialogNewFilterName = ''
       setTimeout(() => this.$refs.dialogNewFilterName.focus(), 250)
     },
 
@@ -1513,10 +1704,14 @@ export default {
     },
 
     deleteSavedFilter() {
-      const filterId = this.savedFilters.find(filter => this.selectedSavedFilter === filter.label).id
+      const selectedFilter = this.selectedSavedFilterObject
+      if (!selectedFilter || !this.canDeleteSelectedSavedFilter) {
+        return
+      }
+      const filterId = selectedFilter.id
       axios.delete(`/api/v1/filter/${filterId}`)
         .then(() => {
-          this.savedFilters = this.savedFilters.filter(filter => this.selectedSavedFilter !== filter.label)
+          this.savedFilters = this.savedFilters.filter(filter => filter.id !== filterId)
           this.selectedSavedFilter = ''
           this.isDeleteSavedFilterDialogShow = false
           this.filterChain = []
@@ -1615,48 +1810,59 @@ export default {
         return []
       }
 
-      return filterChain.map(filter => {
-        const normalizedFilter = {...filter}
-        const filterType = this.filterTypes.find(el => el.label === normalizedFilter.label)
-        if (!filterType) {
-          normalizedFilter.options = null
-          return normalizedFilter
-        }
+      return filterChain
+        .filter(filter => filter?.label !== 'Состояние OLA' && filter?.slug !== 'olaStatus')
+        .map(filter => {
+          const normalizedFilter = {...filter}
+          const filterType = this.filterTypes.find(el => el.label === normalizedFilter.label)
+          if (!filterType) {
+            normalizedFilter.options = null
+            return normalizedFilter
+          }
 
-        normalizedFilter.slug = filterType.slug
-        switch (normalizedFilter.slug) {
-          case 'executor':
-            normalizedFilter.options = this.executors
-            break
-          case 'tag':
-            normalizedFilter.options = this.tags
-            break
-          case 'organization':
-            normalizedFilter.options = this.organizations
-            break
-          case 'priority':
-            normalizedFilter.options = this.priorities
-            break
-          case 'status':
-            normalizedFilter.options = this.statuses
-            break
-          case 'client':
-            normalizedFilter.options = this.clients
-            break
-          case 'type':
-            normalizedFilter.options = this.taskTypes
-            break
-          case 'createdAt':
-          case 'lastActivity':
-            normalizedFilter.options = null
-            normalizedFilter.selectedOptions = this.normalizeDateRangeSelectedOptions(normalizedFilter.selectedOptions)
-            break
-          default:
-            normalizedFilter.options = null
-            break
-        }
-        return normalizedFilter
-      })
+          normalizedFilter.slug = filterType.slug
+          switch (normalizedFilter.slug) {
+            case 'executor':
+              normalizedFilter.options = this.executors
+              break
+            case 'supportLine':
+              normalizedFilter.options = this.supportLines
+              break
+            case 'supportLineLevel':
+              normalizedFilter.options = this.supportLineLevels
+              break
+            case 'tag':
+              normalizedFilter.options = this.tags
+              break
+            case 'organization':
+              normalizedFilter.options = this.organizations
+              break
+            case 'priority':
+              normalizedFilter.options = this.priorities
+              break
+            case 'status':
+              normalizedFilter.options = this.statuses
+              break
+            case 'client':
+              normalizedFilter.options = this.clients
+              break
+            case 'type':
+              normalizedFilter.options = this.taskTypes
+              break
+            case 'service':
+              normalizedFilter.options = this.services
+              break
+            case 'createdAt':
+            case 'lastActivity':
+              normalizedFilter.options = null
+              normalizedFilter.selectedOptions = this.normalizeDateRangeSelectedOptions(normalizedFilter.selectedOptions)
+              break
+            default:
+              normalizedFilter.options = null
+              break
+          }
+          return normalizedFilter
+        })
     },
 
     getActiveFilterStorageKey() {
@@ -1719,11 +1925,12 @@ export default {
           ? payload.filterJoinOperator
           : 'AND'
 
-        const savedFilterLabel = payload.selectedSavedFilter || ''
-        const savedFilter = this.savedFilters.find(filter => filter.label === savedFilterLabel)
+        const savedFilterKey = payload.selectedSavedFilter || ''
+        const savedFilter = this.savedFilters.find(filter => String(filter.id) === String(savedFilterKey))
+          || this.savedFilters.find(filter => filter.label === savedFilterKey)
 
         if (savedFilter) {
-          this.selectedSavedFilter = savedFilter.label
+          this.selectedSavedFilter = savedFilter.id
           this.filterChain = this.hydrateFilterChainOptions(structuredClone(savedFilter.selectedOptions || []))
           this.isFilterSelected = true
           this.updateUrlWithFilterChain(this.filterChain)
@@ -1763,7 +1970,7 @@ export default {
       if (!this.selectedSavedFilter) {
         return false
       }
-      const savedFilter = this.savedFilters.find(filter => this.selectedSavedFilter === filter.label)
+      const savedFilter = this.selectedSavedFilterObject
       if (!savedFilter) {
         return false
       }
@@ -2125,6 +2332,8 @@ export default {
           return 'возврат заявок в работу'
         case 'freeze':
           return 'заморозка заявок'
+        case 'supportLine':
+          return 'смена линии поддержки'
         case 'executor':
           return 'смена исполнителя'
         case 'status':
@@ -2133,6 +2342,8 @@ export default {
           return 'смена приоритета'
         case 'type':
           return 'смена типа заявки'
+        case 'service':
+          return 'смена сервиса'
         case 'tags':
           return 'смена тегов'
         case 'deadline':
@@ -2239,6 +2450,9 @@ export default {
     },
 
     async undoBulkAction() {
+      if (this.isObserverUser) {
+        return
+      }
       if (this.pendingBulkActionHistory && this.hasPendingBulkActionHistoryChanges()) {
         if (this.bulkActionHistoryFinishTimer) {
           clearTimeout(this.bulkActionHistoryFinishTimer)
@@ -2287,6 +2501,9 @@ export default {
     },
 
     async redoBulkAction() {
+      if (this.isObserverUser) {
+        return
+      }
       if (!this.canRedoBulkAction || this.isBulkHistoryProcessing) {
         return
       }
@@ -2338,6 +2555,10 @@ export default {
     },
 
     openBulkModal(action) {
+      if (this.isObserverUser) {
+        this.store.checkedTasks = []
+        return
+      }
       if (action === 'close' && !this.validateBulkCloseExecutors()) {
         return
       }
@@ -2496,14 +2717,18 @@ export default {
       if (this.needBulkStatusChangeReason(oldStatusName, newStatusName)) {
         return checkedTasks.length > 0
           ? checkedTasks
-          : [{ status: oldStatusName, completed: this.isClosedStatusName(oldStatusName), frozen: this.isFrozenStatusName(oldStatusName) }]
+          : [{
+            status: oldStatusName,
+            completed: this.isClosedStatusName(oldStatusName),
+            frozen: this.isFrozenStatusName(oldStatusName)
+          }]
       }
 
       return []
     },
 
     requestBulkStatusChangeReason(payload = {}, maybeNewStatus = null) {
-      const { oldStatusName, newStatusName, tasks } = this.getBulkStatusReasonPayload(payload, maybeNewStatus)
+      const {oldStatusName, newStatusName, tasks} = this.getBulkStatusReasonPayload(payload, maybeNewStatus)
       const affectedTasks = this.getBulkStatusReasonAffectedTasks(oldStatusName, newStatusName, tasks)
 
       if (affectedTasks.length === 0) {
@@ -2714,6 +2939,9 @@ export default {
     },
 
     handleBulkHistoryShortcut(event) {
+      if (this.isObserverUser) {
+        return
+      }
       if (!(event.ctrlKey || event.metaKey) || this.isBulkHistoryShortcutTargetIgnored(event.target)) {
         return
       }
@@ -3109,7 +3337,7 @@ export default {
       return `${task.executor.firstname} ${task.executor.lastname}`
     },
 
-    getTaskTypeName (task) {
+    getTaskTypeName(task) {
       if (!task?.type) {
         return 'Не указан'
       }
@@ -3119,7 +3347,70 @@ export default {
       return task.type.type || 'Не указан'
     },
 
-    getChecklistItems (task) {
+    getServiceName(task) {
+      const service = task?.service
+      if (!service) return 'Без сервиса'
+      const code = String(service.code || '').trim()
+      const name = String(service.name || '').trim()
+      return code && name ? `${code} · ${name}` : (name || code || 'Без сервиса')
+    },
+
+    getSupportLineName(task) {
+      return String(task?.supportLine?.name || 'Без линии').trim() || 'Без линии'
+    },
+
+    getSupportLineLevelLabel(task) {
+      const level = Number(task?.supportLine?.level)
+      return Number.isFinite(level) && level > 0 ? `L${level}` : 'Без уровня'
+    },
+
+    getTaskOlaInfo(task) {
+      return task?.olaInfo && typeof task.olaInfo === 'object' ? task.olaInfo : {}
+    },
+
+    getOlaSecondsLeft(task) {
+      const info = this.getTaskOlaInfo(task)
+      const explicit = info.secondsLeft ?? task?.olaSecondsLeft
+      if (explicit !== null && explicit !== undefined && Number.isFinite(Number(explicit))) {
+        return Number(explicit)
+      }
+      const deadline = info.deadline || task?.olaDeadline
+      if (!deadline) return null
+      return Math.round((new Date(deadline).getTime() - Date.now()) / 1000)
+    },
+
+    formatCompactDuration(seconds) {
+      if (seconds === null || seconds === undefined || !Number.isFinite(Number(seconds))) return ''
+      const absolute = Math.abs(Math.round(Number(seconds)))
+      const days = Math.floor(absolute / 86400)
+      const hours = Math.floor((absolute % 86400) / 3600)
+      const minutes = Math.floor((absolute % 3600) / 60)
+      const parts = []
+      if (days) parts.push(`${days} д.`)
+      if (hours || days) parts.push(`${hours} ч.`)
+      parts.push(`${minutes} м.`)
+      return `${Number(seconds) < 0 ? '−' : ''}${parts.join(' ')}`
+    },
+
+    getOlaPercent(task) {
+      const info = this.getTaskOlaInfo(task)
+      const explicit = Number(info.percent ?? task?.olaPercent)
+      if (Number.isFinite(explicit)) {
+        const normalized = explicit <= 1 ? explicit * 100 : explicit
+        return Math.max(0, Math.min(100, normalized))
+      }
+      const total = Number(info.durationSeconds ?? task?.olaDurationSeconds)
+      const remaining = this.getOlaSecondsLeft(task)
+      if (!Number.isFinite(total) || total <= 0 || remaining === null) return null
+      return Math.max(0, Math.min(100, remaining / total * 100))
+    },
+
+    getOlaTableValue(task) {
+      const seconds = this.getOlaSecondsLeft(task)
+      return seconds === null ? '' : this.formatCompactDuration(seconds)
+    },
+
+    getChecklistItems(task) {
       if (!Array.isArray(task?.checklist)) {
         return []
       }
@@ -3127,17 +3418,17 @@ export default {
       return task.checklist.filter(item => item && item.text !== undefined && item.text !== null)
     },
 
-    getChecklistTotalCount (task) {
+    getChecklistTotalCount(task) {
       return this.getChecklistItems(task).length
     },
 
-    getChecklistCompletedCount (task) {
+    getChecklistCompletedCount(task) {
       return this.getChecklistItems(task)
         .filter(item => Boolean(item.completed))
         .length
     },
 
-    getChecklistTableValue (task) {
+    getChecklistTableValue(task) {
       const total = this.getChecklistTotalCount(task)
 
       if (total === 0) {
@@ -3147,19 +3438,22 @@ export default {
       return `${this.getChecklistCompletedCount(task)} / ${total}`
     },
 
-    mergeActiveColumns (savedColumns) {
+    mergeActiveColumns(savedColumns) {
       const defaultColumns = [
         {name: 'id', label: 'ID', active: true},
         {name: 'name', label: 'Название', active: true},
         {name: 'type', label: 'Тип', active: true},
+        {name: 'service', label: 'Сервис', active: true},
         {name: 'checklist', label: 'Чек-лист', active: true},
         {name: 'tags', label: 'Теги', active: true},
         {name: 'priority', label: 'Приоритет', active: true},
         {name: 'createdAt', label: 'Создана', active: true},
         {name: 'status', label: 'Статус', active: true},
         {name: 'deadline', label: 'Дедлайн', active: true},
+        {name: 'supportLine', label: 'Линия поддержки', active: true},
         {name: 'executor', label: 'Исполнитель', active: true},
-        {name: 'sla', label: 'SLA', active: true}
+        {name: 'sla', label: 'SLA', active: true},
+        {name: 'ola', label: 'OLA', active: true},
       ]
 
       if (!Array.isArray(savedColumns)) {
@@ -3192,6 +3486,14 @@ export default {
           return filter.selectedOptions.includes(this.getExecutorName(task))
         }
 
+        case 'supportLine': {
+          return filter.selectedOptions.includes(this.getSupportLineName(task))
+        }
+
+        case 'supportLineLevel': {
+          return filter.selectedOptions.includes(this.getSupportLineLevelLabel(task))
+        }
+
         case 'tag': {
           const taskTags = task.tags.map(tag => tag.name)
           return filter.selectedOptions.some(selectedTag => taskTags.includes(selectedTag))
@@ -3216,6 +3518,10 @@ export default {
 
         case 'type': {
           return filter.selectedOptions.includes(this.getTaskTypeName(task))
+        }
+
+        case 'service': {
+          return filter.selectedOptions.includes(this.getServiceName(task))
         }
 
         case 'deadline': {
@@ -3323,7 +3629,7 @@ export default {
       return !(to && taskDate > to);
     },
 
-    onTaskUpdatedFromSocket (payload) {
+    onTaskUpdatedFromSocket(payload) {
       const socketTask = payload?.task
 
       if (!socketTask?.id) {
@@ -3407,7 +3713,12 @@ export default {
     },
 
     getFilteredTasks() {
-      return this.store.getTaskPageTasks
+      const tasks = Array.isArray(this.store.getTaskPageTasks) ? this.store.getTaskPageTasks : []
+      if (!this.isMyLinesScope) {
+        return tasks
+      }
+      const lineIds = this.currentUserLineIds
+      return tasks.filter(task => task?.supportLine?.id != null && lineIds.has(Number(task.supportLine.id)))
     },
 
     getGroupedTasks() {
@@ -3420,6 +3731,16 @@ export default {
         case 'executor': {
           source = this.groupExecutors
           options = Object.groupBy(tasks, task => this.getExecutorGroupName(task))
+          break
+        }
+        case 'supportLine': {
+          source = this.supportLines
+          options = Object.groupBy(tasks, task => this.getSupportLineName(task))
+          break
+        }
+        case 'supportLineLevel': {
+          source = this.supportLineLevels
+          options = Object.groupBy(tasks, task => this.getSupportLineLevelLabel(task))
           break
         }
         case 'tag': {
@@ -3435,6 +3756,11 @@ export default {
         case 'type': {
           source = this.taskTypes
           options = Object.groupBy(tasks, task => this.getTaskTypeName(task))
+          break
+        }
+        case 'service': {
+          source = this.services
+          options = Object.groupBy(tasks, task => this.getServiceName(task))
           break
         }
         case 'organization': {
@@ -3468,6 +3794,7 @@ export default {
               existingCard.taskCards.push(value[0])
             } else {
               groupedCards.push({
+                groupKey: `${slug}:${key || '__ungrouped__'}`,
                 title: key,
                 taskCards: [...value]
               })
@@ -3484,8 +3811,10 @@ export default {
             if (existingCard) {
               existingCard.taskCards.push(task)
             } else {
+              const groupName = this.getOrganizationName(task)
               groupedCards.push({
-                title: this.getOrganizationName(task),
+                groupKey: `${slug}:${groupName || '__ungrouped__'}`,
+                title: groupName,
                 taskCards: [task]
               })
             }
@@ -3495,12 +3824,16 @@ export default {
           it.title = `${it.title ? it.title : 'Не сгрупированны'} (${it.taskCards.length})`
         })
       } else {
+        // Справочники могут быть урезаны по роли или временно не загружены.
+        // Никогда не скрываем из-за этого уже полученные с backend группы заявок.
+        source = [...new Set([...(source || []), ...Object.keys(options || {})])]
         source.forEach(el => {
           const taskCards = options[el] || []
           if (taskCards.length === 0) {
             return
           }
           groupedCards.push({
+            groupKey: `${slug}:${el}`,
             title: `${el} (${taskCards.length})`,
             taskCards
           })
@@ -3527,6 +3860,12 @@ export default {
           return {
             ...row,
             type: this.getTaskTypeName(row),
+            serviceLabel: this.getServiceName(row),
+            supportLine: this.getSupportLineName(row),
+            supportLineLevel: this.getSupportLineLevelLabel(row),
+            ola: this.getOlaTableValue(row),
+            olaSecondsLeft: this.getOlaSecondsLeft(row),
+            olaPercent: this.getOlaPercent(row),
             checklist: this.getChecklistTableValue(row),
             checklistCompleted: this.getChecklistCompletedCount(row),
             checklistTotal: this.getChecklistTotalCount(row),
@@ -3542,22 +3881,85 @@ export default {
     },
 
     executors() {
+      const loadedExecutors = (this.store.getTaskPageTasks || [])
+        .map(task => this.getExecutorGroupName(task))
+        .filter(name => name && name !== this.unassignedExecutorLabel)
+      const directoryExecutors = (this.store.users || [])
+        .filter(user => user !== null)
+        .filter(user => user.roles !== 'OBSERVER')
+        .map(user => `${user.firstname} ${user.lastname}`)
       return [
         this.currentExecutorLabel,
-        ...this.store.users.filter(user => user !== null)
-          .filter(user => user.roles !== 'OBSERVER')
-          .map(user => `${user.firstname} ${user.lastname}`),
+        ...new Set([...directoryExecutors, ...loadedExecutors]),
         this.unassignedExecutorLabel,
       ]
     },
 
     groupExecutors() {
+      const loadedExecutors = (this.store.getTaskPageTasks || [])
+        .map(task => this.getExecutorGroupName(task))
+        .filter(name => name && name !== this.unassignedExecutorLabel)
+      const directoryExecutors = (this.store.users || [])
+        .filter(user => user !== null)
+        .filter(user => user.roles !== 'OBSERVER')
+        .map(user => `${user.firstname} ${user.lastname}`)
       return [
         this.unassignedExecutorLabel,
-        ...this.store.users.filter(user => user !== null)
-          .filter(user => user.roles !== 'OBSERVER')
-          .map(user => `${user.firstname} ${user.lastname}`),
+        ...new Set([...directoryExecutors, ...loadedExecutors]),
       ]
+    },
+
+    services() {
+      const names = (this.store.services || [])
+        .filter(service => service && service.active !== false)
+        .map(service => {
+          const code = String(service.code || '').trim()
+          const name = String(service.name || '').trim()
+          return code && name ? `${code} · ${name}` : (name || code)
+        })
+        .filter(Boolean)
+      return [...new Set([...names, 'Без сервиса'])].sort((a, b) => a.localeCompare(b, 'ru'))
+    },
+
+    supportLines() {
+      const names = (this.store.supportLines || [])
+        .filter(line => line && line.active !== false)
+        .map(line => String(line.name || '').trim())
+        .filter(Boolean)
+      return [...new Set([...names, 'Без линии'])].sort((a, b) => a.localeCompare(b, 'ru'))
+    },
+
+    supportLineLevels() {
+      const levels = (this.store.supportLines || [])
+        .filter(line => line && line.active !== false)
+        .map(line => Number(line.level))
+        .filter(level => Number.isFinite(level) && level > 0)
+        .sort((a, b) => a - b)
+        .map(level => `L${level}`)
+      return [...new Set([...levels, 'Без уровня'])]
+    },
+
+    isMyLinesScope() {
+      return String(this.$route.query.scope || '').toLowerCase() === 'my-lines'
+    },
+
+    currentUserLineIds() {
+      const currentUserId = Number(this.store.currentUser?.id)
+      const result = new Set()
+      if (!Number.isFinite(currentUserId)) {
+        return result
+      }
+      ;(this.store.supportLines || []).forEach(line => {
+        const relatedUsers = [
+          line?.responsible,
+          ...(Array.isArray(line?.members) ? line.members : []),
+          ...(Array.isArray(line?.observers) ? line.observers : [])
+        ]
+        if (relatedUsers.some(user => Number(user?.id) === currentUserId)) {
+          result.add(Number(line.id))
+        }
+      })
+      return result
     },
 
     tags() {
@@ -3596,15 +3998,100 @@ export default {
     },
 
     showBulkActionsMenu() {
-      return this.store.checkedTasks.length > 0
+      return !this.isObserverUser && this.store.checkedTasks.length > 0
     },
 
     showOpenTaskBtn() {
       return this.store.checkedTasks.every(task => task.completed === true)
     },
 
+    isObserverUser() {
+      return Array.isArray(this.store.currentUser?.authorities) &&
+        this.store.currentUser.authorities.includes('OBSERVER')
+    },
+
+    savedFilterOptions() {
+      return this.savedFilters
+        .map(filter => ({
+          label: filter.label,
+          value: filter.id,
+          scope: this.normalizeSavedFilterScope(filter.scope),
+          ownerUserId: filter.ownerUserId
+        }))
+        .sort((a, b) => {
+          if (a.scope !== b.scope) {
+            return a.scope === 'PERSONAL' ? -1 : 1
+          }
+          return String(a.label || '').localeCompare(String(b.label || ''), 'ru')
+        })
+    },
+
+    selectedSavedFilterObject() {
+      if (this.selectedSavedFilter === '' || this.selectedSavedFilter === null) {
+        return null
+      }
+      return this.savedFilters.find(filter => String(filter.id) === String(this.selectedSavedFilter)) || null
+    },
+
+    selectedSavedFilterLabel() {
+      return this.selectedSavedFilterObject?.label || ''
+    },
+
+    canManageGlobalFilters() {
+      const roles = Array.isArray(this.store.currentUser?.authorities) ? this.store.currentUser.authorities : []
+      return roles.includes('ADMIN') || roles.includes('MANAGER')
+    },
+
+    canEditSelectedSavedFilter() {
+      const filter = this.selectedSavedFilterObject
+      if (!filter) {
+        return true
+      }
+      const scope = this.normalizeSavedFilterScope(filter.scope)
+      if (scope === 'GLOBAL') {
+        return this.canManageGlobalFilters
+      }
+      return Number(filter.ownerUserId) === Number(this.store.currentUser?.id)
+    },
+
+    canSaveCurrentFilter() {
+      return !this.selectedSavedFilterObject || this.canEditSelectedSavedFilter
+    },
+
+    canDeleteSelectedSavedFilter() {
+      return !!this.selectedSavedFilterObject && this.canEditSelectedSavedFilter
+    },
+
+    filterScopeOptions() {
+      return [
+        {label: 'Персональный — только мне', value: 'PERSONAL'},
+        {label: 'Глобальный — всей команде', value: 'GLOBAL'}
+      ]
+    },
+
     getFilterType() {
-      return this.filterTypes.filter(filter => !['deadline', 'createdAt', 'lastActivity'].includes(filter.slug))
+      const groupTypes = this.filterTypes.filter(filter =>
+        !['deadline', 'createdAt', 'lastActivity'].includes(filter.slug)
+      )
+
+      if (!this.isObserverUser) {
+        return groupTypes
+      }
+
+      const observerGroupSlugs = new Set([
+        'status',
+        'priority',
+        'type',
+        'service',
+        'client',
+        'tag'
+      ])
+
+      if (this.organizations.length > 1) {
+        observerGroupSlugs.add('organization')
+      }
+
+      return groupTypes.filter(filter => observerGroupSlugs.has(filter.slug))
     },
 
     taskTypeOptions() {
@@ -3630,11 +4117,6 @@ export default {
             document.getElementById(`filter_${filters[filters.length - 1].slug}`).children[0].click()
           } catch (ignored) {
           }
-          if (this.selectedSavedFilter && !this.isApplyingSavedFilter && !this.isRestoringActiveFilter) {
-            if (this.isCurrentSavedFilterChanged()) {
-              this.selectedSavedFilter = ''
-            }
-          }
           this.reloadTasksPageDebounced()
         } catch (e) {
         }
@@ -3649,7 +4131,7 @@ export default {
 
     selectedSavedFilter: {
       handler(newVal) {
-        this.isShowDelFilterPreset = newVal !== ''
+        this.isShowDelFilterPreset = newVal !== '' && newVal !== null
         this.saveActiveFilterToLocalStorage()
       },
       deep: true
@@ -3667,8 +4149,28 @@ export default {
       this.initializeFilterChainFromUrl()
     },
 
-    selectedGroupType() {
-      localStorage.setItem('GroupType', `{ "label": "${this.selectedGroupType.label}", "slug": "${this.selectedGroupType.slug}" }`)
+    '$route.query.scope'() {
+      this.reloadTasksPageDebounced()
+    },
+
+    getFilterType: {
+      handler() {
+        this.ensureSelectedGroupTypeAvailable()
+      },
+      immediate: true
+    },
+
+    selectedGroupType: {
+      deep: true,
+      handler(newValue, oldValue) {
+        const label = newValue?.label || ''
+        const slug = newValue?.slug || ''
+        localStorage.setItem('GroupType', JSON.stringify({label, slug}))
+
+        if (slug && slug !== oldValue?.slug && this.taskPageInitialLoaded) {
+          this.reloadTasksPageDebounced()
+        }
+      }
     },
 
     isShowCompletedTasks() {
@@ -3677,11 +4179,18 @@ export default {
     },
 
     showBulkActionsMenu() {
+      if (this.isObserverUser) {
+        this.isShowBulkActionsMenu = false
+        return
+      }
       if (this.showBulkActionsMenu) {
         this.isShowBulkActionsMenu = true
       } else {
-        document.getElementsByClassName('mass-container')[0].style.animationName = 'HideBulkContainer'
-        document.getElementsByClassName('mass-container')[0].style.animationPlayState = 'start'
+        const container = document.getElementsByClassName('mass-container')[0]
+        if (container) {
+          container.style.animationName = 'HideBulkContainer'
+          container.style.animationPlayState = 'start'
+        }
         setTimeout(() => {
           this.isShowBulkActionsMenu = false
         }, 200)
@@ -3740,23 +4249,23 @@ export default {
 
       this.saveActiveFilterToLocalStorage()
 
-      if (this.selectedSavedFilter && !this.isApplyingSavedFilter && !this.isRestoringActiveFilter) {
-        if (this.isCurrentSavedFilterChanged()) {
-          this.selectedSavedFilter = ''
-        }
-      }
-
       this.reloadTasksPageDebounced()
     },
   },
 
   mounted() {
+    document.title = 'ULDESK : Список заявок'
+    if (this.isObserverUser) {
+      this.store.checkedTasks = []
+      this.isShowBulkActionsMenu = false
+      this.isModalForBulkActions = false
+    }
     this.taskUpdatedUnsubscribe = onTaskUpdated(this.onTaskUpdatedFromSocket)
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)
-    window.addEventListener('wheel', this.onTasksScrollIntent, { passive: true })
-    window.addEventListener('touchmove', this.onTasksScrollIntent, { passive: true })
+    window.addEventListener('wheel', this.onTasksScrollIntent, {passive: true})
+    window.addEventListener('touchmove', this.onTasksScrollIntent, {passive: true})
     window.addEventListener('keydown', this.onTasksKeydownIntent)
     window.addEventListener('keydown', this.handleBulkHistoryShortcut)
     document.addEventListener('scroll', this.onAnyTasksScroll, true)
@@ -3795,8 +4304,21 @@ export default {
     }
     const savedGroupType = localStorage.getItem('GroupType')
     if (savedGroupType) {
-      this.selectedGroupType = JSON.parse(savedGroupType)
+      try {
+        const parsedGroupType = JSON.parse(savedGroupType)
+        const availableGroupType = this.filterTypes.find(type =>
+          type.slug === parsedGroupType?.slug && type.label === parsedGroupType?.label
+        )
+        if (availableGroupType) {
+          this.selectedGroupType = availableGroupType
+        } else {
+          localStorage.removeItem('GroupType')
+        }
+      } catch (error) {
+        localStorage.removeItem('GroupType')
+      }
     }
+    this.ensureSelectedGroupTypeAvailable()
   },
 
   setup() {

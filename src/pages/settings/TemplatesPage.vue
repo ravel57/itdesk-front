@@ -1,13 +1,26 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить шаблон"
-      @click="this.dialogNewTemplate"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Шаблоны</div>
+        <div class="settings-content-description">
+          Создавайте быстрые текстовые шаблоны и сокращения для ответов.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить шаблон"
+          @click="this.dialogNewTemplate"
+        />
+      </div>
+    </div>
     <q-list
       bordered
-      class="rounded-borders"
+      class="rounded-borders settings-row-list"
       separator
       style="margin-top: 8px"
     >
@@ -24,6 +37,7 @@
         item-key="id"
         class="list-group"
         ghost-class="ghost"
+        handle=".settings-drag-handle"
         @start="dragging = true"
         @end="dragging = false"
       >
@@ -31,8 +45,10 @@
           <q-item
             class="list-group-item"
             :class="{ 'not-draggable': true }"
-            style="cursor: grab"
           >
+            <q-item-section side class="settings-drag-handle cursor-grab">
+              <q-icon name="drag_indicator" color="grey-6"/>
+            </q-item-section>
             <q-item-section
               top
               style="justify-content: center"
@@ -69,13 +85,13 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewTemplate ? 'Новый шаблон' : 'Изменить шаблон'" />
+        <div class="text-h6" v-text="this.isNewTemplate ? 'Новый шаблон' : 'Изменить шаблон'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogText"
-          label="Текст"
+          label="Текст *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogText"
         />
@@ -87,14 +103,16 @@
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewTemplate"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="dialogDeleteTemplate"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />
@@ -108,20 +126,20 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
 import draggable from 'vuedraggable'
-import { watch } from 'vue'
+import {watch} from 'vue'
 
 export default {
   name: 'TemplatesPage',
-  components: { draggable },
+  components: {draggable},
 
   data: () => ({
     columns: [
-      { name: 'text', label: 'Текст', align: 'left', field: 'text' },
-      { name: 'shortcut', label: 'Shortcut', align: 'left', field: 'shortcut' },
-      { name: 'edit', label: '', align: 'center', field: 'edit' }
+      {name: 'text', label: 'Текст', align: 'left', field: 'text'},
+      {name: 'shortcut', label: 'Shortcut', align: 'left', field: 'shortcut'},
+      {name: 'edit', label: '', align: 'center', field: 'edit'}
     ],
 
     dialogVisible: false,
@@ -134,7 +152,7 @@ export default {
   }),
 
   methods: {
-    editRow (row) {
+    editRow(row) {
       this.isNewTemplate = false
       this.dialogVisible = true
       this.dialogText = row.text
@@ -142,7 +160,7 @@ export default {
       this.templateId = row.id
     },
 
-    dialogNewTemplate () {
+    dialogNewTemplate() {
       this.dialogVisible = true
       this.isNewTemplate = true
       this.dialogText = ''
@@ -150,11 +168,11 @@ export default {
       setTimeout(() => this.$refs.dialogText.focus(), 250)
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogSaveNewOrUpdateTemplate () {
+    dialogSaveNewOrUpdateTemplate() {
       const template = {
         id: this.isNewTemplate ? null : this.templateId,
         text: this.dialogText,
@@ -205,7 +223,7 @@ export default {
       }
     },
 
-    dialogDeleteTemplate () {
+    dialogDeleteTemplate() {
       axios.delete(`/api/v1/template/${this.templateId}`)
         .then(() => {
           this.store.templates = this.store.templates.filter(template => template.id !== this.templateId)
@@ -223,12 +241,12 @@ export default {
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
     watch(() => store.templates, () => {
       axios.patch('/api/v1/templates/resort', store.templates)
-    }, { deep: true })
-    return { store }
+    }, {deep: true})
+    return {store}
   }
 }
 </script>

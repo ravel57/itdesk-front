@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+import {defineStore} from 'pinia'
 import axios from 'axios'
 import moment from 'moment'
 
@@ -23,6 +23,7 @@ export const useStore = defineStore('store', {
     statuses: [],
     priorities: [],
     taskTypes: [],
+    services: [],
     supportLines: [],
     templates: [],
     knowledgeBase: [],
@@ -38,6 +39,8 @@ export const useStore = defineStore('store', {
       'ATTACHMENT_ADDED',
       'SLA_WARNING',
       'SLA_BREACHED',
+      'FIRST_RESPONSE_SLA_WARNING',
+      'FIRST_RESPONSE_SLA_BREACHED',
       'INACTIVITY_TIMEOUT',
       'SCHEDULED_CRON',
       'TASK_CREATED',
@@ -45,6 +48,7 @@ export const useStore = defineStore('store', {
       'TASK_STATUS_CHANGED',
       'TASK_PRIORITY_CHANGED',
       'TASK_TYPE_CHANGED',
+      'TASK_SERVICE_CHANGED',
       'TASK_ASSIGNEE_CHANGED',
       'TASK_GROUP_CHANGED',
       'TASK_TAG_ADDED',
@@ -82,6 +86,16 @@ export const useStore = defineStore('store', {
       isEnd: false
     },
     supportMessages: [],
+    analyticsAccess: {
+      role: null,
+      scope: 'NONE',
+      organizationIds: [],
+      canViewInternalData: false,
+      canViewOperators: false,
+      canViewSupportLines: false,
+      canFilterExecutors: false,
+      canFilterSupportLines: false
+    },
     analyticsSummary: {
       from: null,
       to: null,
@@ -90,11 +104,15 @@ export const useStore = defineStore('store', {
       newAppeals: 0,
       openTasks: 0,
       overdueSla: 0,
+      overdueOla: 0,
+      olaWarnings: 0,
       overdueDeadlines: 0,
       deadlineWarnings: 0,
       unansweredMessages: 0,
       avgFirstResponseSeconds: 0,
+      firstResponseCount: 0,
       avgCloseTimeSeconds: 0,
+      avgLineTimeSeconds: 0,
       unassignedTasks: 0,
       closedTasks: 0,
       reopenedTasks: 0,
@@ -102,6 +120,15 @@ export const useStore = defineStore('store', {
       reopenedByPeriod: [],
       hourlyLoad: [],
       operatorLoad: [],
+      lineLoad: [],
+      lineTransitions: [],
+
+      taskTypeBreakdown: [],
+      priorityBreakdown: [],
+      executorBreakdown: [],
+      tagBreakdown: [],
+      serviceBreakdown: [],
+      supportLineBreakdown: [],
 
       byTypes: [],
       byPriorities: [],
@@ -115,6 +142,13 @@ export const useStore = defineStore('store', {
     miniState: false,
     globalAlertMessage: [],
 
+    userNotifications: [],
+    userNotificationsUnreadCount: 0,
+    userNotificationsPage: 1,
+    userNotificationsTotalPages: 0,
+    userNotificationsEnd: true,
+    userNotificationsLoading: false,
+
     generalSettings: {
       timezone: 'Europe/Moscow',
       workingTimeEnabled: true,
@@ -126,7 +160,8 @@ export const useStore = defineStore('store', {
       thursdayEnabled: true,
       fridayEnabled: true,
       saturdayEnabled: false,
-      sundayEnabled: false
+      sundayEnabled: false,
+      supportLineAccessMode: 'HYBRID',
     },
   }),
 
@@ -136,12 +171,12 @@ export const useStore = defineStore('store', {
   },
 
   actions: {
-    normalizeClientForList (client) {
+    normalizeClientForList(client) {
       if (!client) {
         return client
       }
 
-      const normalizedClient = { ...client }
+      const normalizedClient = {...client}
 
       delete normalizedClient.tasks
 
@@ -171,11 +206,11 @@ export const useStore = defineStore('store', {
       return normalizedClient
     },
 
-    normalizeTaskPageTask (task) {
+    normalizeTaskPageTask(task) {
       if (!task) {
         return task
       }
-      const normalizedTask = { ...task }
+      const normalizedTask = {...task}
       if (normalizedTask.createdAt) {
         normalizedTask.createdAt = new Date(normalizedTask.createdAt)
       }
@@ -194,8 +229,21 @@ export const useStore = defineStore('store', {
       if (normalizedTask.lastActivity) {
         normalizedTask.lastActivity = new Date(normalizedTask.lastActivity)
       }
+      ;['enteredCurrentLineAt', 'olaStartedAt', 'olaDeadline', 'olaWarningAt', 'olaBreachedAt', 'firstResponseDeadline', 'firstResponseAt'].forEach(field => {
+        if (normalizedTask[field]) {
+          normalizedTask[field] = new Date(normalizedTask[field])
+        }
+      })
+      if (normalizedTask.olaInfo && typeof normalizedTask.olaInfo === 'object') {
+        normalizedTask.olaInfo = {...normalizedTask.olaInfo}
+        ;['startedAt', 'deadline', 'warningAt', 'breachedAt'].forEach(field => {
+          if (normalizedTask.olaInfo[field]) {
+            normalizedTask.olaInfo[field] = new Date(normalizedTask.olaInfo[field])
+          }
+        })
+      }
       if (normalizedTask.sla) {
-        normalizedTask.sla = { ...normalizedTask.sla }
+        normalizedTask.sla = {...normalizedTask.sla}
         if (normalizedTask.sla.startDate) {
           normalizedTask.sla.startDate = moment(new Date(normalizedTask.sla.startDate), 'DD.MM.YYYY HH:mm')
         }
@@ -216,7 +264,7 @@ export const useStore = defineStore('store', {
       return normalizedTask
     },
 
-    mergeTaskPageTasks (currentTasks = [], newTasks = []) {
+    mergeTaskPageTasks(currentTasks = [], newTasks = []) {
       const taskById = new Map()
       currentTasks.forEach(task => {
         if (task?.id !== undefined && task?.id !== null) {
@@ -231,7 +279,7 @@ export const useStore = defineStore('store', {
       return Array.from(taskById.values())
     },
 
-    updateLoadedTaskPageTaskFromSocket (task) {
+    updateLoadedTaskPageTaskFromSocket(task) {
       if (!task?.id || !Array.isArray(this.taskPage?.tasks)) {
         return false
       }
@@ -258,7 +306,7 @@ export const useStore = defineStore('store', {
       return true
     },
 
-    resetTaskPage () {
+    resetTaskPage() {
       this.taskPage = {
         tasks: [],
         page: 0,
@@ -269,25 +317,14 @@ export const useStore = defineStore('store', {
       }
     },
 
-    fetchTasksPage (params = {}, append = false) {
+    fetchTasksPage(params = {}, append = false) {
       const request = {
         ...params,
         size: params.size || this.taskPage.size || 10
       }
 
-      console.log('[tasks-page request]', request, 'append:', append)
-
       return axios.post('/api/v1/tasks-page', request)
         .then(response => {
-          console.log(
-            '[tasks-page response]',
-            'page:', response.data?.page,
-            'size:', response.data?.size,
-            'tasks:', response.data?.tasks?.length,
-            'total:', response.data?.totalElements,
-            'isEnd:', response.data?.isEnd
-          )
-
           const tasks = Array.isArray(response.data?.tasks)
             ? response.data.tasks.map(task => this.normalizeTaskPageTask(task))
             : []
@@ -304,12 +341,6 @@ export const useStore = defineStore('store', {
             totalPages: response.data?.totalPages ?? 0,
             isEnd: response.data?.isEnd ?? tasks.length === 0
           }
-          console.log(
-            '[tasks-page state]',
-            this.taskPage.tasks.length,
-            'из',
-            this.taskPage.totalElements
-          )
 
           return {
             ...this.taskPage,
@@ -323,12 +354,58 @@ export const useStore = defineStore('store', {
         })
     },
 
-    fetchData () {
+    fetchData() {
+      const authorities = Array.isArray(this.currentUser?.authorities)
+        ? this.currentUser.authorities
+        : []
+      const isObserver = authorities.includes('OBSERVER')
+
       axios.get('/api/v1/clients')
         .then(response => {
+          const existingClientsById = new Map(
+            this.clients
+              .filter(client => client?.id !== undefined && client?.id !== null)
+              .map(client => [Number(client.id), client])
+          )
+
           this.clients = Array.isArray(response.data)
-            ? response.data.map(client => this.normalizeClientForList(client))
+            ? response.data.map(client => {
+              const normalizedClient = this.normalizeClientForList(client)
+              const existingClient = existingClientsById.get(Number(client?.id))
+              const existingMessages = Array.isArray(existingClient?.messages)
+                ? existingClient.messages
+                : null
+              const cachedMessages = (
+                Number(this.currentChatMessageData?.clientId) === Number(client?.id) &&
+                Array.isArray(this.currentChatMessageData?.messages)
+              )
+                ? this.currentChatMessageData.messages
+                : null
+
+              return {
+                ...existingClient,
+                ...normalizedClient,
+                // История может загрузиться раньше списка клиентов. В этом
+                // случае existingClient ещё отсутствует, поэтому главным
+                // источником для открытого чата является отдельный cache
+                // currentChatMessageData, привязанный к clientId.
+                messages: cachedMessages ?? existingMessages ?? (
+                  Array.isArray(normalizedClient?.messages)
+                    ? normalizedClient.messages
+                    : []
+                )
+              }
+            })
             : []
+
+          if (this.currentClient?.id !== undefined && this.currentClient?.id !== null) {
+            const refreshedCurrentClient = this.clients.find(client =>
+              Number(client.id) === Number(this.currentClient.id)
+            )
+            if (refreshedCurrentClient) {
+              this.currentClient = refreshedCurrentClient
+            }
+          }
         })
 
       axios.get('/api/v1/tags')
@@ -341,20 +418,28 @@ export const useStore = defineStore('store', {
           this.organizations = response.data
         })
 
-      axios.get('/api/v1/users')
-        .then(response => {
-          this.users = response.data
-          this.users.forEach(user => {
-            if (user.lastname === null) {
-              user.lastname = ''
-            }
+      if (!isObserver) {
+        axios.get('/api/v1/users')
+          .then(response => {
+            this.users = response.data
+            this.users.forEach(user => {
+              if (user.lastname === null) {
+                user.lastname = ''
+              }
+            })
           })
-        })
+      } else {
+        this.users = []
+      }
 
-      axios.get('/api/v1/roles')
-        .then(response => {
-          this.roles = response.data
-        })
+      if (!isObserver) {
+        axios.get('/api/v1/roles')
+          .then(response => {
+            this.roles = response.data
+          })
+      } else {
+        this.roles = []
+      }
 
       axios.get('/api/v1/statuses')
         .then(response => {
@@ -371,34 +456,50 @@ export const useStore = defineStore('store', {
           this.taskTypes = response.data
         })
 
+      axios.get('/api/v1/services')
+        .then(response => {
+          this.services = Array.isArray(response.data) ? response.data : []
+        })
+
       axios.get('/api/v1/support-lines')
         .then(response => {
           this.supportLines = Array.isArray(response.data) ? response.data : []
         })
 
-      axios.get('/api/v1/templates')
-        .then(response => {
-          this.templates = response.data
-        })
+      if (!isObserver) {
+        axios.get('/api/v1/templates')
+          .then(response => {
+            this.templates = response.data
+          })
 
-      axios.get('/api/v1/knowledge-base')
-        .then(response => {
-          this.knowledgeBase = response.data
-        })
+        axios.get('/api/v1/knowledge-base')
+          .then(response => {
+            this.knowledgeBase = response.data
+          })
 
-      axios.get('/api/v1/triggers')
-        .then(response => {
-          this.triggers = response.data
-        })
+        axios.get('/api/v1/triggers')
+          .then(response => {
+            this.triggers = response.data
+          })
 
-      axios.get('/api/v1/trigger-types')
-        .then(response => {
-          this.triggerTypes = response.data
-        })
+        axios.get('/api/v1/trigger-types')
+          .then(response => {
+            this.triggerTypes = response.data
+          })
+      } else {
+        this.templates = []
+        this.knowledgeBase = []
+        this.triggers = []
+        this.triggerTypes = []
+      }
     },
 
-    fetchAnalyticsDictionaries () {
+    fetchAnalyticsDictionaries() {
       const requests = []
+      const authorities = Array.isArray(this.currentUser?.authorities)
+        ? this.currentUser.authorities
+        : []
+      const isObserver = authorities.includes('OBSERVER')
 
       requests.push(
         axios.get('/api/v1/task-types')
@@ -414,18 +515,22 @@ export const useStore = defineStore('store', {
           })
       )
 
-      requests.push(
-        axios.get('/api/v1/users')
-          .then(response => {
-            this.users = Array.isArray(response.data) ? response.data : []
+      if (!isObserver) {
+        requests.push(
+          axios.get('/api/v1/users')
+            .then(response => {
+              this.users = Array.isArray(response.data) ? response.data : []
 
-            this.users.forEach(user => {
-              if (user.lastname === null) {
-                user.lastname = ''
-              }
+              this.users.forEach(user => {
+                if (user.lastname === null) {
+                  user.lastname = ''
+                }
+              })
             })
-          })
-      )
+        )
+      } else {
+        this.users = []
+      }
 
       requests.push(
         axios.get('/api/v1/tags')
@@ -434,22 +539,58 @@ export const useStore = defineStore('store', {
           })
       )
 
+      requests.push(
+        axios.get('/api/v1/services')
+          .then(response => {
+            this.services = Array.isArray(response.data) ? response.data : []
+          })
+      )
+
+      requests.push(
+        axios.get('/api/v1/support-lines')
+          .then(response => {
+            this.supportLines = Array.isArray(response.data) ? response.data : []
+          })
+      )
+
       return Promise.all(requests)
     },
 
-    fetchClientMessages (clientId) {
-      return axios.get(`/api/v1/client/${clientId}/messages-page?page=1`)
+    fetchClientMessages(clientId) {
+      const numericClientId = Number(clientId)
+      return axios.get(`/api/v1/client/${numericClientId}/messages-page?page=1`)
         .then(response => {
-          const messages = response.data.messages
-          const isEnd = response.data.isEnd
+          const messages = Array.isArray(response.data?.messages)
+            ? response.data.messages.map(message => ({
+              ...message,
+              date: message.date ? new Date(message.date) : message.date,
+              editedAt: message.editedAt ? new Date(message.editedAt) : message.editedAt
+            }))
+            : []
+          const isEnd = Boolean(response.data?.isEnd)
 
-          messages.forEach(message => {
-            message.date = new Date(message.date)
-          })
+          this.currentChatMessageData = {
+            clientId: numericClientId,
+            messages,
+            isEnd
+          }
 
-          this.currentChatMessageData.messages = messages
-          this.currentChatMessageData.isEnd = isEnd
-          return { messages, isEnd }
+          // Если список клиентов уже загружен, сразу прикрепляем историю к
+          // реальному объекту. Если ещё нет — fetchData сделает это позже по
+          // currentChatMessageData.clientId.
+          const client = this.clients.find(item => Number(item?.id) === numericClientId)
+          if (client) {
+            client.messages = messages
+            this.currentClient = client
+          } else {
+            this.currentClient = {
+              ...this.currentClient,
+              id: numericClientId,
+              messages
+            }
+          }
+
+          return {clientId: numericClientId, messages, isEnd}
         })
         .catch(error => {
           console.error(error)
@@ -457,7 +598,7 @@ export const useStore = defineStore('store', {
         })
     },
 
-    fetchAnalyticsSummary (params = {}) {
+    fetchAnalyticsSummary(params = {}) {
       const query = new URLSearchParams()
 
       const setParam = (name, value) => {
@@ -506,6 +647,7 @@ export const useStore = defineStore('store', {
       setIdListParam('priorityIds', params.priorityIds)
       setIdListParam('executorIds', params.executorIds)
       setIdListParam('tagIds', params.tagIds)
+      setIdListParam('supportLineIds', params.supportLineIds)
 
       const queryString = query.toString()
       const url = queryString
@@ -522,11 +664,15 @@ export const useStore = defineStore('store', {
             newAppeals: response.data?.newAppeals ?? 0,
             openTasks: response.data?.openTasks ?? 0,
             overdueSla: response.data?.overdueSla ?? 0,
+            overdueOla: response.data?.overdueOla ?? 0,
+            olaWarnings: response.data?.olaWarnings ?? 0,
             overdueDeadlines: response.data?.overdueDeadlines ?? 0,
             deadlineWarnings: response.data?.deadlineWarnings ?? 0,
             unansweredMessages: response.data?.unansweredMessages ?? 0,
             avgFirstResponseSeconds: response.data?.avgFirstResponseSeconds ?? 0,
+            firstResponseCount: response.data?.firstResponseCount ?? response.data?.answeredAppealsCount ?? 0,
             avgCloseTimeSeconds: response.data?.avgCloseTimeSeconds ?? 0,
+            avgLineTimeSeconds: response.data?.avgLineTimeSeconds ?? 0,
             unassignedTasks: response.data?.unassignedTasks ?? 0,
             closedTasks: response.data?.closedTasks ?? 0,
             reopenedTasks: response.data?.reopenedTasks ?? 0,
@@ -535,6 +681,14 @@ export const useStore = defineStore('store', {
             reopenedByPeriod: Array.isArray(response.data?.reopenedByPeriod) ? response.data.reopenedByPeriod : [],
             hourlyLoad: Array.isArray(response.data?.hourlyLoad) ? response.data.hourlyLoad : [],
             operatorLoad: Array.isArray(response.data?.operatorLoad) ? response.data.operatorLoad : [],
+            lineLoad: Array.isArray(response.data?.lineLoad) ? response.data.lineLoad : [],
+            lineTransitions: Array.isArray(response.data?.lineTransitions) ? response.data.lineTransitions : [],
+
+            taskTypeBreakdown: Array.isArray(response.data?.taskTypeBreakdown) ? response.data.taskTypeBreakdown : [],
+            priorityBreakdown: Array.isArray(response.data?.priorityBreakdown) ? response.data.priorityBreakdown : [],
+            executorBreakdown: Array.isArray(response.data?.executorBreakdown) ? response.data.executorBreakdown : [],
+            tagBreakdown: Array.isArray(response.data?.tagBreakdown) ? response.data.tagBreakdown : [],
+            supportLineBreakdown: Array.isArray(response.data?.supportLineBreakdown) ? response.data.supportLineBreakdown : [],
 
             byTypes: Array.isArray(response.data?.byTypes) ? response.data.byTypes : [],
             byPriorities: Array.isArray(response.data?.byPriorities) ? response.data.byPriorities : [],
@@ -546,7 +700,7 @@ export const useStore = defineStore('store', {
         })
     },
 
-    loadCurrentSession () {
+    loadCurrentSession() {
       return axios.get('/api/v1/session/current')
         .then(response => {
           this.currentSessionId = response.data.sessionId
@@ -554,7 +708,7 @@ export const useStore = defineStore('store', {
         })
     },
 
-    logoutByForce () {
+    logoutByForce() {
       this.currentUser = null
       this.currentSessionId = null
       this.clients = []
@@ -564,7 +718,121 @@ export const useStore = defineStore('store', {
       window.location.replace('/login')
     },
 
-    fetchGeneralSettings () {
+    normalizeUserNotification(notification) {
+      if (!notification || typeof notification !== 'object') {
+        return null
+      }
+
+      return {
+        ...notification,
+        read: Boolean(notification.read || notification.readAt),
+        createdAt: notification.createdAt ? new Date(notification.createdAt) : new Date(),
+        readAt: notification.readAt ? new Date(notification.readAt) : null
+      }
+    },
+
+    receiveUserNotification(notification) {
+      const normalized = this.normalizeUserNotification(notification)
+      if (!normalized) {
+        return
+      }
+      if (this.currentUser?.id && Number(normalized.userId) !== Number(this.currentUser.id)) {
+        return
+      }
+
+      const existingIndex = this.userNotifications.findIndex(item => {
+        return normalized.id && Number(item?.id) === Number(normalized.id)
+      })
+      if (existingIndex >= 0) {
+        this.userNotifications.splice(existingIndex, 1, {
+          ...this.userNotifications[existingIndex],
+          ...normalized
+        })
+        return
+      }
+
+      this.userNotifications.unshift(normalized)
+      if (!normalized.read) {
+        this.userNotificationsUnreadCount += 1
+      }
+    },
+
+    fetchUserNotifications({page = 1, size = 20, unreadOnly = false, append = false} = {}) {
+      this.userNotificationsLoading = true
+      return axios.get('/api/v1/user/notifications', {
+        params: {page, size, unreadOnly}
+      })
+        .then(response => {
+          const notifications = Array.isArray(response.data?.notifications)
+            ? response.data.notifications
+              .map(item => this.normalizeUserNotification(item))
+              .filter(Boolean)
+            : []
+
+          if (append) {
+            const notificationById = new Map(
+              this.userNotifications
+                .filter(item => item?.id !== null && item?.id !== undefined)
+                .map(item => [Number(item.id), item])
+            )
+            notifications.forEach(item => {
+              if (item?.id !== null && item?.id !== undefined) {
+                notificationById.set(Number(item.id), item)
+              }
+            })
+            this.userNotifications = Array.from(notificationById.values())
+              .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt))
+          } else {
+            this.userNotifications = notifications
+          }
+
+          this.userNotificationsUnreadCount = Number(response.data?.unreadCount) || 0
+          this.userNotificationsPage = Number(response.data?.page) || page
+          this.userNotificationsTotalPages = Number(response.data?.totalPages) || 0
+          this.userNotificationsEnd = Boolean(response.data?.end)
+          return response.data
+        })
+        .finally(() => {
+          this.userNotificationsLoading = false
+        })
+    },
+
+    markUserNotificationRead(notificationId) {
+      const notification = this.userNotifications.find(item => Number(item?.id) === Number(notificationId))
+      const wasUnread = notification && !notification.read
+
+      return axios.patch(`/api/v1/user/notifications/${notificationId}/read`)
+        .then(response => {
+          const normalized = this.normalizeUserNotification(response.data)
+          const index = this.userNotifications.findIndex(item => Number(item?.id) === Number(notificationId))
+          if (index >= 0 && normalized) {
+            this.userNotifications.splice(index, 1, {
+              ...this.userNotifications[index],
+              ...normalized
+            })
+          }
+          if (wasUnread) {
+            this.userNotificationsUnreadCount = Math.max(0, this.userNotificationsUnreadCount - 1)
+          }
+          return normalized
+        })
+    },
+
+    markAllUserNotificationsRead() {
+      return axios.patch('/api/v1/user/notifications/read-all')
+        .then(response => {
+          const readAt = new Date()
+          this.userNotifications = this.userNotifications.map(notification => ({
+            ...notification,
+            read: true,
+            readAt: notification.readAt || readAt
+          }))
+          this.userNotificationsUnreadCount = Number(response.data?.unreadCount) || 0
+          return response.data
+        })
+    },
+
+    fetchGeneralSettings() {
       return axios.get('/api/v1/settings/general')
         .then(response => {
           this.generalSettings = {
@@ -578,22 +846,30 @@ export const useStore = defineStore('store', {
             thursdayEnabled: response.data?.thursdayEnabled ?? true,
             fridayEnabled: response.data?.fridayEnabled ?? true,
             saturdayEnabled: response.data?.saturdayEnabled ?? false,
-            sundayEnabled: response.data?.sundayEnabled ?? false
+            sundayEnabled: response.data?.sundayEnabled ?? false,
+            supportLineAccessMode: response.data?.supportLineAccessMode ?? 'HYBRID',
           }
 
           return this.generalSettings
         })
     },
 
-    saveGeneralSettings (settings) {
+    saveGeneralSettings(settings) {
       return axios.patch('/api/v1/settings/general', settings)
         .then(response => {
-          this.generalSettings = response.data
-          return response.data
+          this.generalSettings = {
+            ...this.generalSettings,
+            ...(response.data || settings),
+            supportLineAccessMode: response.data?.supportLineAccessMode
+              ?? settings?.supportLineAccessMode
+              ?? this.generalSettings.supportLineAccessMode
+              ?? 'HYBRID'
+          }
+          return this.generalSettings
         })
     },
 
-    getMessageSortTime (message) {
+    getMessageSortTime(message) {
       const rawDate = message?.date
       const time = rawDate instanceof Date
         ? rawDate.getTime()
@@ -601,7 +877,7 @@ export const useStore = defineStore('store', {
       return Number.isFinite(time) ? time : 0
     },
 
-    sortMessagesByDateAndId (messages) {
+    sortMessagesByDateAndId(messages) {
       if (!Array.isArray(messages)) {
         return []
       }

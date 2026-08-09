@@ -113,6 +113,7 @@ export default {
     selectedCategories: [],
     categoryOptions: [
       {label: 'Заявки', value: 'TASK'},
+      {label: 'Сервисы', value: 'SERVICE'},
       {label: 'Сообщения из чатов', value: 'CLIENT_MESSAGE'},
       {label: 'Сообщения из заявок', value: 'TASK_MESSAGE'},
       {label: 'База знаний', value: 'KNOWLEDGE'},
@@ -287,6 +288,8 @@ export default {
           return 'Клиент'
         case 'TASK':
           return 'Заявка'
+        case 'SERVICE':
+          return 'Сервис'
         case 'KNOWLEDGE':
           return 'База знаний'
         case 'CLIENT_MESSAGE':
@@ -306,6 +309,8 @@ export default {
           return 'person'
         case 'TASK':
           return 'task_alt'
+        case 'SERVICE':
+          return 'dns'
         case 'CLIENT_MESSAGE':
           return 'forum'
         case 'TASK_MESSAGE':

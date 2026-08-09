@@ -1,13 +1,26 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить почту"
-      @click="this.dialogNewEmailShow"
-      style="margin-bottom: 8px;"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Электронная почта</div>
+        <div class="settings-content-description">
+          Настройте почтовые ящики для приема и отправки сообщений.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить почту"
+          @click="this.dialogNewEmailShow"
+        />
+      </div>
+    </div>
     <div class="table-container">
       <q-table
+        class="settings-row-table"
         :rows="this.emails"
         :columns="this.columns"
         row-key="id"
@@ -53,88 +66,90 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewEmail ? 'Новая почта' : 'Изменить почту'" />
+        <div class="text-h6" v-text="this.isNewEmail ? 'Новая почта' : 'Изменить почту'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
-<!--        <q-btn-toggle-->
-<!--          v-model="this.emailType"-->
-<!--          spread-->
-<!--          class="custom-toggle"-->
-<!--          no-caps-->
-<!--          rounded-->
-<!--          unelevated-->
-<!--          toggle-color="primary"-->
-<!--          color="white"-->
-<!--          text-color="primary"-->
-<!--          :options="[{label: 'IMAP', value: 'imap'}, {label: 'Exchange', value: 'exchange'}]"-->
-<!--        />-->
+        <!--        <q-btn-toggle-->
+        <!--          v-model="this.emailType"-->
+        <!--          spread-->
+        <!--          class="custom-toggle"-->
+        <!--          no-caps-->
+        <!--          rounded-->
+        <!--          unelevated-->
+        <!--          toggle-color="primary"-->
+        <!--          color="white"-->
+        <!--          text-color="primary"-->
+        <!--          :options="[{label: 'IMAP', value: 'imap'}, {label: 'Exchange', value: 'exchange'}]"-->
+        <!--        />-->
         <q-input
           v-model="this.dialogName"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
         <q-input
           v-model="this.dialogEmailFrom"
-          label="Почта отправления"
+          label="Почта отправления *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogPassword"
-          label="Пароль"
+          label="Пароль *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
-<!--        <div-->
-<!--          v-if="this.emailType === 'imap'"-->
-<!--        >-->
+        <!--        <div-->
+        <!--          v-if="this.emailType === 'imap'"-->
+        <!--        >-->
         <q-input
           v-model="this.dialogImapServer"
-          label="IMAP Server"
+          label="IMAP Server *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogImapPort"
-          label="IMAP Port"
+          label="IMAP Port *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogSmtpServer"
-          label="SMTP Server"
+          label="SMTP Server *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogSmtpPort"
-          label="SMTP Port"
+          label="SMTP Port *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
-<!--        </div>-->
-<!--        <div-->
-<!--          v-else-if="this.emailType === 'exchange'"-->
-<!--        >-->
-<!--          <q-input-->
-<!--            v-model="this.dialogExchangeServer"-->
-<!--            label="Exchange сервер"-->
-<!--            :rules="[val => (val && val.length > 0) || 'Обязательное поле']"-->
-<!--          />-->
-<!--        </div>-->
+        <!--        </div>-->
+        <!--        <div-->
+        <!--          v-else-if="this.emailType === 'exchange'"-->
+        <!--        >-->
+        <!--          <q-input-->
+        <!--            v-model="this.dialogExchangeServer"-->
+        <!--            label="Exchange сервер"-->
+        <!--            :rules="[val => (val && val.length > 0) || 'Обязательное поле']"-->
+        <!--          />-->
+        <!--        </div>-->
         <q-input
           v-model="this.dialogSubject"
-          label="Тема для писем"
+          label="Тема для писем *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewEmail"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="dialogDeleteEmail"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />
@@ -148,7 +163,7 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
 
 export default {
@@ -156,10 +171,10 @@ export default {
 
   data: () => ({
     columns: [
-      { name: 'name', label: 'Название', align: 'left', field: 'name' },
-      { name: 'emailFrom', label: 'почта', align: 'left', field: 'emailFrom' },
-      { name: 'password', label: 'пароль', align: 'left', field: 'password' },
-      { name: 'show-password', label: 'Показать пароль', align: 'center', field: 'show-password' }
+      {name: 'name', label: 'Название', align: 'left', field: 'name'},
+      {name: 'emailFrom', label: 'почта', align: 'left', field: 'emailFrom'},
+      {name: 'password', label: 'пароль', align: 'left', field: 'password'},
+      {name: 'show-password', label: 'Показать пароль', align: 'center', field: 'show-password'}
     ],
     emails: [],
     dialogVisible: false,
@@ -179,11 +194,11 @@ export default {
   }),
 
   methods: {
-    togglePasswordVisibility (row) {
+    togglePasswordVisibility(row) {
       row.showPassword = !row.showPassword
     },
 
-    dialogNewEmailShow () {
+    dialogNewEmailShow() {
       this.dialogVisible = true
       this.isNewEmail = true
       this.dialogName = ''
@@ -197,7 +212,7 @@ export default {
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
-    updateEmail (row) {
+    updateEmail(row) {
       this.isNewEmail = false
       this.dialogVisible = true
       this.dialogName = row.name
@@ -211,11 +226,11 @@ export default {
       this.emailId = row.id
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogDeleteEmail () {
+    dialogDeleteEmail() {
       const email = this.emails[this.emails.indexOf(this.emails.find(email => email.id === this.emailId))]
       axios.delete(`/api/v1/email/${email.id}`, email)
         .then(() => {
@@ -233,7 +248,7 @@ export default {
           }))
     },
 
-    dialogSaveNewOrUpdateEmail () {
+    dialogSaveNewOrUpdateEmail() {
       const email = {
         id: this.isNewEmail ? null : this.emailId,
         name: this.dialogName,
@@ -293,7 +308,7 @@ export default {
     }
   },
 
-  mounted () {
+  mounted() {
     axios.get('/api/v1/emails')
       .then(response => {
         this.emails = response.data
@@ -312,9 +327,9 @@ export default {
         }))
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    return { store }
+    return {store}
   }
 }
 

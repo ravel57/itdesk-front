@@ -1,6 +1,27 @@
 <template>
   <div class="sla-page">
-    <q-card flat bordered class="sla-card">
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">SLA и OLA</div>
+        <div class="settings-content-description">
+          Настройте сроки обслуживания клиентов и внутренние сроки работы линий поддержки.
+        </div>
+      </div>
+    </div>
+
+    <q-tabs
+      v-model="activeTab"
+      dense
+      align="left"
+      active-color="primary"
+      indicator-color="primary"
+      class="q-mb-md text-grey-7"
+    >
+      <q-tab name="sla" icon="schedule" label="SLA клиента" no-caps/>
+      <q-tab name="ola" icon="timer" label="OLA линий" no-caps/>
+    </q-tabs>
+
+    <q-card v-show="activeTab === 'sla'" flat bordered class="sla-card">
       <div class="sla-card-header">
         <div>
           <div class="sla-title">SLA по организациям и приоритетам</div>
@@ -41,7 +62,11 @@
               @mouseenter="setHoveredRow(rowIndex)"
               @mouseleave="clearHoveredCell"
             >
-              <div class="sla-organization-name" v-text="organization.name" />
+              <div
+                class="sla-organization-name organization-name-ellipsis"
+                :title="organization.name"
+                v-text="organization.name"
+              />
               <q-badge
                 v-if="organization.isDefaultSla"
                 outline
@@ -107,17 +132,114 @@
         </table>
       </div>
     </q-card>
+
+    <q-card v-show="activeTab === 'ola'" flat bordered class="sla-card">
+      <div class="sla-card-header">
+        <div>
+          <div class="sla-title">OLA по линиям поддержки</div>
+          <div class="sla-subtitle">
+            Внутренний срок начинается при переводе заявки на линию и не перезапускает клиентский SLA.
+          </div>
+        </div>
+        <q-btn
+          flat
+          color="primary"
+          icon="settings"
+          label="Настройки линий"
+          no-caps
+          @click="$router.push('/settings/support-lines')"
+        />
+      </div>
+
+      <q-table
+        class="settings-row-table ola-table"
+        flat
+        :rows="olaLines"
+        :columns="olaColumns"
+        row-key="id"
+        :pagination="{ rowsPerPage: 0 }"
+        hide-pagination
+      >
+        <template #body-cell-enabled="props">
+          <q-td :props="props">
+            <q-toggle
+              :model-value="props.row.olaEnabled === true"
+              @update:model-value="value => updateOlaLine(props.row, { olaEnabled: value })"
+            />
+          </q-td>
+        </template>
+
+        <template #body-cell-duration="props">
+          <q-td :props="props">
+            <div class="ola-duration-cell">
+              <q-input
+                :model-value="props.row.olaValue"
+                dense
+                outlined
+                type="number"
+                min="0"
+                :disable="props.row.olaEnabled !== true"
+                @change="event => updateOlaLine(props.row, { olaValue: Math.max(0, Number(event.target.value || 0)) })"
+              />
+              <q-select
+                :model-value="props.row.olaUnit || 'HOURS'"
+                :options="olaUnitOptions"
+                dense
+                outlined
+                emit-value
+                map-options
+                :disable="props.row.olaEnabled !== true"
+                @update:model-value="value => updateOlaLine(props.row, { olaUnit: value })"
+              />
+            </div>
+          </q-td>
+        </template>
+
+        <template #body-cell-warning="props">
+          <q-td :props="props">
+            <q-input
+              :model-value="props.row.olaWarningPercent || 80"
+              dense
+              outlined
+              type="number"
+              min="1"
+              max="100"
+              suffix="%"
+              :disable="props.row.olaEnabled !== true"
+              @change="event => updateOlaLine(props.row, {
+                olaWarningPercent: Math.min(100, Math.max(1, Number(event.target.value || 80)))
+              })"
+            />
+          </q-td>
+        </template>
+
+        <template #body-cell-workingTime="props">
+          <q-td :props="props">
+            <q-toggle
+              :model-value="props.row.olaUseWorkingTime !== false"
+              :disable="props.row.olaEnabled !== true"
+              @update:model-value="value => updateOlaLine(props.row, { olaUseWorkingTime: value })"
+            />
+          </q-td>
+        </template>
+      </q-table>
+
+      <q-card-section v-if="!olaLines.length" class="text-center text-grey-7 q-py-xl">
+        Сначала создайте линию поддержки
+      </q-card-section>
+    </q-card>
   </div>
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
 
 export default {
   name: 'SlaPage',
 
   data: () => ({
+    activeTab: 'sla',
     tableData: [],
     isPopulatingSla: false,
     lastSent: {},
@@ -125,6 +247,18 @@ export default {
     hoveredColumnIndex: null,
     focusedRowIndex: null,
     focusedColumnIndex: null,
+    olaUnitOptions: [
+      {label: 'минуты', value: 'MINUTES'},
+      {label: 'часы', value: 'HOURS'},
+      {label: 'рабочие дни', value: 'WORKING_DAYS'}
+    ],
+    olaColumns: [
+      {name: 'name', label: 'Линия', field: 'name', align: 'left', sortable: true},
+      {name: 'enabled', label: 'OLA', field: 'olaEnabled', align: 'center'},
+      {name: 'duration', label: 'Внутренний срок', field: 'olaValue', align: 'left'},
+      {name: 'warning', label: 'Предупреждение', field: 'olaWarningPercent', align: 'left'},
+      {name: 'workingTime', label: 'Рабочее время', field: 'olaUseWorkingTime', align: 'center'}
+    ],
     periodOptions: [
       {
         label: 'минуты',
@@ -142,7 +276,7 @@ export default {
   }),
 
   computed: {
-    getOrganizations () {
+    getOrganizations() {
       return [
         {
           id: null,
@@ -153,21 +287,39 @@ export default {
       ]
     },
 
-    isSlaReady () {
+    isSlaReady() {
       return this.store.priorities.length > 0
     },
 
-    activeRowIndex () {
+    olaLines() {
+      return [...(this.store.supportLines || [])]
+        .sort((left, right) => Number(left.orderNumber || 0) - Number(right.orderNumber || 0))
+    },
+
+    activeRowIndex() {
       return this.hoveredRowIndex !== null ? this.hoveredRowIndex : this.focusedRowIndex
     },
 
-    activeColumnIndex () {
+    activeColumnIndex() {
       return this.hoveredColumnIndex !== null ? this.hoveredColumnIndex : this.focusedColumnIndex
     }
   },
 
   methods: {
-    notifyError (e) {
+    async updateOlaLine(line, patch) {
+      const payload = {...line, ...patch}
+      try {
+        const {data} = await axios.patch('/api/v1/support-line', payload)
+        const index = this.store.supportLines.findIndex(item => item.id === line.id)
+        if (index >= 0) {
+          this.store.supportLines.splice(index, 1, data)
+        }
+      } catch (e) {
+        this.notifyError(e)
+      }
+    },
+
+    notifyError(e) {
       this.$q.notify({
         message: e?.response?.data?.message || e.message,
         type: 'negative',
@@ -181,7 +333,7 @@ export default {
       })
     },
 
-    async loadSla () {
+    async loadSla() {
       if (!this.isSlaReady) {
         return
       }
@@ -190,13 +342,13 @@ export default {
         const organizations = this.getOrganizations
         const priorities = this.store.priorities
 
-        const emptyTable = Array.from({ length: organizations.length }, () =>
-          Array.from({ length: priorities.length }, () => ({
+        const emptyTable = Array.from({length: organizations.length}, () =>
+          Array.from({length: priorities.length}, () => ({
             value: '',
             unit: 'HOURS'
           }))
         )
-        const { data } = await axios.get('/api/v1/sla')
+        const {data} = await axios.get('/api/v1/sla')
         organizations.forEach((org, rowIndex) => {
           priorities.forEach((priority, colIndex) => {
             const cell = data?.[org.name]?.[priority.name]
@@ -214,80 +366,80 @@ export default {
       }
     },
 
-    isSlaOffValue (value) {
+    isSlaOffValue(value) {
       return value !== null && value !== undefined && String(value).trim() !== '' && Number(value) === 0
     },
 
-    isSlaOffText (value) {
+    isSlaOffText(value) {
       const normalized = String(value ?? '').trim().toLowerCase()
       return normalized === 'выкл' || normalized === 'выкл.' || normalized === 'off'
     },
 
-    getSlaInputValue (rowIndex, colIndex) {
+    getSlaInputValue(rowIndex, colIndex) {
       const value = this.tableData?.[rowIndex]?.[colIndex]?.value
       return this.isSlaOffValue(value) ? 'выкл.' : value
     },
 
-    onSlaInputFocus (rowIndex, colIndex, event) {
+    onSlaInputFocus(rowIndex, colIndex, event) {
       this.setFocusedCell(rowIndex, colIndex)
       this.selectSlaInputText(event)
     },
 
-    selectSlaInputText (event) {
+    selectSlaInputText(event) {
       event?.target?.select?.()
     },
 
-    setHoveredCell (rowIndex, columnIndex) {
+    setHoveredCell(rowIndex, columnIndex) {
       this.hoveredRowIndex = rowIndex
       this.hoveredColumnIndex = columnIndex
     },
 
-    setHoveredRow (rowIndex) {
+    setHoveredRow(rowIndex) {
       this.hoveredRowIndex = rowIndex
       this.hoveredColumnIndex = null
     },
 
-    setHoveredColumn (columnIndex) {
+    setHoveredColumn(columnIndex) {
       this.hoveredRowIndex = null
       this.hoveredColumnIndex = columnIndex
     },
 
-    clearHoveredCell () {
+    clearHoveredCell() {
       this.hoveredRowIndex = null
       this.hoveredColumnIndex = null
     },
 
-    setFocusedCell (rowIndex, columnIndex) {
+    setFocusedCell(rowIndex, columnIndex) {
       this.focusedRowIndex = rowIndex
       this.focusedColumnIndex = columnIndex
     },
 
-    clearFocusedCell (rowIndex, columnIndex) {
+    clearFocusedCell(rowIndex, columnIndex) {
       if (this.focusedRowIndex === rowIndex && this.focusedColumnIndex === columnIndex) {
         this.focusedRowIndex = null
         this.focusedColumnIndex = null
       }
     },
 
-    getRowClass (rowIndex) {
+    getRowClass(rowIndex) {
       return {
         'is-row-active': this.activeRowIndex === rowIndex
       }
     },
 
-    getRowHeaderClass (rowIndex) {
+    getRowHeaderClass(rowIndex) {
       return {
         'is-row-header-active': this.activeRowIndex === rowIndex
       }
     },
 
-    getColumnHeaderClass (columnIndex) {
+    getColumnHeaderClass(columnIndex) {
       return {
         'is-column-header-active': this.activeColumnIndex === columnIndex
       }
     },
 
-    getCellClass (rowIndex, columnIndex) {
+    getCellClass(rowIndex, columnIndex) {
       return {
         'is-row-active': this.activeRowIndex === rowIndex,
         'is-column-active': this.activeColumnIndex === columnIndex,
@@ -295,7 +447,7 @@ export default {
       }
     },
 
-    onSlaValueInput (rowIndex, colIndex, value) {
+    onSlaValueInput(rowIndex, colIndex, value) {
       const cell = this.tableData?.[rowIndex]?.[colIndex]
 
       if (!cell) {
@@ -327,13 +479,13 @@ export default {
       this.onCellEdited(rowIndex, colIndex)
     },
 
-    preventNegativeSlaInput (event) {
+    preventNegativeSlaInput(event) {
       if (event.key === '-' || event.key === 'Minus' || event.key === 'Subtract') {
         event.preventDefault()
       }
     },
 
-    preventNegativeSlaPaste (event) {
+    preventNegativeSlaPaste(event) {
       const pastedText = event.clipboardData?.getData('text') ?? ''
       const pastedValue = Number(String(pastedText).replace(',', '.'))
 
@@ -342,7 +494,7 @@ export default {
       }
     },
 
-    normalizeSlaCellValue (rowIndex, colIndex) {
+    normalizeSlaCellValue(rowIndex, colIndex) {
       const cell = this.tableData?.[rowIndex]?.[colIndex]
 
       if (!cell) {
@@ -372,7 +524,7 @@ export default {
       return normalizedValue
     },
 
-    async onCellEdited (rowIndex, colIndex) {
+    async onCellEdited(rowIndex, colIndex) {
       if (this.isPopulatingSla) {
         return
       }
@@ -399,22 +551,29 @@ export default {
     }
   },
 
-  mounted () {
+  mounted() {
     this.loadSla()
+    if (!this.store.supportLines?.length) {
+      axios.get('/api/v1/support-lines')
+        .then(({data}) => {
+          this.store.supportLines = Array.isArray(data) ? data : []
+        })
+        .catch(this.notifyError)
+    }
   },
 
   watch: {
-    'store.organizations.length' () {
+    'store.organizations.length'() {
       this.loadSla()
     },
-    'store.priorities.length' () {
+    'store.priorities.length'() {
       this.loadSla()
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    return { store }
+    return {store}
   }
 }
 </script>
@@ -517,6 +676,7 @@ export default {
   font-weight: 700;
   color: #253044;
   line-height: 1.2;
+  max-width: 100%;
 }
 
 .sla-default-badge {
@@ -590,5 +750,23 @@ export default {
 :deep(.q-field__native),
 :deep(.q-field__input) {
   font-weight: 600;
+}
+
+.ola-table {
+  border-radius: 0 0 18px 18px;
+}
+
+.ola-duration-cell {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) 150px;
+  gap: 8px;
+  min-width: 280px;
+}
+
+@media (max-width: 700px) {
+  .ola-duration-cell {
+    grid-template-columns: 1fr;
+    min-width: 180px;
+  }
 }
 </style>

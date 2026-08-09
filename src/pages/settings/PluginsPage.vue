@@ -1,20 +1,24 @@
 <template>
   <q-page class="plugins-page">
-    <div class="plugins-header">
-      <div>
-        <div class="text-h5">Плагины</div>
-        <div class="text-caption text-grey-7">
-          Загрузка, перезагрузка и управление установленными плагинами uldesk
+    <div class="plugins-header settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Плагины</div>
+        <div class="settings-content-description">
+          Загружайте, обновляйте и управляйте установленными плагинами ULDesk.
         </div>
       </div>
 
-      <q-btn
-        color="primary"
-        icon="refresh"
-        label="Перезагрузить плагины"
-        :loading="reloading"
-        @click="reloadPlugins"
-      />
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="refresh"
+          label="Перезагрузить плагины"
+          :loading="reloading"
+          @click="reloadPlugins"
+        />
+      </div>
     </div>
 
     <q-card class="plugins-card">
@@ -25,7 +29,7 @@
         </div>
       </q-card-section>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-section>
         <div class="upload-row">
@@ -35,11 +39,11 @@
             dense
             clearable
             accept=".zip"
-            label="Выберите ZIP-плагин"
+            label="Выберите ZIP-плагин *"
             class="plugin-file"
           >
             <template #prepend>
-              <q-icon name="extension" />
+              <q-icon name="extension"/>
             </template>
           </q-file>
 
@@ -74,9 +78,10 @@
         />
       </q-card-section>
 
-      <q-separator />
+      <q-separator/>
 
       <q-table
+        class="settings-row-table"
         flat
         :rows="plugins"
         :columns="columns"
@@ -245,12 +250,12 @@ export default {
     ]
   }),
 
-  mounted () {
+  mounted() {
     this.loadPlugins()
   },
 
   methods: {
-    async loadPlugins () {
+    async loadPlugins() {
       this.loading = true
 
       try {
@@ -263,7 +268,7 @@ export default {
       }
     },
 
-    normalizePlugins (data) {
+    normalizePlugins(data) {
       const source = Array.isArray(data)
         ? data
         : data?.plugins || data?.items || []
@@ -287,7 +292,7 @@ export default {
       }).filter(plugin => plugin.key)
     },
 
-    resolveRuntime (plugin, manifest) {
+    resolveRuntime(plugin, manifest) {
       if (plugin.runtime && typeof plugin.runtime === 'string') {
         return plugin.runtime
       }
@@ -303,7 +308,7 @@ export default {
       return 'frontend-only'
     },
 
-    resolveExtensionPoints (plugin, manifest) {
+    resolveExtensionPoints(plugin, manifest) {
       const points = []
 
       const fromPlugin = plugin.extensionPoints || []
@@ -320,7 +325,7 @@ export default {
       return [...new Set(points)]
     },
 
-    async uploadPlugin () {
+    async uploadPlugin() {
       if (!this.pluginFile) {
         return
       }
@@ -347,7 +352,7 @@ export default {
       }
     },
 
-    async reloadPlugins () {
+    async reloadPlugins() {
       this.reloading = true
 
       try {
@@ -361,7 +366,7 @@ export default {
       }
     },
 
-    async reloadSinglePlugin (plugin) {
+    async reloadSinglePlugin(plugin) {
       try {
         await axios.post(`/api/plugins/${encodeURIComponent(plugin.key)}/reload`)
         this.notifyPositive(`Плагин ${plugin.name || plugin.key} перезагружен`)
@@ -371,7 +376,7 @@ export default {
       }
     },
 
-    async enablePlugin (plugin) {
+    async enablePlugin(plugin) {
       try {
         await axios.post(`/api/plugins/${encodeURIComponent(plugin.key)}/enable`)
         this.notifyPositive(`Плагин ${plugin.name || plugin.key} включен`)
@@ -381,7 +386,7 @@ export default {
       }
     },
 
-    async disablePlugin (plugin) {
+    async disablePlugin(plugin) {
       try {
         await axios.post(`/api/plugins/${encodeURIComponent(plugin.key)}/disable`)
         this.notifyPositive(`Плагин ${plugin.name || plugin.key} отключен`)
@@ -391,7 +396,7 @@ export default {
       }
     },
 
-    confirmDeletePlugin (plugin) {
+    confirmDeletePlugin(plugin) {
       const pluginName = plugin.name || plugin.key
       if (!window.confirm(`Удалить плагин "${pluginName}"?`)) {
         return
@@ -399,7 +404,7 @@ export default {
       this.deletePlugin(plugin)
     },
 
-    async deletePlugin (plugin) {
+    async deletePlugin(plugin) {
       try {
         await axios.delete(`/api/plugins/${encodeURIComponent(plugin.key)}`)
         this.notifyPositive(`Плагин ${plugin.name || plugin.key} удален`)
@@ -409,14 +414,14 @@ export default {
       }
     },
 
-    getErrorMessage (e, fallback) {
+    getErrorMessage(e, fallback) {
       return e?.response?.data?.message ||
         e?.response?.data?.error ||
         e?.message ||
         fallback
     },
 
-    notifyPositive (message) {
+    notifyPositive(message) {
       this.$q.notify({
         type: 'positive',
         message,
@@ -427,7 +432,7 @@ export default {
       })
     },
 
-    notifyNegative (message) {
+    notifyNegative(message) {
       this.$q.notify({
         type: 'negative',
         message,

@@ -118,7 +118,10 @@
             <q-card-section>
               <div class="row items-start justify-between no-wrap q-gutter-sm">
                 <div class="organization-card-main">
-                  <div class="text-subtitle1 text-weight-medium shorten-text">
+                  <div
+                    class="text-subtitle1 text-weight-medium organization-name-ellipsis"
+                    :title="row.name"
+                  >
                     {{ row.name }}
                   </div>
                   <div class="text-caption text-grey-7 shorten-text">
@@ -193,12 +196,16 @@
           :columns="organizationColumns"
           row-key="key"
           :pagination="organizationPagination"
+          :rows-per-page-options="rowsPerPageOptions"
           class="organizations-table"
           @row-click="openOrganizationRow"
         >
           <template #body-cell-name="props">
             <q-td :props="props">
-              <div class="text-weight-medium">{{ props.row.name }}</div>
+              <div
+                class="text-weight-medium organization-name-ellipsis"
+                :title="props.row.name"
+              >{{ props.row.name }}</div>
               <div class="text-caption text-grey-7">{{ props.row.contractLabel }}</div>
             </q-td>
           </template>
@@ -256,9 +263,12 @@
       ref="organizationInfoCard"
       class="organization-dialog-card"
     >
-      <q-toolbar class="justify-between">
-        <div>
-          <div class="text-h6 text-weight-medium">
+      <q-toolbar class="justify-between organization-dialog-toolbar">
+        <div class="organization-dialog-title-block">
+          <div
+            class="text-h6 text-weight-medium organization-name-ellipsis"
+            :title="selectedOrganizationName"
+          >
             {{ selectedOrganizationName }}
           </div>
           <div class="text-caption text-grey-7">
@@ -295,10 +305,10 @@
 
         <q-card-section class="organization-overview-section">
           <div class="organization-info-grid">
-            <q-card flat bordered class="info-block">
-              <q-card-section>
+<!--            <q-card flat bordered class="info-block">
+              <q-card-section> FIXME
                 <div class="info-block-title">
-                  Договорённости по SLA
+                  Соглашения по SLA
                 </div>
 
                 <div class="info-row">
@@ -342,9 +352,9 @@
                   class="q-mt-sm"
                 />
               </q-card-section>
-            </q-card>
+            </q-card>-->
 
-            <q-card flat bordered class="info-block">
+            <q-card flat bordered class="info-block info-block--wide">
               <q-card-section>
                 <div class="info-block-title">
                   <span>Выезды</span>
@@ -424,7 +434,10 @@
                   <q-card-section class="organization-folded-section">
                     <div class="info-row">
                       <span>Название</span>
-                      <b>{{ selectedOrganizationName }}</b>
+                      <b
+                        class="organization-info-name organization-name-ellipsis"
+                        :title="selectedOrganizationName"
+                      >{{ selectedOrganizationName }}</b>
                     </div>
 
                     <div class="info-row">
@@ -655,6 +668,7 @@
             :columns="taskColumns"
             row-key="id"
             :pagination="taskPagination"
+            :rows-per-page-options="rowsPerPageOptions"
             class="organization-tasks-table"
             @row-click="(_, row) => openTask(row)"
           >
@@ -743,6 +757,7 @@
           :columns="visitHistoryColumns"
           :loading="selectedOrganizationVisitHistoryLoading"
           :pagination="visitHistoryPagination"
+          :rows-per-page-options="rowsPerPageOptions"
         >
           <template #body-cell-visitDate="props">
             <q-td :props="props">
@@ -797,7 +812,7 @@
       <q-card-actions align="right">
         <q-btn
           flat
-          label="Закрыть"
+          label="Отмена"
           @click="visitHistoryDialog = false"
         />
       </q-card-actions>
@@ -848,11 +863,12 @@ export default {
       { name: 'sla', label: 'SLA', field: row => row.id || '', align: 'left' },
       { name: 'deadline', label: 'Дедлайн', field: row => row.deadline || '', align: 'left', sortable: true }
     ],
+    rowsPerPageOptions: [5, 10, 15, 20, 25, 50, 0],
     organizationPagination: {
       rowsPerPage: 10
     },
     taskPagination: {
-      rowsPerPage: 8
+      rowsPerPage: 10
     },
     slaInfoByTaskId: {},
     slaInfoLoadingByTaskId: {},
@@ -863,11 +879,11 @@ export default {
     visitHistoryOrganization: null,
     visitHistoryRows: [],
     visitHistoryPagination: {
-      rowsPerPage: 8
+      rowsPerPage: 10
     },
     visitHistoryColumns: [
       { name: 'visitDate', label: 'Дата', field: 'visitDate', align: 'left', sortable: true },
-      { name: 'type', label: 'Тип', field: 'type', align: 'left', sortable: true },
+      { name: 'type', label: 'Причина', field: 'type', align: 'left', sortable: true },
       { name: 'task', label: 'Заявка', field: 'taskTitle', align: 'left' },
       { name: 'counted', label: 'Пакет', field: 'countedInPackage', align: 'left', sortable: true },
       { name: 'price', label: 'Стоимость', field: 'price', align: 'left', sortable: true },
@@ -879,7 +895,7 @@ export default {
     visitHistoryLoadingByOrganizationId: {},
     visitForm: {
       visitDate: null,
-      type: 'Плановый выезд',
+      type: null,
       comment: '',
       price: null,
       countedInPackage: true,
@@ -2241,7 +2257,7 @@ export default {
     openAddVisitDialog () {
       this.visitForm = {
         visitDate: moment().format('YYYY-MM-DDTHH:mm'),
-        type: 'Плановый выезд',
+        type: null,
         comment: '',
         price: null,
         countedInPackage: Boolean(this.selectedOrganizationVisitStats.enabled),
@@ -2321,7 +2337,7 @@ export default {
       const selectedTask = this.visitForm.selectedTask
       const payload = {
         visitDate: this.visitForm.visitDate || null,
-        type: this.visitForm.type || 'Выезд',
+        type: this.visitForm.type || null,
         comment: this.visitForm.comment || null,
         price: this.visitForm.price || null,
         countedInPackage: this.visitForm.countedInPackage,
@@ -2701,6 +2717,21 @@ export default {
 .organizations-table :deep(.q-table__middle) {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.organization-dialog-toolbar {
+  gap: 12px;
+}
+
+.organization-dialog-title-block {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.organization-info-name {
+  flex: 0 1 70%;
+  min-width: 0;
 }
 
 .organization-dialog-card {

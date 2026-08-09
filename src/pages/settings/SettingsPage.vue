@@ -6,24 +6,29 @@
           Настройки
         </div>
 
-        <q-list class="settings-mobile-list">
+        <q-list class="settings-menu-list settings-mobile-list">
           <q-item
             v-for="item in visibleMenuItems"
             :key="item.link"
             clickable
             v-ripple
             :active="isCurrentMenuItem(item)"
-            active-class="settings-mobile-item--active"
-            class="settings-mobile-item"
+            active-class="settings-menu-item--active"
+            class="settings-menu-item"
             @click="openMobileSection(item)"
           >
+            <q-item-section avatar class="settings-menu-icon-section">
+              <div class="settings-menu-icon-box">
+                <q-icon :name="item.icon" size="20px"/>
+              </div>
+            </q-item-section>
             <q-item-section>
-              <q-item-label class="settings-mobile-item-title">
+              <q-item-label class="settings-menu-item-title">
                 {{ item.title }}
               </q-item-label>
             </q-item-section>
-            <q-item-section side>
-              <q-icon name="chevron_right" class="settings-mobile-item-icon" />
+            <q-item-section side class="settings-menu-chevron-section">
+              <q-icon name="chevron_right" class="settings-menu-chevron"/>
             </q-item-section>
           </q-item>
         </q-list>
@@ -45,37 +50,57 @@
         </div>
 
         <div class="settings-mobile-view">
-          <router-view />
+          <router-view/>
         </div>
       </div>
     </div>
 
     <div v-else class="settings-desktop-layout row">
-      <div class="settings-desktop-menu col-3">
-        <q-list>
-          <essential-link
-            v-for="(item, index) in menuItems"
-            :key="index"
-            v-bind="item"
-            :user="this.store.currentUser"
-          />
+      <div class="settings-desktop-menu">
+        <div class="settings-desktop-title">
+          Настройки
+        </div>
+
+        <q-list class="settings-menu-list settings-desktop-list">
+          <q-item
+            v-for="item in visibleMenuItems"
+            :key="item.link"
+            clickable
+            v-ripple
+            tag="router-link"
+            :to="item.link"
+            :active="isCurrentMenuItem(item)"
+            active-class="settings-menu-item--active"
+            class="settings-menu-item"
+          >
+            <q-item-section avatar class="settings-menu-icon-section">
+              <div class="settings-menu-icon-box">
+                <q-icon :name="item.icon" size="20px"/>
+              </div>
+            </q-item-section>
+            <q-item-section>
+              <q-item-label class="settings-menu-item-title">
+                {{ item.title }}
+              </q-item-label>
+            </q-item-section>
+            <q-item-section side class="settings-menu-chevron-section">
+              <q-icon name="chevron_right" class="settings-menu-chevron"/>
+            </q-item-section>
+          </q-item>
         </q-list>
       </div>
       <div class="settings-desktop-content col">
-        <router-view />
+        <router-view/>
       </div>
     </div>
   </q-page>
 </template>
 
 <script>
-import EssentialLink from 'components/EssentialLink.vue'
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 
 export default {
   name: 'SettingsPage',
-
-  components: { EssentialLink },
 
   data: () => ({
     mobileMenuOpen: false,
@@ -84,49 +109,71 @@ export default {
         title: 'Профиль',
         link: '/settings/profile',
         slug: 'profile',
-        roles: ['ADMIN', 'OPERATOR', 'OBSERVER', 'CLIENT']
+        icon: 'person',
+        roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER', 'CLIENT']
       },
       {
         title: 'Общее',
         link: '/settings/general',
         slug: 'general',
+        icon: 'tune',
         roles: ['ADMIN']
       },
       {
         title: 'Пользователи',
         link: '/settings/users',
         slug: 'users',
+        icon: 'group',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'Клиенты',
+        link: '/settings/clients',
+        slug: 'clients',
+        icon: 'contacts',
         roles: ['ADMIN']
       },
       {
         title: 'Организации',
         link: '/settings/organizations',
         slug: 'organizations',
-        roles: ['ADMIN']
+        icon: 'business',
+        roles: ['ADMIN', 'MANAGER']
+      },
+      {
+        title: 'Причины выездов',
+        link: '/settings/visit-reasons',
+        slug: 'visit-reasons',
+        icon: 'directions_car',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Теги',
         link: '/settings/tags',
         slug: 'tags',
-        roles: ['ADMIN']
+        icon: 'label',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Приоритеты',
         link: '/settings/priorities',
         slug: 'priorities',
-        roles: ['ADMIN']
+        icon: 'flag',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Статусы',
         link: '/settings/statuses',
         slug: 'statuses',
-        roles: ['ADMIN']
+        icon: 'check_circle',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Шаблоны',
         link: '/settings/templates',
         slug: 'templates',
-        roles: ['ADMIN']
+        icon: 'description',
+        roles: ['ADMIN', 'MANAGER']
       },
       // { title: 'Макросы',
       // link: '/settings/macros', s
@@ -136,36 +183,49 @@ export default {
         title: 'SLA',
         link: '/settings/sla',
         slug: 'sla',
-        roles: ['ADMIN']
+        icon: 'timer',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Типы заявок и чек-листы',
         link: '/settings/task-types',
         slug: 'playlist_add_check',
-        roles: ['ADMIN']
+        icon: 'playlist_add_check',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Линии поддержки',
         link: '/settings/support-lines',
         slug: 'account_tree',
-        roles: ['ADMIN']
+        icon: 'account_tree',
+        roles: ['ADMIN', 'MANAGER']
+      },
+      {
+        title: 'Сервисы и мониторинг',
+        link: '/settings/services',
+        slug: 'dns',
+        icon: 'dns',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Telegram',
         link: '/settings/telegram',
         slug: 'telegram',
+        icon: 'send',
         roles: ['ADMIN']
       },
       {
         title: 'WhatsApp',
         link: '/settings/whatsapp',
         slug: 'whatsapp',
+        icon: 'chat',
         roles: ['ADMIN']
       },
       {
         title: 'Электронная почта',
         link: '/settings/email',
         slug: 'email',
+        icon: 'email',
         roles: ['ADMIN']
       },
       // {
@@ -178,50 +238,54 @@ export default {
         title: 'Автоматизации',
         link: '/settings/automatization',
         slug: 'automatization',
-        roles: ['ADMIN']
+        icon: 'autorenew',
+        roles: ['ADMIN', 'MANAGER']
       },
       {
         title: 'Плагины',
         link: '/settings/plugins',
         slug: 'plugins',
+        icon: 'extension',
         roles: ['ADMIN']
       },
       {
         title: 'Лицензия',
         link: '/settings/license',
         slug: 'license',
+        icon: 'vpn_key',
         roles: ['ADMIN']
       },
       {
         title: 'Экспорт',
         link: '/settings/export',
         slug: 'export',
-        roles: ['ADMIN']
+        icon: 'file_download',
+        roles: ['ADMIN', 'MANAGER']
       }
     ]
   }),
 
   computed: {
-    isMobile () {
+    isMobile() {
       return this.$q.screen.lt.md
     },
 
-    visibleMenuItems () {
+    visibleMenuItems() {
       return this.menuItems.filter(item => this.canShowMenuItem(item))
     },
 
-    currentMenuItem () {
+    currentMenuItem() {
       const currentPath = this.normalizePath(this.$route.path)
       return [...this.visibleMenuItems]
         .sort((a, b) => b.link.length - a.link.length)
         .find(item => currentPath === this.normalizePath(item.link) || currentPath.startsWith(`${this.normalizePath(item.link)}/`)) || null
     },
 
-    currentSectionTitle () {
+    currentSectionTitle() {
       return this.currentMenuItem?.title || 'Настройки'
     },
 
-    isSettingsRootRoute () {
+    isSettingsRootRoute() {
       const currentPath = this.normalizePath(this.$route.path)
       return currentPath === '/settings'
     }
@@ -230,14 +294,14 @@ export default {
   watch: {
     isMobile: {
       immediate: true,
-      handler (value) {
+      handler(value) {
         if (value) {
           this.mobileMenuOpen = this.isSettingsRootRoute
         }
       }
     },
 
-    '$route.path' () {
+    '$route.path'() {
       if (!this.isMobile) {
         return
       }
@@ -245,29 +309,29 @@ export default {
     }
   },
 
-  mounted () {
+  mounted() {
     document.title = 'ULDESK : Настройки'
   },
 
   methods: {
-    openMobileSection (item) {
+    openMobileSection(item) {
       this.mobileMenuOpen = false
       if (this.normalizePath(this.$route.path) !== this.normalizePath(item.link)) {
         this.$router.push(item.link)
       }
     },
 
-    showMobileMenu () {
+    showMobileMenu() {
       this.mobileMenuOpen = true
     },
 
-    isCurrentMenuItem (item) {
+    isCurrentMenuItem(item) {
       const currentPath = this.normalizePath(this.$route.path)
       const itemPath = this.normalizePath(item.link)
       return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`)
     },
 
-    canShowMenuItem (item) {
+    canShowMenuItem(item) {
       if (!item.roles || !item.roles.length) {
         return true
       }
@@ -276,7 +340,7 @@ export default {
       return item.roles.some(role => authorities.includes(role) || authorities.includes(`ROLE_${role}`))
     },
 
-    normalizePath (path) {
+    normalizePath(path) {
       if (!path) {
         return ''
       }
@@ -285,9 +349,9 @@ export default {
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    return { store }
+    return {store}
   }
 }
 </script>
@@ -303,14 +367,105 @@ export default {
 }
 
 .settings-desktop-menu {
-  min-width: fit-content;
+  flex: 0 0 304px;
+  width: 304px;
+  min-width: 280px;
+  padding: 16px 12px 24px;
   background: #ffffff;
+}
+
+.settings-desktop-title,
+.settings-mobile-title {
+  color: #252b36;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.settings-desktop-title {
+  padding: 8px 12px 14px;
 }
 
 .settings-desktop-content {
   min-width: 0;
-  border-left: solid #e0e0e0;
+  border-left: 1px solid #e7eaf0;
   background: #ffffff;
+}
+
+.settings-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-menu-item {
+  min-height: 52px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #3c4350;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.settings-menu-item:hover {
+  background: #f6f7fb;
+}
+
+.settings-menu-icon-section {
+  min-width: 44px;
+  padding-right: 8px;
+}
+
+.settings-menu-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: #697180;
+  background: #f1f3f7;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.settings-menu-item-title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.settings-menu-chevron-section {
+  padding-left: 8px;
+}
+
+.settings-menu-chevron {
+  color: #a3a9b3;
+  font-size: 20px;
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.settings-menu-item--active {
+  color: #5138dc;
+  border-color: rgba(81, 56, 220, 0.12);
+  background: rgba(81, 56, 220, 0.08);
+}
+
+.settings-menu-item--active:hover {
+  background: rgba(81, 56, 220, 0.11);
+}
+
+.settings-menu-item--active .settings-menu-icon-box {
+  color: #ffffff;
+  background: #5a35f0;
+}
+
+.settings-menu-item--active .settings-menu-item-title {
+  font-weight: 700;
+}
+
+.settings-menu-item--active .settings-menu-chevron {
+  color: #5a35f0;
+  transform: translateX(1px);
 }
 
 .settings-mobile-layout {
@@ -320,49 +475,17 @@ export default {
 
 .settings-mobile-menu {
   min-height: 100vh;
+  padding-bottom: 24px;
   background: #ffffff;
 }
 
 .settings-mobile-title {
-  padding: 22px 20px 14px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #252b36;
+  padding: 22px 20px 16px;
   border-bottom: 1px solid #edf0f5;
 }
 
 .settings-mobile-list {
-  padding: 8px 0 24px;
-}
-
-.settings-mobile-item {
-  min-height: 56px;
-  padding: 0 18px 0 20px;
-  border-bottom: 1px solid #f0f2f6;
-  color: #252b36;
-}
-
-.settings-mobile-item-title {
-  font-size: 17px;
-  font-weight: 500;
-  line-height: 1.25;
-}
-
-.settings-mobile-item-icon {
-  color: #9aa2ad;
-}
-
-.settings-mobile-item--active {
-  color: #5a35f0;
-  background: rgba(90, 53, 240, 0.08);
-}
-
-.settings-mobile-item--active .settings-mobile-item-title {
-  font-weight: 700;
-}
-
-.settings-mobile-item--active .settings-mobile-item-icon {
-  color: #5a35f0;
+  padding: 10px 12px 0;
 }
 
 .settings-mobile-content {
@@ -391,10 +514,10 @@ export default {
 .settings-mobile-header-title {
   min-width: 0;
   overflow: hidden;
+  color: #252b36;
   font-size: 18px;
   font-weight: 700;
   line-height: 1.2;
-  color: #252b36;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -403,5 +526,15 @@ export default {
   min-width: 0;
   overflow-x: hidden;
   background: #ffffff;
+}
+
+@media (max-width: 1023px) {
+  .settings-menu-item {
+    min-height: 56px;
+  }
+
+  .settings-menu-item-title {
+    font-size: 16px;
+  }
 }
 </style>

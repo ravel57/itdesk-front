@@ -1,6 +1,7 @@
 <template>
   <div class="tasks-onboarding-root">
     <q-btn
+      v-if="!this.isObserverUser"
       class="tasks-onboarding-help"
       round
       dense
@@ -27,7 +28,7 @@
         row-key="id"
         bordered
         style="margin-top: 8px;margin-bottom: 16px;width: 100%;"
-        selection="multiple"
+        :selection="this.isObserverUser ? 'none' : 'multiple'"
         v-model:selected="this.store.checkedTasks"
         :selected-rows-label="(numberOfRows) => `Строк: ${ numberOfRows } выбрано`"
         @virtual-scroll="this.onTableVirtualScroll"
@@ -36,6 +37,7 @@
       <template v-slot:header="props">
         <tr>
           <q-th
+            v-if="!this.isObserverUser"
             :style="{
               position: 'sticky',
               top: '0',
@@ -70,7 +72,7 @@
           :props="props"
           @click="this.$emit('onTaskClicked', props.row)"
         >
-          <q-td>
+          <q-td v-if="!this.isObserverUser">
             <q-checkbox v-model="props.selected" @click.stop />
           </q-td>
 
@@ -128,6 +130,7 @@
         v-else
         :groupedTasks="this.displayedGroupedTasks"
         :selectedGroupType="this.selectedGroupType || ''"
+        :selectedSorting="this.selectedSorting || {}"
         :isOnboardingDemo="this.tasksOnboardingActive"
         @onTaskClicked="handleTaskClicked"
       />
@@ -197,7 +200,7 @@
     :isTaskDialogShow="this.isTaskDialogShow"
     :isNewTask="false"
     @closeDialog="this.$emit('closeDialog', $event)"
-    @updateTask="this.$emit('updateTask', $event)"
+    @updateTask="this.forwardTaskUpdate"
     @addMessageToTask="this.addMessageToTask"
   />
 </template>
@@ -207,7 +210,6 @@ import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import moment from 'moment/moment'
 import { useStore } from 'stores/store'
-import { QBadge } from 'quasar'
 
 export default {
 
@@ -222,6 +224,7 @@ export default {
     'isFilterSelected',
     'groupedTasks',
     'selectedGroupType',
+    'selectedSorting',
     'isNewTaskDialogShow',
     'isTaskDialogShow',
     'selectedTask',
@@ -240,18 +243,25 @@ export default {
       __onboardingDemo: true,
       name: 'Не работает доступ к корпоративной почте',
       description: 'Пользователь не может войти в почту после смены пароля. Нужно проверить учетную запись и MFA.',
-      type: 'Инцидент',
-      checklist: '2 / 4',
-      checklistCompleted: 2,
-      checklistTotal: 4,
+      type: { id: 1, type: 'Инцидент' },
+      service: { id: 1, code: 'MAIL', name: 'Корпоративная почта' },
+      checklist: [
+        { id: 1, text: 'Проверить учетную запись', completed: true },
+        { id: 2, text: 'Проверить MFA', completed: true },
+        { id: 3, text: 'Сбросить активные сессии', completed: false },
+        { id: 4, text: 'Подтвердить вход с клиентом', completed: false }
+      ],
       completed: false,
       frozen: false,
       createdAt: new Date(Date.now() - 35 * 60 * 1000),
+      firstResponseDeadline: new Date(Date.now() + 25 * 60 * 1000),
       deadline: new Date(Date.now() + 3 * 60 * 60 * 1000),
+      lastActivity: new Date(Date.now() - 10 * 60 * 1000),
       tags: [
         { id: 1, name: 'Почта' },
         { id: 2, name: 'Доступы' }
       ],
+      supportLine: { id: 1, name: 'Первая линия' },
       priority: { id: 1, name: 'Высокий', critical: true },
       status: { id: 1, name: 'В работе' },
       executor: { id: 1, firstname: 'Иван', lastname: 'Петров' },
@@ -275,7 +285,53 @@ export default {
         }
       }
     },
+    tasksOnboardingClosedDemoTask: {
+      id: 900002,
+      __onboardingDemo: true,
+      name: 'Восстановить доступ к VPN',
+      description: 'Доступ восстановлен после обновления сертификата пользователя.',
+      type: { id: 1, type: 'Инцидент' },
+      checklist: [],
+      completed: true,
+      frozen: false,
+      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+      lastActivity: new Date(Date.now() - 40 * 60 * 1000),
+      statusChangeReason: 'Доступ восстановлен, клиент подтвердил подключение.',
+      tags: [{ id: 3, name: 'VPN' }],
+      priority: { id: 2, name: 'Обычный', critical: false },
+      status: { id: 2, name: 'Закрыта' },
+      executor: { id: 1, firstname: 'Иван', lastname: 'Петров' },
+      unreadPingTasksMessages: null,
+      client: {
+        id: 900002,
+        name: 'Мария Волкова',
+        lastMessage: {
+          date: new Date(Date.now() - 40 * 60 * 1000),
+          text: 'Спасибо, VPN снова работает.'
+        }
+      }
+    },
     tasksOnboardingSteps: [
+      {
+        target: 'tasks-page-search',
+        title: 'Поиск по заявкам',
+        text: 'Поиск помогает быстро найти заявку по данным, которые уже видны в списке, не меняя текущую группировку.'
+      },
+      {
+        target: 'tasks-page-filter',
+        title: 'Фильтры',
+        text: 'Фильтры сужают очередь по статусу, приоритету, исполнителю, организации, срокам и другим условиям.'
+      },
+      {
+        target: 'tasks-page-view-mode',
+        title: 'Карточки или таблица',
+        text: 'Переключатель меняет представление заявок: карточки удобны для визуальной очереди, таблица — для плотного просмотра большого списка.'
+      },
+      {
+        target: 'tasks-page-completed',
+        title: 'Закрытые заявки',
+        text: 'Этим переключателем можно включить в текущий экран закрытые и замороженные заявки.'
+      },
       {
         target: 'tasks-board-column',
         title: 'Колонка заявок',
@@ -289,12 +345,12 @@ export default {
       {
         target: 'tasks-task-card',
         title: 'Карточка заявки',
-        text: 'В карточке собраны ключевые данные: номер, название, статус, описание, теги, приоритет, исполнитель, дедлайн и SLA.'
+        text: 'Карточка собирает основные параметры заявки в одном месте. Дальше обучение отдельно покажет каждое значимое поле.'
       },
       {
         target: 'tasks-task-select',
         title: 'Выбор заявки',
-        text: 'Отмечай отдельные заявки чекбоксом, чтобы применить к ним массовое действие, не открывая каждую заявку вручную.'
+        text: 'Отмечайте отдельные заявки чекбоксом, чтобы применить к ним массовое действие, не открывая каждую заявку вручную.'
       },
       {
         target: 'tasks-task-title',
@@ -307,9 +363,54 @@ export default {
         text: 'Статус показывает текущий этап обработки: новая, в работе, заморожена или закрыта. По нему удобно строить очереди.'
       },
       {
+        target: 'tasks-task-description',
+        title: 'Описание',
+        text: 'Описание хранит подробный контекст: что произошло, что уже проверили и какой результат ожидается.'
+      },
+      {
+        target: 'tasks-task-type',
+        title: 'Тип заявки',
+        text: 'Тип определяет категорию процесса — например, инцидент или сервисный запрос — и может задавать стандартный чек-лист.'
+      },
+      {
+        target: 'tasks-task-service',
+        title: 'Сервис',
+        text: 'Сервис показывает, к какой услуге или системе относится заявка. Это помогает маршрутизации и отчетности.'
+      },
+      {
+        target: 'tasks-task-checklist',
+        title: 'Чек-лист',
+        text: 'Прогресс чек-листа показывает, сколько обязательных пунктов уже выполнено по заявке.'
+      },
+      {
+        target: 'tasks-task-tags',
+        title: 'Теги',
+        text: 'Теги дают дополнительную классификацию и помогают быстро фильтровать заявки по продукту, теме или признаку обращения.'
+      },
+      {
+        target: 'tasks-task-support-line',
+        title: 'Линия поддержки',
+        text: 'Линия поддержки показывает текущую очередь ответственности, в которой обрабатывается заявка.'
+      },
+      {
         target: 'tasks-task-priority',
         title: 'Приоритет',
         text: 'Приоритет помогает понять срочность. Критичные и высокие заявки стоит обрабатывать раньше обычных.'
+      },
+      {
+        target: 'tasks-task-executor',
+        title: 'Исполнитель',
+        text: 'Здесь указан сотрудник, который сейчас отвечает за решение заявки.'
+      },
+      {
+        target: 'tasks-task-created',
+        title: 'Дата создания',
+        text: 'Дата создания помогает оценить возраст заявки и отличить новые обращения от давно ожидающих.'
+      },
+      {
+        target: 'tasks-task-first-response',
+        title: 'Срок первого ответа',
+        text: 'Поле показывает, до какого времени клиенту нужно дать первый ответ. Просрочка выделяется отдельно.'
       },
       {
         target: 'tasks-task-deadline',
@@ -320,6 +421,16 @@ export default {
         target: 'tasks-task-sla',
         title: 'SLA',
         text: 'SLA показывает, сколько времени осталось по регламенту. Прогресс-бар помогает быстро увидеть риск нарушения срока.'
+      },
+      {
+        target: 'tasks-task-last-activity',
+        title: 'Последнее действие',
+        text: 'Здесь видно время последнего изменения заявки. Поле помогает замечать задачи, которые давно не обновлялись.'
+      },
+      {
+        target: 'tasks-task-close-reason',
+        title: 'Причина закрытия',
+        text: 'У закрытой заявки отображается итоговая причина. Она помогает понять результат работы без открытия полной истории.',
       },
       {
         target: 'tasks-chat-link',
@@ -347,6 +458,13 @@ export default {
         label: 'Тип',
         align: 'left',
         field: row => row.type,
+        sortable: true
+      },
+      {
+        name: 'service',
+        label: 'Сервис',
+        align: 'left',
+        field: row => row.serviceLabel || 'Без сервиса',
         sortable: true
       },
       {
@@ -474,6 +592,10 @@ export default {
   }),
 
   methods: {
+    forwardTaskUpdate (...args) {
+      this.$emit('updateTask', ...args)
+    },
+
     shortenLine (string) {
       if (string.length > 31) {
         return string.substring(0, 31) + '...'
@@ -626,7 +748,7 @@ export default {
         return [
           {
             title: 'В работе',
-            taskCards: [this.tasksOnboardingDemoTask]
+            taskCards: [this.tasksOnboardingDemoTask, this.tasksOnboardingClosedDemoTask]
           }
         ]
       }
@@ -652,6 +774,11 @@ export default {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     },
 
+    isObserverUser () {
+      return Array.isArray(this.store.currentUser?.authorities) &&
+        this.store.currentUser.authorities.includes('OBSERVER')
+    },
+
     filterTableColumns () {
       return this.activeColumns
         .map(activeCol => {
@@ -670,7 +797,7 @@ export default {
     window.addEventListener('resize', this.tasksOnboardingRefreshHandler)
     window.addEventListener('scroll', this.tasksOnboardingRefreshHandler, true)
 
-    if (!localStorage.getItem(this.tasksOnboardingKey)) {
+    if (!this.isObserverUser && !localStorage.getItem(this.tasksOnboardingKey)) {
       this.$nextTick(() => {
         setTimeout(() => this.startTasksOnboarding(), 350)
       })

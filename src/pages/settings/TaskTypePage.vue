@@ -1,21 +1,29 @@
 <template>
   <q-page class="q-pa-md task-type-settings-page">
-    <div class="settings-toolbar">
-      <q-btn
-        unelevated
-        color="white"
-        text-color="black"
-        icon="add"
-        label="Добавить тип заявки"
-        class="settings-add-btn"
-        @click="openCreateDialog"
-      />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Типы заявок и чек-листы</div>
+        <div class="settings-content-description">
+          Управляйте типами заявок, чек-листами и типом, который выбирается по умолчанию.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить тип заявки"
+          class="settings-add-btn"
+          @click="openCreateDialog"
+        />
+      </div>
     </div>
 
     <div class="table-container">
       <q-list
         bordered
-        class="rounded-borders settings-list"
+        class="rounded-borders settings-list settings-row-list"
         separator
       >
         <q-item header class="text-bold">
@@ -40,6 +48,7 @@
           item-key="id"
           class="list-group"
           ghost-class="ghost"
+          handle=".settings-drag-handle"
           @start="dragging = true"
           @end="resortTaskTypes"
         >
@@ -47,8 +56,10 @@
             <q-item
               class="list-group-item"
               :class="{ 'not-draggable': true }"
-              style="cursor: grab"
             >
+              <q-item-section side class="settings-drag-handle cursor-grab">
+                <q-icon name="drag_indicator" color="grey-6"/>
+              </q-item-section>
               <q-item-section
                 top
                 style="justify-content: center"
@@ -116,7 +127,7 @@
           />
         </q-toolbar>
 
-        <q-separator />
+        <q-separator/>
 
         <q-card-section>
           <q-input
@@ -232,25 +243,26 @@
           </q-list>
         </q-card-section>
 
-        <q-separator />
+        <q-separator/>
 
         <q-card-actions align="right">
           <q-btn
             v-if="editingTaskType.id"
-            flat
+            unelevated
             no-caps
             color="negative"
+            icon="delete"
             label="Удалить"
             @click="openDeleteTaskTypeDialog"
           />
 
-          <q-space />
+          <q-space/>
 
           <q-btn
             flat
             no-caps
             color="primary"
-            label="Закрыть"
+            label="Отмена"
             v-close-popup
           />
 
@@ -293,6 +305,7 @@
             unelevated
             no-caps
             color="negative"
+            icon="delete"
             label="Удалить"
             @click="deleteTaskType"
           />
@@ -308,7 +321,7 @@ import axios from 'axios'
 import draggable from 'vuedraggable'
 
 export default {
-  components: { draggable },
+  components: {draggable},
 
   data: () => ({
     loading: false,
@@ -326,12 +339,12 @@ export default {
     newChecklistItemText: '',
   }),
 
-  mounted () {
+  mounted() {
     this.loadTaskTypes()
   },
 
   methods: {
-    loadTaskTypes () {
+    loadTaskTypes() {
       this.loading = true
       return axios.get('/api/v1/task-types')
         .then(response => {
@@ -343,7 +356,7 @@ export default {
         })
     },
 
-    resortTaskTypes () {
+    resortTaskTypes() {
       this.dragging = false
       axios.patch('/api/v1/task-types/resort', this.taskTypes)
         .then(response => {
@@ -355,7 +368,7 @@ export default {
         })
     },
 
-    openCreateDialog () {
+    openCreateDialog() {
       this.editingTaskType = {
         id: null,
         type: '',
@@ -367,7 +380,7 @@ export default {
       this.taskTypeDialog = true
     },
 
-    openEditDialog (taskType) {
+    openEditDialog(taskType) {
       this.editingTaskType = JSON.parse(JSON.stringify({
         ...taskType,
         defaultSelection: taskType.defaultSelection === true,
@@ -378,7 +391,7 @@ export default {
       this.taskTypeDialog = true
     },
 
-    saveTaskType () {
+    saveTaskType() {
       if (!this.editingTaskType.type?.trim()) {
         this.notifyError('Название типа заявки обязательно')
         return
@@ -398,7 +411,13 @@ export default {
           this.$q.notify({
             type: 'positive',
             message: 'Тип заявки сохранён',
-            position: 'top-right'
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
           })
           this.taskTypeDialog = false
           this.loadTaskTypes()
@@ -406,7 +425,7 @@ export default {
         .catch(e => this.notifyError(e.message))
     },
 
-    deleteTaskType () {
+    deleteTaskType() {
       if (!this.editingTaskType.id) {
         this.deleteTaskTypeDialog = false
         this.taskTypeDialog = false
@@ -417,7 +436,13 @@ export default {
           this.$q.notify({
             type: 'positive',
             message: 'Тип заявки удалён',
-            position: 'top-right'
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
           })
           this.deleteTaskTypeDialog = false
           this.taskTypeDialog = false
@@ -426,7 +451,7 @@ export default {
         .catch(e => this.notifyError(e.message))
     },
 
-    addChecklistItem () {
+    addChecklistItem() {
       const text = this.newChecklistItemText.trim()
       if (!text) {
         return
@@ -442,12 +467,12 @@ export default {
       this.newChecklistItemText = ''
     },
 
-    removeChecklistItem (id) {
+    removeChecklistItem(id) {
       this.editingTaskType.checklistTemplate = this.editingTaskType.checklistTemplate
         .filter(item => item.id !== id)
     },
 
-    normalizeChecklist (checklist) {
+    normalizeChecklist(checklist) {
       if (!Array.isArray(checklist)) {
         return []
       }
@@ -461,15 +486,21 @@ export default {
         .filter(item => item.text.length > 0)
     },
 
-    notifyError (message) {
+    notifyError(message) {
       this.$q.notify({
         type: 'negative',
         message,
-        position: 'top-right'
+        position: 'top-right',
+        actions: [{
+          icon: 'close',
+          color: 'white',
+          dense: true,
+          handler: () => undefined
+        }]
       })
     },
 
-    openDeleteTaskTypeDialog () {
+    openDeleteTaskTypeDialog() {
       if (!this.editingTaskType.id) {
         this.taskTypeDialog = false
         return
@@ -477,7 +508,7 @@ export default {
       this.deleteTaskTypeDialog = true
     },
 
-    setDefaultSelected (taskType) {
+    setDefaultSelected(taskType) {
       if (!taskType?.id || taskType.defaultSelection) {
         return
       }
@@ -498,12 +529,12 @@ export default {
         })
     },
 
-    getChecklistItemsLabel (checklist) {
+    getChecklistItemsLabel(checklist) {
       const count = this.normalizeChecklist(checklist).length
       return `${count} ${this.declineRuNumber(count, 'пункт', 'пункта', 'пунктов')}`
     },
 
-    declineRuNumber (value, one, few, many) {
+    declineRuNumber(value, one, few, many) {
       const number = Math.abs(Number(value)) % 100
       const lastDigit = number % 10
       if (number >= 11 && number <= 19) {

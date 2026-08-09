@@ -51,7 +51,7 @@
           class="input-field"
           v-model="username"
           type="text"
-          label="Почта"
+          label="Почта *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
@@ -59,7 +59,7 @@
           class="input-field"
           v-model="password"
           :type="isPwd ? 'password' : 'text'"
-          label="Пароль"
+          label="Пароль *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         >
           <template v-slot:append>
@@ -91,7 +91,7 @@
             class="input-field-no-padding"
             v-model="this.email"
             type="text"
-            label="Связанная почта"
+            label="Связанная почта *"
           />
         </div>
         <q-btn

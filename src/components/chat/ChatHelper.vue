@@ -8,13 +8,15 @@
       class="chat-helper-root"
       :style="this.isMobile ? 'height: calc(100vh - 89px)' : 'height: 100vh;'"
     >
-      <div style="width: 100%; display: flex; justify-content: space-between;padding: 8px;">
+      <div
+        style="width: 100%; display: flex; justify-content: space-between; padding: 8px;"
+        v-if="!this.isMobile"
+      >
         <q-icon
           style="height: 40px; color: var(--q-primary); font-size: 1.715em;"
           name="support"
         />
         <q-btn
-          v-if="!this.isMobile"
           icon="close"
           @click="this.hideHelper"
           style="color: gray"
@@ -35,6 +37,7 @@
             class="spoiler"
           >
             <q-input
+              data-tour="chat-helper-template-search"
               v-model="this.templateSearch"
               label="Поиск по шаблонам"
               dense
@@ -95,6 +98,7 @@
                 class="col-12 col-md-6"
               >
                 <q-input
+                  data-tour="chat-helper-kb-search"
                   v-model="this.knowledgeBaseSearch"
                   label="Поиск по названию"
                   dense
@@ -109,6 +113,7 @@
               </div>
               <div class="col-12 col-md-6">
                 <q-select
+                  data-tour="chat-helper-kb-tags"
                   id="task-tags"
                   v-model="this.tagsFilter"
                   :options="this.filteredTags"
@@ -131,6 +136,7 @@
               >
                 <q-card-section class="q-pb-sm">
                   <q-input
+                    data-tour="chat-helper-ai-query"
                     v-model="this.aiQuery"
                     label="Спросить ИИ (β-функция)"
                     dense
@@ -242,7 +248,7 @@
       <q-card-actions align="right">
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="closeModal"
         />
@@ -267,7 +273,8 @@ export default {
     'macros',
     'isMobile',
     'aiQueryFromMessage',
-    'aiQueryVersion'
+    'aiQueryVersion',
+    'onboardingDemo'
   ],
 
   data: () => ({
@@ -442,6 +449,16 @@ export default {
     aiQueryVersion () {
       this.applyAiQueryFromMessage()
     },
+
+    onboardingDemo: {
+      immediate: true,
+      handler (active) {
+        if (active) {
+          this.templatesOpened = true
+          this.knowledgeBaseOpened = true
+        }
+      }
+    },
   },
 
   computed: {
@@ -482,10 +499,10 @@ export default {
   created () {
     const savedTemplatesOpened = localStorage.getItem(this.templatesOpenedStorageKey)
     const savedKnowledgeBaseOpened = localStorage.getItem(this.knowledgeBaseOpenedStorageKey)
-    if (savedTemplatesOpened !== null) {
+    if (!this.onboardingDemo && savedTemplatesOpened !== null) {
       this.templatesOpened = savedTemplatesOpened === 'true'
     }
-    if (savedKnowledgeBaseOpened !== null) {
+    if (!this.onboardingDemo && savedKnowledgeBaseOpened !== null) {
       this.knowledgeBaseOpened = savedKnowledgeBaseOpened === 'true'
     }
     this.filteredKnowledgeBase = this.knowledgeBase

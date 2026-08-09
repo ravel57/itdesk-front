@@ -227,7 +227,7 @@
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogTitle"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
@@ -285,14 +285,16 @@
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewKnowledge"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="dialogDeleteKnowledge"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />

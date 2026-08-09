@@ -1,15 +1,15 @@
 <template>
   <div class="q-pa-md license-page">
-    <q-card flat bordered class="license-card">
-      <q-card-section>
-        <div class="text-h6">Лицензия</div>
-        <div class="text-grey-7 q-mt-xs">
-          Информация о сроке действия и доступных местах пользователей
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Лицензия</div>
+        <div class="settings-content-description">
+          Проверяйте срок действия лицензии, занятые места и доступный лимит пользователей.
         </div>
-      </q-card-section>
+      </div>
+    </div>
 
-      <q-separator />
-
+    <q-card flat bordered class="license-card">
       <q-card-section>
         <div class="license-summary-grid">
           <div class="license-summary-item">
@@ -45,7 +45,7 @@
         </div>
       </q-card-section>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-section>
         <div class="text-subtitle2 q-mb-md">Занято по ролям</div>
@@ -53,7 +53,7 @@
         <div class="license-roles">
           <div class="license-role-row">
             <div class="license-role-row__title">
-              <q-icon name="admin_panel_settings" />
+              <q-icon name="admin_panel_settings"/>
               Администраторы
             </div>
 
@@ -64,7 +64,7 @@
 
           <div class="license-role-row">
             <div class="license-role-row__title">
-              <q-icon name="support_agent" />
+              <q-icon name="support_agent"/>
               Операторы
             </div>
 
@@ -111,7 +111,7 @@ export default {
   }),
 
   computed: {
-    licenseUntilText () {
+    licenseUntilText() {
       if (!this.licenseInfo.licenseUntil) {
         return '—'
       }
@@ -119,7 +119,7 @@ export default {
       return moment(this.licenseInfo.licenseUntil).format('DD.MM.YYYY')
     },
 
-    licenseUsageProgress () {
+    licenseUsageProgress() {
       const maxUsers = Number(this.licenseInfo.maxUsers || this.licenseInfo.employeesCount || 0)
       const usedUsers = Number(this.licenseInfo.usedUsersCount || 0)
 
@@ -131,7 +131,7 @@ export default {
     }
   },
 
-  mounted () {
+  mounted() {
     axios.get('/api/v1/license-info')
       .then(response => {
         this.licenseInfo = {

@@ -4,24 +4,56 @@
 
 <script>
 import { useStore } from 'stores/store'
-import { connect, getClientsForObserver, userOnline } from 'src/util/ws'
+import { useAuthStore } from 'stores/auth'
+import { connect, disconnect, userOnline } from 'src/util/ws'
 import axios from 'axios'
 
 export default {
   name: 'App',
 
-  created () {
-    axios.post('/api/v1/user-online')
-      .then(response => {
-        this.store.currentUser = response.data
-        this.store.fetchData()
-        connect()
-        if (this.store.currentUser.authorities[0] === 'OBSERVER') {
-          getClientsForObserver(this.store.currentUser)
-        }
-      })
-    setInterval(() => userOnline(this.store.currentUser), 1000)
-    window.addEventListener('beforeunload', () => axios.post('/api/v1/user-offline', this.store.currentUser))
+  data: () => ({
+    onlineTimer: null,
+    beforeUnloadHandler: null
+  }),
+
+  async created () {
+    try {
+      const auth = useAuthStore()
+      const currentUser = await auth.init()
+      if (!currentUser) {
+        return
+      }
+      this.store.currentUser = currentUser
+      const authorities = Array.isArray(currentUser?.authorities) ? currentUser.authorities : []
+
+      // Клиентский портал использует только собственные REST-эндпоинты и не
+      // подключается к общим операторским websocket-топикам.
+      if (authorities.includes('CLIENT')) {
+        return
+      }
+
+      const response = await axios.post('/api/v1/user-online')
+      this.store.currentUser = response.data
+      this.store.fetchData()
+      connect()
+      this.onlineTimer = window.setInterval(() => userOnline(this.store.currentUser), 1000)
+      this.beforeUnloadHandler = () => axios.post('/api/v1/user-offline', this.store.currentUser)
+      window.addEventListener('beforeunload', this.beforeUnloadHandler)
+    } catch (error) {
+      if (error.response?.status !== 401) {
+        console.error('Не удалось инициализировать приложение', error)
+      }
+    }
+  },
+
+  beforeUnmount () {
+    disconnect()
+    if (this.onlineTimer) {
+      window.clearInterval(this.onlineTimer)
+    }
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener('beforeunload', this.beforeUnloadHandler)
+    }
   },
 
   setup () {

@@ -1,8 +1,8 @@
-import { boot } from 'quasar/wrappers'
+import {boot} from 'quasar/wrappers'
 import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
-import { api } from 'src/boot/axios'
-import { appConfig } from 'src/config/appConfig'
+import {api} from 'src/boot/axios'
+import {appConfig} from 'src/config/appConfig'
 
 export default boot(() => {
   if (!appConfig.useMocks) return
@@ -10,15 +10,15 @@ export default boot(() => {
   // const mock = new MockAdapter(api, { delayResponse: 200 })
   console.log('[MOCK] enabled')
 
-  const mockApi = new MockAdapter(api, { delayResponse: 200 })
-  const mockAxios = new MockAdapter(axios, { delayResponse: 200 })
+  const mockApi = new MockAdapter(api, {delayResponse: 200})
+  const mockAxios = new MockAdapter(axios, {delayResponse: 200})
 
   // GET /client/{clientId}/messages-page?page=N
   const withPrefix = (pathRegex) => new RegExp(`^(?:\\/api\\/v1)?${pathRegex}(?:\\?.*)?$`)
   const ok = (data) => [200, data]
   const noContent = () => [204]
   // const conflict = (msg = 'Conflict') => [409, { message: msg }]
-  const badRequest = (msg = 'Bad Request') => [400, { message: msg }]
+  const badRequest = (msg = 'Bad Request') => [400, {message: msg}]
 
   const now = () => Date.now()
   const clone = (x) => JSON.parse(JSON.stringify(x))
@@ -42,43 +42,43 @@ export default boot(() => {
     },
 
     users: [
-      { id: 1, username: 'dev', firstname: 'Dev', lastname: 'User', role: 'ADMIN' },
-      { id: 2, username: 'operator', firstname: 'Олег', lastname: 'Оператор', role: 'OPERATOR' }
+      {id: 1, username: 'dev', firstname: 'Dev', lastname: 'User', role: 'ADMIN'},
+      {id: 2, username: 'operator', firstname: 'Олег', lastname: 'Оператор', role: 'OPERATOR'}
     ],
 
     roles: ['ADMIN', 'OPERATOR', 'OBSERVER'],
 
     organizations: [
-      { id: 1, name: 'ООО Ромашка' },
-      { id: 2, name: 'ИП Иванов' }
+      {id: 1, name: 'ООО Ромашка'},
+      {id: 2, name: 'ИП Иванов'}
     ],
 
     tags: [
-      { id: 1, name: 'Срочно' },
-      { id: 2, name: 'Принтер' },
-      { id: 3, name: 'Интернет' }
+      {id: 1, name: 'Срочно'},
+      {id: 2, name: 'Принтер'},
+      {id: 3, name: 'Интернет'}
     ],
 
     statuses: [
-      { id: 1, name: 'OPEN', isDefault: true },
-      { id: 2, name: 'IN_PROGRESS', isDefault: false },
-      { id: 3, name: 'DONE', isDefault: false }
+      {id: 1, name: 'OPEN', isDefault: true},
+      {id: 2, name: 'IN_PROGRESS', isDefault: false},
+      {id: 3, name: 'DONE', isDefault: false}
     ],
 
     priorities: [
-      { id: 1, name: 'LOW', isDefault: true },
-      { id: 2, name: 'MEDIUM', isDefault: false },
-      { id: 3, name: 'HIGH', isDefault: false }
+      {id: 1, name: 'LOW', isDefault: true},
+      {id: 2, name: 'MEDIUM', isDefault: false},
+      {id: 3, name: 'HIGH', isDefault: false}
     ],
 
     templates: [
-      { id: 1, name: 'Приветствие', text: 'Здравствуйте! Сейчас проверю и вернусь с ответом.' },
-      { id: 2, name: 'Сбор данных', text: 'Уточните, пожалуйста: ОС, ошибка, когда началось, что менялось?' }
+      {id: 1, name: 'Приветствие', text: 'Здравствуйте! Сейчас проверю и вернусь с ответом.'},
+      {id: 2, name: 'Сбор данных', text: 'Уточните, пожалуйста: ОС, ошибка, когда началось, что менялось?'}
     ],
 
     knowledgeBase: [
-      { id: 1, title: 'Гайд: Принтер не печатает', text: '1) Проверь кабель\n2) Перезапусти очередь печати\n3) Драйвер' },
-      { id: 2, title: 'Гайд: Интернет не работает', text: '1) Проверить кабель\n2) IP\n3) DNS\n4) Перезапуск роутера' }
+      {id: 1, title: 'Гайд: Принтер не печатает', text: '1) Проверь кабель\n2) Перезапусти очередь печати\n3) Драйвер'},
+      {id: 2, title: 'Гайд: Интернет не работает', text: '1) Проверить кабель\n2) IP\n3) DNS\n4) Перезапуск роутера'}
     ],
 
     clients: [
@@ -200,7 +200,7 @@ export default boot(() => {
 
     // GET /license-info
     mock.onGet(withPrefix('\\/license-info')).reply(() =>
-      ok({ maxUsers: 999, licenseUntil: '2099-12-31' })
+      ok({maxUsers: 999, licenseUntil: '2099-12-31'})
     )
 
     // GET /llm-query?query=...
@@ -225,7 +225,7 @@ export default boot(() => {
 
       // clientId=0 — просто пусто
       if (Number.isNaN(clientId) || clientId === 0) {
-        return ok({ messages: [], isEnd: true })
+        return ok({messages: [], isEnd: true})
       }
 
       // page читаем из query params
@@ -389,7 +389,7 @@ export default boot(() => {
       if (!name) return badRequest('name required')
 
       const id = Math.max(0, ...db.tags.map(t => t.id)) + 1
-      const tag = { id, name }
+      const tag = {id, name}
       db.tags.push(tag)
       return ok(clone(tag))
     })
@@ -423,7 +423,7 @@ export default boot(() => {
     // ----------------------------
     mock.onAny().reply((config) => {
       console.warn('[MOCK] No handler:', config.method?.toUpperCase(), config.url)
-      return [404, { message: `No mock for ${config.method?.toUpperCase()} ${config.url}` }]
+      return [404, {message: `No mock for ${config.method?.toUpperCase()} ${config.url}`}]
     })
   }
 

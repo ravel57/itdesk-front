@@ -1,17 +1,24 @@
 <template>
   <q-page class="export-page q-pa-md">
-    <div class="export-page__header q-mb-md">
-      <div>
-        <div class="text-h6">Экспорт заявок</div>
+    <div class="export-page__header settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Экспорт заявок</div>
+        <div class="settings-content-description">
+          Сформируйте выгрузку заявок по выбранным фильтрам и параметрам.
+        </div>
       </div>
 
-      <q-btn
-        icon="upgrade"
-        color="primary"
-        label="Экспорт"
-        :loading="exporting"
-        @click="sendExportRequest"
-      />
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          icon="upgrade"
+          color="primary"
+          label="Экспорт"
+          :loading="exporting"
+          @click="sendExportRequest"
+        />
+      </div>
     </div>
 
     <q-card flat bordered class="export-card">
@@ -109,7 +116,7 @@
         </div>
       </q-card-section>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-section>
         <div class="row q-col-gutter-md">
@@ -165,6 +172,8 @@
               map-options
               use-chips
               label="Организации"
+              class="organization-select"
+              popup-content-class="organization-select-popup"
               :options="organizationOptions"
             />
           </div>
@@ -185,6 +194,20 @@
 
           <div class="col-12 col-md-4">
             <q-select
+              v-model="filters.serviceIds"
+              outlined
+              dense
+              multiple
+              emit-value
+              map-options
+              use-chips
+              label="Сервисы"
+              :options="serviceOptions"
+            />
+          </div>
+
+          <div class="col-12 col-md-4">
+            <q-select
               v-model="filters.tagIds"
               outlined
               dense
@@ -199,7 +222,7 @@
         </div>
       </q-card-section>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-actions align="right">
         <q-btn
@@ -238,6 +261,7 @@ const DEFAULT_FILTERS = () => ({
   executorIds: [],
   organizationIds: [],
   typeIds: [],
+  serviceIds: [],
   tagIds: []
 })
 
@@ -252,64 +276,86 @@ export default {
     users: [],
     organizations: [],
     taskTypes: [],
+    services: [],
     tags: [],
     completedOptions: [
-      { label: 'Все', value: 'all' },
-      { label: 'Только открытые', value: 'false' },
-      { label: 'Только закрытые', value: 'true' }
+      {label: 'Все', value: 'all'},
+      {label: 'Только открытые', value: 'false'},
+      {label: 'Только закрытые', value: 'true'}
     ]
   }),
 
   computed: {
-    statusOptions () {
-      return this.statuses.map(item => ({ label: item.name, value: item.id }))
+    statusOptions() {
+      return this.statuses.map(item => ({label: item.name, value: item.id}))
     },
 
-    priorityOptions () {
-      return this.priorities.map(item => ({ label: item.name, value: item.id }))
+    priorityOptions() {
+      return this.priorities.map(item => ({label: item.name, value: item.id}))
     },
 
-    userOptions () {
+    userOptions() {
       return this.users.map(user => ({
         label: this.getUserName(user),
         value: user.id
       }))
     },
 
-    organizationOptions () {
-      return this.organizations.map(item => ({ label: item.name, value: item.id }))
+    organizationOptions() {
+      return this.organizations.map(item => ({label: item.name, value: item.id}))
     },
 
-    taskTypeOptions () {
-      return this.taskTypes.map(item => ({ label: item.type, value: item.id }))
+    taskTypeOptions() {
+      return this.taskTypes.map(item => ({label: item.type, value: item.id}))
     },
 
-    tagOptions () {
-      return this.tags.map(item => ({ label: item.name, value: item.id }))
+    serviceOptions() {
+      return this.services
+        .filter(item => item.active !== false)
+        .map(item => ({label: [item.code, item.name].filter(Boolean).join(' · '), value: item.id}))
+    },
+
+    tagOptions() {
+      return this.tags.map(item => ({label: item.name, value: item.id}))
     }
   },
 
-  mounted () {
+  mounted() {
     this.loadDictionaries()
   },
 
   methods: {
-    loadDictionaries () {
+    loadDictionaries() {
       Promise.allSettled([
-        axios.get('/api/v1/statuses').then(response => { this.statuses = Array.isArray(response.data) ? response.data : [] }),
-        axios.get('/api/v1/priorities').then(response => { this.priorities = Array.isArray(response.data) ? response.data : [] }),
-        axios.get('/api/v1/users').then(response => { this.users = Array.isArray(response.data) ? response.data : [] }),
-        axios.get('/api/v1/organizations').then(response => { this.organizations = Array.isArray(response.data) ? response.data : [] }),
-        axios.get('/api/v1/task-types').then(response => { this.taskTypes = Array.isArray(response.data) ? response.data : [] }),
-        axios.get('/api/v1/tags').then(response => { this.tags = Array.isArray(response.data) ? response.data : [] })
+        axios.get('/api/v1/statuses').then(response => {
+          this.statuses = Array.isArray(response.data) ? response.data : []
+        }),
+        axios.get('/api/v1/priorities').then(response => {
+          this.priorities = Array.isArray(response.data) ? response.data : []
+        }),
+        axios.get('/api/v1/users').then(response => {
+          this.users = Array.isArray(response.data) ? response.data : []
+        }),
+        axios.get('/api/v1/organizations').then(response => {
+          this.organizations = Array.isArray(response.data) ? response.data : []
+        }),
+        axios.get('/api/v1/task-types').then(response => {
+          this.taskTypes = Array.isArray(response.data) ? response.data : []
+        }),
+        axios.get('/api/v1/services').then(response => {
+          this.services = Array.isArray(response.data) ? response.data : []
+        }),
+        axios.get('/api/v1/tags').then(response => {
+          this.tags = Array.isArray(response.data) ? response.data : []
+        })
       ])
     },
 
-    resetFilters () {
+    resetFilters() {
       this.filters = DEFAULT_FILTERS()
     },
 
-    sendExportRequest () {
+    sendExportRequest() {
       this.exporting = true
 
       axios.get('/api/v1/export/to-excel', {
@@ -332,7 +378,14 @@ export default {
         .catch(error => {
           this.$q.notify({
             type: 'negative',
-            message: error.response?.data || 'Не удалось выгрузить отчет'
+            message: error.response?.data || 'Не удалось выгрузить отчет',
+            position: 'top-right',
+            actions: [{
+              icon: 'close',
+              color: 'white',
+              dense: true,
+              handler: () => undefined
+            }]
           })
         })
         .finally(() => {
@@ -340,7 +393,7 @@ export default {
         })
     },
 
-    buildParams () {
+    buildParams() {
       const params = {}
 
       const setValue = (key, value) => {
@@ -371,12 +424,13 @@ export default {
       setArray('executorIds', this.filters.executorIds)
       setArray('organizationIds', this.filters.organizationIds)
       setArray('typeIds', this.filters.typeIds)
+      setArray('serviceIds', this.filters.serviceIds)
       setArray('tagIds', this.filters.tagIds)
 
       return params
     },
 
-    resolveFilename (response) {
+    resolveFilename(response) {
       const header = response.headers?.['content-disposition']
       if (!header) {
         return null
@@ -386,7 +440,7 @@ export default {
       return matched?.[1] || null
     },
 
-    getUserName (user) {
+    getUserName(user) {
       if (!user) {
         return ''
       }

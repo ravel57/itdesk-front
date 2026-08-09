@@ -1,13 +1,26 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить статус"
-      @click="this.newStatus"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Статусы</div>
+        <div class="settings-content-description">
+          Управляйте статусами жизненного цикла заявок и их порядком.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить статус"
+          @click="this.newStatus"
+        />
+      </div>
+    </div>
     <q-list
       bordered
-      class="rounded-borders"
+      class="rounded-borders settings-row-list"
       separator
       style="margin-top: 8px"
     >
@@ -19,6 +32,7 @@
         item-key="id"
         class="list-group"
         ghost-class="ghost"
+        handle=".settings-drag-handle"
         @start="dragging = true"
         @end="dragging = false"
       >
@@ -26,8 +40,10 @@
           <q-item
             class="list-group-item"
             :class="{ 'not-draggable': true }"
-            style="cursor: grab"
           >
+            <q-item-section side class="settings-drag-handle cursor-grab">
+              <q-icon name="drag_indicator" color="grey-6"/>
+            </q-item-section>
             <q-item-section
               top
               style="justify-content: center"
@@ -76,13 +92,13 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewStatus ? 'Новый статус' : 'Изменить статус'" />
+        <div class="text-h6" v-text="this.isNewStatus ? 'Новый статус' : 'Изменить статус'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogStatusName"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogStatusName"
         />
@@ -90,14 +106,16 @@
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewStatus"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="this.dialogDeleteStatus"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="this.dialogClose"
         />
@@ -112,9 +130,9 @@
 
 <script>
 import axios from 'axios'
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import draggable from 'vuedraggable'
-import { watch } from 'vue'
+import {watch} from 'vue'
 
 export default {
   name: 'StatusesPage',
@@ -133,25 +151,25 @@ export default {
   }),
 
   methods: {
-    editStatus (row) {
+    editStatus(row) {
       this.isNewStatus = false
       this.dialogVisible = true
       this.dialogStatusName = row.name
       this.statusId = row.id
     },
 
-    newStatus () {
+    newStatus() {
       this.dialogVisible = true
       this.isNewStatus = true
       this.dialogStatusName = ''
       setTimeout(() => this.$refs.dialogStatusName.focus(), 250)
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogSaveNewOrUpdateStatus () {
+    dialogSaveNewOrUpdateStatus() {
       const status = {
         id: this.isNewStatus ? null : this.statusId,
         name: this.dialogStatusName,
@@ -202,7 +220,7 @@ export default {
       }
     },
 
-    dialogDeleteStatus () {
+    dialogDeleteStatus() {
       axios.delete(`/api/v1/status/${this.statusId}`)
         .then(() => {
           this.store.statuses = this.store.statuses.filter(status => status.id !== this.statusId)
@@ -219,7 +237,7 @@ export default {
           }))
     },
 
-    setDefaultSelected (row) {
+    setDefaultSelected(row) {
       this.store.statuses.forEach(status => {
         status.defaultSelection = false
       })
@@ -242,12 +260,12 @@ export default {
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
     watch(() => store.statuses, () => {
       axios.patch('/api/v1/status/resort', store.statuses)
-    }, { deep: true })
-    return { store }
+    }, {deep: true})
+    return {store}
   }
 }
 </script>

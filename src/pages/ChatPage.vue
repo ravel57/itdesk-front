@@ -12,7 +12,7 @@
         :breakpoint="0"
       >
         <q-tab name="tab1" icon="forum"/>
-        <q-tab name="tab2" icon="database" v-if="this.isShowHelper || this.isMobile"/>
+        <q-tab name="tab2" icon="support" v-if="this.isShowHelper || this.isMobile"/>
         <q-tab name="tab3" icon="info"/>
       </q-tabs>
     </div>
@@ -37,11 +37,14 @@
             :inputField="this.inputField"
             :templates="this.activeTemplates"
             :isSending="this.isSending"
+            :upload-progress="this.uploadProgress"
             :clientId="this.getClient.id"
             :typing="this.getClient.typingUsers"
             :currentUser="this.store.currentUser"
+            :read-only="this.isObserverUser"
             :linkedMessageId="this.linkedMessageId"
-            :tasks="this.currentClientTasks"
+            :tasks="this.activeClientTasks"
+            :onboarding-demo="this.isChatOnboardingActive"
             :task-watching-now="this.getClient.watchingUsers"
             :deleteClient="this.deleteClient"
             :isShowHelper="this.isShowHelper"
@@ -81,7 +84,7 @@
         <div
           data-tour="chat-helper-wrapper"
           class="chat-page-column no-shadow"
-          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser?.authorities?.[0])"
+          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser?.authorities?.[0])"
         >
           <chat-helper
             :isMobile="this.isMobile"
@@ -89,6 +92,7 @@
             :knowledgeBase="this.activeKnowledgeBase"
             :ai-query-from-message="this.helperAiQueryFromMessage"
             :ai-query-version="this.helperAiQueryVersion"
+            :onboarding-demo="this.isChatOnboardingActive"
             @onTemplateClick="onTemplateClick"
             @hideHelper="this.hideHelper"
           />
@@ -107,7 +111,7 @@
         >
           <chat-tasks
             ref="chatTasks"
-            :tasks="this.currentClientTasks"
+            :tasks="this.activeClientTasks"
             :isNotificationEnabled="isNotificationEnabled"
             :tags="this.activeTags"
             :users="this.activeUsers"
@@ -116,6 +120,7 @@
             :statuses="this.activeStatuses"
             :priorities="this.activePriorities"
             :is-mobile="this.isMobile"
+            :onboarding-demo="this.isChatOnboardingActive"
             :request-status-change-reason="this.requestStatusChangeReasonIfNeeded"
             @newTask="this.newTask"
             @updateTask="this.updateTask"
@@ -248,13 +253,14 @@
 import ChatDialog from 'components/chat/ChatDialog.vue'
 import ChatHelper from 'components/chat/ChatHelper.vue'
 import ChatTasks from 'components/chat/ChatTasks.vue'
-import { useStore } from 'stores/store'
-import { useRoute } from 'vue-router'
-import { markRead, typing, onClientMessage } from 'src/util/ws'
+import {useStore} from 'stores/store'
+import {useRoute} from 'vue-router'
+import {markRead, typing, onClientMessage} from 'src/util/ws'
 import axios from 'axios'
+import { getUploadErrorMessage, getUploadProgress } from 'src/util/messageFileUpload'
 
 export default {
-  components: { ChatTasks, ChatHelper, ChatDialog },
+  components: {ChatTasks, ChatHelper, ChatDialog},
 
   data: () => ({
     tab: 'tab1',
@@ -262,6 +268,7 @@ export default {
     isComment: false,
     isNotificationEnabled: true,
     isSending: false,
+    uploadProgress: null,
     linkedMessageId: null,
     routeMessageIdHandled: false,
     isShowHelper: true,
@@ -275,6 +282,8 @@ export default {
     newestLoadedMessagePage: 1,
     currentClientTasks: [],
     clientMessageUnsubscribe: null,
+    socketMessageRefreshTimer: null,
+    socketMessageRefreshLoadedWindow: false,
 
     statusReasonDialog: false,
     statusReasonDialogTitle: '',
@@ -348,12 +357,13 @@ export default {
       tasks: [
         {
           id: -100501,
+          __onboardingDemo: true,
           name: 'Проверить доступ клиента',
           description: 'Клиент не может войти в личный кабинет. Нужно проверить учетную запись и отправить инструкцию.',
-          status: { id: -100501, name: 'В работе', orderNumber: 2 },
-          priority: { id: -100501, name: 'Высокий', critical: true, orderNumber: 3 },
-          executor: { id: -100501, firstname: 'Оператор', lastname: 'Поддержки' },
-          tags: [{ id: -100501, name: 'Доступ' }, { id: -100502, name: 'VIP' }],
+          status: {id: -100501, name: 'В работе', orderNumber: 2},
+          priority: {id: -100501, name: 'Высокий', critical: true, orderNumber: 3},
+          executor: {id: -100501, firstname: 'Оператор', lastname: 'Поддержки'},
+          tags: [{id: -100501, name: 'Доступ'}, {id: -100502, name: 'VIP'}],
           completed: false,
           frozen: false,
           createdAt: new Date(Date.now() - 1000 * 60 * 35),
@@ -367,31 +377,45 @@ export default {
       ]
     },
     chatOnboardingDemoTemplates: [
-      { id: -100501, shortcut: 'hello', text: 'Здравствуйте! Уже проверяю ваш вопрос и скоро вернусь с ответом.' },
-      { id: -100502, shortcut: 'access', text: 'Попробуйте восстановить пароль по ссылке. Если ошибка повторится, пришлите скриншот.' }
+      {id: -100501, shortcut: 'hello', text: 'Здравствуйте! Уже проверяю ваш вопрос и скоро вернусь с ответом.'},
+      {
+        id: -100502,
+        shortcut: 'access',
+        text: 'Попробуйте восстановить пароль по ссылке. Если ошибка повторится, пришлите скриншот.'
+      }
     ],
     chatOnboardingDemoKnowledgeBase: [
-      { id: -100501, title: 'Проблемы со входом в личный кабинет', text: 'Проверить статус пользователя, блокировку, актуальность email и историю попыток входа.', tags: [{ id: -100501, name: 'Доступ' }] },
-      { id: -100502, title: 'Инструкция по восстановлению пароля', text: 'Попросить клиента открыть страницу восстановления пароля и проверить письмо во входящих и спаме.', tags: [{ id: -100502, name: 'Пароль' }] }
+      {
+        id: -100501,
+        title: 'Проблемы со входом в личный кабинет',
+        text: 'Проверить статус пользователя, блокировку, актуальность email и историю попыток входа.',
+        tags: [{id: -100501, name: 'Доступ'}]
+      },
+      {
+        id: -100502,
+        title: 'Инструкция по восстановлению пароля',
+        text: 'Попросить клиента открыть страницу восстановления пароля и проверить письмо во входящих и спаме.',
+        tags: [{id: -100502, name: 'Пароль'}]
+      }
     ],
     chatOnboardingDemoTags: [
-      { id: -100501, name: 'Доступ' },
-      { id: -100502, name: 'VIP' },
-      { id: -100503, name: 'Пароль' }
+      {id: -100501, name: 'Доступ'},
+      {id: -100502, name: 'VIP'},
+      {id: -100503, name: 'Пароль'}
     ],
     chatOnboardingDemoUsers: [
-      { id: -100501, firstname: 'Оператор', lastname: 'Поддержки', username: 'operator' }
+      {id: -100501, firstname: 'Оператор', lastname: 'Поддержки', username: 'operator'}
     ],
     chatOnboardingDemoOrganizations: [
-      { id: -100500, name: 'ООО Демо-Сервис' }
+      {id: -100500, name: 'ООО Демо-Сервис'}
     ],
     chatOnboardingDemoStatuses: [
-      { id: -100501, name: 'Новая', orderNumber: 1 },
-      { id: -100502, name: 'В работе', orderNumber: 2 }
+      {id: -100501, name: 'Новая', orderNumber: 1},
+      {id: -100502, name: 'В работе', orderNumber: 2}
     ],
     chatOnboardingDemoPriorities: [
-      { id: -100501, name: 'Обычный', critical: false, orderNumber: 1 },
-      { id: -100502, name: 'Высокий', critical: true, orderNumber: 3 }
+      {id: -100501, name: 'Обычный', critical: false, orderNumber: 1},
+      {id: -100502, name: 'Высокий', critical: true, orderNumber: 3}
     ],
 
     chatColumnWidth: 0,
@@ -417,8 +441,31 @@ export default {
 
   methods: {
     getRealClientByRoute() {
-      const clientId = Number(this.router.params.clientId)
-      return this.store.clients.find(client => client.id === clientId)
+      const clientId = Number(this.$route.params.clientId)
+      return this.store.clients.find(client => Number(client?.id) === clientId)
+    },
+
+    syncCachedMessagesToRealClient() {
+      const clientId = Number(this.$route.params.clientId)
+      const cached = this.store.currentChatMessageData
+      if (
+        Number(cached?.clientId) !== clientId ||
+        !Array.isArray(cached?.messages)
+      ) {
+        return false
+      }
+
+      const client = this.getRealClientByRoute()
+      if (!client) {
+        return false
+      }
+
+      client.messages = this.sortMessagesByDate(
+        this.uniqueMessagesById(this.normalizeClientMessages(cached.messages))
+      )
+      this.store.currentClient = client
+      this.isEnd = Boolean(cached.isEnd)
+      return true
     },
 
     loadCurrentChatData() {
@@ -426,10 +473,21 @@ export default {
       if (!client || this.messagesLoadedForCurrentChat) {
         return
       }
-      this.getMessagePage()
+
+      this.syncCachedMessagesToRealClient()
       this.markMessagesRead()
       this.initCurrentChatDraft()
       this.messagesLoadedForCurrentChat = true
+
+      // Переход к сообщению должен загружать сразу нужную страницу.
+      // Иначе параллельный getMessagePage() может позже вернуть последнюю
+      // страницу и затереть результат linked-message.
+      if (this.getNavigationMessageId(client.id)) {
+        this.$nextTick(() => this.handleRouteMessageId())
+        return
+      }
+
+      this.getMessagePage()
     },
 
     initCurrentChatDraft() {
@@ -534,6 +592,12 @@ export default {
         return
       }
 
+      target.scrollIntoView({
+        block: 'center',
+        inline: 'nearest',
+        behavior: 'auto'
+      })
+
       const rect = target.getBoundingClientRect()
       const padding = 8
       const cardWidth = Math.min(360, window.innerWidth - 32)
@@ -591,8 +655,15 @@ export default {
         event.attachedFiles.forEach(file => {
           formData.append('files', file)
         })
-        axios.post('/files/upload', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+        this.uploadProgress = 0
+        axios.post('/files/upload', formData, {
+          headers: {'Content-Type': 'multipart/form-data'},
+          onUploadProgress: progressEvent => {
+            this.uploadProgress = getUploadProgress(progressEvent)
+          }
+        })
           .then(response => {
+            this.uploadProgress = 1
             response.data.map((fileUuid, index) => ({
               ...event.message,
               text: event.message.text || '',
@@ -606,15 +677,20 @@ export default {
               this.sendTextMessage(message)
             })
           })
-          .catch(e =>
+          .catch(e => {
+            this.isSending = false
             this.$q.notify({
-              message: e.message,
+              message: getUploadErrorMessage(e),
               type: 'negative',
               position: 'top-right',
               actions: [{
                 icon: 'close', color: 'white', dense: true, handler: () => undefined
               }]
-            }))
+            })
+          })
+          .finally(() => {
+            this.uploadProgress = null
+          })
       } else {
         this.sendTextMessage(event.message)
       }
@@ -645,7 +721,7 @@ export default {
           }))
     },
 
-    addOrUpdateClientMessage (message) {
+    addOrUpdateClientMessage(message) {
       if (!this.getClient) {
         return
       }
@@ -658,14 +734,20 @@ export default {
       if (!normalizedMessage?.id) {
         return
       }
-      const index = this.getClient.messages.findIndex(item => {
+      const hasLocalMessage = this.getClient.messages.some(item => {
         return Number(item.id) === Number(normalizedMessage.id)
       })
-      if (index !== -1) {
-        const nextMessages = [...this.getClient.messages]
-        nextMessages.splice(index, 1, {
-          ...nextMessages[index],
-          ...normalizedMessage
+      if (hasLocalMessage) {
+        // Обновляем все локальные экземпляры одного message.id и обязательно
+        // присваиваем новый массив. Это важно после пагинации/WebSocket, когда
+        // в памяти могли временно остаться две ссылки на одно сообщение.
+        const nextMessages = this.getClient.messages.map(item => {
+          return Number(item.id) === Number(normalizedMessage.id)
+            ? {
+                ...item,
+                ...normalizedMessage
+              }
+            : item
         })
         this.setClientMessages(nextMessages)
         return
@@ -702,17 +784,152 @@ export default {
       })
     },
 
-    onClientMessageFromSocket (payload) {
-      if (!payload?.message || !payload?.client?.id) {
+    onClientMessageFromSocket(payload) {
+      // Глобальная observer-инвалидация намеренно не содержит clientId, чтобы
+      // не раскрывать идентификаторы клиентов других организаций. Обновляем
+      // только уже открытый чат; REST endpoint повторно проверит доступ.
+      if (payload?.refreshRequired && !payload?.client?.id) {
+        this.scheduleSocketMessageRefresh(Boolean(payload.refreshLoadedWindow))
+        return
+      }
+      if (!payload?.client?.id) {
         return
       }
       if (Number(payload.client.id) !== Number(this.getClient?.id)) {
         return
       }
+      if (payload.refreshRequired) {
+        this.scheduleSocketMessageRefresh(Boolean(payload.refreshLoadedWindow))
+        return
+      }
+      if (!payload.message) {
+        return
+      }
+      if (payload.eventType === 'edited') {
+        this.applyEditedClientMessageFromSocket(payload.message)
+        return
+      }
       this.addOrUpdateClientMessage(payload.message)
     },
 
-    normalizeClientMessage (message) {
+    applyEditedClientMessageFromSocket(message) {
+      const normalizedMessage = this.normalizeReplyMessage(
+        this.normalizeClientMessage(message)
+      )
+      if (!normalizedMessage?.id) {
+        return
+      }
+
+      const cachedMessages = Number(this.store.currentChatMessageData?.clientId) === Number(this.getClient?.id)
+        ? (this.store.currentChatMessageData?.messages || [])
+        : []
+      const sourceMessages = this.uniqueMessagesById([
+        ...(this.getClient?.messages || []),
+        ...cachedMessages
+      ])
+      const hasMessage = sourceMessages.some(item =>
+        Number(item?.id) === Number(normalizedMessage.id)
+      )
+
+      if (!hasMessage) {
+        // Событие редактирования пришло по сокету, но локальная история могла
+        // ещё не успеть привязаться к объекту клиента. Дозагружаем актуальную
+        // страницу вместо потери edit-события.
+        this.scheduleSocketMessageRefresh()
+        return
+      }
+
+      this.setClientMessages(sourceMessages.map(item =>
+        Number(item?.id) === Number(normalizedMessage.id)
+          ? {
+              ...item,
+              ...normalizedMessage
+            }
+          : item
+      ))
+    },
+
+    scheduleSocketMessageRefresh(refreshLoadedWindow = false) {
+      this.socketMessageRefreshLoadedWindow =
+        this.socketMessageRefreshLoadedWindow || Boolean(refreshLoadedWindow)
+      clearTimeout(this.socketMessageRefreshTimer)
+      this.socketMessageRefreshTimer = setTimeout(() => {
+        this.socketMessageRefreshTimer = null
+        const shouldRefreshLoadedWindow = this.socketMessageRefreshLoadedWindow
+        this.socketMessageRefreshLoadedWindow = false
+        if (shouldRefreshLoadedWindow) {
+          this.refreshLoadedMessagesFromSocket()
+          return
+        }
+        this.refreshLatestMessagesFromSocket()
+      }, 120)
+    },
+
+    refreshLoadedMessagesFromSocket() {
+      const clientId = Number(this.getClient?.id)
+      if (!clientId) {
+        return
+      }
+
+      // Редактируемое сообщение уже видно пользователю, значит оно находится
+      // в одной из загруженных страниц. Перечитываем именно текущее окно, а не
+      // только page=1: иначе edit старого видимого сообщения останется stale.
+      const newestPage = Math.max(1, Number(this.newestLoadedMessagePage || 1))
+      const oldestPage = Math.max(newestPage, Number(this.oldestLoadedMessagePage || newestPage))
+      const requests = []
+      for (let page = newestPage; page <= oldestPage; page += 1) {
+        requests.push(axios.get(`/api/v1/client/${clientId}/messages-page?page=${page}`))
+      }
+
+      Promise.all(requests)
+        .then(responses => {
+          if (Number(this.getClient?.id) !== clientId) {
+            return
+          }
+          const loadedMessages = responses.flatMap(response =>
+            this.normalizeClientMessages(response.data?.messages || [])
+          )
+          // Это полная socket-синхронизация уже загруженного окна для OBSERVER.
+          // Не смешиваем свежий ответ с локальным массивом: иначе сообщение,
+          // удалённое на сервере и отсутствующее в response, останется в DOM.
+          this.setClientMessages(loadedMessages)
+        })
+        .catch(e => {
+          this.$q.notify({
+            message: e.message || 'Не удалось обновить сообщения',
+            type: 'negative',
+            position: 'top-right',
+            actions: [{
+              icon: 'close', color: 'white', dense: true, handler: () => undefined
+            }]
+          })
+        })
+    },
+
+    refreshLatestMessagesFromSocket() {
+      const clientId = Number(this.getClient?.id)
+      if (!clientId) {
+        return
+      }
+      axios.get(`/api/v1/client/${clientId}/messages-page?page=1`)
+        .then(response => {
+          if (Number(this.getClient?.id) !== clientId) {
+            return
+          }
+          const loadedMessages = this.normalizeClientMessages(response.data?.messages || [])
+          const mergedMessages = this.uniqueMessagesById([
+            ...(this.getClient.messages || []),
+            ...loadedMessages
+          ])
+          this.setClientMessages(this.trimMessagesForBottom(mergedMessages))
+          this.pendingNewMessagesCount = 0
+          this.hasTrimmedNewerMessages = false
+          this.$nextTick(() => this.scrollCurrentChatToBottom())
+        })
+        .catch(() => undefined)
+    },
+
+    normalizeClientMessage(message) {
       if (!message) {
         return message
       }
@@ -723,7 +940,7 @@ export default {
       }
     },
 
-    normalizeReplyMessage (message) {
+    normalizeReplyMessage(message) {
       if (!message || !message.replyMessageId || message.replyMessageText) {
         return message
       }
@@ -747,6 +964,11 @@ export default {
     },
 
     markMessagesRead(force = false) {
+      // OBSERVER is a read-only role: opening/scrolling a chat must not
+      // acknowledge support messages or change unread state.
+      if (this.isObserverUser) {
+        return
+      }
       if (this.isChatOnboardingActive) {
         return
       }
@@ -818,41 +1040,66 @@ export default {
     },
 
     linkToTask(message, oldTask) {
+      const taskId = Number(oldTask?.id)
+      const latestTask = this.currentClientTasks.find(item => Number(item?.id) === taskId) || oldTask
       const task = {
-        id: oldTask.id,
-        name: oldTask.name,
-        description: oldTask.description,
-        status: oldTask.status,
-        priority: oldTask.priority,
-        executor: oldTask.executor,
-        tags: oldTask.tags,
-        completed: oldTask.completed,
-        createdAt: oldTask.createdAt,
-        deadline: oldTask.deadline,
-        linkedMessageId: oldTask.linkedMessageId,
-        sla: oldTask.sla
+        id: latestTask.id,
+        name: latestTask.name,
+        description: latestTask.description,
+        status: latestTask.status,
+        priority: latestTask.priority,
+        executor: latestTask.executor,
+        tags: latestTask.tags,
+        completed: latestTask.completed,
+        createdAt: latestTask.createdAt,
+        deadline: latestTask.deadline,
+        linkedMessageId: latestTask.linkedMessageId,
+        sla: latestTask.sla
       }
+      const newLinkedMessageId = Number(message?.id)
+      const previousLinkedMessageId = latestTask?.linkedMessageId ?? null
+      const tasksPreviouslyLinkedToSelectedMessage = this.currentClientTasks.filter(item => {
+        return Number(item?.id) !== taskId &&
+          Number(item?.linkedMessageId) === newLinkedMessageId
+      })
+
       axios.post(`/api/v1/client/${this.getClient.id}/link-message-to-task`, {message, task})
         .then(() => {
-          const previousMessage = this.getClient.messages.find(msg => Number(msg.id) === Number(oldTask.linkedMessageId))
-          if (previousMessage) {
-            previousMessage.linkedTaskId = null
-          }
+          tasksPreviouslyLinkedToSelectedMessage.forEach(previousTask => {
+            this.upsertCurrentClientTask({
+              ...previousTask,
+              linkedMessageId: null
+            })
+            this.$refs.chatTasks?.setTaskLinkedMessageId(previousTask.id, null)
+          })
 
-          const linkedMessage = this.getClient.messages.find(msg => Number(msg.id) === Number(message.id))
-          if (linkedMessage) {
-            linkedMessage.linkedTaskId = oldTask.id
-          }
+          this.upsertCurrentClientTask({
+            ...latestTask,
+            linkedMessageId: newLinkedMessageId
+          })
+          this.$refs.chatTasks?.setTaskLinkedMessageId(taskId, newLinkedMessageId)
 
-          const previousTask = this.currentClientTasks.find(task => Number(task.linkedMessageId) === Number(message.id))
-          if (previousTask && Number(previousTask.id) !== Number(oldTask.id)) {
-            previousTask.linkedMessageId = null
-          }
+          const nextMessages = (this.getClient.messages || []).map(item => {
+            const itemId = Number(item?.id)
+            let linkedTaskId = item?.linkedTaskId ?? null
 
-          const linkedTask = this.currentClientTasks.find(task => Number(task.id) === Number(oldTask.id))
-          if (linkedTask) {
-            linkedTask.linkedMessageId = message.id
-          }
+            if (previousLinkedMessageId !== null &&
+                itemId === Number(previousLinkedMessageId) &&
+                Number(linkedTaskId) === taskId) {
+              linkedTaskId = null
+            }
+            if (itemId === newLinkedMessageId) {
+              linkedTaskId = latestTask.id
+            }
+
+            return linkedTaskId === (item?.linkedTaskId ?? null)
+              ? item
+              : {
+                  ...item,
+                  linkedTaskId
+                }
+          })
+          this.setClientMessages(nextMessages)
         })
         .catch(e => {
           this.$q.notify({
@@ -866,7 +1113,7 @@ export default {
         })
     },
 
-    getLinkedTaskIdFromMessage (message) {
+    getLinkedTaskIdFromMessage(message) {
       if (!message) {
         return null
       }
@@ -882,7 +1129,7 @@ export default {
       return Number.isFinite(id) && id > 0 ? id : null
     },
 
-    findLinkedTaskByMessage (message) {
+    findLinkedTaskByMessage(message) {
       const tasks = this.getCurrentChatTasksForLinkedSearch()
       const linkedTaskId = this.getLinkedTaskIdFromMessage(message)
       if (linkedTaskId) {
@@ -902,14 +1149,14 @@ export default {
       return null
     },
 
-    async openLinkedTask (message) {
+    async openLinkedTask(message) {
       const task = await this.resolveLinkedTaskByMessage(message)
       if (!task) {
         this.$q.notify({
           message: 'Связанная заявка не найдена',
           type: 'negative',
           position: 'top-right',
-          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
         })
         return
       }
@@ -926,19 +1173,22 @@ export default {
           message: 'Не найден компонент заявок',
           type: 'negative',
           position: 'top-right',
-          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
         })
       })
     },
 
-    getCurrentChatTasksForLinkedSearch () {
+    getCurrentChatTasksForLinkedSearch() {
+      // currentClientTasks is the live source used by ChatTasks. Put it last so
+      // uniqueTasksById keeps the freshest task when getClient.tasks still has
+      // the pre-relink linkedMessageId.
       return this.uniqueTasksById([
-        ...(Array.isArray(this.currentClientTasks) ? this.currentClientTasks : []),
-        ...(Array.isArray(this.getClient?.tasks) ? this.getClient.tasks : [])
+        ...(Array.isArray(this.getClient?.tasks) ? this.getClient.tasks : []),
+        ...(Array.isArray(this.currentClientTasks) ? this.currentClientTasks : [])
       ])
     },
 
-    uniqueTasksById (tasks) {
+    uniqueTasksById(tasks) {
       const map = new Map()
       ;(tasks || []).forEach(task => {
         if (!task?.id) {
@@ -949,26 +1199,44 @@ export default {
       return [...map.values()]
     },
 
-    syncMessagesLinkedTaskIds () {
+    syncMessagesLinkedTaskIds() {
       const messages = this.getClient?.messages
       const tasks = this.getCurrentChatTasksForLinkedSearch()
-      if (!Array.isArray(messages) || !tasks.length) {
+      if (!Array.isArray(messages)) {
         return
       }
-      messages.forEach(message => {
-        if (!message?.id) {
-          return
-        }
-        const linkedTask = tasks.find(task => {
-          return Number(task?.linkedMessageId) === Number(message.id)
-        })
-        if (linkedTask?.id) {
-          message.linkedTaskId = linkedTask.id
+
+      const linkedTaskByMessageId = new Map()
+      tasks.forEach(task => {
+        const messageId = Number(task?.linkedMessageId)
+        if (Number.isFinite(messageId) && messageId > 0 && task?.id) {
+          linkedTaskByMessageId.set(messageId, Number(task.id))
         }
       })
+
+      let changed = false
+      const nextMessages = messages.map(message => {
+        if (!message?.id) {
+          return message
+        }
+        const linkedTaskId = linkedTaskByMessageId.get(Number(message.id)) ?? null
+        const currentLinkedTaskId = this.getLinkedTaskIdFromMessage(message)
+        if (currentLinkedTaskId === linkedTaskId) {
+          return message
+        }
+        changed = true
+        return {
+          ...message,
+          linkedTaskId
+        }
+      })
+
+      if (changed) {
+        this.setClientMessages(nextMessages)
+      }
     },
 
-    async resolveLinkedTaskByMessage (message) {
+    async resolveLinkedTaskByMessage(message) {
       const localTask = this.findLinkedTaskByMessage(message)
       if (localTask) {
         return localTask
@@ -980,7 +1248,7 @@ export default {
       return this.loadLinkedTaskById(linkedTaskId, message)
     },
 
-    async loadLinkedTaskById (taskId, message = null) {
+    async loadLinkedTaskById(taskId, message = null) {
       if (!taskId || !this.getClient?.id) {
         return null
       }
@@ -1018,7 +1286,7 @@ export default {
           message: e.message || 'Не удалось загрузить связанную заявку',
           type: 'negative',
           position: 'top-right',
-          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
         })
         return null
       }
@@ -1029,7 +1297,18 @@ export default {
     },
 
     deleteMessage(message) {
-      axios.delete(`/api/v1/client/${this.getClient.id}/delete-message/${message.id}`)
+      const messageId = Number(message?.id)
+      const clientId = Number(this.getClient?.id)
+      if (!messageId || !clientId) {
+        return
+      }
+
+      axios.delete(`/api/v1/client/${clientId}/delete-message/${messageId}`)
+        .then(() => {
+          // Не ждём повторной загрузки истории или сокета: удалённое сообщение
+          // должно зачеркнуться в текущем чате сразу после успешного ответа API.
+          this.markMessageDeleted(messageId)
+        })
         .catch(e => {
           this.$q.notify({
             message: e.message,
@@ -1040,6 +1319,29 @@ export default {
             }]
           })
         })
+    },
+
+    markMessageDeleted(messageId) {
+      const id = Number(messageId)
+      if (!id || !Array.isArray(this.getClient?.messages)) {
+        return
+      }
+
+      let changed = false
+      const nextMessages = this.getClient.messages.map(item => {
+        if (Number(item?.id) !== id || item?.deleted === true) {
+          return item
+        }
+        changed = true
+        return {
+          ...item,
+          deleted: true
+        }
+      })
+
+      if (changed) {
+        this.setClientMessages(nextMessages)
+      }
     },
 
     deleteClient() {
@@ -1072,10 +1374,15 @@ export default {
       this.pageCounter = 1
       this.oldestLoadedMessagePage = 1
       this.newestLoadedMessagePage = 1
-      if (Array.isArray(this.store.currentChatMessageData?.messages)) {
-        const messages = this.normalizeClientMessages(this.store.currentChatMessageData.messages)
+      const cached = this.store.currentChatMessageData
+      const currentClientId = Number(this.$route.params.clientId)
+      if (
+        Number(cached?.clientId) === currentClientId &&
+        Array.isArray(cached?.messages)
+      ) {
+        const messages = this.normalizeClientMessages(cached.messages)
         this.setClientMessages(this.trimMessagesForBottom(messages))
-        this.isEnd = Boolean(this.store.currentChatMessageData.isEnd)
+        this.isEnd = Boolean(cached.isEnd)
         this.pendingNewMessagesCount = 0
         this.hasTrimmedNewerMessages = false
         return
@@ -1233,12 +1540,31 @@ export default {
     },
 
     setClientMessages(messages) {
-      if (!this.getClient) {
-        return
-      }
-      this.getClient.messages = this.sortMessagesByDate(
+      const clientId = Number(this.$route.params.clientId)
+      const nextMessages = this.sortMessagesByDate(
         this.uniqueMessagesById(messages || [])
       )
+      const realClient = this.getRealClientByRoute()
+      const targetClient = realClient || this.getClient
+
+      if (targetClient) {
+        targetClient.messages = nextMessages
+      }
+      if (realClient) {
+        this.store.currentClient = realClient
+      }
+
+      // Храним историю отдельно от списка клиентов. Это защищает чат от
+      // гонки: messages-page успевает ответить раньше /api/v1/clients, после
+      // чего новый объект клиента больше не может затереть переписку пустым [].
+      const cachedIsEnd = Number(this.store.currentChatMessageData?.clientId) === clientId
+        ? this.store.currentChatMessageData?.isEnd
+        : this.isEnd
+      this.store.currentChatMessageData = {
+        clientId,
+        messages: nextMessages,
+        isEnd: Boolean(cachedIsEnd)
+      }
     },
 
     trimMessagesForBottom(messages) {
@@ -1265,7 +1591,7 @@ export default {
           return
         }
         if (message.id === undefined || message.id === null) {
-          map.set(Symbol(), message)
+          map.set(Symbol('message-without-id'), message)
           return
         }
         map.set(Number(message.id), message)
@@ -1342,14 +1668,20 @@ export default {
 
     getMessageOnSearch(messageId) {
       if (this.isChatOnboardingActive) {
-        return
+        return Promise.resolve(false)
       }
       const id = Number(messageId)
-      if (!id || !this.getClient.id) {
-        return
+      const clientId = Number(this.$route.params.clientId)
+      if (!id || !clientId || Number(this.getClient.id) !== clientId) {
+        return Promise.resolve(false)
       }
-      axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${id}`)
+      return axios.get(`/api/v1/client/${clientId}/linked-message?linkedMessageId=${id}`)
         .then(response => {
+          // Пока запрос выполнялся, пользователь мог открыть другой чат.
+          // Не применяем страницу сообщений к уже сменившемуся clientId.
+          if (Number(this.$route.params.clientId) !== clientId) {
+            return false
+          }
           const messages = this.normalizeClientMessages(response.data.messages || [])
           const page = Math.max(1, Number(response.data?.page || 1))
           this.pageCounter = page
@@ -1359,11 +1691,15 @@ export default {
           this.pendingNewMessagesCount = 0
           this.hasTrimmedNewerMessages = page > 1
           this.setClientMessages(messages)
+          this.linkedMessageId = null
           this.$nextTick(() => {
             setTimeout(() => {
-              this.linkedMessageId = id
+              if (Number(this.$route.params.clientId) === clientId) {
+                this.linkedMessageId = id
+              }
             }, 100)
           })
+          return true
         })
     },
 
@@ -1631,7 +1967,7 @@ export default {
       this.applyColumnWidthsFromRatios()
     },
 
-    setAnswerRequired ({ messageId, clientId, answerRequired, groupMessageIds = [], resetMessageIds = [] }) {
+    setAnswerRequired({messageId, clientId, answerRequired, groupMessageIds = [], resetMessageIds = []}) {
       const id = Number(messageId)
       const cid = Number(clientId)
 
@@ -1653,35 +1989,75 @@ export default {
         return
       }
 
-      const applyLocalState = (client) => {
+      const groupIds = new Set([
+        ...groupMessageIds,
+        ...resetMessageIds,
+        id
+      ].map(value => Number(value)))
+
+      const applyLocalState = (client, responseData = null) => {
         if (!client || !Array.isArray(client.messages)) {
           return
         }
 
-        const groupIds = new Set([
-          ...groupMessageIds,
-          ...resetMessageIds,
-          id
-        ].map(value => Number(value)))
-
-        client.messages.forEach(message => {
-          if (groupIds.has(Number(message.id))) {
-            message.answerRequired = 'NOT_SET'
+        // Создаём новый массив и новые объекты сообщений. Так состояние кнопок
+        // становится единственным источником истины и не зависит от мутации
+        // props внутри ChatDialog.
+        const nextMessages = client.messages.map(message => {
+          const currentMessageId = Number(message?.id)
+          if (!groupIds.has(currentMessageId)) {
+            return message
+          }
+          return {
+            ...message,
+            answerRequired: currentMessageId === id
+              ? answerRequired
+              : 'NOT_SET'
           }
         })
 
-        const selectedMessage = client.messages.find(message => Number(message.id) === id)
-        if (selectedMessage) {
-          selectedMessage.answerRequired = answerRequired
+        client.messages = nextMessages
+        client.firstUnansweredMessageDate = this.calculateFirstUnansweredMessageDate(client)
+        client.firstUnansweredMessageId = this.calculateFirstUnansweredMessageId(client)
+
+        if (responseData && Object.prototype.hasOwnProperty.call(responseData, 'firstUnansweredMessageDate')) {
+          client.firstUnansweredMessageDate = responseData.firstUnansweredMessageDate
+        }
+        if (responseData && Object.prototype.hasOwnProperty.call(responseData, 'firstUnansweredMessageId')) {
+          client.firstUnansweredMessageId = responseData.firstUnansweredMessageId
         }
 
-        client.firstUnansweredMessageDate = this.calculateFirstUnansweredMessageDate(client)
+        // ВАЖНО: fetchData/getMessagePage берут историю из этого кэша.
+        // Если его не обновить, следующий refresh клиентов возвращает значения
+        // answerRequired, которые были при первоначальной загрузке страницы.
+        if (Number(this.store.currentChatMessageData?.clientId) === cid) {
+          this.store.currentChatMessageData = {
+            ...this.store.currentChatMessageData,
+            clientId: cid,
+            messages: nextMessages.map(message => ({...message}))
+          }
+        }
+
+        if (Number(this.store.currentClient?.id) === cid) {
+          this.store.currentClient = client
+        }
+
+        const clientIndex = this.store.clients.findIndex(item => Number(item?.id) === cid)
+        if (clientIndex !== -1) {
+          this.store.clients.splice(clientIndex, 1, client)
+        }
       }
 
       if (this.isChatOnboardingActive) {
         applyLocalState(this.chatOnboardingDemoClient)
         return
       }
+
+      // ChatDialog уже меняет состояние оптимистично перед emit, но здесь мы
+      // сразу синхронизируем также store.currentChatMessageData. Благодаря этому
+      // socket refresh и повторный fetchData не могут вернуть старый выбор.
+      const currentClient = this.store.clients.find(client => Number(client?.id) === cid)
+      applyLocalState(currentClient)
 
       axios.patch(`/api/v1/client/${cid}/message/${id}/answer-required`, {
         answerRequired,
@@ -1692,24 +2068,10 @@ export default {
         }
       })
         .then((response) => {
-          const clientIndex = this.store.clients.findIndex(c => Number(c.id) === cid)
-          if (clientIndex === -1) {
-            return
-          }
-
-          const client = this.store.clients[clientIndex]
-
-          applyLocalState(client)
-
-          if (response.data && Object.prototype.hasOwnProperty.call(response.data, 'firstUnansweredMessageDate')) {
-            client.firstUnansweredMessageDate = response.data.firstUnansweredMessageDate
-          }
-
-          this.store.clients.splice(clientIndex, 1, {
-            ...client,
-            messages: client.messages ? [...client.messages] : []
-          })
-          this.store.clients = [...this.store.clients]
+          // За время запроса объект клиента мог быть заменён обновлением списка,
+          // поэтому всегда берём актуальный объект из store повторно.
+          const actualClient = this.store.clients.find(client => Number(client?.id) === cid)
+          applyLocalState(actualClient, response.data)
         })
         .catch(e => {
           this.$q.notify({
@@ -1723,7 +2085,7 @@ export default {
         })
     },
 
-    calculateFirstUnansweredMessageDate(client) {
+    calculateFirstUnansweredMessage(client) {
       const messages = [...(client.messages || [])]
         .filter(message => message?.date && message.deleted !== true)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -1758,11 +2120,20 @@ export default {
       if (!lastMarkedMessage || lastMarkedMessage.answerRequired !== 'ANSWER_REQUIRED') {
         return null
       }
-      return lastMarkedMessage.date
+      return lastMarkedMessage
+    },
+
+    calculateFirstUnansweredMessageDate(client) {
+      return this.calculateFirstUnansweredMessage(client)?.date || null
+    },
+
+    calculateFirstUnansweredMessageId(client) {
+      const messageId = Number(this.calculateFirstUnansweredMessage(client)?.id)
+      return Number.isFinite(messageId) && messageId > 0 ? messageId : null
     },
 
     getRouteMessageId() {
-      const raw = this.router.query.messageId
+      const raw = this.$route.query.messageId
       if (Array.isArray(raw)) {
         return Number(raw[0])
       }
@@ -1770,45 +2141,142 @@ export default {
       return Number.isFinite(id) && id > 0 ? id : null
     },
 
-    handleRouteMessageId() {
-      const messageId = this.getRouteMessageId()
-      if (!messageId || this.routeMessageIdHandled) {
+    getChatNavigationStorageKey(clientId) {
+      return `chat-navigation-message:${Number(clientId)}`
+    },
+
+    getStoredNavigationMessageId(clientId) {
+      if (typeof sessionStorage === 'undefined') {
+        return null
+      }
+
+      const id = Number(clientId)
+      if (!Number.isFinite(id) || id <= 0) {
+        return null
+      }
+
+      const key = this.getChatNavigationStorageKey(id)
+      const raw = sessionStorage.getItem(key)
+      if (!raw) {
+        return null
+      }
+
+      try {
+        const value = JSON.parse(raw)
+        const messageId = Number(value?.messageId)
+        const createdAt = Number(value?.createdAt)
+        const isExpired = !Number.isFinite(createdAt) || Date.now() - createdAt > 5 * 60 * 1000
+        const isWrongClient = Number(value?.clientId) !== id
+        if (!Number.isFinite(messageId) || messageId <= 0 || isExpired || isWrongClient) {
+          sessionStorage.removeItem(key)
+          return null
+        }
+        return messageId
+      } catch (ignoreError) {
+        sessionStorage.removeItem(key)
+        return null
+      }
+    },
+
+    getNavigationMessageId(clientId = Number(this.$route.params.clientId)) {
+      return this.getRouteMessageId() || this.getStoredNavigationMessageId(clientId)
+    },
+
+    consumeNavigationMessageId(clientId, messageId) {
+      if (typeof sessionStorage !== 'undefined') {
+        const key = this.getChatNavigationStorageKey(clientId)
+        const storedMessageId = this.getStoredNavigationMessageId(clientId)
+        if (Number(storedMessageId) === Number(messageId)) {
+          sessionStorage.removeItem(key)
+        }
+      }
+
+      if (Number(this.getRouteMessageId()) !== Number(messageId)) {
         return
       }
-      this.routeMessageIdHandled = true
+
+      const query = {...this.$route.query}
+      delete query.messageId
+      this.$router.replace({
+        path: this.$route.path,
+        query,
+        hash: this.$route.hash
+      }).catch(() => undefined)
+    },
+
+    activateNavigationMessage(clientId, messageId, routeKey) {
+      this.linkedMessageId = null
+      this.$nextTick(() => {
+        setTimeout(() => {
+          if (Number(this.$route.params.clientId) !== Number(clientId)) {
+            return
+          }
+          this.linkedMessageId = Number(messageId)
+          this.routeMessageIdHandled = routeKey
+          this.consumeNavigationMessageId(clientId, messageId)
+        }, 100)
+      })
+    },
+
+    handleRouteMessageId() {
+      const clientId = Number(this.$route.params.clientId)
+      const messageId = this.getNavigationMessageId(clientId)
+      if (!messageId || !clientId) {
+        this.routeMessageIdHandled = null
+        return
+      }
+
+      if (Number(this.getClient.id) !== clientId) {
+        return
+      }
+
+      const routeKey = `${clientId}:${messageId}`
+      if (this.routeMessageIdHandled === routeKey) {
+        return
+      }
+
       const alreadyLoaded = this.getClient.messages
         ?.some(message => Number(message.id) === Number(messageId))
       if (alreadyLoaded) {
-        this.$nextTick(() => {
-          setTimeout(() => {
-            this.linkedMessageId = messageId
-          }, 100)
-        })
+        this.activateNavigationMessage(clientId, messageId, routeKey)
         return
       }
+
       this.getMessageOnSearch(messageId)
+        .then(loaded => {
+          if (!loaded || Number(this.$route.params.clientId) !== clientId) {
+            return
+          }
+          this.routeMessageIdHandled = routeKey
+          this.consumeNavigationMessageId(clientId, messageId)
+        })
+        .catch(() => {
+          if (this.routeMessageIdHandled === routeKey) {
+            this.routeMessageIdHandled = null
+          }
+        })
     },
 
-    getStatusName (status) {
+    getStatusName(status) {
       if (!status) {
         return ''
       }
       return typeof status === 'string' ? status : status.name || ''
     },
 
-    isClosedStatusName (statusName) {
+    isClosedStatusName(statusName) {
       return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
     },
 
-    isFrozenStatusName (statusName) {
+    isFrozenStatusName(statusName) {
       return ['заморожена', 'заморожено', 'заморожен'].includes(String(statusName || '').trim().toLowerCase())
     },
 
-    isOpenStatusName (statusName) {
+    isOpenStatusName(statusName) {
       return !!statusName && !this.isClosedStatusName(statusName) && !this.isFrozenStatusName(statusName)
     },
 
-    needStatusChangeReason (oldStatusName, newStatusName) {
+    needStatusChangeReason(oldStatusName, newStatusName) {
       const oldName = String(oldStatusName || '').trim()
       const newName = String(newStatusName || '').trim()
       if (!oldName || !newName || oldName.toLowerCase() === newName.toLowerCase()) {
@@ -1820,7 +2288,7 @@ export default {
       return this.isClosedStatusName(oldName) && this.isOpenStatusName(newName)
     },
 
-    getStatusChangeReasonTitle (oldStatusName, newStatusName) {
+    getStatusChangeReasonTitle(oldStatusName, newStatusName) {
       if (this.isClosedStatusName(newStatusName)) {
         return 'Причина закрытия заявки'
       }
@@ -1835,7 +2303,7 @@ export default {
       return 'Причина изменения статуса'
     },
 
-    requestStatusChangeReasonIfNeeded (oldStatusName, newStatusName) {
+    requestStatusChangeReasonIfNeeded(oldStatusName, newStatusName) {
       if (!this.needStatusChangeReason(oldStatusName, newStatusName)) {
         return Promise.resolve('')
       }
@@ -1849,7 +2317,7 @@ export default {
       })
     },
 
-    confirmStatusReasonDialog () {
+    confirmStatusReasonDialog() {
       const reason = String(this.statusReasonText || '').trim()
       if (!reason) {
         this.statusReasonError = true
@@ -1862,7 +2330,7 @@ export default {
       this.clearStatusReasonDialog()
     },
 
-    cancelStatusReasonDialog () {
+    cancelStatusReasonDialog() {
       this.statusReasonDialog = false
       if (this.statusReasonResolve) {
         this.statusReasonResolve(null)
@@ -1870,7 +2338,7 @@ export default {
       this.clearStatusReasonDialog()
     },
 
-    clearStatusReasonDialog () {
+    clearStatusReasonDialog() {
       this.statusReasonDialogTitle = ''
       this.statusReasonDialogMessage = ''
       this.statusReasonText = ''
@@ -1878,7 +2346,7 @@ export default {
       this.statusReasonResolve = null
     },
 
-    findInKnowledgeBase (text) {
+    findInKnowledgeBase(text) {
       const query = String(text || '').trim()
       if (!query) {
         return
@@ -1895,7 +2363,7 @@ export default {
       })
     },
 
-    editMessage ({ message, text }) {
+    editMessage({message, text}) {
       if (!message || !message.id) {
         this.isSending = false
         return
@@ -1904,15 +2372,9 @@ export default {
         text
       })
         .then(response => {
-          const updatedMessage = response.data
-          updatedMessage.date = new Date(updatedMessage.date)
-          if (updatedMessage.editedAt) {
-            updatedMessage.editedAt = new Date(updatedMessage.editedAt)
-          }
-          const localMessage = this.getClient.messages.find(m => Number(m.id) === Number(updatedMessage.id))
-          if (localMessage) {
-            Object.assign(localMessage, updatedMessage)
-          }
+          // Не мутируем найденный объект по месту: заменяем сообщение через
+          // общий reactive-путь, который также синхронизирует chat cache.
+          this.addOrUpdateClientMessage(response.data)
           this.keyPressed('')
         })
         .catch(e =>
@@ -1931,11 +2393,11 @@ export default {
   },
 
   computed: {
-    getClient () {
+    getClient() {
       if (this.isChatOnboardingActive) {
         return this.chatOnboardingDemoClient
       }
-      const clientId = Number(this.router.params.clientId)
+      const clientId = Number(this.$route.params.clientId)
       const client = this.store.clients.find(client => client.id === clientId)
       if (client) {
         return client
@@ -1951,35 +2413,41 @@ export default {
       }
     },
 
-    activeTemplates () {
+    activeTemplates() {
       return this.isChatOnboardingActive ? this.chatOnboardingDemoTemplates : this.store.templates
     },
 
-    activeKnowledgeBase () {
+    activeKnowledgeBase() {
       return this.isChatOnboardingActive ? this.chatOnboardingDemoKnowledgeBase : this.store.knowledgeBase
     },
 
-    activeTags () {
+    activeTags() {
       return this.isChatOnboardingActive ? this.chatOnboardingDemoTags : this.store.tags
     },
 
-    activeUsers () {
+    activeUsers() {
       return this.isChatOnboardingActive ? this.chatOnboardingDemoUsers : this.store.users
     },
 
-    activeOrganizations () {
+    activeOrganizations() {
       return this.isChatOnboardingActive ? this.chatOnboardingDemoOrganizations : this.store.organizations
     },
 
-    activeStatuses () {
+    activeStatuses() {
       return this.isChatOnboardingActive ? this.chatOnboardingDemoStatuses : this.store.statuses
     },
 
-    activePriorities () {
+    activePriorities() {
       return this.isChatOnboardingActive ? this.chatOnboardingDemoPriorities : this.store.priorities
     },
 
-    chatOnboardingSteps () {
+    activeClientTasks() {
+      return this.isChatOnboardingActive
+        ? (this.chatOnboardingDemoClient.tasks || [])
+        : this.currentClientTasks
+    },
+
+    chatOnboardingSteps() {
       return [
         {
           target: 'chat-dialog-column',
@@ -2009,7 +2477,19 @@ export default {
           target: 'chat-message-composer',
           tab: 'tab1',
           title: 'Поле ответа',
-          text: 'Здесь оператор пишет ответ клиенту, прикладывает файлы и может использовать быстрые шаблоны.'
+          text: 'В нижней части диалога собраны инструменты отправки сообщения. Следующие подсказки отдельно покажут ввод текста и вложения.'
+        },
+        {
+          target: 'chat-message-input',
+          tab: 'tab1',
+          title: 'Текст сообщения',
+          text: 'Здесь набирается ответ клиенту. В поле также работают упоминания и быстрые шаблоны по сокращениям.'
+        },
+        {
+          target: 'chat-attach-file',
+          tab: 'tab1',
+          title: 'Вложения',
+          text: 'Кнопка со скрепкой добавляет к ответу файлы. Перед отправкой вложения отображаются над полем сообщения.'
         },
         {
           target: 'chat-comment-mode',
@@ -2029,7 +2509,14 @@ export default {
           tab: 'tab2',
           requiresHelper: true,
           title: 'Шаблоны ответов',
-          text: 'Шаблоны ускоряют типовые ответы. Можно найти нужный текст и вставить его в сообщение.'
+          text: 'Шаблоны ускоряют типовые ответы. Нажатие на шаблон вставляет готовый текст в сообщение.'
+        },
+        {
+          target: 'chat-helper-template-search',
+          tab: 'tab2',
+          requiresHelper: true,
+          title: 'Поиск по шаблонам',
+          text: 'Ищите шаблон по тексту или его короткому сокращению, чтобы не прокручивать весь список.'
         },
         {
           target: 'chat-helper-kb',
@@ -2039,10 +2526,85 @@ export default {
           text: 'База знаний помогает оператору быстро найти инструкцию, регламент или готовый порядок действий.'
         },
         {
+          target: 'chat-helper-kb-search',
+          tab: 'tab2',
+          requiresHelper: true,
+          title: 'Поиск по базе знаний',
+          text: 'Поле ищет материалы по названию статьи.'
+        },
+        {
+          target: 'chat-helper-kb-tags',
+          tab: 'tab2',
+          requiresHelper: true,
+          title: 'Фильтр по тегам',
+          text: 'Теги сужают базу знаний до материалов по нужной теме, продукту или типу проблемы.'
+        },
+        {
+          target: 'chat-helper-ai-query',
+          tab: 'tab2',
+          requiresHelper: true,
+          title: 'Запрос к ИИ',
+          text: 'Сформулируйте вопрос по проблеме клиента. ИИ использует доступные материалы поддержки и показывает ответ прямо в Хелпере.'
+        },
+        {
           target: 'chat-client-card',
           tab: 'tab3',
           title: 'Карточка клиента',
-          text: 'Справа отображаются имя клиента, организация, канал обращения и дополнительные сведения.'
+          text: 'В верхней части колонки собрана информация о клиенте. Следующие подсказки отдельно разберут каждое поле.'
+        },
+        {
+          target: 'chat-client-name',
+          tab: 'tab3',
+          title: 'Имя клиента',
+          text: 'Имя помогает быстро убедиться, что открыт нужный диалог.'
+        },
+        {
+          target: 'chat-client-organization',
+          tab: 'tab3',
+          title: 'Организация',
+          text: 'Организация задает корпоративный контекст клиента и связана с договорами, сервисами и SLA.'
+        },
+        {
+          target: 'chat-client-extra',
+          tab: 'tab3',
+          title: 'Дополнительные сведения',
+          text: 'Здесь хранятся короткие заметки о клиенте, которые важно видеть оператору во время общения.'
+        },
+        {
+          target: 'chat-client-channel',
+          tab: 'tab3',
+          title: 'Канал обращения',
+          text: 'Поле показывает, откуда пришел диалог: Telegram, WhatsApp, Email или другой подключенный канал.'
+        },
+        {
+          target: 'chat-client-edit',
+          tab: 'tab3',
+          title: 'Редактирование клиента',
+          text: 'Нажмите на карандаш рядом с именем, чтобы изменить имя, организацию и дополнительные сведения о клиенте.'
+        },
+        {
+          target: 'chat-task-toolbar',
+          tab: 'tab3',
+          title: 'Заявки клиента',
+          text: 'Ниже карточки клиента находятся связанные заявки и инструменты работы с их списком.'
+        },
+        {
+          target: 'chat-tasks-completed',
+          tab: 'tab3',
+          title: 'Закрытые и замороженные',
+          text: 'Переключатель добавляет в список уже закрытые и замороженные заявки этого клиента.'
+        },
+        {
+          target: 'chat-task-search',
+          tab: 'tab3',
+          title: 'Поиск по заявкам клиента',
+          text: 'Поле позволяет быстро найти нужную заявку внутри истории конкретного клиента.'
+        },
+        {
+          target: 'chat-task-sort',
+          tab: 'tab3',
+          title: 'Сортировка заявок',
+          text: 'Сортировка меняет порядок связанных заявок по выбранному признаку.'
         },
         {
           target: 'chat-create-task',
@@ -2059,15 +2621,15 @@ export default {
       ]
     },
 
-    currentChatOnboardingStep () {
+    currentChatOnboardingStep() {
       return this.chatOnboardingSteps[this.chatOnboardingStepIndex]
     },
 
-    isLastChatOnboardingStep () {
+    isLastChatOnboardingStep() {
       return this.chatOnboardingStepIndex >= this.chatOnboardingSteps.length - 1
     },
 
-    chatOnboardingHighlightStyle () {
+    chatOnboardingHighlightStyle() {
       if (!this.chatOnboardingTargetRect) {
         return {}
       }
@@ -2079,16 +2641,21 @@ export default {
       }
     },
 
-    isMobile () {
+    isObserverUser() {
+      return Array.isArray(this.store.currentUser?.authorities) &&
+        this.store.currentUser.authorities.includes('OBSERVER')
+    },
+
+    isMobile() {
       return this.$q.screen.width < 1023
     },
 
-    isHelperVisible () {
+    isHelperVisible() {
       const role = this.store.currentUser?.authorities?.[0]
       return this.isShowHelper && ['ADMIN', 'OPERATOR'].includes(role)
     },
 
-    desktopGridStyle () {
+    desktopGridStyle() {
       if (this.isMobile) {
         return ''
       }
@@ -2109,7 +2676,7 @@ export default {
   },
 
   watch: {
-    isShowHelper () {
+    isShowHelper() {
       this.$nextTick(() => {
         this.applyColumnWidthsFromRatios()
         requestAnimationFrame(() => {
@@ -2118,17 +2685,39 @@ export default {
       })
     },
 
-    'router.query.messageId'() {
-      this.routeMessageIdHandled = false
-      this.handleRouteMessageId()
+    '$route.query.messageId'(newValue, oldValue) {
+      if (!newValue && oldValue) {
+        return
+      }
+      this.routeMessageIdHandled = null
+      this.$nextTick(() => this.handleRouteMessageId())
     },
 
-    'router.params.clientId'() {
+    '$route.params.clientId'() {
+      this.routeMessageIdHandled = null
+      this.linkedMessageId = null
       this.currentClientTasks = []
+      this.messagesLoadedForCurrentChat = false
+      this.pageCounter = 0
+      this.pendingNewMessagesCount = 0
+      this.hasTrimmedNewerMessages = false
+      this.$nextTick(() => {
+        this.loadCurrentChatData()
+        this.handleRouteMessageId()
+      })
+    },
+
+    'store.clients': {
+      handler() {
+        // /api/v1/clients обычно приходит уже после messages-page при F5.
+        // В этот момент переносим кэш в появившийся реальный объект клиента.
+        this.syncCachedMessagesToRealClient()
+        this.$nextTick(() => this.handleRouteMessageId())
+      }
     },
   },
 
-  mounted () {
+  mounted() {
     this.isShowHelper = this.isChatOnboardingActive || localStorage.getItem('isShowHelper') !== 'false'
     this.$nextTick(() => {
       this.initColumnWidths()
@@ -2157,22 +2746,23 @@ export default {
     })
   },
 
-  created () {
+  created() {
     if (!this.isChatOnboardingActive) {
-      this.getMessagePage()
-      this.messagesLoadedForCurrentChat = true
-      this.initCurrentChatDraft()
+      this.loadCurrentChatData()
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
     const router = useRoute()
-    return { store, router }
+    return {store, router}
   },
 
-  beforeUnmount () {
+  beforeUnmount() {
     this.stopColumnResize()
+    clearTimeout(this.socketMessageRefreshTimer)
+    this.socketMessageRefreshTimer = null
+    this.socketMessageRefreshLoadedWindow = false
     if (this.clientMessageUnsubscribe) {
       this.clientMessageUnsubscribe()
       this.clientMessageUnsubscribe = null

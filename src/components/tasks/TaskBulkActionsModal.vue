@@ -53,11 +53,22 @@
         </template>
       </q-input>
       <q-select
+        v-if="this.action === 'supportLine'"
+        data-tour="tasks-bulk-actions-field"
+        v-model="this.tasksSupportLineId"
+        :options="this.supportLineOptions"
+        emit-value
+        map-options
+        label="Линия поддержки *"
+        :rules="[val => val != null || 'Выберите линию поддержки']"
+        style="width: 100%;"
+      />
+      <q-select
         v-if="this.action === 'executor'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksExecutor"
         :options="this.filteredExecutorOptions"
-        label="Исполнитель"
+        label="Исполнитель *"
         :rules="[val => this.isValidExecutorSelection(val) || 'Выберите исполнителя']"
         use-input
         fill-input
@@ -74,7 +85,7 @@
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksStatus"
         :options="this.store.statuses.map(s => s.name)"
-        label="Статус"
+        label="Статус *"
         :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         style="width: 100%;"
       />
@@ -84,7 +95,7 @@
         v-model="this.tasksPriority"
         :options="this.store.priorities.map(priority => priority.name)"
         style="width: 100%;"
-        label="Приоритет"
+        label="Приоритет *"
         :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
       />
       <q-select
@@ -94,8 +105,20 @@
         :options="this.taskTypeOptions"
         option-label="type"
         style="width: 100%;"
-        label="Тип заявки"
+        label="Тип заявки *"
         :rules="[val => this.isValidTaskTypeSelection(val) || 'Выберите тип заявки']"
+      />
+      <q-select
+        v-if="this.action === 'service'"
+        data-tour="tasks-bulk-actions-field"
+        v-model="this.tasksServiceId"
+        :options="this.serviceOptions"
+        emit-value
+        map-options
+        clearable
+        style="width: 100%;"
+        label="Сервис *"
+        :rules="[val => val != null || 'Выберите сервис']"
       />
       <q-select
         v-if="this.action === 'tags'"
@@ -200,7 +223,7 @@
         </q-card-section>
 
         <q-card-actions align="right">
-          <q-btn flat label="Закрыть" color="primary" v-close-popup/>
+          <q-btn flat label="Отмена" color="primary" v-close-popup/>
           <div id="freeze-save-btn">
             <q-btn label="Применить" color="primary" v-close-popup/>
           </div>
@@ -228,11 +251,13 @@ export default {
   data: () => ({
     tasksPriority: '',
     tasksFreezeUntil: '',
+    tasksSupportLineId: null,
     tasksExecutor: '',
     executorFilter: '',
     executorInputValue: '',
     tasksStatus: '',
     tasksType: null,
+    tasksServiceId: null,
     taskTypes: [],
     tasksTags: [],
     tasksDeadline: '',
@@ -293,7 +318,7 @@ export default {
         .filter(Boolean)
         .map(role => String(role).trim().toUpperCase())
 
-      return userRoles.includes('ADMIN') || userRoles.includes('OPERATOR')
+      return userRoles.includes('ADMIN') || userRoles.includes('MANAGER') || userRoles.includes('OPERATOR')
     },
 
     getAssignableExecutorUsers() {
@@ -430,6 +455,14 @@ export default {
       return name ? `name:${name}` : 'none'
     },
 
+    getSupportLineKey(task) {
+      return this.getEntityKey(task?.supportLine, supportLine => supportLine?.name || supportLine)
+    },
+
+    getSupportLineValue(task) {
+      return task?.supportLine?.id || null
+    },
+
     getExecutorKey(task) {
       return this.getEntityKey(task?.executor, executor => this.getUserName(executor))
     },
@@ -532,14 +565,22 @@ export default {
       const firstTask = tasks[0]
 
       if (!firstTask) {
+        this.tasksSupportLineId = null
         this.tasksExecutor = ''
         this.tasksPriority = ''
         this.tasksType = null
+        this.tasksServiceId = null
         this.tasksStatus = ''
         this.tasksTags = []
         this.tasksDeadline = ''
         return
       }
+
+      this.tasksSupportLineId = this.getSameSelectedTaskValue(
+        task => this.getSupportLineKey(task),
+        task => this.getSupportLineValue(task),
+        null
+      )
 
       this.tasksExecutor = this.getSameSelectedTaskValue(
         task => this.getExecutorKey(task),
@@ -557,6 +598,12 @@ export default {
         task => this.getTaskTypeKey(task?.type),
         task => this.normalizeTaskTypeOption(task?.type),
         this.getMixedTaskTypeOption()
+      )
+
+      this.tasksServiceId = this.getSameSelectedTaskValue(
+        task => task?.service?.id == null ? 'none' : String(task.service.id),
+        task => task?.service?.id || null,
+        null
       )
 
       this.tasksStatus = this.getSameSelectedTaskValue(
@@ -582,8 +629,14 @@ export default {
       if (['close', 'open'].includes(this.action)) {
         return true
       }
+      if (this.action === 'supportLine') {
+        return this.tasksSupportLineId != null
+      }
       if (this.action === 'type') {
         return this.isValidTaskTypeSelection(this.tasksType)
+      }
+      if (this.action === 'service') {
+        return this.tasksServiceId != null
       }
       if (this.action === 'freeze') {
         return String(this.tasksFreezeUntil || '').length > 0
@@ -669,6 +722,14 @@ export default {
         if (frozenStatus) {
           task.status = frozenStatus
         }
+      } else if (this.action === 'supportLine') {
+        const selectedSupportLine = (this.store.supportLines || [])
+          .find(line => Number(line?.id) === Number(this.tasksSupportLineId))
+        task.supportLine = selectedSupportLine || sourceTask.supportLine
+
+        if (selectedSupportLine && task.executor && !this.isExecutorInSupportLine(task.executor, selectedSupportLine)) {
+          task.executor = null
+        }
       } else if (this.action === 'executor') {
         task.executor = this.findExecutorBySelectedValue(this.tasksExecutor)
       } else if (this.action === 'status') {
@@ -699,6 +760,8 @@ export default {
         task.type = this.isValidTaskTypeSelection(this.tasksType)
           ? this.tasksType
           : sourceTask.type
+      } else if (this.action === 'service') {
+        task.service = (this.store.services || []).find(service => Number(service.id) === Number(this.tasksServiceId)) || sourceTask.service
       } else if (this.action === 'tags') {
         const taskTags = []
         this.tasksTags.forEach(tagName => taskTags.push(this.store.tags.find(tag => tag.name === tagName)))
@@ -1035,6 +1098,19 @@ export default {
       })
       return false
     },
+
+    isExecutorInSupportLine(executor, supportLine) {
+      if (!executor?.id || !supportLine) {
+        return false
+      }
+
+      const executorId = Number(executor.id)
+      if (Number(supportLine.responsible?.id) === executorId) {
+        return true
+      }
+
+      return (supportLine.members || []).some(member => Number(member?.id) === executorId)
+    },
   },
 
   created() {
@@ -1051,6 +1127,26 @@ export default {
         .filter(user => !needle || this.getExecutorSearchText(user).includes(needle))
         .map(user => this.getUserName(user))
         .filter(Boolean)
+    },
+
+    supportLineOptions () {
+      return [...(this.store.supportLines || [])]
+        .filter(line => line?.id != null && line.active !== false)
+        .sort((a, b) => Number(a.orderNumber || 0) - Number(b.orderNumber || 0))
+        .map(line => ({
+          value: line.id,
+          label: line.name || `Линия ${line.id}`
+        }))
+    },
+
+    serviceOptions () {
+      return (this.store.services || [])
+        .filter(service => service?.id != null && service.active !== false)
+        .map(service => ({
+          value: service.id,
+          label: [service.code, service.name].filter(Boolean).join(' · ') || `Сервис ${service.id}`
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
     },
 
     taskTypeOptions () {
@@ -1073,6 +1169,8 @@ export default {
           return 'Открыть заявки'
         // case 'freeze':
         //   return 'Заморозить заявки'
+        case 'supportLine':
+          return 'Изменить линию поддержки'
         case 'executor':
           return 'Изменить исполнителя заявок'
         case 'status':
@@ -1081,6 +1179,8 @@ export default {
           return 'Изменить приоритеты заявок'
         case 'type':
           return 'Изменить тип заявки'
+        case 'service':
+          return 'Изменить сервис заявок'
         case 'tags':
           return 'Изменить теги заявок'
         case 'deadline':
@@ -1098,6 +1198,8 @@ export default {
           return 'Заявки открыты'
         case 'freeze':
           return 'Заявки заморожены'
+        case 'supportLine':
+          return 'Линия поддержки изменена'
         case 'executor':
           return 'Исполнитель изменен'
         case 'status':
@@ -1106,6 +1208,8 @@ export default {
           return 'Приоритет изменен'
         case 'type':
           return 'Тип заявки изменен'
+        case 'service':
+          return 'Сервис заявок изменен'
         case 'tags':
           return 'Теги изменены'
         case 'deadline':

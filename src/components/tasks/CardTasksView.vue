@@ -1,7 +1,7 @@
 <template>
   <div
     v-for="(taskList, index) in this.groupedTasks"
-    :key="index"
+    :key="taskList.groupKey || taskList.title || index"
     class="list"
     :data-tour="index === 0 ? 'tasks-board-column' : null"
   >
@@ -12,7 +12,7 @@
       :style="`background-color: hsl(${360 / this.groupedTasks.length * (this.groupedTasks.length - index)}deg 85% 40%);`"
     >
       <label
-        v-if="taskList.taskCards"
+        v-if="taskList.taskCards && !this.isObserverUser"
         class="custom-checkbox"
         :data-tour="index === 0 ? 'tasks-group-select' : null"
       >
@@ -27,36 +27,26 @@
         >
         <span class="checkmark"></span>
       </label>
-      {{ taskList.title }}
+      <span class="list-header-title" :title="taskList.title">{{ taskList.title }}</span>
     </div>
     <div
       class="list-cards"
     >
       <q-item
         v-for="(task, taskIndex) in taskList.taskCards"
-        :key="taskIndex"
-        style="
-         border-style: solid;
-         border-width: 0.01em;
-         border-radius: 4px;
-         border-color: var(--q-primary);
-         margin-top: 8px;
-         max-width: 420px;
-         width: 420px;
-         overflow: hidden
-        "
-        class="no-padding"
+        :key="task.id || taskIndex"
+        class="task-card-frame no-padding"
         :data-tour="index === 0 && taskIndex === 0 ? 'tasks-task-card' : null"
       >
         <q-item
           clickable
-          style="padding: 8px;max-width: 420px;width: 420px;"
+          class="task-card-clickable"
           @click="handleTaskClick(task)"
         >
           <task-card
             class="task-card"
             :task="task"
-            :selectedSorting="this.selectedGroupType"
+            :selectedGroupType="this.selectedGroupType"
             :descriptionRequire="false"
             :slaRequire="true"
             :taskNameShort="22"
@@ -65,6 +55,7 @@
             <!--:slaRequire="false"-->
             <template v-slot:checkBox>
               <label
+                v-if="!this.isObserverUser"
                 @click.stop
                 class="custom-checkbox"
                 :data-tour="index === 0 && taskIndex === 0 ? 'tasks-task-select' : null"
@@ -115,7 +106,7 @@ export default {
 
   name: 'CardTasksView',
 
-  props: ['groupedTasks', 'selectedGroupType', 'isOnboardingDemo'],
+  props: ['groupedTasks', 'selectedGroupType', 'selectedSorting', 'isOnboardingDemo'],
 
   data: () => ({
     checkedTasks: {},
@@ -142,7 +133,7 @@ export default {
 
   methods: {
     toggleGroupTasks (taskCards, isChecked) {
-      if (this.isOnboardingDemo) {
+      if (this.isObserverUser || this.isOnboardingDemo) {
         return
       }
       taskCards.forEach(task => {
@@ -152,7 +143,10 @@ export default {
     },
 
     updateSelectedTasks () {
-      if (this.isOnboardingDemo) {
+      if (this.isObserverUser || this.isOnboardingDemo) {
+        if (this.isObserverUser && this.store.checkedTasks.length > 0) {
+          this.store.checkedTasks = []
+        }
         return
       }
       this.store.checkedTasks = Object.entries(this.checkedTasks)
@@ -195,10 +189,20 @@ export default {
 
     storeCheckedTasks () {
       return this.store.checkedTasks
+    },
+
+    isObserverUser () {
+      return Array.isArray(this.store.currentUser?.authorities) &&
+        this.store.currentUser.authorities.includes('OBSERVER')
     }
   },
 
   created () {
+    if (this.isObserverUser) {
+      this.store.checkedTasks = []
+      this.checkedTasks = {}
+      return
+    }
     this.checkedTasks = this.store.checkedTasks.reduce((acc, task) => {
       acc[task.id] = true
       return acc
@@ -239,11 +243,38 @@ export default {
   font-weight: bold;
 }
 
+.list-header-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .list-cards {
   width: 440px;
   padding: 10px;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+
+.task-card-frame {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid var(--q-primary);
+  border-radius: 4px;
+}
+
+.task-card-clickable {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 8px;
 }
 
 .hidden-checkbox {

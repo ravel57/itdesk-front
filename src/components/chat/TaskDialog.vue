@@ -11,7 +11,7 @@
       data-tour="task-dialog-card"
       :class="[
         'task-dialog-card',
-        this.isMobile || !['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask
+        this.isMobile || !['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask
           ? 'dialog-width'
           : 'large-dialog-width'
   ]"
@@ -22,6 +22,7 @@
         <div v-else class="text-h6" data-tour="task-dialog-title">Заявка № {{ this.task.id }}</div>
         <div class="">
           <q-btn
+            v-if="!this.isObserverReadOnly"
             flat
             round
             dense
@@ -64,7 +65,7 @@
             round
             dense
             icon="close"
-            @click="this.openSubmitModal"
+            @click="this.isObserverReadOnly ? this.closeDialog() : this.openSubmitModal()"
             v-close-popup
           />
         </div>
@@ -73,8 +74,12 @@
         class="task-dialog-body"
         style="padding: 0 16px"
       >
+        <incident-task-banner
+          v-if="!this.isNewTask && this.task?.id"
+          :task-id="this.task.id"
+        />
         <div
-          v-if="this.isMobile && !this.isNewTask"
+          v-if="this.isMobile && !this.isNewTask && !this.isObserverReadOnly"
           class="sticky-tabs"
         >
           <q-tabs
@@ -95,7 +100,7 @@
           </q-tabs>
         </div>
         <div
-          :class="this.isMobile || this.isNewTask ? '' : 'flex-container'"
+          :class="this.isMobile || this.isNewTask || this.isObserverReadOnly ? '' : 'flex-container'"
         >
           <div
             v-if="(!this.isMobile || this.dialogTab === 'tab1')"
@@ -111,6 +116,7 @@
                   id="task-name"
                   data-tour="task-dialog-name"
                   v-model="this.dialogTaskName"
+                  :readonly="this.isObserverReadOnly"
                   ref="taskName"
                   label="Название *"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
@@ -119,6 +125,7 @@
                   id="task-type"
                   data-tour="task-dialog-type"
                   v-model="this.dialogTaskType"
+                  :readonly="this.isObserverReadOnly"
                   :options="this.filteredTaskTypes"
                   label="Тип *"
                   use-input
@@ -144,6 +151,7 @@
                   </div>
 
                   <q-btn
+                    v-if="!this.isObserverReadOnly"
                     flat
                     dense
                     no-caps
@@ -163,6 +171,7 @@
                     dense
                     outlined
                     v-model="this.dialogTaskStatus"
+                    :readonly="this.isObserverReadOnly"
                     :options="this.isNewTask ? this.store.statuses.filter(s => s.name !== 'Закрыта' && s.name !== 'Заморожена').map(s => s.name) : this.store.statuses.map(s => s.name)"
                     label="Статус *"
                     :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
@@ -170,7 +179,7 @@
                     :style="this.getBackgroundColor(this.dialogTaskStatus)"
                   />
                   <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
                     dense
                     outline
                     no-caps
@@ -181,7 +190,7 @@
                     @click="this.setTaskCompleted(this.task)"
                   />
                   <q-btn
-                    v-if="this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+                    v-if="this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
                     dense
                     outline
                     no-caps
@@ -193,7 +202,7 @@
                   />
                   <div id="unfreeze-task-btn">
                     <q-btn
-                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
                       dense
                       outline
                       icon="ac_unit"
@@ -224,7 +233,7 @@
                   </div>
                   <div id="freeze-task-btn">
                     <q-btn
-                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
                       dense
                       outline
                       icon="ac_unit"
@@ -241,12 +250,14 @@
                   data-tour="task-dialog-description"
                   type="textarea"
                   v-model="this.dialogTaskDescription"
+                  :readonly="this.isObserverReadOnly"
                   label="Описание"
                 />
                 <q-select
                   id="task-priority"
                   data-tour="task-dialog-priority"
                   v-model="this.dialogTaskPriority"
+                  :readonly="this.isObserverReadOnly"
                   :options="this.store.priorities.map(priority => priority.name)"
                   label="Приоритет *"
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
@@ -255,6 +266,7 @@
                   id="task-support-line"
                   data-tour="task-dialog-support-line"
                   v-model="this.dialogTaskSupportLine"
+                  :readonly="this.isObserverReadOnly"
                   :options="this.activeSupportLineNames"
                   label="Линия поддержки"
                   @update:model-value="this.onSupportLineChanged"
@@ -263,18 +275,49 @@
                   id="task-executor"
                   data-tour="task-dialog-executor"
                   v-model="this.dialogTaskExecutor"
+                  :readonly="this.isObserverReadOnly"
                   :options="this.filteredUsers"
                   :label="this.isClosingDialogTask() ? 'Исполнитель *' : 'Исполнитель'"
                   :rules="[val => !this.isClosingDialogTask() || (val && val.length > 0) || 'Исполнитель обязателен при закрытии']"
+                  :hint="this.isObserverReadOnly ? '' : executorSelectionHint"
+                  :disable="!this.isObserverReadOnly && executorSelectDisabled"
+                  clearable
                   use-input
+                  input-debounce="0"
+                  :virtual-scroll-slice-size="Math.max(this.filteredUsers.length, 30)"
+                  popup-content-style="max-height: 60vh"
                   @filter="filterUsers"
-                />
+                >
+                  <template #no-option>
+                    <q-item>
+                      <q-item-section class="text-grey">
+                        В выбранной линии нет активных участников
+                      </q-item-section>
+                    </q-item>
+                  </template>
+                </q-select>
+                <q-banner
+                  v-if="showOlaInfo"
+                  rounded
+                  dense
+                  class="task-ola-banner q-mt-sm"
+                  :class="olaBannerClass"
+                >
+                  <template #avatar>
+                    <q-icon name="timer" />
+                  </template>
+                  <div class="text-caption text-weight-medium">{{ taskOlaLabel }}</div>
+                  <div v-if="this.task?.enteredCurrentLineAt || this.task?.supportLineEnteredAt || this.task?.olaStartedAt" class="text-caption opacity-80">
+                    На линии с {{ formatDateForOla(this.task.enteredCurrentLineAt || this.task.supportLineEnteredAt || this.task.olaStartedAt) }}
+                  </div>
+                </q-banner>
                 <q-select
                   id="task-tags"
                   data-tour="task-dialog-tags"
                   style="padding-top: 16px"
                   class="custom-select"
                   v-model="this.dialogTaskTags"
+                  :readonly="this.isObserverReadOnly"
                   :options="this.filteredTags"
                   multiple
                   label="Теги"
@@ -287,12 +330,14 @@
                   id="task-deadline"
                   data-tour="task-dialog-deadline"
                   v-model="this.dialogTaskDeadline"
-                  clearable
+                  :readonly="this.isObserverReadOnly"
+                  :clearable="!this.isObserverReadOnly"
                   label="Дедлайн"
                   @input="formatDateTime"
                   mask="##.##.#### ##:##"
                 >
                   <template
+                    v-if="!this.isObserverReadOnly"
                     v-slot:append
                   >
                     <q-icon
@@ -318,11 +363,27 @@
                     </q-icon>
                   </template>
                 </q-input>
+                <q-select
+                  id="task-service"
+                  data-tour="task-dialog-service"
+                  v-model="this.dialogTaskService"
+                  :readonly="this.isObserverReadOnly"
+                  :options="this.availableServiceLabels"
+                  label="Сервис"
+                  clearable
+                  use-input
+                  input-debounce="0"
+                  @update:model-value="this.onTaskServiceChanged"
+                >
+                  <template #no-option>
+                    <q-item><q-item-section class="text-grey">Для организации нет доступных сервисов</q-item-section></q-item>
+                  </template>
+                </q-select>
               </q-card-section>
             </q-card>
           </div>
           <div
-            v-if="(!this.isMobile || this.dialogTab === 'tab2') && ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.isNewTask"
+            v-if="(!this.isMobile || this.dialogTab === 'tab2') && this.isTaskDialogOperator && !this.isNewTask"
             id="chat-section"
             data-tour="task-dialog-right-panel"
             class="flex-item task-right-panel"
@@ -357,6 +418,7 @@
                   :input-field="this.inputField"
                   :templates="this.store.templates"
                   :isSending="this.isSending"
+                  :upload-progress="this.uploadProgress"
                   :current-user="this.store.currentUser"
                   :linkedMessageId="this.linkedMessageId"
                   :client-id="this.client.id"
@@ -542,9 +604,10 @@
           color="white"
           text-color="primary"
           label="Отмена"
-          @click="this.openSubmitModal"
+          @click="this.isObserverReadOnly ? this.closeDialog() : this.openSubmitModal()"
         />
         <q-btn
+          v-if="!this.isObserverReadOnly"
           id="save-task"
           color="primary"
           label="Сохранить"
@@ -573,7 +636,7 @@
             <q-input
               v-model="this.dialogTaskFreezeUntil"
               clearable
-              label="Заморозить до"
+              label="Заморозить до *"
               mask="##.##.#### ##:##"
             >
               <template
@@ -828,16 +891,18 @@
 <script>
 import moment from 'moment/moment'
 import axios from 'axios'
+import { getUploadErrorMessage, getUploadProgress } from 'src/util/messageFileUpload'
 import { useStore } from 'stores/store'
 import ChatDialog from 'components/chat/ChatDialog.vue'
 import OrganizationVisitDialog from 'components/organization/OrganizationVisitDialog.vue'
+import IncidentTaskBanner from 'components/incidents/IncidentTaskBanner.vue'
 import draggable from 'vuedraggable'
 import { useRoute } from 'vue-router'
 import { onTaskMessage, onTaskUpdated } from 'src/util/ws'
 
 export default {
 
-  components: { ChatDialog, OrganizationVisitDialog, draggable },
+  components: { ChatDialog, OrganizationVisitDialog, IncidentTaskBanner, draggable },
 
   props: [
     'isMobile',
@@ -862,6 +927,7 @@ export default {
     dialogTaskDescription: '',
     dialogTaskPriority: '',
     dialogTaskSupportLine: '',
+    dialogTaskService: '',
     dialogTaskExecutor: '',
     dialogTaskTags: [],
     dialogTaskStatus: '',
@@ -873,6 +939,7 @@ export default {
     taskId: null, // for update
     inputField: '',
     isSending: false,
+    uploadProgress: null,
     freezeDialog: false,
     dialogTaskFreezeUntil: '',
     dialogTaskFreezeReason: '',
@@ -891,6 +958,9 @@ export default {
     pendingSubmitSourceTask: null,
 
     filteredUsers: [],
+    supportLineAssignableUsers: [],
+    supportLineAssignableUsersLineId: null,
+    supportLineAssignableUsersRequestId: 0,
     filteredTags: [],
     filteredTaskTypes: [],
 
@@ -927,6 +997,12 @@ export default {
         dialogTab: 'tab1'
       },
       {
+        target: 'task-dialog-type',
+        title: 'Тип заявки',
+        text: 'Тип задает категорию процесса и может предложить стандартный чек-лист для этого вида работ.',
+        dialogTab: 'tab1'
+      },
+      {
         target: 'task-dialog-status-controls',
         title: 'Статус и закрытие',
         text: 'Статус показывает этап обработки. Рядом доступны быстрые действия: закрыть заявку, вернуть в работу или заморозить выполнение.',
@@ -942,6 +1018,12 @@ export default {
         target: 'task-dialog-priority',
         title: 'Приоритет',
         text: 'Приоритет помогает понять срочность. Критичные и высокие заявки легче поднять в очереди и контролировать по SLA.',
+        dialogTab: 'tab1'
+      },
+      {
+        target: 'task-dialog-support-line',
+        title: 'Линия поддержки',
+        text: 'Линия поддержки определяет текущую очередь ответственности. От выбранной линии также зависит список доступных исполнителей и OLA.',
         dialogTab: 'tab1'
       },
       {
@@ -963,6 +1045,12 @@ export default {
         dialogTab: 'tab1'
       },
       {
+        target: 'task-dialog-service',
+        title: 'Сервис',
+        text: 'Сервис связывает заявку с конкретной услугой организации и помогает учитывать договорный контекст обращения.',
+        dialogTab: 'tab1'
+      },
+      {
         target: 'task-dialog-open-chat',
         title: 'Переход в чат клиента',
         text: 'Кнопка открывает чат клиента, чтобы посмотреть полный контекст общения и продолжить диалог.',
@@ -972,8 +1060,8 @@ export default {
       },
       {
         target: 'task-dialog-right-panel',
-        title: 'Связанные сообщения и история',
-        text: 'Правая часть заявки показывает переписку по этой заявке и историю изменений. На мобильном экране этот блок открывается отдельной вкладкой.',
+        title: 'Сообщения, чек-лист и история',
+        text: 'Правая часть заявки хранит связанную переписку, рабочий чек-лист и историю изменений. На мобильном экране этот блок открывается отдельной вкладкой.',
         dialogTab: 'tab2',
         rightTab: 'messages',
         requiresExistingTask: true,
@@ -989,9 +1077,18 @@ export default {
         requiresOperator: true
       },
       {
-        target: 'task-dialog-history-tab',
+        target: 'task-dialog-checklist-panel',
+        title: 'Чек-лист заявки',
+        text: 'Чек-лист разбивает работу на конкретные действия. Пункты можно добавлять, отмечать выполненными, редактировать и менять местами.',
+        dialogTab: 'tab2',
+        rightTab: 'checklist',
+        requiresExistingTask: true,
+        requiresOperator: true
+      },
+      {
+        target: 'task-dialog-history-panel',
         title: 'История изменений',
-        text: 'На вкладке истории можно проверить, кто менял статус, приоритет, исполнителя, дедлайн и другие поля заявки.',
+        text: 'История показывает, кто и когда менял статус, приоритет, исполнителя, дедлайн и другие поля заявки.',
         dialogTab: 'tab2',
         rightTab: 'history',
         requiresExistingTask: true,
@@ -1423,7 +1520,16 @@ export default {
       if (typeof this.requestStatusChangeReason === 'function') {
         return this.requestStatusChangeReason(oldStatusName, newStatusName)
       }
-      return Promise.resolve(null)
+
+      this.statusReasonDialogTitle = this.getStatusChangeReasonTitle(oldStatusName, newStatusName)
+      this.statusReasonDialogMessage = `Статус: «${oldStatusName}» → «${newStatusName}»`
+      this.statusReasonText = ''
+      this.statusReasonError = false
+      this.statusReasonDialog = true
+
+      return new Promise(resolve => {
+        this.statusReasonResolve = resolve
+      })
     },
 
     confirmStatusReasonDialog () {
@@ -1445,6 +1551,28 @@ export default {
         this.statusReasonResolve(null)
       }
       this.clearStatusReasonDialog()
+    },
+
+    getServiceLabel (service) {
+      if (!service) return ''
+      const code = String(service.code || '').trim()
+      const name = String(service.name || '').trim()
+      return code ? `${code} · ${name}` : name
+    },
+
+    onTaskServiceChanged () {
+      const service = this.selectedDialogService
+      if (!service) return
+      if (service.defaultPriority?.name) this.dialogTaskPriority = service.defaultPriority.name
+      if (service.autoAssignDefaultLine !== false && service.defaultSupportLine?.name) {
+        this.dialogTaskSupportLine = service.defaultSupportLine.name
+        this.onSupportLineChanged()
+      }
+      const allowedTypes = Array.isArray(service.taskTypes) ? service.taskTypes : []
+      if (allowedTypes.length > 0 && !allowedTypes.some(type => type.type === this.dialogTaskType)) {
+        this.dialogTaskType = allowedTypes[0]?.type || ''
+        this.onTaskTypeChanged()
+      }
     },
 
     clearStatusReasonDialog () {
@@ -1484,6 +1612,7 @@ export default {
         this.dialogTaskDescription !== this.task.description ||
         this.dialogTaskPriority !== this.task.priority.name ||
         this.dialogTaskType !== (this.task.type?.type || '') ||
+        this.dialogTaskService !== this.getServiceLabel(this.task.service) ||
         JSON.stringify(this.normalizeChecklist(this.dialogTaskChecklist)) !== JSON.stringify(this.normalizeChecklist(this.task.checklist)) ||
         this.dialogTaskSupportLine !== (this.task.supportLine?.name || '') ||
         this.dialogTaskExecutor !== this.getUserName(this.task.executor) ||
@@ -1499,7 +1628,8 @@ export default {
         const messageText = this.getNewTaskFromMessageText()
         this.dialogTaskName = ''
         this.dialogTaskDescription = messageText
-        this.dialogTaskPriority = this.store.priorities.find(priority => priority.defaultSelection === true).name
+        this.dialogTaskPriority = this.store.priorities.find(priority => priority.defaultSelection === true)?.name || ''
+        this.dialogTaskService = ''
         this.dialogTaskSupportLine = this.store.supportLines.find(line => line.defaultSelection === true && line.active !== false)?.name ||
           this.store.supportLines.find(line => line.active !== false)?.name || ''
         this.dialogTaskExecutor = ''
@@ -1519,7 +1649,8 @@ export default {
         this.dialogTaskId = this.task.id
         this.dialogTaskName = this.task.name
         this.dialogTaskDescription = this.task.description
-        this.dialogTaskPriority = this.task.priority.name
+        this.dialogTaskPriority = this.task.priority?.name || ''
+        this.dialogTaskService = this.getServiceLabel(this.task.service)
         this.dialogTaskSupportLine = this.task.supportLine?.name || ''
         this.dialogTaskExecutor = this.getUserName(this.task.executor)
         this.dialogTaskTags = this.task.tags.map(tag => tag.name)
@@ -1534,6 +1665,8 @@ export default {
         this.newChecklistItemText = ''
       }
       this.$nextTick(() => {
+        this.refreshFilteredUsers()
+        this.loadSupportLineAssignableUsers()
         this.taskFieldsInitializing = false
       })
     },
@@ -1579,6 +1712,7 @@ export default {
         name: this.dialogTaskName,
         description: this.dialogTaskDescription,
         type: this.getSelectedTaskType(),
+        service: this.selectedDialogService,
         checklist: this.normalizeChecklist(this.dialogTaskChecklist),
         status: this.store.statuses.find(status => status.name === this.dialogTaskStatus),
         priority: this.store.priorities.find(priority => priority.name === this.dialogTaskPriority),
@@ -1941,6 +2075,7 @@ export default {
         executor: this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor),
         tags,
         type: this.getSelectedTaskType(),
+        service: this.selectedDialogService,
         checklist: this.normalizeChecklist(this.dialogTaskChecklist),
         completed: false,
         createdAt: this.isNewTask ? new Date() : this.taskCreatedAt,
@@ -2001,10 +2136,15 @@ export default {
         event.attachedFiles.forEach(file => {
           formData.append('files', file)
         })
+        this.uploadProgress = 0
         axios.post('/files/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: progressEvent => {
+            this.uploadProgress = getUploadProgress(progressEvent)
+          }
         })
           .then(response => {
+            this.uploadProgress = 1
             response.data.map((fileUuid, index) => ({
               ...event.message,
               fileUuid,
@@ -2017,9 +2157,10 @@ export default {
               })
             })
           })
-          .catch(e =>
+          .catch(e => {
+            this.isSending = false
             this.$q.notify({
-              message: e.message,
+              message: getUploadErrorMessage(e),
               type: 'negative',
               position: 'top-right',
               actions: [{
@@ -2028,7 +2169,11 @@ export default {
                 dense: true,
                 handler: () => undefined
               }]
-            }))
+            })
+          })
+          .finally(() => {
+            this.uploadProgress = null
+          })
       } else {
         this.sendTextMessage(event)
       }
@@ -2132,20 +2277,107 @@ export default {
       return generateHSLAColor(hue)
     },
 
+    isAssignableSupportLineUser (user) {
+      if (!user || user.enabled === false || user.isEnabled === false || user.active === false) {
+        return false
+      }
+      const authorities = Array.isArray(user.authorities) ? user.authorities : []
+      const roles = Array.isArray(user.roles) ? user.roles : (user.roles ? [user.roles] : [])
+      return [...authorities, ...roles]
+        .map(role => String(role).toUpperCase())
+        .some(role => role.includes('ADMIN') || role.includes('MANAGER') || role.includes('OPERATOR'))
+    },
+
+    mergeSupportLineUser (baseUser, lineUser) {
+      if (!baseUser) return lineUser
+      if (!lineUser) return baseUser
+      return { ...lineUser, ...baseUser }
+    },
+
     getSupportLineUsers () {
-      const selectedLine = this.store.supportLines.find(line => line.name === this.dialogTaskSupportLine)
-      const lineMembers = selectedLine?.members || []
-      const source = lineMembers.length > 0 ? lineMembers : this.store.users
-      return source.filter(user => ['ADMIN', 'OPERATOR'].some(role => (user.authorities || []).includes(role)))
+      const storeUsers = (this.store.users || []).filter(Boolean)
+      const selectedLine = (this.store.supportLines || []).find(line => line.name === this.dialogTaskSupportLine)
+
+      if (!selectedLine) {
+        return storeUsers
+          .filter(this.isAssignableSupportLineUser)
+          .sort((left, right) => this.getUserName(left).localeCompare(this.getUserName(right), 'ru'))
+      }
+
+      const storeUsersById = new Map(
+        storeUsers
+          .filter(user => user?.id != null)
+          .map(user => [Number(user.id), user])
+      )
+      const usersById = new Map()
+      const addLineUser = lineUser => {
+        if (lineUser?.id == null) return
+        const id = Number(lineUser.id)
+        const fullUser = this.mergeSupportLineUser(storeUsersById.get(id), lineUser)
+        const current = usersById.get(id)
+        usersById.set(id, this.mergeSupportLineUser(fullUser, current))
+      }
+
+      ;[...(selectedLine.members || []), selectedLine.responsible].forEach(addLineUser)
+
+      if (Number(this.supportLineAssignableUsersLineId) === Number(selectedLine.id)) {
+        ;(this.supportLineAssignableUsers || []).forEach(addLineUser)
+      }
+
+      return Array.from(usersById.values())
+        .filter(this.isAssignableSupportLineUser)
+        .sort((left, right) => this.getUserName(left).localeCompare(this.getUserName(right), 'ru'))
+    },
+
+    refreshFilteredUsers () {
+      this.filteredUsers = this.getSupportLineUsers().map(user => this.getUserName(user))
+    },
+
+    async loadSupportLineAssignableUsers () {
+      const selectedLine = (this.store.supportLines || []).find(line => line.name === this.dialogTaskSupportLine)
+      const lineId = Number(selectedLine?.id)
+      const requestId = ++this.supportLineAssignableUsersRequestId
+
+      if (!Number.isFinite(lineId)) {
+        this.supportLineAssignableUsers = []
+        this.supportLineAssignableUsersLineId = null
+        this.refreshFilteredUsers()
+        return
+      }
+
+      this.supportLineAssignableUsersLineId = lineId
+      try {
+        const { data } = await axios.get(`/api/v1/support-lines/${lineId}/assignable-users`)
+        if (requestId !== this.supportLineAssignableUsersRequestId || Number(this.supportLineAssignableUsersLineId) !== lineId) {
+          return
+        }
+        this.supportLineAssignableUsers = Array.isArray(data) ? data : []
+      } catch {
+        if (requestId !== this.supportLineAssignableUsersRequestId) return
+        // Оставляем локальные members как fallback для совместимости со старым backend.
+        this.supportLineAssignableUsers = []
+      } finally {
+        if (requestId === this.supportLineAssignableUsersRequestId) {
+          this.refreshFilteredUsers()
+        }
+      }
     },
 
     onSupportLineChanged () {
-      const availableIds = new Set(this.getSupportLineUsers().map(user => user.id))
-      const selectedUser = this.store.users.find(user => this.getUserName(user) === this.dialogTaskExecutor)
-      if (selectedUser && !availableIds.has(selectedUser.id)) {
+      this.supportLineAssignableUsers = []
+      this.supportLineAssignableUsersLineId = null
+      const availableUsers = this.getSupportLineUsers()
+      const selectedUser = availableUsers.find(user => this.getUserName(user) === this.dialogTaskExecutor)
+      if (this.dialogTaskExecutor && !selectedUser) {
         this.dialogTaskExecutor = ''
+        this.$q.notify({
+          type: 'info',
+          message: 'Исполнитель снят: он не состоит в выбранной линии поддержки',
+          position: 'top-right'
+        })
       }
-      this.filteredUsers = this.getSupportLineUsers().map(user => this.getUserName(user))
+      this.refreshFilteredUsers()
+      this.loadSupportLineAssignableUsers()
     },
 
     filterUsers (val, update) {
@@ -2155,6 +2387,23 @@ export default {
           .filter(user => !needle || this.getUserName(user).toLowerCase().includes(needle))
           .map(user => this.getUserName(user))
       })
+    },
+
+    formatOlaSeconds (value) {
+      const seconds = Math.max(0, Number(value || 0))
+      const days = Math.floor(seconds / 86400)
+      const hours = Math.floor((seconds % 86400) / 3600)
+      const minutes = Math.floor((seconds % 3600) / 60)
+      return [
+        days > 0 ? `${days} д.` : '',
+        hours > 0 ? `${hours} ч.` : '',
+        minutes > 0 || (days === 0 && hours === 0) ? `${minutes} мин.` : ''
+      ].filter(Boolean).join(' ')
+    },
+
+    formatDateForOla (value) {
+      const parsed = moment(value)
+      return parsed.isValid() ? parsed.format('DD.MM.YYYY HH:mm') : ''
     },
 
     filterTags (val, update) {
@@ -2357,6 +2606,12 @@ export default {
           return 'priority_high'
         case 'TASK_TYPE_CHANGED':
           return 'category'
+        case 'TASK_SERVICE_CHANGED':
+          return 'dns'
+        case 'FIRST_RESPONSE_SLA_WARNING':
+          return 'timer'
+        case 'FIRST_RESPONSE_SLA_BREACHED':
+          return 'timer_off'
         case 'TASK_ASSIGNEE_CHANGED':
         case 'TASK_EXECUTOR_CHANGED':
           return 'person'
@@ -2751,6 +3006,115 @@ export default {
   },
 
   computed: {
+    availableServices () {
+      const services = (this.store.services || []).filter(service => service?.active !== false)
+      const organizationId = Number(this.currentTaskOrganization?.id || this.currentTaskOrganization || 0)
+      if (!organizationId) return services
+
+      const organizationAssignments = services.flatMap(service =>
+        (Array.isArray(service.assignments) ? service.assignments : [])
+          .filter(assignment => Number(assignment?.organization?.id) === organizationId)
+      )
+      if (organizationAssignments.length === 0) return services
+
+      return services.filter(service => Array.isArray(service.assignments) && service.assignments.some(assignment =>
+        Number(assignment?.organization?.id) === organizationId &&
+        assignment?.active !== false &&
+        assignment?.effective !== false
+      ))
+    },
+
+    availableServiceLabels () {
+      return this.availableServices.map(service => this.getServiceLabel(service))
+    },
+
+    selectedDialogService () {
+      return (this.store.services || []).find(service => this.getServiceLabel(service) === this.dialogTaskService) || null
+    },
+
+    selectedDialogSupportLine () {
+      return (this.store.supportLines || []).find(line => line?.name === this.dialogTaskSupportLine) || null
+    },
+
+    executorSelectDisabled () {
+      if (this.activeSupportLineNames.length === 0) {
+        return false
+      }
+      return !this.dialogTaskSupportLine || this.getSupportLineUsers().length === 0
+    },
+
+    executorSelectionHint () {
+      if (this.activeSupportLineNames.length === 0) {
+        return 'Линии поддержки не настроены — используется общий список операторов'
+      }
+      if (!this.dialogTaskSupportLine) {
+        return 'Сначала выберите линию поддержки'
+      }
+      const count = this.getSupportLineUsers().length
+      return count > 0
+        ? `Доступны только активные участники выбранной линии: ${count}`
+        : 'Добавьте участников в настройках линии поддержки'
+    },
+
+    showOlaInfo () {
+      const line = this.selectedDialogSupportLine || this.task?.supportLine
+      return line?.olaEnabled === true
+    },
+
+    taskOlaLabel () {
+      const info = this.task?.olaInfo || {}
+      const explicitSeconds = info.remainingSeconds ?? info.secondsLeft ?? this.task?.olaSecondsLeft
+      let seconds = Number(explicitSeconds)
+      if (!Number.isFinite(seconds)) {
+        const deadline = info.deadline || this.task?.olaDeadline
+        const deadlineMs = deadline ? new Date(deadline).getTime() : NaN
+        if (Number.isFinite(deadlineMs)) {
+          seconds = Math.round((deadlineMs - Date.now()) / 1000)
+        }
+      }
+      const status = String(info.status || this.task?.olaStatus || '').toUpperCase()
+      if (info.breached === true || this.task?.olaBreached === true || ['BREACHED', 'OVERDUE', 'EXPIRED'].includes(status) || (Number.isFinite(seconds) && seconds <= 0)) {
+        return Number.isFinite(seconds)
+          ? `OLA линии нарушен на ${this.formatOlaSeconds(Math.abs(seconds))}`
+          : 'OLA линии нарушен'
+      }
+      if (Number.isFinite(seconds)) {
+        return `OLA линии: осталось ${this.formatOlaSeconds(seconds)}`
+      }
+      const line = this.selectedDialogSupportLine || this.task?.supportLine
+      if (line?.olaEnabled) {
+        const unitLabels = {MINUTES: 'мин.', HOURS: 'ч.', WORKING_DAYS: 'раб. дн.'}
+        const value = Number(line.olaValue || 0)
+        const duration = value > 0 ? `${value} ${unitLabels[line.olaUnit] || line.olaUnit || ''}`.trim() : 'настроен'
+        return `OLA линии: ${duration}`
+      }
+      return 'OLA линии настроен'
+    },
+
+    olaBannerClass () {
+      const info = this.task?.olaInfo || {}
+      const explicitSeconds = info.remainingSeconds ?? info.secondsLeft ?? this.task?.olaSecondsLeft
+      let seconds = Number(explicitSeconds)
+      if (!Number.isFinite(seconds)) {
+        const deadline = info.deadline || this.task?.olaDeadline
+        const deadlineMs = deadline ? new Date(deadline).getTime() : NaN
+        if (Number.isFinite(deadlineMs)) {
+          seconds = Math.round((deadlineMs - Date.now()) / 1000)
+        }
+      }
+      const status = String(info.status || this.task?.olaStatus || '').toUpperCase()
+      if (info.breached === true || this.task?.olaBreached === true || ['BREACHED', 'OVERDUE', 'EXPIRED'].includes(status) || (Number.isFinite(seconds) && seconds <= 0)) {
+        return 'bg-red-1 text-red-10'
+      }
+      if (info.warning === true || this.task?.olaWarning === true || ['WARNING', 'AT_RISK', 'NEAR_BREACH'].includes(status)) {
+        return 'bg-orange-1 text-orange-10'
+      }
+      if (['PAUSED', 'FROZEN'].includes(status)) {
+        return 'bg-blue-1 text-blue-10'
+      }
+      return 'bg-green-1 text-green-10'
+    },
+
     activeSupportLineNames () {
       return (this.store.supportLines || [])
         .filter(line => line.active !== false)
@@ -2762,8 +3126,14 @@ export default {
       return this.isNewTaskDialogShow || this.isTaskDialogShow
     },
 
+    isObserverReadOnly () {
+      return Array.isArray(this.store.currentUser?.authorities) &&
+        this.store.currentUser.authorities.includes('OBSERVER')
+    },
+
     isTaskDialogOperator () {
-      return ['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])
+      return Array.isArray(this.store.currentUser?.authorities) &&
+        this.store.currentUser.authorities.some(role => ['ADMIN', 'MANAGER', 'OPERATOR'].includes(role))
     },
 
     currentTaskOrganization () {
@@ -2938,6 +3308,25 @@ export default {
       }
     },
 
+    'store.users': {
+      deep: true,
+      handler () {
+        if (this.getPossibilityToOpenDialogTask) {
+          this.refreshFilteredUsers()
+        }
+      }
+    },
+
+    'store.supportLines': {
+      deep: true,
+      handler () {
+        if (this.getPossibilityToOpenDialogTask) {
+          this.refreshFilteredUsers()
+          this.loadSupportLineAssignableUsers()
+        }
+      }
+    },
+
     taskRightTab (value) {
       if (value === 'history') {
         this.loadTaskHistory()
@@ -3049,9 +3438,18 @@ th {
 }
 
 .task-dialog-body {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.task-dialog-body > .flex-container {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
 }
 
 .task-dialog-actions {
@@ -3220,5 +3618,13 @@ th {
 .task-history-changes-table td {
   white-space: normal;
   vertical-align: top;
+}
+
+.task-ola-banner {
+  border-left: 4px solid currentColor;
+}
+
+.opacity-80 {
+  opacity: .8;
 }
 </style>

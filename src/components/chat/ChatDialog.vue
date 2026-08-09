@@ -21,7 +21,7 @@
           </template>
         </q-input>
         <q-btn
-          v-if="!this.isMobile"
+          v-if="this.showFilesAction && !this.isMobile"
           icon="attach_file"
           @click="this.showFiles"
           flat
@@ -29,7 +29,7 @@
           class="q-ml-auto"
         />
         <q-btn
-          v-if="!this.isShowHelper & !this.isMobile"
+          v-if="this.showHelperAction && !this.isShowHelper && !this.isMobile"
           icon="support"
           @click="this.showHelper"
           flat
@@ -103,10 +103,11 @@
         <div class="q-pa-md row justify-center q-gutter-md">
           <div
             v-for="message in sortedMessages"
-            :key="message.id"
+            :key="`${message.id}:${message.editedAt ? new Date(message.editedAt).getTime() : 0}`"
             class="chat-message-row"
             style="position: relative;width: 100%; margin-top: 0"
-            @click.right="this.invertContextMenu"
+            @contextmenu.capture="this.guardMessageContextMenu"
+            @click.right="this.canUseCustomContextMenu && this.invertContextMenu()"
             :class="{ 'chat-dialog--wheel-scrolling': isWheelScrollingMessages }"
             @wheel.passive="markMessagesWheelScrolling"
           >
@@ -238,10 +239,13 @@
             </q-chat-message>
 
             <div
-              data-tour="chat-answer-required"
-              v-if="this.canSetAnswerRequired(message)"
+              :data-tour="this.isOnboardingAnswerRequiredMessage(message) ? 'chat-answer-required' : undefined"
+              v-if="this.canSetAnswerRequired(message) || this.isOnboardingAnswerRequiredMessage(message)"
               class="answer-required-actions"
-              :class="{ 'answer-required-actions--selected': isSelectedAnswerRequiredMessage(message) }"
+              :class="{
+                'answer-required-actions--selected': isSelectedAnswerRequiredMessage(message),
+                'answer-required-actions--onboarding': isOnboardingAnswerRequiredMessage(message)
+              }"
             >
               <q-btn
                 dense
@@ -267,7 +271,7 @@
             </div>
 
             <q-menu
-              v-if="this.isShowCustomContextMenu"
+              v-if="this.isShowCustomContextMenu && this.canUseCustomContextMenu"
               touch-position
               context-menu
             >
@@ -294,12 +298,12 @@
                   </q-item-section>
                 </q-item>
                 <q-item
-                  v-if="!message.deleted"
+                  v-if="this.allowMessageMutations && !message.deleted"
                   clickable
                   v-close-popup
                 >
                   <q-item-section
-                    @click="this.deleteMessage(message)"
+                    @click="this.requestDeleteMessage(message)"
                   >
                     Удалить
                   </q-item-section>
@@ -327,6 +331,7 @@
                   </q-item-section>
                 </q-item>
                 <q-item
+                  v-if="this.showInternalActions"
                   clickable
                 >
                   <q-item-section
@@ -337,7 +342,7 @@
                   </q-item-section>
                 </q-item>
                 <q-item
-                  v-if="message.text"
+                  v-if="this.showInternalActions && message.text"
                   clickable
                   v-close-popup
                   @click="this.findInKnowledgeBase(message)"
@@ -347,7 +352,7 @@
                   </q-item-section>
                 </q-item>
                 <q-item
-                  v-if="this.tasks.filter(t => !t.completed).length > 0"
+                  v-if="this.showInternalActions && this.tasks.filter(t => !t.completed).length > 0"
                   clickable
                 >
                   <q-item-section>
@@ -365,7 +370,6 @@
                         clickable
                         @click="this.linkToTask(message, task)"
                         v-close-popup
-                        v-once
                       >
                         <q-item-section>
                           {{ task.name }}
@@ -382,16 +386,16 @@
     </q-page-container>
   </q-layout>
   <q-page
+    v-if="this.canSendMessages"
     position="bottom"
     class="input-container"
     expand
   >
     <div
-      v-if="['ADMIN', 'OPERATOR', 'CLIENT'].includes(this.store.currentUser.authorities[0])"
       style="width: 100%;"
     >
       <q-card
-        v-if="this.replyMessageId !== null"
+        v-if="this.canSendMessages && this.replyMessageId !== null"
         class="no-shadow"
         style="width: 100%;height: 50px;display: flex;flex-direction: row;border-radius: 0;border-top: 1px solid #0000001f"
       >
@@ -438,18 +442,20 @@
       </q-card>
 
       <q-card
-        v-if="this.editingMessage !== null"
-        class="no-shadow"
-        style="width: 100%;height: 50px;display: flex;flex-direction: row;border-radius: 0;border-top: 1px solid #0000001f"
+        v-if="this.canSendMessages && this.editingMessage !== null"
+        class="no-shadow edit-message-bar"
       >
-        <div style="display: flex;width: 100%;max-height: 50px;align-items: center">
-          <div style="height: 50px;width: 50px;display: flex;justify-content: center;align-items: center;margin-left: 5px;margin-right: 10px">
+        <div
+          ref="editContainer"
+          class="edit-message-bar__content"
+        >
+          <div class="edit-message-bar__icon">
             <q-icon
               size="20px"
               name="edit"
             />
           </div>
-          <div style="width: 100%">
+          <div class="edit-message-bar__text">
             <div>
               Редактирование сообщения
             </div>
@@ -457,21 +463,41 @@
               {{ this.editingMessage.text }}
             </div>
           </div>
-          <q-icon
-            size="20px"
-            style="height: 50px;width: 50px;cursor: pointer"
-            name="close"
+          <q-btn
+            class="edit-message-cancel-btn"
+            flat
+            round
+            dense
+            icon="close"
+            aria-label="Отменить редактирование"
             @click="this.cancelEditMessage"
-          />
+          >
+            <q-tooltip v-if="!this.isMobile">
+              Отменить редактирование
+            </q-tooltip>
+          </q-btn>
         </div>
       </q-card>
 
       <q-card
+        v-if="this.canSendMessages"
         data-tour="chat-message-composer"
         class="input-item no-shadow"
-        :class="{ 'input-item--comment': this.isComment }"
+        :class="{
+          'input-item--comment': this.isComment,
+          'input-item--editing': this.editingMessage !== null
+        }"
         :style="composerStyle"
       >
+        <q-linear-progress
+          v-if="isUploadProgressVisible"
+          :value="normalizedUploadProgress"
+          color="primary"
+          track-color="grey-3"
+          size="4px"
+          class="message-upload-progress"
+          aria-label="Прогресс загрузки файла"
+        />
         <q-btn
           v-if="this.scrollToBottomKey || this.pendingNewMessagesCount > 0 || this.hasTrimmedNewerMessages"
           class="shadow-1 chat-go-latest-btn"
@@ -573,7 +599,7 @@
         />
 
         <q-menu
-          v-if="isComment"
+          v-if="mentionsEnabled"
           ref="mentionSuggestionsMenu"
           v-model="mentionMenu"
           :target="mentionTargetEl"
@@ -707,6 +733,38 @@
       </q-card>
     </div>
   </q-page>
+  <q-dialog
+    v-model="this.isDeleteMessageConfirmOpen"
+    persistent
+    @hide="this.clearDeleteMessageConfirmation"
+  >
+    <q-card style="min-width: 360px; max-width: 90vw;">
+      <q-card-section>
+        <div class="text-h6">Удалить сообщение?</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        Сообщение будет помечено как удалённое, и удалится у клиента. Это действие нельзя отменить.
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn
+          flat
+          label="Отмена"
+          color="primary"
+          v-close-popup
+        />
+        <q-btn
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
+          label="Удалить"
+          @click="this.confirmDeleteMessage"
+        />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
   <q-dialog v-model="this.isShowMaxSizePhoto">
     <q-card style="overflow: hidden;"
             :style="this.isMobile ? 'max-height: 60vh; max-width: 90vw;' : 'max-height: 90vh; max-width: 80vw;'">
@@ -763,9 +821,14 @@
           color="primary"
           outlined
           append
-          max-file-size="10485760"
+          bottom-slots
+          :max-file-size="maxMessageFileSizeBytes"
+          :hint="`Максимальный размер одного файла — ${maxMessageFileSizeLabel}`"
+          :error="Boolean(fileUploadError)"
+          :error-message="fileUploadError"
           multiple
           style="width: 100%"
+          @rejected="onFilesRejected"
         >
           <template v-slot:prepend>
             <q-icon name="attach_file"/>
@@ -839,6 +902,11 @@ import axios from 'axios'
 import { useResizeObserver } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import {
+  MESSAGE_FILE_MAX_SIZE_BYTES,
+  MESSAGE_FILE_MAX_SIZE_LABEL,
+  getMessageFileSizeError
+} from 'src/util/messageFileUpload'
 
 export default {
 
@@ -849,6 +917,10 @@ export default {
     inputField: { type: String },
     templates: { type: Array },
     isSending: { type: Boolean },
+    uploadProgress: {
+      type: Number,
+      default: null
+    },
     typing: {
       default: () => [],
       type: Array
@@ -884,6 +956,38 @@ export default {
       default: true,
       type: Boolean
     },
+    onboardingDemo: {
+      default: false,
+      type: Boolean
+    },
+    portalMode: {
+      default: false,
+      type: Boolean
+    },
+    allowMessageMutations: {
+      default: true,
+      type: Boolean
+    },
+    readOnly: {
+      default: false,
+      type: Boolean
+    },
+    showInternalActions: {
+      default: true,
+      type: Boolean
+    },
+    showFilesAction: {
+      default: true,
+      type: Boolean
+    },
+    showHelperAction: {
+      default: true,
+      type: Boolean
+    },
+    chatHeight: {
+      default: null,
+      type: String
+    },
     clientFiles: {
       type: Array,
       default: () => []
@@ -897,6 +1001,7 @@ export default {
     isShowCustomContextMenu: true,
     rightClickCounter: 0,
     attachedFiles: [],
+    fileUploadError: '',
     replyMessageId: null,
     search: '',
     searchResults: [],
@@ -930,6 +1035,8 @@ export default {
     fileList: [],
     fileSortDirection: 'desc',
     editingMessage: null,
+    isDeleteMessageConfirmOpen: false,
+    deleteMessageCandidate: null,
 
     lastKnownLastMessageId: null,
     lastKnownMessagesLength: 0,
@@ -1015,7 +1122,22 @@ export default {
     },
 
     sendMessage () {
+      if (!this.canSendMessages) {
+        return
+      }
+      this.closeMentionMenu()
       this.closeTemplateMenu()
+      const fileSizeError = getMessageFileSizeError(this.attachedFiles)
+      if (fileSizeError) {
+        this.fileUploadError = fileSizeError
+        this.showListPinedFiles = true
+        this.$q.notify({
+          message: fileSizeError,
+          type: 'negative',
+          position: 'top-right'
+        })
+        return
+      }
       const textarea = this.$refs.textInput
       if (this.editingMessage !== null) {
         const text = String(textarea.value || '').trim()
@@ -1169,11 +1291,13 @@ export default {
     },
 
     getName (message) {
-      if (message.user) {
-        return message.user.firstname + ' ' + (message.user.lastname !== null ? message.user.lastname : '')
-      } else {
-        return ''
+      if (message?.user) {
+        const name = `${message.user.firstname || ''} ${message.user.lastname || ''}`.trim()
+        if (name) {
+          return name
+        }
       }
+      return String(message?.senderName || '').trim()
     },
 
     attachFile () {
@@ -1249,7 +1373,7 @@ export default {
       return result
     },
 
-    scrollToElementById (id) {
+    scrollToElementById (id, options = {}) {
       const root = document.getElementById(id)
       if (!root) {
         return false
@@ -1262,8 +1386,27 @@ export default {
         behavior: 'smooth',
         block: 'center'
       })
-      this.highlightMessageElement(messageBubble, id)
+
+      if (options.highlight !== false) {
+        this.highlightMessageElement(messageBubble, id)
+      } else {
+        this.clearMessageHighlight(messageBubble, id)
+        this.$emit('clearLinkedMessageId')
+      }
       return true
+    },
+
+    clearMessageHighlight (element, id) {
+      if (!element) {
+        return
+      }
+      const key = String(id)
+      if (this.highlightMessageTimers[key]) {
+        clearTimeout(this.highlightMessageTimers[key])
+        delete this.highlightMessageTimers[key]
+      }
+      element.classList.remove('chat-message--highlighted')
+      element.style.removeProperty('background-color')
     },
 
     highlightMessageElement (element, id) {
@@ -1294,13 +1437,19 @@ export default {
       this.routeMessageIdToScroll = id
       if (this.messages.some(m => Number(m.id) === id)) {
         this.$nextTick(() => {
-          this.goToMessage(id)
+          const scrolled = this.goToMessage(id)
+          if (scrolled && Number(this.routeMessageIdToScroll) === id) {
+            this.routeMessageIdToScroll = null
+          }
         })
         return
       }
       this.$emit('scrollToMessageAfterSearch', id)
       setTimeout(() => {
-        this.goToMessage(id)
+        const scrolled = this.goToMessage(id)
+        if (scrolled && Number(this.routeMessageIdToScroll) === id) {
+          this.routeMessageIdToScroll = null
+        }
       }, 500)
     },
 
@@ -1312,11 +1461,58 @@ export default {
       this.$emit('openLinkedTask', message)
     },
 
+    requestDeleteMessage (message) {
+      if (!this.allowMessageMutations || !message || message.deleted) {
+        return
+      }
+      this.deleteMessageCandidate = message
+      this.isDeleteMessageConfirmOpen = true
+    },
+
+    confirmDeleteMessage () {
+      const message = this.deleteMessageCandidate
+      if (!message) {
+        this.clearDeleteMessageConfirmation()
+        return
+      }
+      this.isDeleteMessageConfirmOpen = false
+      this.deleteMessageCandidate = null
+      this.$emit('deleteMessage', message)
+    },
+
+    clearDeleteMessageConfirmation () {
+      this.isDeleteMessageConfirmOpen = false
+      this.deleteMessageCandidate = null
+    },
+
     deleteMessage (message) {
       this.$emit('deleteMessage', message)
     },
 
+    guardMessageContextMenu (event) {
+      if (!this.canUseCustomContextMenu) {
+        return
+      }
+      const target = event?.target
+      const messageBubble = target instanceof Element
+        ? target.closest('.q-message-text')
+        : null
+
+      if (messageBubble && event.currentTarget?.contains(messageBubble)) {
+        return
+      }
+
+      // Stop the event before Quasar's row-level context-menu handler sees it,
+      // but do not prevent the browser default. Outside the message bubble the
+      // native browser context menu must remain available.
+      event.stopPropagation()
+      event.stopImmediatePropagation?.()
+    },
+
     invertContextMenu () {
+      if (!this.canUseCustomContextMenu) {
+        return
+      }
       if (this.rightClickCounter > 0) {
         this.isShowCustomContextMenu = false
         setTimeout(() => {
@@ -1335,6 +1531,20 @@ export default {
 
     onSearch () {
       if (this.search) {
+        if (this.portalMode) {
+          const needle = String(this.search || '').trim().toLowerCase()
+          this.searchResults = this.sortedMessages.filter(message => {
+            const haystack = [
+              message?.text,
+              message?.fileName,
+              message?.senderName,
+              this.getName(message)
+            ].map(value => String(value || '').toLowerCase()).join(' ')
+            return haystack.includes(needle)
+          })
+          this.isShowSearchResults = true
+          return
+        }
         let requestUri = `/api/v1/client/${this.client.id}/search-messages`
         if (this.isDialog) {
           const queryParams = new URLSearchParams(window.location.search)
@@ -1366,9 +1576,9 @@ export default {
       }
     },
 
-    goToMessage (messageId) {
+    goToMessage (messageId, options = {}) {
       const id = this.isDialog ? `modal_message_${messageId}` : `message_${messageId}`
-      return this.scrollToElementById(id)
+      return this.scrollToElementById(id, options)
     },
 
     onBlur () {
@@ -1430,13 +1640,16 @@ export default {
 
     autoResize () {
       this.$nextTick(() => {
-        let replyContainer = 0
+        let auxiliaryContainerHeight = 0
         let chat = document.getElementById('chat-dialog')
         if (this.isDialog) {
           chat = document.getElementById('chat-dialog-pop-up')
         }
         if (this.$refs.replyContainer) {
-          replyContainer = this.$refs.replyContainer.offsetHeight
+          auxiliaryContainerHeight += this.$refs.replyContainer.offsetHeight || 0
+        }
+        if (this.$refs.editContainer) {
+          auxiliaryContainerHeight += this.$refs.editContainer.offsetHeight || 0
         }
         const textarea = this.$refs.textInput
         if (!textarea) {
@@ -1451,11 +1664,17 @@ export default {
         textarea.style.overflowY = isScrollable ? 'auto' : 'hidden'
         if (chat) {
           chat.style.height = this.chatStyle.height
-          chat.style.height = nextHeight + replyContainer > 46
-            ? `calc(${this.chatStyle.height} - ${nextHeight + (replyContainer !== 0 ? replyContainer + 1 : replyContainer) - 46}px)`
+          const textareaExtraHeight = Math.max(0, nextHeight - 46)
+          const auxiliaryExtraHeight = auxiliaryContainerHeight > 0 ? auxiliaryContainerHeight + 1 : 0
+          const totalExtraHeight = textareaExtraHeight + auxiliaryExtraHeight
+          chat.style.height = totalExtraHeight > 0
+            ? `calc(${this.chatStyle.height} - ${totalExtraHeight}px)`
             : this.chatStyle.height
         }
         this.textareaHeight = nextHeight
+        if (this.editingMessage !== null) {
+          requestAnimationFrame(() => this.scrollToBottom(0))
+        }
       })
     },
 
@@ -1654,8 +1873,9 @@ export default {
       const caret = textarea.selectionStart ?? textarea.value.length
       const before = textarea.value.slice(0, caret)
 
-      // Упоминания пользователей имеют приоритет над шаблонами только в режиме комментария.
-      if (this.isComment && /(?:^|\s)@[^\s@]*$/.test(before)) {
+      // Упоминания пользователей имеют приоритет над шаблонами в комментариях
+      // и во встроенном чате заявки.
+      if (this.mentionsEnabled && /(?:^|\s)@[^\s@]*$/.test(before)) {
         return null
       }
 
@@ -1785,7 +2005,7 @@ export default {
     },
 
     updateMentionState () {
-      if (!this.isComment) {
+      if (!this.mentionsEnabled) {
         this.closeMentionMenu()
         return
       }
@@ -1832,7 +2052,7 @@ export default {
     },
 
     selectMention (user) {
-      if (!this.isComment) {
+      if (!this.mentionsEnabled) {
         this.closeMentionMenu()
         return
       }
@@ -1887,7 +2107,7 @@ export default {
         return
       }
 
-      if (this.isComment && this.mentionMenu) {
+      if (this.mentionsEnabled && this.mentionMenu) {
         if (event.key === 'ArrowDown') {
           event.preventDefault()
           this.mentionIndex = Math.min(this.mentionIndex + 1, this.filteredMentionUsers.length - 1)
@@ -1944,7 +2164,7 @@ export default {
 
     showFiles () {
       this.isShowFileList = true
-      if (this.isDialog) {
+      if (this.isDialog || this.portalMode) {
         this.fileList = this.normalizeFileList(this.clientFiles)
         return
       }
@@ -2175,8 +2395,15 @@ export default {
       return messageIndex > lastOperatorIndex && messageIndex <= lastIncomingIndex
     },
 
+    isOnboardingAnswerRequiredMessage (message) {
+      return this.onboardingDemo &&
+        this.isIncomingMessage(message) &&
+        message.answerRequired === 'ANSWER_REQUIRED'
+    },
+
     canSetAnswerRequired (message) {
-      return this.showAnswerRequiredActions &&
+      return !this.isObserverUser &&
+        this.showAnswerRequiredActions &&
         this.isIncomingMessage(message) &&
         !!this.getMessageId(message) &&
         this.isInAnswerRequiredRange(message)
@@ -2283,11 +2510,13 @@ export default {
         return
       }
       event.preventDefault()
-      const allowedFiles = files.filter(file => file.size <= 10485760)
-      if (allowedFiles.length !== files.length) {
+      const allowedFiles = files.filter(file => Number(file?.size || 0) <= MESSAGE_FILE_MAX_SIZE_BYTES)
+      const rejectedFiles = files.filter(file => Number(file?.size || 0) > MESSAGE_FILE_MAX_SIZE_BYTES)
+      if (rejectedFiles.length > 0) {
+        this.fileUploadError = getMessageFileSizeError(rejectedFiles)
         this.$q.notify({
-          message: 'Некоторые файлы больше 10 МБ и не были добавлены',
-          type: 'warning',
+          message: this.fileUploadError,
+          type: 'negative',
           position: 'top-right',
           actions: [{
             icon: 'close',
@@ -2296,6 +2525,7 @@ export default {
             handler: () => undefined
           }]
         })
+        this.showListPinedFiles = true
       }
       if (allowedFiles.length === 0) {
         return
@@ -2316,6 +2546,13 @@ export default {
         }]
       })
       this.showListPinedFiles = true
+    },
+
+    onFilesRejected (rejectedEntries) {
+      const files = (Array.isArray(rejectedEntries) ? rejectedEntries : [])
+        .map(entry => entry?.file)
+        .filter(Boolean)
+      this.fileUploadError = getMessageFileSizeError(files) || `Файл не удалось добавить. Максимальный размер — ${MESSAGE_FILE_MAX_SIZE_LABEL}`
     },
 
     getFilesFromClipboard (event) {
@@ -2394,7 +2631,7 @@ export default {
     },
 
     canEditMessage (message) {
-      return message && !message.deleted && message.text && message.isSent === true
+      return this.allowMessageMutations && message && !message.deleted && message.text && message.isSent === true
     },
 
     startEditMessage (message) {
@@ -2413,6 +2650,12 @@ export default {
         textarea.setSelectionRange(textarea.value.length, textarea.value.length)
         this.$emit('keyPressed', textarea.value)
         this.autoResize()
+        // После изменения размеров composer должен остаться у нижней границы
+        // скролл-зоны, иначе выросший textarea выталкивает кнопки за viewport.
+        requestAnimationFrame(() => {
+          textarea.scrollTop = textarea.scrollHeight
+          this.scrollToBottom(0)
+        })
       })
     },
 
@@ -2470,6 +2713,16 @@ export default {
     },
 
     getTextareaMaxHeight () {
+      // При редактировании длинного сообщения не даём composer'у
+      // занимать большую часть экрана: текст прокручивается внутри textarea,
+      // а кнопка отправки остаётся доступной.
+      if (this.editingMessage !== null) {
+        if (this.isMobile) {
+          return 120
+        }
+        return this.isDialog ? 160 : 220
+      }
+
       return this.isDialog ? 300 : 400
     },
 
@@ -2496,6 +2749,50 @@ export default {
   },
 
   computed: {
+    isObserverUser () {
+      if (this.readOnly) {
+        return true
+      }
+      const authorities = Array.isArray(this.currentUser?.authorities)
+        ? this.currentUser.authorities
+        : (Array.isArray(this.store.currentUser?.authorities) ? this.store.currentUser.authorities : [])
+      return authorities.includes('OBSERVER')
+    },
+
+    canSendMessages () {
+      if (this.isObserverUser || this.readOnly) {
+        return false
+      }
+      const authorities = Array.isArray(this.currentUser?.authorities)
+        ? this.currentUser.authorities
+        : (Array.isArray(this.store.currentUser?.authorities) ? this.store.currentUser.authorities : [])
+      return authorities.some(role => ['ADMIN', 'MANAGER', 'OPERATOR', 'CLIENT'].includes(role))
+    },
+
+    canUseCustomContextMenu () {
+      return !this.isObserverUser
+    },
+
+    maxMessageFileSizeBytes () {
+      return MESSAGE_FILE_MAX_SIZE_BYTES
+    },
+
+    maxMessageFileSizeLabel () {
+      return MESSAGE_FILE_MAX_SIZE_LABEL
+    },
+
+    normalizedUploadProgress () {
+      const value = Number(this.uploadProgress)
+      if (!Number.isFinite(value)) {
+        return 0
+      }
+      return Math.max(0, Math.min(1, value))
+    },
+
+    isUploadProgressVisible () {
+      return this.isSending && this.uploadProgress !== null && this.uploadProgress !== undefined
+    },
+
     typingUsers () {
       if (this.getTypingWatchingUsers()) {
         return this.getTypingWatchingUsers().typing
@@ -2513,7 +2810,10 @@ export default {
     },
 
     renderShortcutPlaceholder () {
-      return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile || this.isDialog ? '' : this.isComment ? '\nВведите @ для пинга' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
+      if (this.portalMode) {
+        return 'Текст сообщения'
+      }
+      return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile ? '' : this.mentionsEnabled ? '\nВведите @ для пинга' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
     },
 
     isMacOs () {
@@ -2529,8 +2829,18 @@ export default {
     },
 
     chatStyle () {
+      let height = this.chatHeight
+      if (!height) {
+        if (this.isDialog) {
+          height = this.canSendMessages ? 'calc(100% - 93px)' : 'calc(100% - 47px)'
+        } else if (this.isMobile) {
+          height = this.canSendMessages ? 'calc(100vh - 181px)' : 'calc(100vh - 135px)'
+        } else {
+          height = this.canSendMessages ? 'calc(100vh - 95px)' : 'calc(100vh - 49px)'
+        }
+      }
       return {
-        height: this.isDialog ? 'calc(100% - 93px)' : (this.isMobile ? 'calc(100vh - 181px)' : 'calc(100vh - 95px)'),
+        height,
         'border-radius': '0',
         'min-height': '0',
         'background-color': '#F0F0F0'
@@ -2550,7 +2860,9 @@ export default {
       return {
         borderStyle: 'unset',
         margin: '0 8px',
-        width: '100%',
+        width: 'auto',
+        flex: '1 1 auto',
+        minWidth: '0',
         overflowX: 'hidden',
         overflowY: this.textareaHeight >= maxHeight ? 'auto' : 'hidden',
         resize: 'none',
@@ -2578,8 +2890,12 @@ export default {
       return this.getMatchingTemplates(this.templateQuery)
     },
 
+    mentionsEnabled () {
+      return !this.portalMode && (this.isComment || this.isDialog)
+    },
+
     filteredMentionUsers () {
-      if (!this.isComment) {
+      if (!this.mentionsEnabled) {
         return []
       }
 
@@ -2591,7 +2907,7 @@ export default {
       const filtered = q.length === 0
         ? users
         : users.filter(u => toSearchString(u).includes(q))
-      return filtered.slice(0, 8)
+      return filtered
     },
 
     sortedFileList () {
@@ -2621,7 +2937,10 @@ export default {
     },
 
     sortedMessages () {
-      return this.sortMessagesByDateAndId(this.messages)
+      const messages = this.isObserverUser
+        ? (this.messages || []).filter(message => message?.deleted !== true)
+        : this.messages
+      return this.sortMessagesByDateAndId(messages)
     }
   },
 
@@ -2629,7 +2948,7 @@ export default {
     clientFiles: {
       deep: true,
       handler (value) {
-        if (!this.isDialog || !this.isShowFileList) {
+        if ((!this.isDialog && !this.portalMode) || !this.isShowFileList) {
           return
         }
         this.fileList = this.normalizeFileList(value)
@@ -2641,7 +2960,7 @@ export default {
         return
       }
       this.$nextTick(() => {
-        this.goToMessage(this.linkedMessageId)
+        this.goToMessage(this.linkedMessageId, { highlight: false })
       })
     },
 
@@ -2932,10 +3251,55 @@ textarea:focus {
   width: 100%;
 }
 
+.edit-message-bar {
+  width: 100%;
+  height: 50px;
+  min-height: 50px;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0;
+  border-top: 1px solid #0000001f;
+}
+
+.edit-message-bar__content {
+  display: flex;
+  width: 100%;
+  height: 50px;
+  min-width: 0;
+  align-items: center;
+}
+
+.edit-message-bar__icon {
+  height: 50px;
+  width: 50px;
+  flex: 0 0 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: 5px;
+  margin-right: 10px;
+}
+
+.edit-message-bar__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.edit-message-cancel-btn {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  margin-right: 4px;
+}
+
 .input-item {
   position: relative;
   display: flex;
   width: 100%;
+  min-width: 0;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: end;
@@ -2944,8 +3308,20 @@ textarea:focus {
   transition: background-color 0.2s ease;
 }
 
+.input-item--editing {
+  flex-shrink: 0;
+}
+
 .input-item--comment {
   background-color: #d1c4e9;
+}
+
+.message-upload-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 80;
 }
 
 .input-clouds-container {
@@ -3004,7 +3380,8 @@ textarea:focus {
 }
 
 .chat-message-row:hover .answer-required-actions,
-.answer-required-actions.answer-required-actions--selected {
+.answer-required-actions.answer-required-actions--selected,
+.answer-required-actions.answer-required-actions--onboarding {
   max-height: 36px;
   margin: 6px 0 0 0;
   opacity: 1;

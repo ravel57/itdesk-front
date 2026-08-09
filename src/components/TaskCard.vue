@@ -4,8 +4,10 @@
     <div class="task-card-header">
       <div class="task-card-header-left">
         <slot name="checkBox"></slot>
-        <div class="task-id" data-tour="tasks-task-id">№{{ this.task.id }}</div>
-        <div id="task-card-name" class="text-body2 task-card-name" data-tour="tasks-task-title">{{ task.name }}</div>
+        <div class="task-card-title" data-tour="tasks-task-title">
+          <div class="task-id" data-tour="tasks-task-id">№{{ this.task.id }}</div>
+          <div id="task-card-name" class="text-body2 task-card-name">{{ task.name }}</div>
+        </div>
       </div>
       <div class="task-card-status-container" style="display: flex;">
         <circle-counter
@@ -16,7 +18,7 @@
         <div
           id="task-card-status"
           data-tour="tasks-task-status"
-          :class="taskStatusClass"
+          :class="[taskStatusClass, fieldHighlightClass('status')]"
         >
           <div v-if="this.task.frozen">
             Заморожена
@@ -39,11 +41,15 @@
         />
       </tr>
       <tr data-tour="tasks-task-type">
-        <th class="small-text text-grey row-label" v-text="'Тип: '"/>
+        <th class="small-text text-grey row-label" :class="fieldHighlightClass('type')" v-text="'Тип: '"/>
         <th
           :class="typeClass"
           v-text="getTaskTypeName(task)"
         />
+      </tr>
+      <tr v-if="task.service" data-tour="tasks-task-service">
+        <th class="small-text text-grey row-label" :class="fieldHighlightClass('service')" v-text="'Сервис: '"/>
+        <th :class="serviceClass" v-text="getServiceLabel(task.service)"/>
       </tr>
       <tr
         v-if="getChecklistTotalCount(task) > 0"
@@ -68,20 +74,20 @@
         </th>
       </tr>
       <tr v-if="task.tags.map(tag => tag.name).length !== 0" data-tour="tasks-task-tags">
-        <th class="small-text text-grey row-label" v-text="'Теги: '"/>
+        <th class="small-text text-grey row-label" :class="fieldHighlightClass('tag')" v-text="'Теги: '"/>
         <th
           :class="tagsClass"
           v-text="task.tags.map(tag => tag.name).join(', ')"
         />
       </tr>
       <tr v-if="task.supportLine" data-tour="tasks-task-support-line">
-        <th class="small-text text-grey row-label" v-text="'Линия: '"/>
-        <th class="text-body2" v-text="task.supportLine.name"/>
+        <th class="small-text text-grey row-label" :class="fieldHighlightClass('supportLine', 'supportLineLevel')" v-text="'Линия: '"/>
+        <th :class="supportLineClass" v-text="task.supportLine.name"/>
       </tr>
       <tr data-tour="tasks-task-priority">
         <th
           class="small-text text-grey row-label"
-          :class="{'highlighted': this.selectedSorting.slug === 'priority'}"
+          :class="fieldHighlightClass('priority')"
           v-text="'Приоритет: '"
         />
         <th
@@ -90,7 +96,7 @@
         />
       </tr>
       <tr v-if="task.executor" data-tour="tasks-task-executor">
-        <th class="small-text text-grey row-label" v-text="'Исполнитель: '"/>
+        <th class="small-text text-grey row-label" :class="fieldHighlightClass('executor')" v-text="'Исполнитель: '"/>
         <th
           :class="executorClass"
           v-text="getName(task.executor)"
@@ -99,7 +105,7 @@
       <tr data-tour="tasks-task-created">
         <th
           class="small-text text-grey row-label"
-          :class="{'highlighted': this.selectedSorting.slug === 'creating'}"
+          :class="fieldHighlightClass('createdAt', 'creating')"
           v-text="'Создана: '"
         />
         <th
@@ -118,10 +124,17 @@
       <!--          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"-->
       <!--          v-text="task.status.name"/>-->
       <!--      </tr>-->
+<!--      <tr v-if="task.firstResponseDeadline && !task.firstResponseAt && !task.completed" data-tour="tasks-task-first-response">
+        <th class="small-text text-grey row-label" v-text="'Первый ответ до:'" />
+        <th
+          :class="isFirstResponseOverdue(task) ? 'text-negative text-weight-bold' : 'text-body2'"
+          v-text="getStamp(task.firstResponseDeadline)"
+        />
+      </tr>-->
       <tr v-if="task.deadline" data-tour="tasks-task-deadline">
         <th
           class="small-text text-grey row-label"
-          :class="{'highlighted': this.selectedSorting.slug === 'deadline'}"
+          :class="fieldHighlightClass('deadline')"
           v-text="'Дедлайн: '"
         />
         <th
@@ -141,11 +154,12 @@
       <tr v-if="isSlaVisible(task)" data-tour="tasks-task-sla">
         <th
           class="small-text text-grey"
-          :style="this.selectedSorting.slug === 'sla' ? 'color: black;font-weight: 600;': 'color:#9e9e9e'"
+          :class="fieldHighlightClass('sla')"
+          style="color:#9e9e9e"
           v-text="'SLA осталось:'"
         />
         <th class="text-body2"
-            :style="this.selectedSorting.slug === 'sla' ? 'font-weight: 600;': ''"
+            :class="fieldHighlightClass('sla')"
             style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
           {{ this.getSlaTime(task) }}
           <div
@@ -189,7 +203,7 @@
         </th>
       </tr>
       <tr data-tour="tasks-task-last-activity">
-        <th class="small-text text-grey row-label" v-text="'Последнее действие: '"/>
+        <th class="small-text text-grey row-label" :class="fieldHighlightClass('lastActivity')" v-text="'Последнее действие: '"/>
         <th :class="lastActivityClass" v-text="getLastTaskHistoryTime(task)"/>
       </tr>
     </table>
@@ -206,7 +220,7 @@ import axios from 'axios'
 export default {
   name: 'TaskCard',
 
-  props: ['task', 'selectedSorting', 'descriptionRequire', 'slaRequire', 'taskNameShort', 'isOnboardingDemo'],
+  props: ['task', 'selectedGroupType', 'selectedSorting', 'descriptionRequire', 'slaRequire', 'taskNameShort', 'isOnboardingDemo'],
 
   components: { CircleCounter },
 
@@ -220,6 +234,31 @@ export default {
   }),
 
   methods: {
+    isFieldHighlighted (...slugs) {
+      const groupSlug = this.selectedGroupType?.slug
+      const sortSlug = this.selectedSorting?.slug
+      return slugs.includes(groupSlug) || slugs.includes(sortSlug)
+    },
+
+    fieldHighlightClass (...slugs) {
+      return {
+        'task-card-field-highlighted': this.isFieldHighlighted(...slugs)
+      }
+    },
+
+    getServiceLabel (service) {
+      if (!service) return 'Без сервиса'
+      const code = String(service.code || '').trim()
+      const name = String(service.name || '').trim()
+      return code && name ? `${code} · ${name}` : (name || code || 'Без сервиса')
+    },
+
+    isFirstResponseOverdue (task) {
+      if (!task || task.firstResponseAt || task.completed) return false
+      const deadline = this.toTimestamp(task.firstResponseDeadline)
+      return deadline !== null && this.nowTs >= deadline
+    },
+
     getStamp (date) {
       if (!date) {
         return ''
@@ -334,8 +373,8 @@ export default {
       }
       const pausedSeconds = this.toFiniteNumber(this.slaInfo?.pausedSeconds) || 0
       const nowMs = this.slaInfo.paused
-          ? deadlineMs - remainingSeconds * 1000
-          : this.nowTs
+        ? deadlineMs - remainingSeconds * 1000
+        : this.nowTs
       const elapsedSeconds = Math.max(0, Math.floor((nowMs - createdAtMs) / 1000))
       return Math.max(remainingSeconds, remainingSeconds + elapsedSeconds - pausedSeconds)
     },
@@ -673,7 +712,24 @@ export default {
       return {
         'text-body2': true,
         'text-grey': this.task.completed,
-        truncate: true
+        truncate: true,
+        'task-card-field-highlighted': this.isFieldHighlighted('tag')
+      }
+    },
+
+    serviceClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        'task-card-field-highlighted': this.isFieldHighlighted('service')
+      }
+    },
+
+    supportLineClass () {
+      return {
+        'text-body2': true,
+        'text-grey': this.task.completed,
+        'task-card-field-highlighted': this.isFieldHighlighted('supportLine', 'supportLineLevel')
       }
     },
 
@@ -681,15 +737,16 @@ export default {
       return {
         'text-body2': true,
         'text-grey': this.task.completed,
-        highlighted: this.selectedSorting.slug === 'priority'
+        'task-card-field-highlighted': this.isFieldHighlighted('priority')
       }
     },
 
     executorClass () {
       return {
-        'text-body2': true, // small size for executor text
+        'text-body2': true,
         'text-grey': this.task.completed,
-        executor: true
+        executor: true,
+        'task-card-field-highlighted': this.isFieldHighlighted('executor')
       }
     },
 
@@ -697,7 +754,7 @@ export default {
       return {
         'text-body2': true,
         'text-grey': this.task.completed,
-        highlighted: this.selectedSorting.slug === 'creating'
+        'task-card-field-highlighted': this.isFieldHighlighted('createdAt', 'creating')
       }
     },
 
@@ -705,14 +762,15 @@ export default {
       return {
         'text-body2': true,
         'text-grey': this.task.completed,
-        highlighted: this.selectedSorting.slug === 'deadline'
+        'task-card-field-highlighted': this.isFieldHighlighted('deadline')
       }
     },
 
     lastActivityClass () {
       return {
         'text-body2': true,
-        'text-grey': this.task.completed
+        'text-grey': this.task.completed,
+        'task-card-field-highlighted': this.isFieldHighlighted('lastActivity')
       }
     },
 
@@ -726,8 +784,7 @@ export default {
 
     deadlineStyle () {
       return {
-        color: this.task.deadline && this.task.deadline < Date.now() ? 'red' : 'black',
-        fontWeight: this.selectedSorting.slug === 'deadline' ? '600' : 'normal'
+        color: this.task.deadline && this.task.deadline < Date.now() ? 'red' : undefined
       }
     },
 
@@ -735,7 +792,8 @@ export default {
       return {
         'text-body2': true,
         'text-grey': this.task.completed,
-        truncate: true
+        truncate: true,
+        'task-card-field-highlighted': this.isFieldHighlighted('type')
       }
     },
 
@@ -820,11 +878,20 @@ th {
   align-items: center;
 }
 
+.task-card-title {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
 .task-id {
   margin-right: 8px;
   margin-left: 3px;
   font-size: 14px; /* Увеличен размер текста для ID */
   color: grey;
+  flex-shrink: 0;
 }
 
 .task-card-name {
@@ -904,6 +971,10 @@ th {
 .highlighted {
   color: black;
   font-weight: 600;
+}
+
+.task-card-field-highlighted {
+  font-weight: 700 !important;
 }
 
 .row-label {

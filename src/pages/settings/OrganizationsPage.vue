@@ -1,18 +1,22 @@
 <template>
   <div class="q-pa-md organizations-settings-page">
-    <div class="row items-center justify-between q-gutter-md q-mb-md">
-      <div>
-        <div class="text-h5 text-weight-medium">Организации</div>
-        <div class="text-grey-7">
-          Настройки организаций, сотрудников и пакетов выездов
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Организации</div>
+        <div class="settings-content-description">
+          Управляйте организациями, договорами, сотрудниками и пакетами выездов.
         </div>
       </div>
-      <q-btn
-        color="primary"
-        icon="add"
-        label="Добавить организацию"
-        @click="dialogNewOrganizationShow"
-      />
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить организацию"
+          @click="dialogNewOrganizationShow"
+        />
+      </div>
     </div>
 
     <q-input
@@ -25,111 +29,62 @@
       class="q-mb-md"
     >
       <template #prepend>
-        <q-icon name="search" />
+        <q-icon name="search"/>
       </template>
     </q-input>
 
     <div class="table-container">
       <q-list
         bordered
-        class="rounded-borders bg-white"
+        class="rounded-borders bg-white settings-row-list organization-list"
         separator
       >
-        <q-item header class="text-bold organization-list-header">
-          <q-item-section>
-            Название
-          </q-item-section>
-          <q-item-section class="gt-sm">
-            Договор / тариф
-          </q-item-section>
-          <q-item-section class="gt-sm">
-            Сотрудники
-          </q-item-section>
-          <q-item-section class="gt-xs">
-            Выезды
-          </q-item-section>
-          <q-item-section class="gt-sm">
-            SLA
-          </q-item-section>
-          <q-item-section side>
-            Действия
-          </q-item-section>
-        </q-item>
-
         <draggable
           :list="filteredOrganizations"
           item-key="id"
-          class="list-users"
+          class="organization-sortable-list"
           ghost-class="ghost"
+          handle=".settings-drag-handle"
           :disabled="Boolean(search)"
           @start="dragging = true"
           @end="onOrganizationDragEnd"
         >
           <template #item="{ element }">
             <q-item
-              class="list-group-item organization-row"
+              class="organization-row"
               :class="{ 'not-draggable': Boolean(search) }"
-              style="cursor: grab"
             >
-              <q-item-section>
-                <div class="row items-center q-gutter-sm no-wrap">
+              <q-item-section side class="settings-drag-handle cursor-grab">
+                <q-icon name="drag_indicator" color="grey-6"/>
+              </q-item-section>
+
+              <q-item-section class="organization-name-section">
+                <q-item-label class="row items-center q-gutter-sm no-wrap">
+                  <span class="text-weight-medium organization-name-ellipsis" :title="element.name">
+                    {{ element.name }}
+                  </span>
                   <q-badge
                     v-if="element.active === false"
                     color="grey-6"
                     label="Отключена"
                   />
-                  <div class="text-weight-medium ellipsis">
-                    {{ element.name }}
-                  </div>
-                </div>
-                <div class="text-caption text-grey-7 ellipsis">
+                </q-item-label>
+
+                <q-item-label caption class="q-mt-xs organization-meta-line">
+                  <span>{{ element.contractNumber || 'Договор не указан' }}</span>
+                  <span>· {{ element.tariffName || element.servicePackageName || 'Тариф не указан' }}</span>
+                  <span>· Сотрудников: {{ organizationClientsCount(element) }}</span>
+                  <span v-if="element.useVisitsLimit">
+                    · Выезды: {{ numberOrZero(element.visitsUsed) }} / {{ numberOrZero(element.monthlyVisitsLimit) }}
+                  </span>
+                  <span v-else>· Выезды не учитываются</span>
+                  <span>· SLA: {{ element.slaAgreementName || 'по общим настройкам' }}</span>
+                </q-item-label>
+
+                <q-item-label caption class="organization-secondary-line">
                   {{ element.inn ? `ИНН ${element.inn}` : 'ИНН не указан' }}
                   <span v-if="element.mainAddress"> · {{ element.mainAddress }}</span>
-                </div>
-              </q-item-section>
-
-              <q-item-section class="gt-sm">
-                <div class="text-body2 ellipsis">
-                  {{ element.contractNumber || 'Договор не указан' }}
-                </div>
-                <div class="text-caption text-grey-7 ellipsis">
-                  {{ element.tariffName || element.servicePackageName || 'Тариф не указан' }}
-                </div>
-              </q-item-section>
-
-              <q-item-section class="gt-sm">
-                <div class="text-body2">
-                  {{ organizationClientsCount(element) }}
-                </div>
-                <div class="text-caption text-grey-7">
-                  {{ pluralize(organizationClientsCount(element), ['сотрудник', 'сотрудника', 'сотрудников']) }}
-                </div>
-              </q-item-section>
-
-              <q-item-section class="gt-xs">
-                <div v-if="element.useVisitsLimit" class="row items-center no-wrap q-gutter-xs">
-                  <div class="visit-progress-block">
-                    <div class="row items-center justify-between text-caption">
-                      <span>{{ numberOrZero(element.visitsUsed) }} / {{ numberOrZero(element.monthlyVisitsLimit) }}</span>
-                      <span>{{ visitsLeft(element) }}</span>
-                    </div>
-                    <q-linear-progress
-                      rounded
-                      size="8px"
-                      :value="visitUsagePercent(element) / 100"
-                      :color="visitProgressColor(element)"
-                    />
-                  </div>
-                </div>
-                <div v-else class="text-grey-7">
-                  Не учитываются
-                </div>
-              </q-item-section>
-
-              <q-item-section class="gt-sm">
-                <div class="text-body2 ellipsis">
-                  {{ element.slaAgreementName || 'По настройкам SLA' }}
-                </div>
+                </q-item-label>
               </q-item-section>
 
               <q-item-section side>
@@ -166,10 +121,10 @@
         <div class="text-h6">
           {{ isNewOrganization ? 'Новая организация' : 'Настройки организации' }}
         </div>
-        <q-btn flat round dense icon="close" v-close-popup />
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-section class="q-pa-none">
         <q-tabs
@@ -181,12 +136,12 @@
           align="justify"
           narrow-indicator
         >
-          <q-tab name="main" label="Основное" />
-          <q-tab name="visits" label="Выезды" />
-          <q-tab name="extra" label="Дополнительно" />
+          <q-tab name="main" label="Основное"/>
+          <q-tab name="visits" label="Выезды"/>
+          <q-tab name="extra" label="Дополнительно"/>
         </q-tabs>
 
-        <q-separator />
+        <q-separator/>
 
         <q-tab-panels
           v-model="dialogTab"
@@ -198,7 +153,7 @@
               <div class="col-12 col-md-8">
                 <q-input
                   v-model="dialog.name"
-                  label="Название организации"
+                  label="Название организации *"
                   outlined
                   dense
                   :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
@@ -216,7 +171,7 @@
 
             <q-banner rounded class="bg-grey-2 text-grey-9 organization-info-banner">
               <template #avatar>
-                <q-icon name="groups" color="primary" />
+                <q-icon name="groups" color="primary"/>
               </template>
               Сотрудники организации берутся из карточек клиентов, у которых выбрана эта организация.
               Сейчас привязано: <b>{{ organizationClientsCount(dialog) }}</b>
@@ -270,9 +225,10 @@
 
             <q-banner rounded class="bg-grey-2 text-grey-9 organization-info-banner">
               <template #avatar>
-                <q-icon name="directions_car" color="primary" />
+                <q-icon name="directions_car" color="primary"/>
               </template>
-              Эти поля нужны, чтобы в карточке заявки можно было списывать выезд из пакета или помечать его как сверхпакетный.
+              Эти поля нужны, чтобы в карточке заявки можно было списывать выезд из пакета или помечать его как
+              сверхпакетный.
             </q-banner>
           </q-tab-panel>
 
@@ -286,16 +242,16 @@
               >
                 <div class="q-pa-md row q-col-gutter-md">
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.inn" label="ИНН" outlined dense />
+                    <q-input v-model="dialog.inn" label="ИНН" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.kpp" label="КПП" outlined dense />
+                    <q-input v-model="dialog.kpp" label="КПП" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.externalId" label="Внешний ID / код клиента" outlined dense />
+                    <q-input v-model="dialog.externalId" label="Внешний ID / код клиента" outlined dense/>
                   </div>
                   <div class="col-12 col-md-8">
-                    <q-input v-model="dialog.mainAddress" label="Основной адрес" outlined dense />
+                    <q-input v-model="dialog.mainAddress" label="Основной адрес" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
                     <q-select
@@ -333,7 +289,7 @@
                 </div>
               </q-expansion-item>
 
-              <q-separator />
+              <q-separator/>
 
               <q-expansion-item
                 icon="support_agent"
@@ -342,18 +298,18 @@
               >
                 <div class="q-pa-md row q-col-gutter-md">
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.managerName" label="Ответственный менеджер" outlined dense />
+                    <q-input v-model="dialog.managerName" label="Ответственный менеджер" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.managerPhone" label="Телефон менеджера" outlined dense />
+                    <q-input v-model="dialog.managerPhone" label="Телефон менеджера" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.managerEmail" label="Email менеджера" outlined dense />
+                    <q-input v-model="dialog.managerEmail" label="Email менеджера" outlined dense/>
                   </div>
                 </div>
               </q-expansion-item>
 
-              <q-separator />
+              <q-separator/>
 
               <q-expansion-item
                 icon="description"
@@ -362,19 +318,21 @@
               >
                 <div class="q-pa-md row q-col-gutter-md">
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.contractNumber" label="Номер договора" outlined dense />
+                    <q-input v-model="dialog.contractNumber" label="Номер договора" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.contractStartDate" type="date" label="Дата начала договора" outlined dense stack-label />
+                    <q-input v-model="dialog.contractStartDate" type="date" label="Дата начала договора" outlined dense
+                             stack-label/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.contractEndDate" type="date" label="Дата окончания договора" outlined dense stack-label />
+                    <q-input v-model="dialog.contractEndDate" type="date" label="Дата окончания договора" outlined dense
+                             stack-label/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.tariffName" label="Тариф" outlined dense />
+                    <q-input v-model="dialog.tariffName" label="Тариф" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
-                    <q-input v-model="dialog.servicePackageName" label="Пакет обслуживания" outlined dense />
+                    <q-input v-model="dialog.servicePackageName" label="Пакет обслуживания" outlined dense/>
                   </div>
                   <div class="col-12 col-md-4">
                     <q-input
@@ -399,7 +357,7 @@
                 </div>
               </q-expansion-item>
 
-              <q-separator />
+              <q-separator/>
 
               <q-expansion-item
                 icon="directions_car"
@@ -453,115 +411,115 @@
                 </div>
               </q-expansion-item>
 
-              <q-separator />
+              <q-separator/>
 
-<!--              <q-expansion-item-->
-<!--                icon="timer"-->
-<!--                label="SLA"-->
-<!--                header-class="text-weight-medium"-->
-<!--              >-->
-<!--                <div class="q-pa-md row q-col-gutter-md">-->
-<!--                  <div class="col-12 col-md-4">-->
-<!--                    <q-input v-model="dialog.slaAgreementName" label="Название SLA / регламента" outlined dense />-->
-<!--                  </div>-->
-<!--                  <div class="col-12 col-md-4">-->
-<!--                    <q-input-->
-<!--                      v-model.number="dialog.slaFirstResponseMinutes"-->
-<!--                      type="number"-->
-<!--                      min="0"-->
-<!--                      label="Первый ответ"-->
-<!--                      suffix="мин"-->
-<!--                      outlined-->
-<!--                      dense-->
-<!--                    />-->
-<!--                  </div>-->
-<!--                  <div class="col-12 col-md-4">-->
-<!--                    <q-input-->
-<!--                      v-model.number="dialog.slaResolutionHours"-->
-<!--                      type="number"-->
-<!--                      min="0"-->
-<!--                      label="Решение"-->
-<!--                      suffix="ч"-->
-<!--                      outlined-->
-<!--                      dense-->
-<!--                    />-->
-<!--                  </div>-->
-<!--                  <div class="col-12 col-md-6">-->
-<!--                    <q-select-->
-<!--                      v-model="dialog.slaWorkCalendar"-->
-<!--                      :options="slaCalendarOptions"-->
-<!--                      emit-value-->
-<!--                      map-options-->
-<!--                      label="Как считать SLA"-->
-<!--                      outlined-->
-<!--                      dense-->
-<!--                    />-->
-<!--                  </div>-->
-<!--                  <div class="col-12 col-md-6">-->
-<!--                    <q-toggle-->
-<!--                      v-model="dialog.pauseSlaOnWaitingClient"-->
-<!--                      label="Ставить SLA на паузу при ожидании клиента"-->
-<!--                      color="primary"-->
-<!--                    />-->
-<!--                  </div>-->
+              <!--              <q-expansion-item-->
+              <!--                icon="timer"-->
+              <!--                label="SLA"-->
+              <!--                header-class="text-weight-medium"-->
+              <!--              >-->
+              <!--                <div class="q-pa-md row q-col-gutter-md">-->
+              <!--                  <div class="col-12 col-md-4">-->
+              <!--                    <q-input v-model="dialog.slaAgreementName" label="Название SLA / регламента" outlined dense />-->
+              <!--                  </div>-->
+              <!--                  <div class="col-12 col-md-4">-->
+              <!--                    <q-input-->
+              <!--                      v-model.number="dialog.slaFirstResponseMinutes"-->
+              <!--                      type="number"-->
+              <!--                      min="0"-->
+              <!--                      label="Первый ответ"-->
+              <!--                      suffix="мин"-->
+              <!--                      outlined-->
+              <!--                      dense-->
+              <!--                    />-->
+              <!--                  </div>-->
+              <!--                  <div class="col-12 col-md-4">-->
+              <!--                    <q-input-->
+              <!--                      v-model.number="dialog.slaResolutionHours"-->
+              <!--                      type="number"-->
+              <!--                      min="0"-->
+              <!--                      label="Решение"-->
+              <!--                      suffix="ч"-->
+              <!--                      outlined-->
+              <!--                      dense-->
+              <!--                    />-->
+              <!--                  </div>-->
+              <!--                  <div class="col-12 col-md-6">-->
+              <!--                    <q-select-->
+              <!--                      v-model="dialog.slaWorkCalendar"-->
+              <!--                      :options="slaCalendarOptions"-->
+              <!--                      emit-value-->
+              <!--                      map-options-->
+              <!--                      label="Как считать SLA"-->
+              <!--                      outlined-->
+              <!--                      dense-->
+              <!--                    />-->
+              <!--                  </div>-->
+              <!--                  <div class="col-12 col-md-6">-->
+              <!--                    <q-toggle-->
+              <!--                      v-model="dialog.pauseSlaOnWaitingClient"-->
+              <!--                      label="Ставить SLA на паузу при ожидании клиента"-->
+              <!--                      color="primary"-->
+              <!--                    />-->
+              <!--                  </div>-->
 
-<!--                  <div class="col-12">-->
-<!--                    <div class="text-subtitle2 q-mb-sm">SLA по приоритетам из настроек</div>-->
-<!--                    <q-markup-table flat bordered dense>-->
-<!--                      <thead>-->
-<!--                      <tr>-->
-<!--                        <th class="text-left">Приоритет</th>-->
-<!--                        <th class="text-left">Значение</th>-->
-<!--                        <th class="text-left">Единица</th>-->
-<!--                      </tr>-->
-<!--                      </thead>-->
-<!--                      <tbody>-->
-<!--                      <tr v-for="priority in priorities" :key="priority.id">-->
-<!--                        <td class="text-left">-->
-<!--                          {{ priority.name }}-->
-<!--                        </td>-->
-<!--                        <td class="text-left sla-value-cell">-->
-<!--                          <q-input-->
-<!--                            v-model.number="dialogPrioritySla[priority.id].value"-->
-<!--                            type="number"-->
-<!--                            min="0"-->
-<!--                            dense-->
-<!--                            outlined-->
-<!--                          />-->
-<!--                        </td>-->
-<!--                        <td class="text-left sla-unit-cell">-->
-<!--                          <q-select-->
-<!--                            v-model="dialogPrioritySla[priority.id].unit"-->
-<!--                            :options="slaUnitOptions"-->
-<!--                            emit-value-->
-<!--                            map-options-->
-<!--                            dense-->
-<!--                            outlined-->
-<!--                          />-->
-<!--                        </td>-->
-<!--                      </tr>-->
-<!--                      <tr v-if="priorities.length === 0">-->
-<!--                        <td colspan="3" class="text-center text-grey-7 q-pa-md">-->
-<!--                          Приоритеты не найдены-->
-<!--                        </td>-->
-<!--                      </tr>-->
-<!--                      </tbody>-->
-<!--                    </q-markup-table>-->
-<!--                  </div>-->
+              <!--                  <div class="col-12">-->
+              <!--                    <div class="text-subtitle2 q-mb-sm">SLA по приоритетам из настроек</div>-->
+              <!--                    <q-markup-table flat bordered dense>-->
+              <!--                      <thead>-->
+              <!--                      <tr>-->
+              <!--                        <th class="text-left">Приоритет</th>-->
+              <!--                        <th class="text-left">Значение</th>-->
+              <!--                        <th class="text-left">Единица</th>-->
+              <!--                      </tr>-->
+              <!--                      </thead>-->
+              <!--                      <tbody>-->
+              <!--                      <tr v-for="priority in priorities" :key="priority.id">-->
+              <!--                        <td class="text-left">-->
+              <!--                          {{ priority.name }}-->
+              <!--                        </td>-->
+              <!--                        <td class="text-left sla-value-cell">-->
+              <!--                          <q-input-->
+              <!--                            v-model.number="dialogPrioritySla[priority.id].value"-->
+              <!--                            type="number"-->
+              <!--                            min="0"-->
+              <!--                            dense-->
+              <!--                            outlined-->
+              <!--                          />-->
+              <!--                        </td>-->
+              <!--                        <td class="text-left sla-unit-cell">-->
+              <!--                          <q-select-->
+              <!--                            v-model="dialogPrioritySla[priority.id].unit"-->
+              <!--                            :options="slaUnitOptions"-->
+              <!--                            emit-value-->
+              <!--                            map-options-->
+              <!--                            dense-->
+              <!--                            outlined-->
+              <!--                          />-->
+              <!--                        </td>-->
+              <!--                      </tr>-->
+              <!--                      <tr v-if="priorities.length === 0">-->
+              <!--                        <td colspan="3" class="text-center text-grey-7 q-pa-md">-->
+              <!--                          Приоритеты не найдены-->
+              <!--                        </td>-->
+              <!--                      </tr>-->
+              <!--                      </tbody>-->
+              <!--                    </q-markup-table>-->
+              <!--                  </div>-->
 
-<!--                  <div class="col-12">-->
-<!--                    <q-input-->
-<!--                      v-model="dialog.slaComment"-->
-<!--                      type="textarea"-->
-<!--                      autogrow-->
-<!--                      label="Комментарий по SLA"-->
-<!--                      outlined-->
-<!--                      dense-->
-<!--                    />-->
-<!--                  </div>-->
-<!--                </div>-->
-<!--              </q-expansion-item>-->
-<!--              <q-separator />-->
+              <!--                  <div class="col-12">-->
+              <!--                    <q-input-->
+              <!--                      v-model="dialog.slaComment"-->
+              <!--                      type="textarea"-->
+              <!--                      autogrow-->
+              <!--                      label="Комментарий по SLA"-->
+              <!--                      outlined-->
+              <!--                      dense-->
+              <!--                    />-->
+              <!--                  </div>-->
+              <!--                </div>-->
+              <!--              </q-expansion-item>-->
+              <!--              <q-separator />-->
 
               <q-expansion-item
                 icon="notes"
@@ -584,20 +542,22 @@
         </q-tab-panels>
       </q-card-section>
 
-      <q-separator />
+      <q-separator/>
 
       <q-card-actions align="right" class="organization-dialog-actions">
         <q-btn
           v-if="!isNewOrganization"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="negative"
           @click="dialogDeleteOrganization"
         />
-        <q-space />
+        <q-space/>
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />
@@ -613,7 +573,7 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
 import draggable from 'vuedraggable'
 
@@ -658,7 +618,7 @@ const defaultOrganization = () => ({
 
 export default {
   name: 'OrganizationsComponent',
-  components: { draggable },
+  components: {draggable},
 
   data: () => ({
     dragging: false,
@@ -674,29 +634,29 @@ export default {
     visitsUpdatingIds: {},
     localOrganizations: [],
     priorityLevelOptions: [
-      { label: 'Обычный', value: 'NORMAL' },
-      { label: 'Важный', value: 'HIGH' },
-      { label: 'VIP', value: 'VIP' },
-      { label: 'Проблемный', value: 'PROBLEM' }
+      {label: 'Обычный', value: 'NORMAL'},
+      {label: 'Важный', value: 'HIGH'},
+      {label: 'VIP', value: 'VIP'},
+      {label: 'Проблемный', value: 'PROBLEM'}
     ],
     slaCalendarOptions: [
-      { label: 'Из общих настроек', value: 'GENERAL_SETTINGS' },
-      { label: 'Календарное время 24/7', value: 'CALENDAR_24_7' },
-      { label: 'Только рабочее время', value: 'WORKING_HOURS' }
+      {label: 'Из общих настроек', value: 'GENERAL_SETTINGS'},
+      {label: 'Календарное время 24/7', value: 'CALENDAR_24_7'},
+      {label: 'Только рабочее время', value: 'WORKING_HOURS'}
     ],
     slaUnitOptions: [
-      { label: 'Минуты', value: 'MINUTES' },
-      { label: 'Часы', value: 'HOURS' },
-      { label: 'Дни', value: 'DAYS' }
+      {label: 'Минуты', value: 'MINUTES'},
+      {label: 'Часы', value: 'HOURS'},
+      {label: 'Дни', value: 'DAYS'}
     ]
   }),
 
   computed: {
-    priorities () {
+    priorities() {
       return this.store.priorities || []
     },
 
-    filteredOrganizations () {
+    filteredOrganizations() {
       const organizations = this.localOrganizations
       const query = (this.search || '').trim().toLowerCase()
       if (!query) {
@@ -716,7 +676,7 @@ export default {
     }
   },
 
-  mounted () {
+  mounted() {
     this.syncLocalOrganizations()
     this.loadSla()
     this.loadPrioritiesIfNeeded()
@@ -725,7 +685,7 @@ export default {
   watch: {
     'store.organizations': {
       deep: true,
-      handler () {
+      handler() {
         if (!this.dragging) {
           this.syncLocalOrganizations()
         }
@@ -734,7 +694,7 @@ export default {
   },
 
   methods: {
-    dialogNewOrganizationShow () {
+    dialogNewOrganizationShow() {
       this.isNewOrganization = true
       this.dialogVisible = true
       this.dialogTab = 'main'
@@ -744,7 +704,7 @@ export default {
       setTimeout(() => this.$refs.dialogName && this.$refs.dialogName.focus(), 250)
     },
 
-    editRow (row) {
+    editRow(row) {
       this.isNewOrganization = false
       this.dialogVisible = true
       this.dialogTab = 'main'
@@ -753,14 +713,14 @@ export default {
       this.initDialogPrioritySla(row)
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
       this.dialog = defaultOrganization()
       this.dialogOriginalName = ''
       this.dialogPrioritySla = {}
     },
 
-    normalizeOrganization (organization) {
+    normalizeOrganization(organization) {
       return {
         ...defaultOrganization(),
         ...JSON.parse(JSON.stringify(organization || {})),
@@ -771,7 +731,7 @@ export default {
       }
     },
 
-    loadPrioritiesIfNeeded () {
+    loadPrioritiesIfNeeded() {
       if (this.store.priorities && this.store.priorities.length > 0) {
         this.initDialogPrioritySla(this.dialog.id ? this.dialog : null)
         return
@@ -785,7 +745,7 @@ export default {
         .catch(() => undefined)
     },
 
-    loadSla () {
+    loadSla() {
       axios.get('/api/v1/sla')
         .then(response => {
           this.slaByOrganization = response.data || {}
@@ -796,7 +756,7 @@ export default {
         .catch(() => undefined)
     },
 
-    initDialogPrioritySla (organization) {
+    initDialogPrioritySla(organization) {
       const organizationName = organization?.name || this.dialogOriginalName || this.dialog.name
       const source = organizationName ? this.slaByOrganization[organizationName] || {} : {}
       const result = {}
@@ -812,7 +772,7 @@ export default {
       this.dialogPrioritySla = result
     },
 
-    dialogSaveNewOrUpdateOrganization () {
+    dialogSaveNewOrUpdateOrganization() {
       const organization = this.normalizeOrganization(this.dialog)
       organization.id = this.isNewOrganization ? null : this.dialog.id
       organization.orderNumber = this.isNewOrganization ? 0 : this.dialog.orderNumber
@@ -851,16 +811,16 @@ export default {
         })
     },
 
-    savePrioritySla (organization) {
+    savePrioritySla(organization) {
       if (!organization?.id || this.priorities.length === 0) {
         return Promise.resolve(organization)
       }
 
       const requests = this.priorities.map(priority => {
-        const sla = this.dialogPrioritySla[priority.id] || { value: 0, unit: 'HOURS' }
+        const sla = this.dialogPrioritySla[priority.id] || {value: 0, unit: 'HOURS'}
         return axios.post('/api/v1/sla', {
-          organization: { id: organization.id },
-          priority: { id: priority.id },
+          organization: {id: organization.id},
+          priority: {id: priority.id},
           value: sla.value ?? 0,
           unit: sla.unit || 'HOURS'
         })
@@ -871,7 +831,7 @@ export default {
         .then(() => organization)
     },
 
-    dialogDeleteOrganization () {
+    dialogDeleteOrganization() {
       axios.delete(`/api/v1/organization/${this.dialog.id}`)
         .then(() => {
           this.store.organizations = this.store.organizations.filter(organization => organization.id !== this.dialog.id)
@@ -881,7 +841,7 @@ export default {
         .catch(e => this.notifyNegative(e.response?.data?.message || e.response?.data || e.message))
     },
 
-    onOrganizationDragEnd () {
+    onOrganizationDragEnd() {
       this.dragging = false
       if (this.search) {
         this.syncLocalOrganizations()
@@ -906,19 +866,19 @@ export default {
         })
     },
 
-    organizationClientsCount (organization) {
+    organizationClientsCount(organization) {
       if (!organization?.id || !this.store.clients) {
         return 0
       }
       return this.store.clients.filter(client => client.organization?.id === organization.id).length
     },
 
-    numberOrZero (value) {
+    numberOrZero(value) {
       const number = Number(value)
       return Number.isFinite(number) ? number : 0
     },
 
-    visitUsagePercent (organization) {
+    visitUsagePercent(organization) {
       const limit = this.numberOrZero(organization.monthlyVisitsLimit)
       if (limit <= 0) {
         return 0
@@ -926,7 +886,7 @@ export default {
       return Math.min(100, Math.round(this.numberOrZero(organization.visitsUsed) * 100 / limit))
     },
 
-    visitsLeft (organization) {
+    visitsLeft(organization) {
       const left = this.numberOrZero(organization.monthlyVisitsLimit) - this.numberOrZero(organization.visitsUsed)
       if (left < 0) {
         return `+${Math.abs(left)} сверх пакета`
@@ -934,7 +894,7 @@ export default {
       return `осталось ${left}`
     },
 
-    visitProgressColor (organization) {
+    visitProgressColor(organization) {
       const percent = this.visitUsagePercent(organization)
       if (percent >= 100) return 'negative'
       if (percent >= 80) return 'orange'
@@ -942,13 +902,13 @@ export default {
       return 'primary'
     },
 
-    slaUnitLabel (unit) {
+    slaUnitLabel(unit) {
       if (unit === 'MINUTES') return 'мин'
       if (unit === 'DAYS') return 'дн'
       return 'ч'
     },
 
-    pluralize (count, words) {
+    pluralize(count, words) {
       const value = Math.abs(Number(count)) % 100
       const last = value % 10
       if (value > 10 && value < 20) return words[2]
@@ -957,49 +917,63 @@ export default {
       return words[2]
     },
 
-    notifyPositive (message) {
+    notifyPositive(message) {
       this.$q.notify({
         message,
         type: 'positive',
         position: 'top-right',
-        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
       })
     },
 
-    notifyNegative (message) {
+    notifyNegative(message) {
       this.$q.notify({
         message,
         type: 'negative',
         position: 'top-right',
-        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
       })
     },
 
-    syncLocalOrganizations () {
+    syncLocalOrganizations() {
       this.localOrganizations = [...(this.store.organizations || [])]
         .sort((a, b) => Number(a.orderNumber || 0) - Number(b.orderNumber || 0))
     },
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    return { store }
+    return {store}
   }
 }
 </script>
 
 <style scoped>
-.organizations-settings-page {
-  max-width: 1440px;
-  margin: 0 auto;
-}
-
-.organization-list-header {
-  background: #f7f7f7;
+.organization-list {
+  overflow: hidden;
 }
 
 .organization-row {
-  min-height: 74px;
+  min-height: 68px;
+}
+
+.organization-meta-line,
+.organization-secondary-line {
+  color: #737b89;
+  line-height: 1.45;
+}
+
+.organization-secondary-line {
+  margin-top: 2px;
+}
+
+.organization-name-section {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.organization-name-section .row {
+  min-width: 0;
 }
 
 .visit-progress-block {

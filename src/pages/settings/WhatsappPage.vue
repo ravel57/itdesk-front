@@ -1,19 +1,34 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить WhatsApp"
-      @click="this.dialogNewAccountShow"
-      style="margin-bottom: 8px;margin-right: 8px"
-    />
-    <q-btn
-      icon="info"
-      label="Инструкция"
-      @click="this.isShowInstruction = true"
-      style="margin-bottom: 8px;"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">WhatsApp</div>
+        <div class="settings-content-description">
+          Подключайте аккаунты WhatsApp для работы с обращениями в едином окне.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить WhatsApp"
+          @click="this.dialogNewAccountShow"
+        />
+        <q-btn
+          flat
+          no-caps
+          color="primary"
+          icon="info"
+          label="Инструкция"
+          @click="this.isShowInstruction = true"
+        />
+      </div>
+    </div>
     <div class="table-container">
       <q-table
+        class="settings-row-table"
         :rows="whatsappAccounts"
         :columns="columns"
         :rows-per-page-options="[0]"
@@ -66,32 +81,34 @@
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogName"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
         <q-input
           v-model="this.dialogApiKey"
-          label="ключ API"
+          label="ключ API *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
         <q-input
           v-model="this.dialogWhatsappID"
-          label="WhatsappID"
+          label="WhatsappID *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewWhatsappAccount"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="dialogDeleteAccount"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />
@@ -115,14 +132,14 @@ import WhatsApp from 'components/instructions/WhatsApp.vue'
 
 export default {
   name: 'WhatsappPage',
-  components: { 'whats-app-instruction': WhatsApp },
+  components: {'whats-app-instruction': WhatsApp},
 
   data: () => ({
     columns: [
-      { name: 'name', label: 'Название', align: 'left', field: 'name' },
-      { name: 'whatsappId', label: 'Whatsapp ID', align: 'left', field: 'whatsappId' },
-      { name: 'apiKey', label: 'API-ключ', align: 'left', field: 'apiKey' },
-      { name: 'show-api-key', label: 'Показать ключ', align: 'center', field: 'show-api-key' }
+      {name: 'name', label: 'Название', align: 'left', field: 'name'},
+      {name: 'whatsappId', label: 'Whatsapp ID', align: 'left', field: 'whatsappId'},
+      {name: 'apiKey', label: 'API-ключ', align: 'left', field: 'apiKey'},
+      {name: 'show-api-key', label: 'Показать ключ', align: 'center', field: 'show-api-key'}
     ],
     whatsappAccounts: [],
     dialogVisible: false,
@@ -135,7 +152,7 @@ export default {
     isShowInstruction: false// for updates
   }),
 
-  created () {
+  created() {
     axios.get('/api/v1/whatsapp')
       .then(response => {
         this.whatsappAccounts = response.data
@@ -155,11 +172,11 @@ export default {
   },
 
   methods: {
-    toggleApiKeyVisibility (row) {
+    toggleApiKeyVisibility(row) {
       row.showApiKey = !row.showApiKey
     },
 
-    dialogNewAccountShow () {
+    dialogNewAccountShow() {
       this.dialogVisible = true
       this.isNewWhatsappAccount = true
       this.dialogName = ''
@@ -168,7 +185,7 @@ export default {
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
-    updateAuthorities (row) {
+    updateAuthorities(row) {
       this.isNewWhatsappAccount = false
       this.dialogVisible = true
       this.dialogName = row.name
@@ -177,11 +194,11 @@ export default {
       this.whatsappAccountId = row.id
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogDeleteAccount () {
+    dialogDeleteAccount() {
       const account = this.whatsappAccounts[this.whatsappAccounts.indexOf(this.whatsappAccounts.find(account => account.id === this.whatsappAccountId))]
       axios.delete(`/api/v1/whatsapp/${account.id}`, account)
         .then(() => {
@@ -199,7 +216,7 @@ export default {
           }))
     },
 
-    dialogSaveNewOrUpdateAccount () {
+    dialogSaveNewOrUpdateAccount() {
       const account = {
         id: this.isNewWhatsappAccount ? null : this.whatsappAccountId,
         name: this.dialogName,

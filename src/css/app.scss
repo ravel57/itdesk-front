@@ -29,11 +29,10 @@
   font-feature-settings: 'liga';
   -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
-  font-variation-settings:
-    'FILL' 0,
-    'wght' 400,
-    'GRAD' 0,
-    'opsz' 24;
+  font-variation-settings: 'FILL' 0,
+  'wght' 400,
+  'GRAD' 0,
+  'opsz' 24;
 }
 
 @font-face {
@@ -77,4 +76,233 @@
   position: sticky;
   top: 0;
   z-index: 1;
+}
+
+
+/* Единое отображение длинных названий организаций во всей системе. */
+.organization-name-ellipsis {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.organization-select .q-field__native,
+.organization-select .q-field__input {
+  min-width: 0;
+}
+
+.organization-select .q-field__native > span,
+.organization-select .q-field__input > span,
+.organization-select .q-chip__content {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.organization-select .q-chip {
+  max-width: 100%;
+}
+
+.organization-select-popup .q-item__section--main {
+  min-width: 0;
+}
+
+.organization-select-popup .q-item__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Единый заголовок и описание для вложенных страниц настроек. */
+.settings-content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-content-heading {
+  min-width: 0;
+  max-width: 820px;
+}
+
+.settings-content-title {
+  color: #252b36;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.settings-content-description {
+  margin-top: 5px;
+  color: #737b89;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.settings-content-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 1023px) {
+  .settings-content-header {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .settings-content-heading {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .settings-content-title {
+    display: none;
+  }
+
+  .settings-content-description {
+    margin-top: 0;
+    font-size: 13px;
+  }
+
+  .settings-content-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* Строчно-табличные разделы настроек: тот же спокойный карточный ритм, что у линий поддержки. */
+.settings-row-list,
+.settings-row-table.q-table__container {
+  overflow: hidden;
+  border: 1px solid #e0e3e8 !important;
+  border-radius: 14px !important;
+  background: #fff;
+  box-shadow: none !important;
+}
+
+.settings-row-list .q-item {
+  min-height: 66px;
+  padding: 13px 18px;
+}
+
+.settings-row-list .q-item--dense {
+  min-height: 54px;
+}
+
+.settings-row-list .q-item__label--header {
+  min-height: 42px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+  color: #737b89;
+  background: #fafbfc;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settings-row-list .q-item:not(.q-item--active):hover {
+  background: #f0ecff !important;
+}
+
+.settings-row-table .q-table__top,
+.settings-row-table .q-table__bottom {
+  min-height: 54px;
+  padding-left: 16px;
+  padding-right: 16px;
+  background: #fff;
+}
+
+.settings-row-table .q-table__middle {
+  overflow: auto;
+}
+
+.settings-row-table thead tr {
+  background: #fafbfc;
+}
+
+.settings-row-table thead th {
+  height: 42px;
+  color: #737b89;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settings-row-table tbody td {
+  height: 64px;
+  color: #252b36;
+  font-size: 14px;
+}
+
+.settings-row-table tbody tr:hover td {
+  background: #f0ecff !important;
+}
+
+.settings-row-table .q-table__bottom {
+  border-top: 1px solid #edf0f4;
+}
+
+@media (max-width: 1023px) {
+  .settings-row-list,
+  .settings-row-table.q-table__container {
+    border-radius: 12px !important;
+  }
+
+  .settings-row-list .q-item {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+/* Заголовок должен занимать собственную высоту и не перекрываться следующим блоком. */
+.settings-content-header {
+  position: relative;
+  z-index: 1;
+  min-height: 50px;
+  padding-bottom: 2px;
+}
+
+.settings-content-description {
+  display: block;
+  min-height: 20px;
+}
+
+
+/* Drag-and-drop в настройках: строка остается кликабельной, перенос только за handle. */
+.settings-drag-handle {
+  width: 32px;
+  min-width: 32px;
+  padding-right: 8px;
+  color: #9aa3ad;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.settings-drag-handle:active {
+  cursor: grabbing;
+}
+
+.settings-row-list .list-group .q-item,
+.settings-row-list .organization-sortable-list .q-item {
+  min-height: 52px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.settings-row-list .ghost {
+  background: #f2efff !important;
+  opacity: .65;
 }

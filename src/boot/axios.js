@@ -1,6 +1,6 @@
-import { boot } from 'quasar/wrappers'
+import {boot} from 'quasar/wrappers'
 import axios from 'axios'
-import { appConfig } from 'src/config/appConfig'
+import {appConfig} from 'src/config/appConfig'
 
 function normalizeApiBaseUrl(value) {
   if (!value) {
@@ -39,12 +39,12 @@ export const api = axios.create({
   withCredentials: true
 })
 
-export default boot(({ app }) => {
+export default boot(({app}) => {
   app.config.globalProperties.$axios = axios
   app.config.globalProperties.$api = api
 })
 
-function handleUnauthorized (error) {
+function handleUnauthorized(error) {
   if (error.response && error.response.status === 401) {
     localStorage.removeItem('currentSessionId')
 

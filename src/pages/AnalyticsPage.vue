@@ -6,8 +6,11 @@
           Аналитика
         </div>
         <div class="text-grey-7">
-          Обращения, заявки, SLA, дедлайны и нагрузка операторов
+          Обращения, заявки, линии поддержки, SLA/OLA и нагрузка команд
         </div>
+        <q-chip dense square class="q-mt-xs" color="grey-2" text-color="dark" icon="shield">
+          {{ analyticsScopeLabel }}
+        </q-chip>
       </div>
 
       <div class="analytics-controls">
@@ -147,7 +150,7 @@
             />
           </div>
 
-          <div class="col-12 col-sm-6 col-md-3">
+          <div v-if="canFilterExecutors" class="col-12 col-sm-6 col-md-3">
             <q-select
               v-model="analyticsFilters.executorIds"
               :options="visibleExecutorFilterOptions"
@@ -188,6 +191,28 @@
               option-value="value"
               option-label="label"
               @update:model-value="onAnalyticsFilterChanged('tag')"
+            />
+          </div>
+
+          <div v-if="canFilterSupportLines" class="col-12 col-sm-6 col-md-3">
+            <q-select
+              v-model="analyticsFilters.supportLineIds"
+              :options="visibleSupportLineFilterOptions"
+              use-input
+              input-debounce="0"
+              @filter="(val, update) => filterAnalyticsSelect('supportLine', val, update)"
+              @popup-hide="resetAnalyticsFilterSearch('supportLine')"
+              label="Линии поддержки"
+              dense
+              outlined
+              multiple
+              clearable
+              use-chips
+              emit-value
+              map-options
+              option-value="value"
+              option-label="label"
+              @update:model-value="onAnalyticsFilterChanged('supportLine')"
             />
           </div>
         </div>
@@ -232,8 +257,9 @@
       >
         <q-tab name="overview" icon="dashboard" label="Обзор" no-caps/>
         <q-tab name="breakdown" icon="donut_large" label="Разбивки" no-caps/>
-        <q-tab name="deadlines" icon="timer" label="SLA и дедлайны" no-caps/>
-        <q-tab name="operators" icon="groups" label="Операторы" no-caps/>
+        <q-tab name="deadlines" icon="timer" :label="canViewInternalAnalytics ? 'SLA, OLA и дедлайны' : 'SLA и дедлайны'" no-caps/>
+        <q-tab v-if="canViewOperators" name="operators" icon="groups" label="Операторы" no-caps/>
+        <q-tab v-if="canViewSupportLines" name="lines" icon="support_agent" label="Линии поддержки" no-caps/>
       </q-tabs>
     </q-card>
 
@@ -521,13 +547,13 @@
                       Разбивка заявок
                     </div>
                     <div class="text-grey-7 text-caption">
-                      Открытые, закрытые, переоткрытые и просроченные заявки в выбранном разрезе
+                      {{ currentBreakdownTitle }} · {{ periodCaption }} · применяются все выбранные фильтры
                     </div>
                   </div>
 
                   <q-select
                     v-model="breakdownBy"
-                    :options="breakdownByOptions"
+                    :options="availableBreakdownByOptions"
                     label="Группировать по"
                     dense
                     outlined
@@ -541,74 +567,10 @@
 
               <q-separator/>
 
-              <q-card-section>
-                <div v-if="currentBreakdownRows.length" class="breakdown-chart">
-                  <div
-                    v-for="row in currentBreakdownRows"
-                    :key="row.key"
-                    class="breakdown-row"
-                  >
-                    <div class="breakdown-name">
-                      {{ row.name }}
-                    </div>
-                    <div class="breakdown-track">
-                      <div class="breakdown-fill" :style="{ width: row.percent + '%' }"/>
-                    </div>
-                    <div class="breakdown-total">
-                      {{ formatNumber(row.totalTasks) }}
-                    </div>
-                    <div class="breakdown-chips">
-                      <q-chip dense square color="blue-1" text-color="primary">
-                        Создано: {{ formatNumber(row.createdTasks) }}
-                      </q-chip>
-                      <q-chip dense square color="grey-2" text-color="dark">
-                        Открыто: {{ formatNumber(row.openTasks) }}
-                      </q-chip>
-                      <q-chip dense square color="positive" text-color="white">
-                        Закрыто: {{ formatNumber(row.closedTasks) }}
-                      </q-chip>
-                      <q-chip dense square color="warning" text-color="dark">
-                        Переоткр: {{ formatNumber(row.reopenedTasks) }}
-                      </q-chip>
-                      <q-chip dense square :color="row.overdueSla > 0 ? 'negative' : 'grey-2'"
-                              :text-color="row.overdueSla > 0 ? 'white' : 'dark'">
-                        SLA: {{ formatNumber(row.overdueSla) }}
-                      </q-chip>
-                      <q-chip dense square
-                              :color="row.overdueDeadlines > 0 ? 'warning' : 'grey-2'"
-                              text-color="dark">
-                        Дедлайн: {{ formatNumber(row.overdueDeadlines) }}
-                      </q-chip>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-else class="empty-state">
-                  <q-icon name="donut_large" size="34px" class="text-grey-5"/>
-                  <div class="text-grey-7 q-mt-sm">
-                    Нет данных для выбранной разбивки
-                  </div>
-                </div>
-              </q-card-section>
-            </q-card>
-          </div>
-
-          <div class="col-12">
-            <q-card flat bordered class="analytics-card">
-              <q-card-section>
-                <div class="text-h6">
-                  Таблица разбивки
-                </div>
-                <div class="text-grey-7 text-caption">
-                  {{ currentBreakdownTitle }} · {{ periodCaption }}
-                </div>
-              </q-card-section>
-
-              <q-separator/>
-
               <q-table
+                class="breakdown-table"
                 :rows="currentBreakdownRows"
-                :columns="breakdownColumns"
+                :columns="visibleBreakdownColumns"
                 row-key="key"
                 flat
                 dense
@@ -616,6 +578,21 @@
                 :rows-per-page-options="[10, 20, 50, 0]"
                 no-data-label="Нет данных для выбранной разбивки"
               >
+                <template v-slot:body-cell-totalTasks="props">
+                  <q-td :props="props" class="breakdown-progress-cell">
+                    <div class="breakdown-progress-value">
+                      {{ formatNumber(props.row.totalTasks) }}
+                    </div>
+                    <q-linear-progress
+                      rounded
+                      size="8px"
+                      color="primary"
+                      track-color="grey-3"
+                      :value="Math.max(0, Math.min(1, Number(props.row.percent || 0) / 100))"
+                    />
+                  </q-td>
+                </template>
+
                 <template v-slot:body-cell-overdueSla="props">
                   <q-td :props="props">
                     <q-chip
@@ -625,6 +602,19 @@
                       :text-color="Number(props.row.overdueSla || 0) > 0 ? 'white' : 'dark'"
                     >
                       {{ formatNumber(props.row.overdueSla) }}
+                    </q-chip>
+                  </q-td>
+                </template>
+
+                <template v-slot:body-cell-overdueOla="props">
+                  <q-td :props="props">
+                    <q-chip
+                      dense
+                      square
+                      :color="Number(props.row.overdueOla || 0) > 0 ? 'negative' : 'grey-2'"
+                      :text-color="Number(props.row.overdueOla || 0) > 0 ? 'white' : 'dark'"
+                    >
+                      {{ formatNumber(props.row.overdueOla) }}
                     </q-chip>
                   </q-td>
                 </template>
@@ -655,7 +645,10 @@
                 <div class="deadline-card-label">
                   Просроченные дедлайны
                 </div>
-                <div class="deadline-card-value text-negative">
+                <div
+                  class="deadline-card-value"
+                  :class="overdueDeadlines > 0 ? 'text-negative' : 'text-grey-7'"
+                >
                   {{ formatNumber(overdueDeadlines) }}
                 </div>
                 <div class="deadline-card-caption">
@@ -671,7 +664,10 @@
                 <div class="deadline-card-label">
                   Предупреждения по дедлайну
                 </div>
-                <div class="deadline-card-value text-warning">
+                <div
+                  class="deadline-card-value"
+                  :class="deadlineWarnings > 0 ? 'text-warning' : 'text-grey-7'"
+                >
                   {{ formatNumber(deadlineWarnings) }}
                 </div>
                 <div class="deadline-card-caption">
@@ -687,11 +683,52 @@
                 <div class="deadline-card-label">
                   Просроченные SLA
                 </div>
-                <div class="deadline-card-value text-negative">
+                <div
+                  class="deadline-card-value"
+                  :class="overdueSla > 0 ? 'text-negative' : 'text-grey-7'"
+                >
                   {{ formatNumber(overdueSla) }}
                 </div>
                 <div class="deadline-card-caption">
                   Открытые заявки с нарушенной реакцией
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+
+          <div v-if="canViewInternalAnalytics" class="col-12 col-md-6 col-lg-3">
+            <q-card flat bordered class="analytics-card deadline-card">
+              <q-card-section>
+                <div class="deadline-card-label">
+                  Просроченные OLA
+                </div>
+                <div
+                  class="deadline-card-value"
+                  :class="overdueOla > 0 ? 'text-negative' : 'text-grey-7'"
+                >
+                  {{ formatNumber(overdueOla) }}
+                </div>
+                <div class="deadline-card-caption">
+                  Нарушены внутренние сроки текущих линий
+                </div>
+              </q-card-section>
+            </q-card>
+          </div>
+
+          <div v-if="canViewInternalAnalytics" class="col-12 col-md-6 col-lg-3">
+            <q-card flat bordered class="analytics-card deadline-card">
+              <q-card-section>
+                <div class="deadline-card-label">
+                  Предупреждения OLA
+                </div>
+                <div
+                  class="deadline-card-value"
+                  :class="olaWarnings > 0 ? 'text-warning' : 'text-grey-7'"
+                >
+                  {{ formatNumber(olaWarnings) }}
+                </div>
+                <div class="deadline-card-caption">
+                  OLA линий скоро будет нарушен
                 </div>
               </q-card-section>
             </q-card>
@@ -703,7 +740,10 @@
                 <div class="deadline-card-label">
                   Сообщения без ответа
                 </div>
-                <div class="deadline-card-value">
+                <div
+                  class="deadline-card-value"
+                  :class="unansweredMessages > 0 ? 'text-warning' : 'text-grey-7'"
+                >
                   {{ formatNumber(unansweredMessages) }}
                 </div>
                 <div class="deadline-card-caption">
@@ -790,135 +830,228 @@
                     {{ formatDuration(avgCloseTimeSeconds) }}
                   </div>
                 </div>
+
+                <q-separator spaced/>
+
+                <div class="time-metric">
+                  <div>
+                    <div class="time-metric-label">
+                      Нахождение на линии
+                    </div>
+                    <div class="time-metric-caption">
+                      Среднее время заявки на одном этапе поддержки
+                    </div>
+                  </div>
+                  <div class="time-metric-value">
+                    {{ formatDuration(avgLineTimeSeconds) }}
+                  </div>
+                </div>
               </q-card-section>
             </q-card>
           </div>
         </div>
       </q-tab-panel>
 
-      <q-tab-panel name="operators" class="q-pa-none">
-        <div class="row q-col-gutter-md">
-          <div class="col-12 col-lg-5">
-            <q-card flat bordered class="analytics-card">
-              <q-card-section>
-                <div class="text-h6">
-                  Нагрузка по операторам
-                </div>
-                <div class="text-grey-7 text-caption">
-                  Быстро видно, у кого накапливаются открытые и просроченные заявки
-                </div>
-              </q-card-section>
+      <q-tab-panel v-if="canViewOperators" name="operators" class="q-pa-none">
+        <q-card flat bordered class="analytics-card">
+          <q-card-section>
+            <div class="text-h6">
+              Нагрузка по операторам
+            </div>
+            <div class="text-grey-7 text-caption">
+              Открытые, закрытые, просрочки и средние времена · {{ periodCaption }}
+            </div>
+          </q-card-section>
 
-              <q-separator/>
+          <q-separator/>
 
-              <q-card-section>
-                <div v-if="operatorLoadRows.length" class="operator-bars">
-                  <div
-                    v-for="operator in operatorLoadRows"
-                    :key="operator.userId || operator.name"
-                    class="operator-bar-item"
-                  >
-                    <div class="row items-center justify-between q-mb-xs">
-                      <div class="operator-name">
-                        {{ operator.name || 'Без имени' }}
-                      </div>
-                      <div class="operator-total">
-                        {{ formatNumber(operator.openTasks) }} открытых
-                      </div>
-                    </div>
-
-                    <div class="operator-progress-line">
-                      <span class="operator-progress-label">Открытые</span>
-                      <q-linear-progress
-                        rounded
-                        size="8px"
-                        :value="getProgressValue(operator.openTasks, maxOperatorOpenTasks)"
-                        color="primary"
-                        track-color="grey-3"
-                      />
-                    </div>
-
-                    <div class="operator-progress-line">
-                      <span class="operator-progress-label">Закрытые</span>
-                      <q-linear-progress
-                        rounded
-                        size="8px"
-                        :value="getProgressValue(operator.closedTasks, maxOperatorClosedTasks)"
-                        color="positive"
-                        track-color="grey-3"
-                      />
-                    </div>
-
-                    <div class="operator-warning-row">
-                      <q-chip dense square color="negative" text-color="white" icon="warning">
-                        SLA: {{ formatNumber(operator.overdueSla) }}
-                      </q-chip>
-                      <q-chip dense square color="warning" text-color="dark" icon="event_busy">
-                        Дедлайн: {{ formatNumber(operator.overdueDeadlines) }}
-                      </q-chip>
-                    </div>
+          <q-table
+            :rows="operatorLoadRows"
+            :columns="operatorLoadColumns"
+            row-key="userId"
+            flat
+            dense
+            :loading="loading"
+            :rows-per-page-options="[10, 20, 50, 0]"
+            no-data-label="Нет данных по операторам"
+          >
+            <template v-slot:body-cell-openTasks="props">
+              <q-td :props="props">
+                <div class="operator-load-cell">
+                  <div class="operator-load-value">
+                    {{ formatNumber(props.row.openTasks) }}
                   </div>
+                  <q-linear-progress
+                    rounded
+                    size="8px"
+                    :value="getProgressValue(props.row.openTasks, maxOperatorOpenTasks)"
+                    color="primary"
+                    track-color="grey-3"
+                  />
                 </div>
+              </q-td>
+            </template>
 
-                <div v-else class="empty-state">
-                  <q-icon name="insights" size="34px" class="text-grey-5"/>
-                  <div class="text-grey-7 q-mt-sm">
-                    Нет данных по операторам
+            <template v-slot:body-cell-closedTasks="props">
+              <q-td :props="props">
+                <div class="operator-load-cell">
+                  <div class="operator-load-value">
+                    {{ formatNumber(props.row.closedTasks) }}
                   </div>
+                  <q-linear-progress
+                    rounded
+                    size="8px"
+                    :value="getProgressValue(props.row.closedTasks, maxOperatorClosedTasks)"
+                    color="positive"
+                    track-color="grey-3"
+                  />
                 </div>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-overdueSla="props">
+              <q-td :props="props">
+                <q-chip
+                  dense
+                  square
+                  :color="Number(props.row.overdueSla || 0) > 0 ? 'negative' : 'grey-2'"
+                  :text-color="Number(props.row.overdueSla || 0) > 0 ? 'white' : 'dark'"
+                >
+                  {{ formatNumber(props.row.overdueSla) }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-olaWarnings="props">
+              <q-td :props="props">
+                <q-chip
+                  dense
+                  square
+                  :color="Number(props.row.olaWarnings || 0) > 0 ? 'warning' : 'grey-2'"
+                  text-color="dark"
+                >
+                  {{ formatNumber(props.row.olaWarnings) }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-overdueOla="props">
+              <q-td :props="props">
+                <q-chip
+                  dense
+                  square
+                  :color="Number(props.row.overdueOla || 0) > 0 ? 'negative' : 'grey-2'"
+                  :text-color="Number(props.row.overdueOla || 0) > 0 ? 'white' : 'dark'"
+                >
+                  {{ formatNumber(props.row.overdueOla) }}
+                </q-chip>
+              </q-td>
+            </template>
+
+            <template v-slot:body-cell-overdueDeadlines="props">
+              <q-td :props="props">
+                <q-chip
+                  dense
+                  square
+                  :color="Number(props.row.overdueDeadlines || 0) > 0 ? 'warning' : 'grey-2'"
+                  text-color="dark"
+                >
+                  {{ formatNumber(props.row.overdueDeadlines) }}
+                </q-chip>
+              </q-td>
+            </template>
+          </q-table>
+        </q-card>
+      </q-tab-panel>
+
+      <q-tab-panel v-if="canViewSupportLines" name="lines" class="q-pa-none">
+        <div class="row q-col-gutter-md q-mb-md">
+          <div class="col-12 col-sm-6 col-lg-3" v-for="card in lineMetricCards" :key="card.key">
+            <q-card flat bordered class="analytics-card line-summary-card">
+              <q-card-section>
+                <div class="row items-center justify-between no-wrap">
+                  <div class="text-grey-7 text-caption">{{ card.label }}</div>
+                  <q-icon :name="card.icon" :color="card.color" size="22px"/>
+                </div>
+                <div class="text-h5 text-weight-medium q-mt-sm">{{ card.value }}</div>
+                <div class="text-caption text-grey-7 q-mt-xs">{{ card.caption }}</div>
               </q-card-section>
             </q-card>
           </div>
+        </div>
 
-          <div class="col-12 col-lg-7">
+        <div class="row q-col-gutter-md">
+          <div class="col-12">
             <q-card flat bordered class="analytics-card">
               <q-card-section>
-                <div class="text-h6">
-                  Таблица операторов
-                </div>
+                <div class="text-h6">Нагрузка и OLA по линиям</div>
                 <div class="text-grey-7 text-caption">
-                  Открытые, закрытые, просрочки и средние времена
+                  Открытые заявки, назначения, внутренние сроки и среднее время нахождения на линии
                 </div>
               </q-card-section>
-
               <q-separator/>
-
               <q-table
-                :rows="operatorLoadRows"
-                :columns="operatorLoadColumns"
-                row-key="userId"
+                :rows="lineLoadRows"
+                :columns="lineLoadColumns"
+                row-key="supportLineId"
                 flat
                 dense
                 :loading="loading"
                 :rows-per-page-options="[10, 20, 50, 0]"
-                no-data-label="Нет данных по операторам"
+                no-data-label="Нет данных по линиям поддержки"
               >
-                <template v-slot:body-cell-overdueSla="props">
+                <template v-slot:body-cell-openTasks="props">
                   <q-td :props="props">
-                    <q-chip
-                      dense
-                      square
-                      :color="Number(props.row.overdueSla || 0) > 0 ? 'negative' : 'grey-2'"
-                      :text-color="Number(props.row.overdueSla || 0) > 0 ? 'white' : 'dark'"
-                    >
-                      {{ formatNumber(props.row.overdueSla) }}
+                    <div class="line-load-cell">
+                      <span>{{ formatNumber(props.row.openTasks) }}</span>
+                      <q-linear-progress
+                        rounded
+                        size="7px"
+                        :value="getProgressValue(props.row.openTasks, maxLineOpenTasks)"
+                        color="primary"
+                        track-color="grey-3"
+                      />
+                    </div>
+                  </q-td>
+                </template>
+                <template v-slot:body-cell-overdueOla="props">
+                  <q-td :props="props">
+                    <q-chip dense square :color="Number(props.row.overdueOla || 0) > 0 ? 'negative' : 'grey-2'"
+                            :text-color="Number(props.row.overdueOla || 0) > 0 ? 'white' : 'dark'">
+                      {{ formatNumber(props.row.overdueOla) }}
                     </q-chip>
                   </q-td>
                 </template>
-
-                <template v-slot:body-cell-overdueDeadlines="props">
+                <template v-slot:body-cell-olaWarnings="props">
                   <q-td :props="props">
-                    <q-chip
-                      dense
-                      square
-                      :color="Number(props.row.overdueDeadlines || 0) > 0 ? 'warning' : 'grey-2'"
-                      text-color="dark"
-                    >
-                      {{ formatNumber(props.row.overdueDeadlines) }}
+                    <q-chip dense square :color="Number(props.row.olaWarnings || 0) > 0 ? 'warning' : 'grey-2'" text-color="dark">
+                      {{ formatNumber(props.row.olaWarnings) }}
                     </q-chip>
                   </q-td>
                 </template>
               </q-table>
+            </q-card>
+          </div>
+
+          <div class="col-12 q-mt-md">
+            <q-card flat bordered class="analytics-card">
+              <q-card-section>
+                <div class="text-h6">Переходы между линиями</div>
+                <div class="text-grey-7 text-caption">
+                  Маршрутизация остается в разделе «Автоматизации»; здесь отображается фактический поток заявок
+                </div>
+              </q-card-section>
+              <q-separator/>
+              <q-table
+                :rows="lineTransitionRows"
+                :columns="lineTransitionColumns"
+                row-key="key"
+                flat
+                dense
+                :loading="loading"
+                :rows-per-page-options="[10, 20, 50, 0]"
+                no-data-label="Переходов между линиями за период нет"
+              />
             </q-card>
           </div>
         </div>
@@ -959,14 +1092,16 @@ export default {
       typeIds: [],
       priorityIds: [],
       executorIds: [],
-      tagIds: []
+      tagIds: [],
+      supportLineIds: [],
     },
 
     analyticsFilterSearch: {
       type: '',
       priority: '',
       executor: '',
-      tag: ''
+      tag: '',
+      supportLine: '',
     },
 
     periodOptions: [
@@ -1001,6 +1136,10 @@ export default {
         value: 'type'
       },
       {
+        label: 'По сервисам',
+        value: 'service'
+      },
+      {
         label: 'По приоритетам',
         value: 'priority'
       },
@@ -1011,6 +1150,10 @@ export default {
       {
         label: 'По тегам',
         value: 'tag'
+      },
+      {
+        label: 'По линиям поддержки',
+        value: 'supportLine',
       }
     ],
 
@@ -1024,7 +1167,7 @@ export default {
       },
       {
         name: 'totalTasks',
-        label: 'Всего',
+        label: 'Всего / доля',
         field: 'totalTasks',
         align: 'right',
         sortable: true,
@@ -1070,6 +1213,13 @@ export default {
         sortable: true
       },
       {
+        name: 'overdueOla',
+        label: 'Просроч. OLA',
+        field: 'overdueOla',
+        align: 'right',
+        sortable: true
+      },
+      {
         name: 'overdueDeadlines',
         label: 'Просроч. дедлайны',
         field: 'overdueDeadlines',
@@ -1084,6 +1234,39 @@ export default {
         sortable: true,
         format: value => Number(value || 0).toLocaleString('ru-RU')
       }
+    ],
+
+    lineLoadColumns: [
+      {name: 'name', label: 'Линия', field: 'name', align: 'left', sortable: true},
+      {name: 'level', label: 'Уровень', field: 'level', align: 'left', sortable: true},
+      {name: 'openTasks', label: 'Открытые / доля', field: 'openTasks', align: 'right', sortable: true},
+      {name: 'unassignedTasks', label: 'Без исполнителя', field: 'unassignedTasks', align: 'right', sortable: true},
+      {name: 'closedTasks', label: 'Закрыто', field: 'closedTasks', align: 'right', sortable: true},
+      {name: 'olaWarnings', label: 'Риск OLA', field: 'olaWarnings', align: 'right', sortable: true},
+      {name: 'overdueOla', label: 'Нарушен OLA', field: 'overdueOla', align: 'right', sortable: true},
+      {name: 'avgLineTimeSeconds', label: 'Среднее время на линии', field: 'avgLineTimeSeconds', align: 'right', sortable: true, format: value => {
+        const seconds = Number(value || 0)
+        if (seconds <= 0) return '—'
+        const minutes = Math.round(seconds / 60)
+        if (minutes < 60) return `${minutes} мин`
+        const hours = Math.floor(minutes / 60)
+        const rest = minutes % 60
+        return rest ? `${hours} ч ${rest} мин` : `${hours} ч`
+      }}
+    ],
+
+    lineTransitionColumns: [
+      {name: 'fromLine', label: 'Откуда', field: 'fromLine', align: 'left', sortable: true},
+      {name: 'toLine', label: 'Куда', field: 'toLine', align: 'left', sortable: true},
+      {name: 'count', label: 'Переходов', field: 'count', align: 'right', sortable: true, format: value => Number(value || 0).toLocaleString('ru-RU')},
+      {name: 'avgTransitionSeconds', label: 'Среднее время до перехода', field: 'avgTransitionSeconds', align: 'right', sortable: true, format: value => {
+        const seconds = Number(value || 0)
+        if (seconds <= 0) return '—'
+        const minutes = Math.round(seconds / 60)
+        if (minutes < 60) return `${minutes} мин`
+        const hours = Math.floor(minutes / 60)
+        return `${hours} ч ${minutes % 60} мин`
+      }}
     ],
 
     closedByPeriodColumns: [
@@ -1122,19 +1305,102 @@ export default {
       return this.unwrapAnalyticsResponse(this.store.analyticsSummary)
     },
 
+    analyticsAccess() {
+      const summaryAccess = this.summary?.access
+      if (summaryAccess && typeof summaryAccess === 'object') {
+        return summaryAccess
+      }
+      if (this.store.analyticsAccess && typeof this.store.analyticsAccess === 'object' &&
+        (this.store.analyticsAccess.role || this.store.analyticsAccess.scope !== 'NONE')) {
+        return this.store.analyticsAccess
+      }
+      const authorities = Array.isArray(this.store.currentUser?.authorities)
+        ? this.store.currentUser.authorities
+        : []
+      const role = ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']
+        .find(item => authorities.includes(item)) || null
+      const canViewInternalData = ['ADMIN', 'MANAGER', 'OPERATOR'].includes(role)
+      return {
+        role,
+        scope: ['ADMIN', 'MANAGER'].includes(role) ? 'ALL' : role ? 'RESTRICTED' : 'NONE',
+        organizationIds: [],
+        canViewInternalData,
+        canViewOperators: canViewInternalData,
+        canViewSupportLines: canViewInternalData,
+        canFilterExecutors: canViewInternalData,
+        canFilterSupportLines: canViewInternalData
+      }
+    },
+
+    canViewInternalAnalytics() {
+      return this.analyticsAccess.canViewInternalData === true
+    },
+
+    canViewOperators() {
+      return this.analyticsAccess.canViewOperators === true
+    },
+
+    canViewSupportLines() {
+      return this.analyticsAccess.canViewSupportLines === true
+    },
+
+    canFilterExecutors() {
+      return this.analyticsAccess.canFilterExecutors === true
+    },
+
+    canFilterSupportLines() {
+      return this.analyticsAccess.canFilterSupportLines === true
+    },
+
+    analyticsScopeLabel() {
+      const labels = {
+        ADMIN: 'Полная аналитика по всем данным',
+        MANAGER: 'Полная аналитика по всем данным',
+        OPERATOR: 'Данные доступных организаций и линий поддержки',
+        OBSERVER: 'Данные назначенных организаций'
+      }
+      return labels[this.analyticsAccess.role] || 'Доступ к аналитике ограничен'
+    },
+
+    availableBreakdownByOptions() {
+      return this.breakdownByOptions.filter(option => {
+        if (option.value === 'executor') {
+          return this.canViewOperators
+        }
+        if (option.value === 'supportLine') {
+          return this.canViewSupportLines
+        }
+        return true
+      })
+    },
+
+    visibleBreakdownColumns() {
+      if (this.canViewInternalAnalytics) {
+        return this.breakdownColumns
+      }
+      const internalColumns = new Set(['overdueOla', 'olaWarnings', 'unassignedTasks'])
+      return this.breakdownColumns.filter(column => !internalColumns.has(column.name))
+    },
+
     activeFilterCount() {
       return this.analyticsFilterQuery.typeIds.length +
         this.analyticsFilterQuery.priorityIds.length +
         this.analyticsFilterQuery.executorIds.length +
-        this.analyticsFilterQuery.tagIds.length
+        this.analyticsFilterQuery.tagIds.length +
+        this.analyticsFilterQuery.supportLineIds.length
     },
 
     analyticsFilterQuery() {
       return {
         typeIds: this.normalizeSelectedIds(this.analyticsFilters.typeIds),
         priorityIds: this.normalizeSelectedIds(this.analyticsFilters.priorityIds),
-        executorIds: this.normalizeSelectedIds(this.analyticsFilters.executorIds),
-        tagIds: this.normalizeSelectedIds(this.analyticsFilters.tagIds)
+        executorIds: this.canFilterExecutors
+          ? this.normalizeSelectedIds(this.analyticsFilters.executorIds)
+          : [],
+        tagIds: this.normalizeSelectedIds(this.analyticsFilters.tagIds),
+        supportLineIds: this.canFilterSupportLines
+          ? this.normalizeSelectedIds(this.analyticsFilters.supportLineIds)
+          : [],
       }
     },
 
@@ -1167,17 +1433,26 @@ export default {
       return this.toEntityOptions(this.store.tags || [], 'Без тега')
     },
 
+    supportLineFilterOptions() {
+      return this.toEntityOptions(
+        (this.store.supportLines || []).filter(line => line?.active !== false),
+        'Без линии'
+      )
+    },
+
     currentBreakdownTitle() {
-      const option = this.breakdownByOptions.find(item => item.value === this.breakdownBy)
+      const option = this.availableBreakdownByOptions.find(item => item.value === this.breakdownBy)
       return option ? option.label : 'Разбивка'
     },
 
     currentBreakdownRows() {
       const keyMap = {
         type: ['taskTypeBreakdown', 'typeBreakdown', 'tasksByType'],
+        service: ['serviceBreakdown', 'tasksByService'],
         priority: ['priorityBreakdown', 'tasksByPriority'],
         executor: ['executorBreakdown', 'tasksByExecutor'],
-        tag: ['tagBreakdown', 'tasksByTag']
+        tag: ['tagBreakdown', 'tasksByTag'],
+        supportLine: ['supportLineBreakdown', 'lineBreakdown', 'tasksBySupportLine'],
       }
       const rows = this.getSummaryRows(keyMap[this.breakdownBy] || [])
       return this.normalizeBreakdownRows(rows)
@@ -1192,15 +1467,19 @@ export default {
     },
 
     closedTasks() {
-      const closedFromBreakdown = this.getClosedTasksFromStableBreakdown()
-      if (closedFromBreakdown !== null) {
-        return closedFromBreakdown
-      }
       return this.getSummaryNumber(['closedTasks', 'closedTaskCount', 'resolvedTasks'])
     },
 
     overdueSla() {
       return this.getSummaryNumber(['overdueSla', 'overdueSlaTasks', 'slaOverdueTasks'])
+    },
+
+    overdueOla() {
+      return this.getSummaryNumber(['overdueOla', 'overdueOlaTasks', 'olaBreachedTasks'])
+    },
+
+    olaWarnings() {
+      return this.getSummaryNumber(['olaWarnings', 'olaWarningTasks', 'olaAtRiskTasks'])
     },
 
     overdueDeadlines() {
@@ -1227,16 +1506,23 @@ export default {
       return this.getSummaryNumber(['avgFirstResponseSeconds', 'averageFirstResponseSeconds'])
     },
 
+    firstResponseCount() {
+      return this.getSummaryNumber(['firstResponseCount', 'answeredAppealsCount'])
+    },
+
     avgCloseTimeSeconds() {
       return this.getSummaryNumber(['avgCloseTimeSeconds', 'averageCloseTimeSeconds'])
     },
 
+    avgLineTimeSeconds() {
+      return this.getSummaryNumber(['avgLineTimeSeconds', 'averageLineTimeSeconds'])
+    },
+
     totalClosedByPeriod() {
-      const closedFromBreakdown = this.getClosedTasksFromStableBreakdown()
-      if (closedFromBreakdown !== null) {
-        return closedFromBreakdown
+      if (this.closedTrendRows.length > 0) {
+        return this.closedTrendRows.reduce((sum, row) => sum + Number(row.count || 0), 0)
       }
-      return this.closedTrendRows.reduce((sum, row) => sum + row.count, 0)
+      return this.closedTasks
     },
 
     totalReopenedByPeriod() {
@@ -1372,6 +1658,47 @@ export default {
       return this.hourlyLoadRows.reduce((sum, row) => sum + row.total, 0)
     },
 
+    lineLoadRows() {
+      const source = this.getSummaryRows(['lineLoad', 'supportLineLoad', 'supportLineBreakdown'])
+      return source.map((row, index) => ({
+        ...row,
+        supportLineId: row.supportLineId ?? row.id ?? row.key ?? index,
+        name: row.name || row.supportLineName || row.label || 'Без линии',
+        level: row.levelLabel || (Number(row.level) > 0 ? `L${Number(row.level)}` : '—'),
+        openTasks: Number(row.openTasks || row.open || 0),
+        closedTasks: Number(row.closedTasks || row.closed || 0),
+        unassignedTasks: Number(row.unassignedTasks || row.withoutAssignee || 0),
+        olaWarnings: Number(row.olaWarnings || row.olaWarningTasks || 0),
+        overdueOla: Number(row.overdueOla || row.overdueOlaTasks || 0),
+        avgLineTimeSeconds: Number(row.avgLineTimeSeconds || row.averageLineTimeSeconds || 0)
+      })).sort((a, b) => b.openTasks - a.openTasks)
+    },
+
+    lineTransitionRows() {
+      const rows = this.getSummaryRows(['lineTransitions', 'supportLineTransitions'])
+      return rows.map((row, index) => ({
+        ...row,
+        key: row.key || `${row.fromLineId || row.fromLine || 'none'}:${row.toLineId || row.toLine || 'none'}:${index}`,
+        fromLine: row.fromLine || row.fromLineName || 'Без линии',
+        toLine: row.toLine || row.toLineName || 'Без линии',
+        count: Number(row.count || row.transitions || 0),
+        avgTransitionSeconds: Number(row.avgTransitionSeconds || row.averageTransitionSeconds || 0)
+      })).sort((a, b) => b.count - a.count)
+    },
+
+    maxLineOpenTasks() {
+      return Math.max(...this.lineLoadRows.map(row => Number(row.openTasks || 0)), 0)
+    },
+
+    lineMetricCards() {
+      return [
+        {key: 'lines', label: 'Активные линии', value: this.formatNumber(this.supportLineFilterOptions.length), caption: 'Настроенные активные линии', icon: 'support_agent', color: 'primary'},
+        {key: 'olaWarnings', label: 'Риск OLA', value: this.formatNumber(this.olaWarnings), caption: 'Срок линии скоро будет нарушен', icon: 'notification_important', color: this.olaWarnings > 0 ? 'warning' : 'positive'},
+        {key: 'overdueOla', label: 'Нарушен OLA', value: this.formatNumber(this.overdueOla), caption: 'Внутренние сроки команд', icon: 'timer_off', color: this.overdueOla > 0 ? 'negative' : 'positive'},
+        {key: 'avgLineTime', label: 'Время на линии', value: this.formatDuration(this.avgLineTimeSeconds), caption: 'Среднее за выбранный период', icon: 'schedule', color: 'info'}
+      ]
+    },
+
     operatorLoadRows() {
       const rows = Array.isArray(this.summary.operatorLoad) ? this.summary.operatorLoad : []
       return rows.map(row => ({
@@ -1381,6 +1708,8 @@ export default {
         openTasks: Number(row.openTasks || 0),
         closedTasks: Number(row.closedTasks || 0),
         overdueSla: Number(row.overdueSla || row.overdueSlaTasks || 0),
+        overdueOla: Number(row.overdueOla || row.overdueOlaTasks || 0),
+        olaWarnings: Number(row.olaWarnings || row.olaWarningTasks || 0),
         overdueDeadlines: Number(row.overdueDeadlines || row.overdueDeadlineTasks || row.deadlineOverdueTasks || 0),
         reopenedTasks: Number(row.reopenedTasks || row.reopenedTaskCount || row.returnedToWorkTasks || 0),
         avgFirstResponseSeconds: Number(row.avgFirstResponseSeconds || row.averageFirstResponseSeconds || 0),
@@ -1407,7 +1736,7 @@ export default {
         },
         {
           name: 'openTasks',
-          label: 'Открытые',
+          label: 'Открытые / доля',
           field: 'openTasks',
           align: 'right',
           sortable: true,
@@ -1415,7 +1744,7 @@ export default {
         },
         {
           name: 'closedTasks',
-          label: 'Закрытые',
+          label: 'Закрытые / доля',
           field: 'closedTasks',
           align: 'right',
           sortable: true,
@@ -1433,6 +1762,20 @@ export default {
           name: 'overdueSla',
           label: 'Просроч. SLA',
           field: 'overdueSla',
+          align: 'right',
+          sortable: true
+        },
+        {
+          name: 'olaWarnings',
+          label: 'Риск OLA',
+          field: 'olaWarnings',
+          align: 'right',
+          sortable: true
+        },
+        {
+          name: 'overdueOla',
+          label: 'Просроч. OLA',
+          field: 'overdueOla',
           align: 'right',
           sortable: true
         },
@@ -1463,14 +1806,14 @@ export default {
     },
 
     metricCards() {
-      return [
+      const cards = [
         {
           key: 'newAppeals',
           label: 'Новые обращения',
           value: this.formatNumber(this.newAppeals),
           caption: 'Входящие за период',
           icon: 'forum',
-          tone: 'metric-card-info'
+          tone: this.newAppeals > 0 ? 'metric-card-info' : 'metric-card-neutral'
         },
         {
           key: 'openTasks',
@@ -1478,7 +1821,7 @@ export default {
           value: this.formatNumber(this.openTasks),
           caption: 'Сейчас в работе',
           icon: 'task_alt',
-          tone: 'metric-card-info'
+          tone: this.openTasks > 0 ? 'metric-card-info' : 'metric-card-neutral'
         },
         {
           key: 'closedTasks',
@@ -1486,7 +1829,7 @@ export default {
           value: this.formatNumber(this.closedTasks),
           caption: 'За выбранный период',
           icon: 'done_all',
-          tone: 'metric-card-positive'
+          tone: this.closedTasks > 0 ? 'metric-card-positive' : 'metric-card-neutral'
         },
         {
           key: 'overdueSla',
@@ -1494,7 +1837,15 @@ export default {
           value: this.formatNumber(this.overdueSla),
           caption: 'Нарушена реакция',
           icon: 'warning',
-          tone: this.overdueSla > 0 ? 'metric-card-negative' : 'metric-card-positive'
+          tone: this.overdueSla > 0 ? 'metric-card-negative' : 'metric-card-healthy'
+        },
+        {
+          key: 'overdueOla',
+          label: 'Просроченные OLA',
+          value: this.formatNumber(this.overdueOla),
+          caption: 'Нарушен внутренний срок линии',
+          icon: 'timer_off',
+          tone: this.overdueOla > 0 ? 'metric-card-negative' : 'metric-card-healthy'
         },
         {
           key: 'overdueDeadlines',
@@ -1502,7 +1853,7 @@ export default {
           value: this.formatNumber(this.overdueDeadlines),
           caption: 'Нарушен срок выполнения',
           icon: 'event_busy',
-          tone: this.overdueDeadlines > 0 ? 'metric-card-negative' : 'metric-card-positive'
+          tone: this.overdueDeadlines > 0 ? 'metric-card-negative' : 'metric-card-healthy'
         },
         {
           key: 'unansweredMessages',
@@ -1510,15 +1861,17 @@ export default {
           value: this.formatNumber(this.unansweredMessages),
           caption: 'Сообщения клиентов',
           icon: 'mark_chat_unread',
-          tone: this.unansweredMessages > 0 ? 'metric-card-warning' : 'metric-card-positive'
+          tone: this.unansweredMessages > 0 ? 'metric-card-warning' : 'metric-card-healthy'
         },
         {
           key: 'avgFirstResponseSeconds',
           label: 'Первый ответ',
           value: this.formatDuration(this.avgFirstResponseSeconds),
-          caption: 'Среднее время',
+          caption: this.firstResponseCount > 0
+            ? `Ответов учтено: ${this.firstResponseCount}`
+            : 'Нет учтённых ответов',
           icon: 'reply',
-          tone: 'metric-card-neutral'
+          tone: this.avgFirstResponseSeconds > 0 ? 'metric-card-info' : 'metric-card-neutral'
         },
         {
           key: 'avgCloseTimeSeconds',
@@ -1526,7 +1879,7 @@ export default {
           value: this.formatDuration(this.avgCloseTimeSeconds),
           caption: 'Среднее время',
           icon: 'schedule',
-          tone: 'metric-card-neutral'
+          tone: this.avgCloseTimeSeconds > 0 ? 'metric-card-info' : 'metric-card-neutral'
         },
         {
           key: 'unassignedTasks',
@@ -1534,7 +1887,7 @@ export default {
           value: this.formatNumber(this.unassignedTasks),
           caption: 'Открытые заявки',
           icon: 'person_off',
-          tone: this.unassignedTasks > 0 ? 'metric-card-warning' : 'metric-card-positive'
+          tone: this.unassignedTasks > 0 ? 'metric-card-warning' : 'metric-card-neutral'
         },
         {
           key: 'reopenedTasks',
@@ -1545,10 +1898,13 @@ export default {
           tone: this.reopenedTasks > 0 ? 'metric-card-warning' : 'metric-card-neutral'
         }
       ]
+      return this.canViewInternalAnalytics
+        ? cards
+        : cards.filter(card => !['overdueOla', 'unassignedTasks'].includes(card.key))
     },
 
     queuePulseItems() {
-      return [
+      const items = [
         {
           key: 'overdueDeadlines',
           label: 'Дедлайн нарушен',
@@ -1586,10 +1942,13 @@ export default {
           textColor: 'dark'
         }
       ]
+      return this.canViewInternalAnalytics
+        ? items
+        : items.filter(item => item.key !== 'unassignedTasks')
     },
 
     qualityGauges() {
-      return [
+      const gauges = [
         {
           key: 'slaHealth',
           label: 'SLA без просрочки',
@@ -1623,18 +1982,21 @@ export default {
           color: this.getGaugeColor(this.calculateHealthPercent(this.newAppeals || this.unansweredMessages, this.unansweredMessages))
         }
       ]
+      return this.canViewInternalAnalytics
+        ? gauges
+        : gauges.filter(gauge => gauge.key !== 'assignmentHealth')
     },
 
     deadlineRisks() {
-      return [
+      const risks = [
         {
           key: 'overdueDeadlines',
           label: 'Дедлайн выполнения нарушен',
           caption: 'Заявки нужно закрыть или перенести срок с причиной',
           value: this.formatNumber(this.overdueDeadlines),
           icon: 'event_busy',
-          color: this.overdueDeadlines > 0 ? 'negative' : 'positive',
-          textClass: this.overdueDeadlines > 0 ? 'text-negative' : 'text-positive'
+          color: this.overdueDeadlines > 0 ? 'negative' : 'grey-5',
+          textClass: this.overdueDeadlines > 0 ? 'text-negative' : 'text-grey-7'
         },
         {
           key: 'deadlineWarnings',
@@ -1642,8 +2004,8 @@ export default {
           caption: 'Заявки попали в окно предупреждения за N минут',
           value: this.formatNumber(this.deadlineWarnings),
           icon: 'notification_important',
-          color: this.deadlineWarnings > 0 ? 'warning' : 'positive',
-          textClass: this.deadlineWarnings > 0 ? 'text-warning' : 'text-positive'
+          color: this.deadlineWarnings > 0 ? 'warning' : 'grey-5',
+          textClass: this.deadlineWarnings > 0 ? 'text-warning' : 'text-grey-7'
         },
         {
           key: 'overdueSla',
@@ -1651,8 +2013,17 @@ export default {
           caption: 'Отдельно от дедлайна выполнения заявки',
           value: this.formatNumber(this.overdueSla),
           icon: 'timer_off',
-          color: this.overdueSla > 0 ? 'negative' : 'positive',
-          textClass: this.overdueSla > 0 ? 'text-negative' : 'text-positive'
+          color: this.overdueSla > 0 ? 'negative' : 'grey-5',
+          textClass: this.overdueSla > 0 ? 'text-negative' : 'text-grey-7'
+        },
+        {
+          key: 'overdueOla',
+          label: 'OLA линии нарушен',
+          caption: 'Внутренний срок текущей команды превышен',
+          value: this.formatNumber(this.overdueOla),
+          icon: 'support_agent',
+          color: this.overdueOla > 0 ? 'negative' : 'grey-5',
+          textClass: this.overdueOla > 0 ? 'text-negative' : 'text-grey-7'
         },
         {
           key: 'unansweredMessages',
@@ -1660,10 +2031,13 @@ export default {
           caption: 'Очередь сообщений, которые требуют ответа оператора',
           value: this.formatNumber(this.unansweredMessages),
           icon: 'mark_chat_unread',
-          color: this.unansweredMessages > 0 ? 'warning' : 'positive',
-          textClass: this.unansweredMessages > 0 ? 'text-warning' : 'text-positive'
+          color: this.unansweredMessages > 0 ? 'warning' : 'grey-5',
+          textClass: this.unansweredMessages > 0 ? 'text-warning' : 'text-grey-7'
         }
       ]
+      return this.canViewInternalAnalytics
+        ? risks
+        : risks.filter(risk => risk.key !== 'overdueOla')
     },
 
     periodCaption() {
@@ -1688,6 +2062,10 @@ export default {
     visibleTagFilterOptions() {
       return this.filterOptionsBySearch(this.tagFilterOptions, this.analyticsFilterSearch.tag)
     },
+
+    visibleSupportLineFilterOptions() {
+      return this.filterOptionsBySearch(this.supportLineFilterOptions, this.analyticsFilterSearch.supportLine)
+    },
   },
 
   created() {
@@ -1710,7 +2088,8 @@ export default {
         typeIds: [],
         priorityIds: [],
         executorIds: [],
-        tagIds: []
+        tagIds: [],
+        supportLineIds: []
       }
     },
 
@@ -1736,7 +2115,8 @@ export default {
           typeIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.typeIds),
           priorityIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.priorityIds),
           executorIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.executorIds),
-          tagIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.tagIds)
+          tagIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.tagIds),
+          supportLineIds: this.normalizeAnalyticsSettingsIds(this.analyticsFilters.supportLineIds),
         }
       }
     },
@@ -1774,7 +2154,7 @@ export default {
       this.groupBy = ['DAY', 'WEEK'].includes(settings.groupBy)
         ? settings.groupBy
         : 'DAY'
-      this.breakdownBy = ['type', 'priority', 'executor', 'tag'].includes(settings.breakdownBy)
+      this.breakdownBy = ['type', 'service', 'priority', 'executor', 'tag', 'supportLine'].includes(settings.breakdownBy)
         ? settings.breakdownBy
         : 'type'
       this.analyticsFilters = {
@@ -1782,7 +2162,8 @@ export default {
         typeIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.typeIds),
         priorityIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.priorityIds),
         executorIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.executorIds),
-        tagIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.tagIds)
+        tagIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.tagIds),
+        supportLineIds: this.normalizeAnalyticsSettingsIds(settings.analyticsFilters?.supportLineIds),
       }
       if (this.periodPreset === 'custom') {
         this.fromDate = settings.fromDate || ''
@@ -1804,7 +2185,25 @@ export default {
         return
       }
       this.store.fetchAnalyticsDictionaries()
+        .then(() => this.applyAnalyticsAccessUi())
         .catch(error => console.error(error))
+    },
+
+    applyAnalyticsAccessUi() {
+      if (!this.canFilterExecutors) {
+        this.analyticsFilters.executorIds = []
+      }
+      if (!this.canFilterSupportLines) {
+        this.analyticsFilters.supportLineIds = []
+      }
+      if (!this.availableBreakdownByOptions.some(option => option.value === this.breakdownBy)) {
+        this.breakdownBy = 'type'
+      }
+      if ((!this.canViewOperators && this.activeTab === 'operators') ||
+        (!this.canViewSupportLines && this.activeTab === 'lines')) {
+        this.activeTab = 'overview'
+      }
+      this.saveAnalyticsSettingsToLocalStorage()
     },
 
     resetAnalyticsFilters() {
@@ -1833,9 +2232,9 @@ export default {
     },
 
     getUserDisplayName(user) {
-      const lastname = user && user.lastname ? user.lastname : ''
       const firstname = user && user.firstname ? user.firstname : ''
-      const fullName = `${lastname} ${firstname}`.trim()
+      const lastname = user && user.lastname ? user.lastname : ''
+      const fullName = `${firstname} ${lastname}`.trim()
       return fullName || (user && user.username) || 'Без имени'
     },
 
@@ -1851,6 +2250,8 @@ export default {
         closedTasks: Number(row.closedTasks || row.closed || 0),
         reopenedTasks: Number(row.reopenedTasks || row.reopened || 0),
         overdueSla: Number(row.overdueSla || row.overdueSlaTasks || 0),
+        olaWarnings: Number(row.olaWarnings || row.olaWarningTasks || 0),
+        overdueOla: Number(row.overdueOla || row.overdueOlaTasks || row.olaBreachedTasks || 0),
         overdueDeadlines: Number(row.overdueDeadlines || row.overdueDeadlineTasks || 0),
         unassignedTasks: Number(row.unassignedTasks || 0)
       }))
@@ -1861,24 +2262,6 @@ export default {
           ...row,
           percent: max > 0 ? Math.max((row.totalTasks / max) * 100, row.totalTasks > 0 ? 6 : 0) : 0
         }))
-    },
-
-    getClosedTasksFromStableBreakdown() {
-      const stableBreakdownKeyGroups = [
-        ['taskTypeBreakdown', 'typeBreakdown', 'tasksByType'],
-        ['priorityBreakdown', 'tasksByPriority'],
-        ['executorBreakdown', 'tasksByExecutor']
-      ]
-      for (const keys of stableBreakdownKeyGroups) {
-        const rows = this.getSummaryRows(keys)
-        if (rows.length === 0) {
-          continue
-        }
-        return rows.reduce((sum, row) => {
-          return sum + Number(row.closedTasks || row.closed || row.closedTaskCount || 0)
-        }, 0)
-      }
-      return null
     },
 
     unwrapAnalyticsResponse(value) {
@@ -1907,7 +2290,8 @@ export default {
         typeIds: this.toCsvParam(filters.typeIds),
         priorityIds: this.toCsvParam(filters.priorityIds),
         executorIds: this.toCsvParam(filters.executorIds),
-        tagIds: this.toCsvParam(filters.tagIds)
+        tagIds: this.toCsvParam(filters.tagIds),
+        supportLineIds: this.toCsvParam(filters.supportLineIds),
       }
     },
 
@@ -2008,6 +2392,13 @@ export default {
             return
           }
           this.analyticsSummary = data || {}
+          if (data?.access && typeof data.access === 'object') {
+            this.store.analyticsAccess = {
+              ...this.store.analyticsAccess,
+              ...data.access
+            }
+          }
+          this.applyAnalyticsAccessUi()
         })
         .catch(error => {
           if (currentRequestId !== this.analyticsRequestSeq || this.isAnalyticsRequestCanceled(error)) {
@@ -2121,6 +2512,9 @@ export default {
       const totalSeconds = Number(seconds || 0)
       if (totalSeconds <= 0) {
         return '—'
+      }
+      if (totalSeconds < 60) {
+        return '< 1 мин'
       }
       const minutes = Math.round(totalSeconds / 60)
       if (minutes < 60) {
@@ -2241,6 +2635,18 @@ export default {
   width: 150px;
 }
 
+.line-summary-card {
+  height: 100%;
+}
+
+.line-load-cell {
+  display: grid;
+  grid-template-columns: minmax(28px, auto) minmax(80px, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-width: 130px;
+}
+
 .analytics-tabs-card {
   border-radius: 8px;
 }
@@ -2278,6 +2684,10 @@ export default {
 
 .metric-card-neutral {
   border-left-color: #9e9e9e;
+}
+
+.metric-card-healthy {
+  border-left-color: #21ba45;
 }
 
 .metric-title {
@@ -2483,49 +2893,19 @@ export default {
   font-weight: 700;
 }
 
-.operator-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.operator-bar-item {
-  padding-bottom: 16px;
-  border-bottom: 1px solid #eeeeee;
-}
-
-.operator-bar-item:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
-.operator-name {
-  font-weight: 600;
-}
-
-.operator-total {
-  color: #757575;
-  font-size: 12px;
-}
-
-.operator-progress-line {
+.operator-load-cell {
   display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 8px;
+  grid-template-columns: 52px minmax(110px, 1fr);
+  gap: 10px;
   align-items: center;
-  margin-top: 8px;
+  min-width: 185px;
 }
 
-.operator-progress-label {
-  color: #757575;
-  font-size: 12px;
-}
-
-.operator-warning-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
+.operator-load-value {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .hourly-load-chart {
@@ -2604,48 +2984,23 @@ export default {
   width: 220px;
 }
 
-.breakdown-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+.breakdown-table :deep(.q-table__middle) {
+  overflow-x: auto;
 }
 
-.breakdown-row {
-  display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(160px, 1fr) 56px minmax(320px, 1.7fr);
-  gap: 10px;
-  align-items: center;
-}
-
-.breakdown-name {
-  overflow: hidden;
-  font-weight: 500;
-  text-overflow: ellipsis;
+.breakdown-table :deep(th) {
   white-space: nowrap;
 }
 
-.breakdown-track {
-  height: 14px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #eeeeee;
+.breakdown-progress-cell {
+  min-width: 180px;
+  width: 220px;
 }
 
-.breakdown-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: #1976d2;
-}
-
-.breakdown-total {
+.breakdown-progress-value {
+  margin-bottom: 5px;
   text-align: right;
   font-weight: 600;
-}
-
-.breakdown-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
 }
 
 @media (max-width: 900px) {
@@ -2657,18 +3012,9 @@ export default {
     grid-column: 2 / 4;
   }
 
-  .breakdown-row {
-    grid-template-columns: 1fr 56px;
-  }
-
-  .breakdown-name,
-  .breakdown-track,
-  .breakdown-chips {
-    grid-column: 1 / 3;
-  }
-
-  .breakdown-total {
-    text-align: left;
+  .breakdown-progress-cell {
+    min-width: 150px;
+    width: 170px;
   }
 }
 

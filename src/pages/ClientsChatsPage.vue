@@ -37,6 +37,12 @@
 <!--        <q-tooltip>Новый пользователь</q-tooltip>-->
 <!--      </q-btn>-->
 
+      <notification-bell
+        v-if="this.$q.screen.width > 1023"
+        button-color="primary"
+        class="q-ml-xs"
+      />
+
       <q-btn
         flat
         dense
@@ -63,7 +69,7 @@
               <router-link
                 :to="getClientChatRoute(client)"
                 class="text-primary client-row-link"
-                @click="preventOnboardingDemoNavigation(client, $event)"
+                @click="handleClientChatClick(client, $event)"
               >
                 <q-item-section
                   side
@@ -106,16 +112,21 @@
                       v-if="getOpenTasksCount(client) > 0"
                       class="client-open-tasks-counter"
                       :data-tour="isFirstClient(client) ? 'client-tasks-count' : null"
-                      title="Открытые заявки"
                     >
                       <q-icon
                         name="description"
                         class="client-open-tasks-counter__icon"
                       />
-
                       <span class="client-open-tasks-counter__value">
                         {{ getOpenTasksCount(client) }}
                       </span>
+                      <q-tooltip
+                        anchor="top middle"
+                        self="bottom middle"
+                        :offset="[10, 10]"
+                      >
+                        Открытые заявки
+                      </q-tooltip>
                     </div>
                     <div class="row items-center no-wrap">
                       <div
@@ -158,6 +169,9 @@
                   </q-item-label>
                   <q-item-label
                     caption
+                    class="organization-name-ellipsis"
+                    :title="this.getOrganization(client)"
+                    :data-tour="isFirstClient(client) ? 'client-organization' : null"
                   >
                     {{ this.getOrganization(client) }}
                   </q-item-label>
@@ -165,7 +179,7 @@
                     class="shorten-text"
                     caption
                     :data-tour="isFirstClient(client) ? 'client-last-message' : null"
-                    :class="client.lastMessage.deleted ? 'strikethrough' : ''"
+                    :class="!this.isObserver && client.lastMessage?.deleted ? 'strikethrough' : ''"
                   >
                     {{ this.getTimeLastMessage(client) }}
                     <q-icon
@@ -297,11 +311,13 @@ import moment from 'moment'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import axios from 'axios'
 import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
+import NotificationBell from 'components/notifications/NotificationBell.vue'
 
 export default {
   name: 'DialogsPage',
 
   components: {
+    NotificationBell,
     NoTasksPlaceholder,
     CircleCounter,
     PluginExtensionPoint
@@ -526,6 +542,12 @@ export default {
         text: 'Иконка показывает источник обращения, рядом отображается имя клиента.'
       },
       {
+        selector: '[data-tour="client-organization"]',
+        placement: 'right',
+        title: 'Организация клиента',
+        text: 'Под именем отображается организация, к которой привязан клиент. Это помогает быстро понять контекст обращения и договорные условия.'
+      },
+      {
         selector: '[data-tour="client-tasks-count"]',
         placement: 'right',
         title: 'Активные заявки',
@@ -568,6 +590,50 @@ export default {
         return this.$route?.fullPath || '/chats'
       }
       return `/chats/${client.id}`
+    },
+
+    getChatNavigationStorageKey (clientId) {
+      return `chat-navigation-message:${Number(clientId)}`
+    },
+
+    saveChatNavigationTarget (client) {
+      if (typeof sessionStorage === 'undefined') {
+        return
+      }
+
+      const clientId = Number(client?.id)
+      if (!Number.isFinite(clientId) || clientId <= 0) {
+        return
+      }
+
+      const key = this.getChatNavigationStorageKey(clientId)
+      const messageId = this.getAnswerRequiredMessageId(client)
+      if (!messageId) {
+        sessionStorage.removeItem(key)
+        return
+      }
+
+      sessionStorage.setItem(key, JSON.stringify({
+        clientId,
+        messageId,
+        createdAt: Date.now()
+      }))
+    },
+
+    handleClientChatClick (client, event) {
+      if (this.isOnboardingDemoClient(client)) {
+        event?.preventDefault()
+        event?.stopPropagation()
+        return
+      }
+
+      // Для открытия в новой вкладке не используем общий sessionStorage-таргет:
+      // он предназначен только для обычной навигации внутри текущей вкладки.
+      if (event && (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)) {
+        return
+      }
+
+      this.saveChatNavigationTarget(client)
     },
 
     preventOnboardingDemoNavigation (client, event) {
@@ -975,8 +1041,9 @@ export default {
     },
 
     getTimeLastMessage (client) {
-      if (client.lastMessage) {
-        const dateFormatted = new Date(client.lastMessage.date)
+      const lastMessage = this.getLastMessageObject(client)
+      if (lastMessage) {
+        const dateFormatted = new Date(lastMessage.date)
         const currentDate = new Date()
         const timeDifference = currentDate - dateFormatted
         const seconds = Math.floor(timeDifference / 1000)
@@ -989,8 +1056,8 @@ export default {
           return words[
             (number % 10 === 1 && number % 100 !== 11) ? 0
               : (number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 10 || number % 100 >= 20)) ? 1
-                : 2
-            ]
+                  : 2
+          ]
         }
 
         let result
@@ -1060,6 +1127,50 @@ export default {
         message.deleted !== true
     },
 
+    getAnswerRequiredMessageId (client) {
+      const explicitId = Number(client?.firstUnansweredMessageId)
+      if (Number.isFinite(explicitId) && explicitId > 0) {
+        return explicitId
+      }
+
+      const messages = [...this.getClientMessages(client)]
+        .filter(message => message?.date && message.deleted !== true)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      if (messages.length === 0) {
+        return null
+      }
+
+      let lastOperatorAnswerMs = 0
+      messages.forEach(message => {
+        if (this.isOutgoingOperatorMessage(message)) {
+          const dateMs = new Date(message.date).getTime()
+          if (Number.isFinite(dateMs)) {
+            lastOperatorAnswerMs = Math.max(lastOperatorAnswerMs, dateMs)
+          }
+        }
+      })
+
+      const selectedMessage = [...messages]
+        .filter(message => {
+          const dateMs = new Date(message.date).getTime()
+          return this.isIncomingMessage(message) &&
+            Number.isFinite(dateMs) &&
+            dateMs > lastOperatorAnswerMs
+        })
+        .reverse()
+        .find(message =>
+          message.answerRequired === 'ANSWER_REQUIRED' ||
+          message.answerRequired === 'ANSWER_NOT_REQUIRED'
+        )
+
+      if (!selectedMessage || selectedMessage.answerRequired !== 'ANSWER_REQUIRED') {
+        return null
+      }
+
+      const messageId = Number(selectedMessage.id)
+      return Number.isFinite(messageId) && messageId > 0 ? messageId : null
+    },
+
     getLastAnswerRequiredUnansweredMessageDate (client) {
       const messages = [...this.getClientMessages(client)]
         .filter(message => message?.date && message.deleted !== true)
@@ -1110,7 +1221,9 @@ export default {
     },
 
     getLastMessageDateMs (client) {
-      const dateMs = new Date(client?.lastMessage?.date || 0).getTime()
+      const lastMessage = this.getLastMessageObject(client)
+      const sortDate = lastMessage?.date || client?.lastActivityDate || 0
+      const dateMs = new Date(sortDate).getTime()
       return Number.isFinite(dateMs) ? dateMs : 0
     },
 
@@ -1232,25 +1345,23 @@ export default {
     },
 
     getLastMessage (client) {
-      if (client.lastMessage) {
-        if (client.lastMessage.text) {
-          return client.lastMessage.text
-        } else {
-          if (client.lastMessage.fileType === null) {
-            return 'Неизвестный формат файла'
-          } else if (client.lastMessage.fileType.startsWith('video/')) {
-            return 'Видео'
-          } else if (client.lastMessage.fileType.startsWith('image/')) {
-            return 'Изображение'
-          } else if (client.lastMessage.fileType.startsWith('audio/')) {
-            return 'Аудио'
-          } else {
-            return 'Файл'
-          }
-        }
-      } else {
+      const lastMessage = this.getLastMessageObject(client)
+      if (!lastMessage) {
         return ''
       }
+      if (lastMessage.text) {
+        return lastMessage.text
+      }
+      if (lastMessage.fileType === null) {
+        return 'Неизвестный формат файла'
+      } else if (lastMessage.fileType.startsWith('video/')) {
+        return 'Видео'
+      } else if (lastMessage.fileType.startsWith('image/')) {
+        return 'Изображение'
+      } else if (lastMessage.fileType.startsWith('audio/')) {
+        return 'Аудио'
+      }
+      return 'Файл'
     },
 
     getAbbreviation (client) {
@@ -1411,7 +1522,7 @@ export default {
       if (!client) {
         return null
       }
-      if (client.lastMessage) {
+      if (client.lastMessage && !(this.isObserver && client.lastMessage.deleted === true)) {
         return client.lastMessage
       }
       const messages = [...this.getClientMessages(client)]
@@ -1443,6 +1554,10 @@ export default {
   },
 
   computed: {
+    isObserver () {
+      return this.store.currentUser?.authorities?.includes('OBSERVER') === true
+    },
+
     shouldShowChatsToolbar () {
       return this.clientsForChatsList.length > 0 || this.searchQuery.trim() !== '' || this.isOnboardingVisible
     },

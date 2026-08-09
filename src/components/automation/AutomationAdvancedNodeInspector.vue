@@ -1,7 +1,7 @@
 <template>
   <div class="advanced-node-inspector q-mt-md">
     <template v-if="node.type === 'SWITCH'">
-      <q-input v-model="node.config.valueExpression" outlined dense label="Поле, переменная или шаблон"
+      <q-input v-model="node.config.valueExpression" outlined dense label="Поле, переменная или шаблон *"
                hint="Например: task.priority.id или var.severity" @change="changed"/>
       <div v-for="(item, index) in ensureArray('cases')" :key="item.id" class="config-row q-mt-sm">
         <q-input v-model="item.label" outlined dense label="Название ветки" @change="changed"/>
@@ -35,11 +35,11 @@
     </template>
 
     <template v-else-if="node.type === 'WAIT_EVENT' || node.type === 'WAIT_TASK'">
-      <q-select v-model="node.config.eventType" outlined dense label="Ожидаемое событие" :options="triggerTypeOptions"
+      <q-select v-model="node.config.eventType" outlined dense label="Ожидаемое событие *" :options="triggerTypeOptions"
                 emit-value map-options @update:model-value="changed"/>
       <q-select v-if="node.type === 'WAIT_EVENT'" v-model="node.config.scope" outlined dense label="Связать событие"
                 :options="waitScopes" emit-value map-options class="q-mt-md" @update:model-value="changed"/>
-      <q-input v-else v-model="node.config.taskIdExpression" outlined dense label="ID заявки или переменная"
+      <q-input v-else v-model="node.config.taskIdExpression" outlined dense label="ID заявки или переменная *"
                hint="task.id, var.createdTaskId или число" class="q-mt-md" @change="changed"/>
       <q-input v-model="node.config.filterExpression" outlined dense autogrow type="textarea"
                label="Дополнительное условие события" hint="Пусто — принять первое подходящее событие" class="q-mt-md"
@@ -53,7 +53,7 @@
     </template>
 
     <template v-else-if="node.type === 'APPROVAL'">
-      <q-input v-model="node.config.title" outlined dense label="Заголовок решения" @change="changed"/>
+      <q-input v-model="node.config.title" outlined dense label="Заголовок решения *" @change="changed"/>
       <q-input v-model="node.config.message" outlined dense autogrow type="textarea" label="Описание" class="q-mt-md"
                @change="changed"/>
       <q-select v-model="node.config.approverUserId" outlined dense clearable label="Ответственный пользователь"
@@ -70,7 +70,7 @@
     </template>
 
     <template v-else-if="node.type === 'SUBFLOW'">
-      <q-select v-model="node.config.triggerId" outlined dense label="Автоматизация" :options="triggerOptions"
+      <q-select v-model="node.config.triggerId" outlined dense label="Автоматизация *" :options="triggerOptions"
                 emit-value map-options @update:model-value="changed"/>
       <q-select v-model="node.config.mode" outlined dense label="Режим запуска" :options="subflowModes" emit-value
                 map-options class="q-mt-md" @update:model-value="changed"/>
@@ -80,7 +80,7 @@
     </template>
 
     <template v-else-if="node.type === 'FORK'">
-      <q-select v-model="node.config.joinNodeId" outlined dense clearable label="Узел объединения"
+      <q-select v-model="node.config.joinNodeId" outlined dense clearable label="Узел объединения *"
                 :options="joinNodeOptions" emit-value map-options @update:model-value="changed"/>
       <div v-for="(branch, index) in ensureArray('branches')" :key="branch.id" class="config-row q-mt-sm">
         <q-input v-model="branch.label" outlined dense label="Название ветки" @change="changed"/>
@@ -102,9 +102,9 @@
 
     <template v-else-if="node.type === 'HTTP_REQUEST'">
       <div class="row q-col-gutter-sm">
-        <q-select v-model="node.config.method" outlined dense label="Метод" :options="httpMethods" class="col-4"
+        <q-select v-model="node.config.method" outlined dense label="Метод *" :options="httpMethods" class="col-4"
                   @update:model-value="changed"/>
-        <q-input v-model="node.config.url" outlined dense label="URL" class="col-8" @change="changed"/>
+        <q-input v-model="node.config.url" outlined dense label="URL *" class="col-8" @change="changed"/>
       </div>
       <q-input v-model="node.config.headersText" outlined dense autogrow type="textarea" label="Заголовки JSON"
                class="q-mt-md" @change="changed"/>
@@ -119,7 +119,7 @@
     </template>
 
     <template v-else-if="node.type === 'SET_VARIABLE' || node.type === 'EXPRESSION'">
-      <q-input v-model="node.config.name" outlined dense label="Имя переменной" prefix="var." @change="changed"/>
+      <q-input v-model="node.config.name" outlined dense label="Имя переменной *" prefix="var." @change="changed"/>
       <q-input v-model="node.config.expression" outlined dense autogrow type="textarea"
                :label="node.type === 'EXPRESSION' ? 'Формула или шаблон' : 'Значение, путь или шаблон'" class="q-mt-md"
                @change="changed"/>
@@ -129,7 +129,7 @@
     </template>
 
     <template v-else-if="node.type === 'COUNTER'">
-      <q-input v-model="node.config.name" outlined dense label="Имя счётчика" prefix="var." @change="changed"/>
+      <q-input v-model="node.config.name" outlined dense label="Имя счётчика *" prefix="var." @change="changed"/>
       <q-select v-model="node.config.operation" outlined dense label="Операция" :options="counterOperations" emit-value
                 map-options class="q-mt-md" @update:model-value="changed"/>
       <q-input v-model="node.config.amountExpression" outlined dense label="Значение" hint="Число, путь или var.*"
@@ -137,7 +137,7 @@
     </template>
 
     <template v-else-if="node.type === 'ERROR_HANDLER' || node.type === 'RETRY'">
-      <q-input v-model="node.config.actionScript" outlined dense autogrow type="textarea" label="Сценарий действий"
+      <q-input v-model="node.config.actionScript" outlined dense autogrow type="textarea" label="Сценарий действий *"
                @change="changed"/>
       <template v-if="node.type === 'RETRY'">
         <q-input v-model.number="node.config.maxAttempts" outlined dense type="number" min="1" max="20"
@@ -154,7 +154,7 @@
     </template>
 
     <template v-else-if="node.type === 'ESCALATE'">
-      <q-select v-model="node.config.supportLineId" outlined dense label="Новая линия" :options="supportLineOptions"
+      <q-select v-model="node.config.supportLineId" outlined dense label="Новая линия *" :options="supportLineOptions"
                 emit-value map-options @update:model-value="changed"/>
       <q-select v-model="node.config.priorityName" outlined dense clearable label="Новый приоритет"
                 :options="priorityNameOptions" emit-value map-options class="q-mt-md" @update:model-value="changed"/>
@@ -167,11 +167,13 @@
     </template>
 
     <template v-else-if="node.type === 'CREATE_TASK'">
-      <q-input v-model="node.config.title" outlined dense label="Название заявки" hint="Поддерживаются {{...}}"
+      <q-input v-model="node.config.title" outlined dense label="Название заявки *" hint="Поддерживаются {{...}}"
                @change="changed"/>
       <q-input v-model="node.config.description" outlined dense autogrow type="textarea" label="Описание"
                class="q-mt-md" @change="changed"/>
       <q-select v-model="node.config.typeId" outlined dense clearable label="Тип" :options="taskTypeOptions" emit-value
+                map-options class="q-mt-md" @update:model-value="changed"/>
+      <q-select v-model="node.config.serviceId" outlined dense clearable label="Сервис" :options="serviceOptions" emit-value
                 map-options class="q-mt-md" @update:model-value="changed"/>
       <q-select v-model="node.config.priorityName" outlined dense clearable label="Приоритет"
                 :options="priorityNameOptions" emit-value map-options class="q-mt-md" @update:model-value="changed"/>
@@ -186,7 +188,7 @@
                 map-options @update:model-value="changed"/>
       <q-select v-if="node.config.channel === 'USER'" v-model="node.config.userId" outlined dense label="Пользователь"
                 :options="userOptions" emit-value map-options class="q-mt-md" @update:model-value="changed"/>
-      <q-input v-model="node.config.text" outlined dense autogrow type="textarea" label="Сообщение"
+      <q-input v-model="node.config.text" outlined dense autogrow type="textarea" label="Сообщение *"
                hint="Поддерживаются {{task.id}} и {{var.name}}" class="q-mt-md" @change="changed"/>
     </template>
 
@@ -201,7 +203,7 @@
       <q-input v-if="node.config.scope === 'CUSTOM'" v-model="node.config.customKey" outlined dense label="Шаблон ключа"
                class="q-mt-md" @change="changed"/>
       <div class="row q-col-gutter-sm q-mt-sm">
-        <q-input v-model.number="node.config.amount" outlined dense type="number" min="1" label="Не чаще чем раз в"
+        <q-input v-model.number="node.config.amount" outlined dense type="number" min="1" label="Не чаще чем раз в *"
                  class="col-7" @change="changed"/>
         <q-select v-model="node.config.unit" outlined dense label="Единица" :options="delayUnits" emit-value map-options
                   class="col-5" @update:model-value="changed"/>
@@ -210,7 +212,7 @@
 
     <template v-else-if="node.type === 'DEDUPLICATE'">
       <q-input v-model.number="node.config.windowMinutes" outlined dense type="number" min="1"
-               label="Искать за последние, минут" @change="changed"/>
+               label="Искать за последние, минут *" @change="changed"/>
       <q-select v-model="node.config.typeId" outlined dense clearable label="Тип заявки" :options="taskTypeOptions"
                 emit-value map-options class="q-mt-md" @update:model-value="changed"/>
       <q-select v-model="node.config.titleMode" outlined dense label="Сравнение названия" :options="dedupeTitleModes"
@@ -228,10 +230,13 @@ import {nextFlowId} from 'src/util/automationFlow'
 const EVENT_LABELS = {
   TASK_CREATED: 'Заявка создана', TASK_UPDATED: 'Заявка изменена', TASK_STATUS_CHANGED: 'Изменён статус',
   TASK_PRIORITY_CHANGED: 'Изменён приоритет', TASK_TYPE_CHANGED: 'Изменён тип заявки',
+  TASK_SERVICE_CHANGED: 'Изменён сервис заявки',
   TASK_ASSIGNEE_CHANGED: 'Изменён исполнитель',
   TASK_GROUP_CHANGED: 'Изменена линия', TASK_TAG_ADDED: 'Добавлен тег', TASK_TAG_REMOVED: 'Удалён тег',
   TASK_CLOSED: 'Заявка закрыта', TASK_REOPENED: 'Заявка возвращена', SLA_WARNING: 'Предупреждение SLA',
-  SLA_BREACHED: 'SLA нарушен', MESSAGE_INCOMING: 'Входящее сообщение', MESSAGE_OUTGOING: 'Исходящее сообщение'
+  SLA_BREACHED: 'SLA нарушен', FIRST_RESPONSE_SLA_WARNING: 'Срок первого ответа истекает',
+  FIRST_RESPONSE_SLA_BREACHED: 'Срок первого ответа нарушен', MESSAGE_INCOMING: 'Входящее сообщение',
+  MESSAGE_OUTGOING: 'Исходящее сообщение'
 }
 
 export default {
@@ -242,6 +247,7 @@ export default {
     triggerTypes: {type: Array, default: () => []},
     triggers: {type: Array, default: () => []},
     taskTypes: {type: Array, default: () => []},
+    services: {type: Array, default: () => []},
     priorities: {type: Array, default: () => []},
     supportLines: {type: Array, default: () => []},
     users: {type: Array, default: () => []}
@@ -308,6 +314,12 @@ export default {
       return (this.taskTypes || []).filter(item => item?.id).map(item => ({
         value: item.id,
         label: item.type || item.name || `Тип ${item.id}`
+      }))
+    },
+    serviceOptions() {
+      return (this.services || []).filter(item => item?.id && item.active !== false).map(item => ({
+        value: item.id,
+        label: [item.code, item.name].filter(Boolean).join(' · ') || `Сервис ${item.id}`
       }))
     },
     priorityNameOptions() {

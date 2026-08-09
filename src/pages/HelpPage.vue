@@ -43,14 +43,14 @@
 
 <script>
 import ChatDialog from 'components/chat/ChatDialog.vue'
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
 
 export default {
 
   name: 'HelpPage',
 
-  components: { ChatDialog },
+  components: {ChatDialog},
 
   data: () => ({
     inputField: '',
@@ -58,7 +58,7 @@ export default {
   }),
 
   methods: {
-    sendMessage (event) {
+    sendMessage(event) {
       axios.post('/api/v1/support/send-message', event.message)
         .then(() => {
           this.inputField = ''
@@ -75,24 +75,24 @@ export default {
           }))
     },
 
-    keyPressed (text) {
+    keyPressed(text) {
       this.inputField = text
     }
   },
 
   computed: {
-    isMobile () {
+    isMobile() {
       return this.$q.screen.width < 1023
     }
   },
 
-  mounted () {
+  mounted() {
     document.title = 'ULDESK : Помощь'
   },
 
-  setup () {
+  setup() {
     const store = useStore()
-    return { store }
+    return {store}
   }
 
 }

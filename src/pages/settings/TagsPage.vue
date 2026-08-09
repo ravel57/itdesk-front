@@ -1,14 +1,27 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить тег"
-      @click="this.dialogNewTag"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Теги</div>
+        <div class="settings-content-description">
+          Создавайте теги для классификации, фильтрации и быстрого поиска заявок.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить тег"
+          @click="this.dialogNewTag"
+        />
+      </div>
+    </div>
     <div class="table-container">
       <q-list
         bordered
-        class="rounded-borders"
+        class="rounded-borders settings-row-list"
         separator
         full-width
         style="margin-top: 8px"
@@ -26,6 +39,7 @@
           item-key="id"
           class="list-group"
           ghost-class="ghost"
+          handle=".settings-drag-handle"
           @start="dragging = true"
           @end="dragging = false"
         >
@@ -33,8 +47,10 @@
             <q-item
               class="list-group-item"
               :class="{ 'not-draggable': true }"
-              style="cursor: grab"
             >
+              <q-item-section side class="settings-drag-handle cursor-grab">
+                <q-icon name="drag_indicator" color="grey-6"/>
+              </q-item-section>
               <q-item-section
                 top
                 style="justify-content: center"
@@ -72,13 +88,13 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewTag ? 'Новый тег' : 'Изменить тег'" />
-        <q-btn flat round dense icon="close" v-close-popup />
+        <div class="text-h6" v-text="this.isNewTag ? 'Новый тег' : 'Изменить тег'"/>
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogName"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
@@ -90,14 +106,16 @@
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewTag"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="dialogDeleteTag"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />
@@ -111,15 +129,15 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
-import { watch } from 'vue'
+import {watch} from 'vue'
 import draggable from 'vuedraggable'
 
 export default {
   name: 'TagsComponent',
 
-  components: { draggable },
+  components: {draggable},
 
   data: () => ({
     dialogVisible: false,
@@ -132,7 +150,7 @@ export default {
   }),
 
   methods: {
-    editRow (row) {
+    editRow(row) {
       this.isNewTag = false
       this.dialogVisible = true
       this.dialogName = row.name
@@ -140,7 +158,7 @@ export default {
       this.tagId = row.id
     },
 
-    dialogNewTag () {
+    dialogNewTag() {
       this.dialogVisible = true
       this.isNewTag = true
       this.dialogName = ''
@@ -148,11 +166,11 @@ export default {
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogSaveNewOrUpdateTag () {
+    dialogSaveNewOrUpdateTag() {
       const tag = {
         id: this.isNewTag ? null : this.tagId,
         name: this.dialogName,
@@ -205,7 +223,7 @@ export default {
       }
     },
 
-    dialogDeleteTag () {
+    dialogDeleteTag() {
       axios.delete(`/api/v1/tag/${this.tagId}`)
         .then(() => {
           this.store.tags = this.store.tags.filter(tag => tag.id !== this.tagId)
@@ -223,12 +241,12 @@ export default {
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
     watch(() => store.tags, () => {
       axios.patch('/api/v1/tags/resort', store.tags)
-    }, { deep: true })
-    return { store }
+    }, {deep: true})
+    return {store}
   }
 }
 </script>

@@ -1,14 +1,27 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить приоритет"
-      @click="this.dialogNewPriorityShow"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Приоритеты</div>
+        <div class="settings-content-description">
+          Настройте уровни приоритета и приоритет, который используется по умолчанию.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить приоритет"
+          @click="this.dialogNewPriorityShow"
+        />
+      </div>
+    </div>
     <div class="table-container">
       <q-list
         bordered
-        class="rounded-borders"
+        class="rounded-borders settings-row-list"
         separator
         style="margin-top: 8px"
       >
@@ -20,6 +33,7 @@
           item-key="id"
           class="list-group"
           ghost-class="ghost"
+          handle=".settings-drag-handle"
           @start="dragging = true"
           @end="dragging = false"
         >
@@ -27,8 +41,10 @@
             <q-item
               class="list-group-item"
               :class="{ 'not-draggable': true }"
-              style="cursor: grab"
             >
+              <q-item-section side class="settings-drag-handle cursor-grab">
+                <q-icon name="drag_indicator" color="grey-6"/>
+              </q-item-section>
               <q-item-section
                 top
                 style="justify-content: center"
@@ -92,13 +108,13 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewPriority ? 'Новый приоритет' : 'Изменить приоритет'" />
-        <q-btn flat round dense icon="close" v-close-popup />
+        <div class="text-h6" v-text="this.isNewPriority ? 'Новый приоритет' : 'Изменить приоритет'"/>
+        <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogName"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
@@ -106,14 +122,16 @@
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewPriority"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="dialogDeletePriority"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />
@@ -127,15 +145,15 @@
 </template>
 
 <script>
-import { useStore } from 'stores/store'
+import {useStore} from 'stores/store'
 import axios from 'axios'
-import { watch } from 'vue'
+import {watch} from 'vue'
 import draggable from 'vuedraggable'
 
 export default {
   name: 'PriorityPage',
 
-  components: { draggable },
+  components: {draggable},
 
   data: () => ({
     dialogVisible: false,
@@ -149,25 +167,25 @@ export default {
   }),
 
   methods: {
-    dialogNewPriorityShow () {
+    dialogNewPriorityShow() {
       this.dialogVisible = true
       this.isNewPriority = true
       this.dialogName = ''
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
-    updatePriority (row) {
+    updatePriority(row) {
       this.isNewPriority = false
       this.dialogVisible = true
       this.dialogName = row.name
       this.priorityId = row.id
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogDeletePriority () {
+    dialogDeletePriority() {
       axios.delete(`/api/v1/priority/${this.priorityId}`)
         .then(() => {
           this.store.priorities = this.store.priorities.filter(priority => priority.id !== this.priorityId)
@@ -184,7 +202,7 @@ export default {
           }))
     },
 
-    dialogSaveNewOrUpdatePriority () {
+    dialogSaveNewOrUpdatePriority() {
       const priority = {
         id: this.isNewPriority ? null : this.priorityId,
         name: this.dialogName,
@@ -236,8 +254,10 @@ export default {
       }
     },
 
-    setDefaultSelected (row) {
-      this.store.priorities.forEach(priority => { priority.defaultSelection = false })
+    setDefaultSelected(row) {
+      this.store.priorities.forEach(priority => {
+        priority.defaultSelection = false
+      })
       row.defaultSelection = true
       axios.patch('/api/v1/priority/set-default', row)
         .then(response => {
@@ -256,8 +276,10 @@ export default {
           }))
     },
 
-    setCritical (row) {
-      this.store.priorities.forEach(priority => { priority.critical = false })
+    setCritical(row) {
+      this.store.priorities.forEach(priority => {
+        priority.critical = false
+      })
       row.critical = true
       axios.patch('/api/v1/priority/set-high-priority', row)
         .then(response => {
@@ -277,12 +299,12 @@ export default {
     }
   },
 
-  setup () {
+  setup() {
     const store = useStore()
     watch(() => store.priorities, () => {
       axios.patch('/api/v1/priorities/resort', store.priorities)
-    }, { deep: true })
-    return { store }
+    }, {deep: true})
+    return {store}
   }
 }
 </script>

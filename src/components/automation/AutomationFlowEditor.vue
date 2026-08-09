@@ -299,7 +299,7 @@
               v-model="selectedNode.config.triggerType"
               outlined
               dense
-              label="Событие"
+              label="Событие *"
               :options="triggerTypeOptions"
               emit-value
               map-options
@@ -330,7 +330,7 @@
               dense
               autogrow
               type="textarea"
-              label="Выражение"
+              label="Выражение *"
               class="q-mt-sm"
               @change="commit"
             />
@@ -355,7 +355,7 @@
                       v-model="condition.field"
                       outlined
                       dense
-                      label="Поле"
+                      label="Поле *"
                       :options="conditionFields"
                       emit-value
                       map-options
@@ -365,7 +365,7 @@
                       v-model="condition.operator"
                       outlined
                       dense
-                      label="Оператор"
+                      label="Оператор *"
                       :options="conditionOperatorOptions(condition)"
                       emit-value
                       map-options
@@ -377,7 +377,7 @@
                       outlined
                       dense
                       use-input
-                      label="Значение"
+                      label="Значение *"
                       :options="conditionValueOptions(condition)"
                       emit-value
                       map-options
@@ -389,17 +389,17 @@
                       outlined
                       dense
                       :type="conditionInputType(condition)"
-                      label="Значение"
+                      label="Значение *"
                       @change="onConditionChanged(selectedNode)"
                     />
                     <div class="row justify-end">
                       <q-btn
-                        flat
-                        dense
+                        unelevated
                         no-caps
-                        size="sm"
-                        icon="close"
                         color="negative"
+                        icon="delete"
+                        dense
+                        size="sm"
                         label="Удалить условие"
                         @click="removeCondition(selectedNode, groupIndex, conditionIndex)"
                       />
@@ -463,7 +463,7 @@
               dense
               autogrow
               type="textarea"
-              label="Сценарий действий"
+              label="Сценарий действий *"
               class="q-mt-sm"
               @change="commit"
             />
@@ -475,7 +475,7 @@
                   v-model="action.type"
                   outlined
                   dense
-                  label="Действие"
+                  label="Действие *"
                   :options="actionTypes"
                   emit-value
                   map-options
@@ -488,7 +488,7 @@
                   outlined
                   dense
                   use-input
-                  label="Значение"
+                  label="Значение *"
                   :options="actionValueOptions(action)"
                   emit-value
                   map-options
@@ -522,8 +522,16 @@
                            :disable="actionIndex === nodeActions(selectedNode).length - 1"
                            @click="moveAction(selectedNode, actionIndex, 1)"/>
                   </div>
-                  <q-btn flat dense no-caps size="sm" icon="close" color="negative" label="Удалить"
-                         @click="removeAction(selectedNode, actionIndex)"/>
+                  <q-btn
+                    unelevated
+                    no-caps
+                    color="negative"
+                    icon="delete"
+                    dense
+                    size="sm"
+                    label="Удалить"
+                    @click="removeAction(selectedNode, actionIndex)"
+                  />
                 </div>
               </div>
 
@@ -568,7 +576,7 @@
                   dense
                   type="number"
                   min="1"
-                  label="Длительность"
+                  label="Длительность *"
                   @change="commit"
                 />
               </div>
@@ -597,6 +605,7 @@
             :trigger-types="triggerTypes"
             :triggers="triggers"
             :task-types="taskTypes"
+            :services="services"
             :priorities="priorities"
             :support-lines="supportLines"
             :users="users"
@@ -637,8 +646,16 @@
           <div class="row justify-between">
             <q-btn outline dense no-caps icon="content_copy" label="Дублировать"
                    :disable="selectedNode.type === 'EVENT'" @click="duplicateNode(selectedNode)"/>
-            <q-btn flat dense no-caps icon="delete" color="negative" label="Удалить"
-                   :disable="selectedNode.type === 'EVENT'" @click="deleteNode(selectedNode.id)"/>
+            <q-btn
+              unelevated
+              no-caps
+              color="negative"
+              icon="delete"
+              dense
+              label="Удалить"
+              :disable="selectedNode.type === 'EVENT'"
+              @click="deleteNode(selectedNode.id)"
+            />
           </div>
         </template>
 
@@ -679,6 +696,7 @@ const EVENT_LABELS = {
   TASK_STATUS_CHANGED: 'Изменён статус заявки',
   TASK_PRIORITY_CHANGED: 'Изменён приоритет заявки',
   TASK_TYPE_CHANGED: 'Изменён тип заявки',
+  TASK_SERVICE_CHANGED: 'Изменён сервис заявки',
   TASK_ASSIGNEE_CHANGED: 'Изменён исполнитель',
   TASK_GROUP_CHANGED: 'Изменена линия поддержки',
   TASK_TAG_ADDED: 'Добавлен тег',
@@ -737,6 +755,7 @@ export default {
     triggerTypes: {type: Array, default: () => []},
     triggers: {type: Array, default: () => []},
     taskTypes: {type: Array, default: () => []},
+    services: {type: Array, default: () => []},
     priorities: {type: Array, default: () => []},
     statuses: {type: Array, default: () => []},
     supportLines: {type: Array, default: () => []},
@@ -860,6 +879,7 @@ export default {
       ],
       conditionFields: [
         {label: 'Тип заявки', value: 'task.type.id', kind: 'entity', source: 'taskTypes'},
+        {label: 'Сервис', value: 'task.service.id', kind: 'nullable-entity', source: 'services'},
         {label: 'Приоритет', value: 'task.priority.id', kind: 'entity', source: 'priorities'},
         {label: 'Статус', value: 'task.status.id', kind: 'entity', source: 'statuses'},
         {label: 'Линия поддержки', value: 'task.supportLine.id', kind: 'nullable-entity', source: 'supportLines'},
@@ -893,7 +913,8 @@ export default {
         {label: 'Изменить описание заявки', value: 'SET_DESCRIPTION'},
         {label: 'Установить дедлайн через N минут', value: 'SET_DEADLINE_MINUTES'},
         {label: 'Очистить дедлайн', value: 'CLEAR_DEADLINE'},
-        {label: 'Отправить сообщение клиенту', value: 'SEND_MESSAGE'}
+        {label: 'Отправить сообщение клиенту', value: 'SEND_MESSAGE'},
+        {label: 'Установить «Требует ответа»', value: 'SET_ANSWER_REQUIRED'}
       ]
     }
   },
@@ -1362,6 +1383,7 @@ export default {
         title: 'Связанная заявка',
         description: '',
         typeId: null,
+        serviceId: null,
         priorityName: null,
         supportLineId: null,
         resultVariable: 'createdTaskId'
@@ -1715,6 +1737,7 @@ export default {
       const meta = this.conditionMeta(condition.field)
       let options = []
       if (meta.source === 'taskTypes') options = this.toOptions(this.taskTypes, item => item.type || item.name)
+      if (meta.source === 'services') options = this.toOptions(this.services, item => [item.code, item.name].filter(Boolean).join(' · '))
       if (meta.source === 'priorities') options = this.toOptions(this.priorities, item => item.name)
       if (meta.source === 'statuses') options = this.toOptions(this.statuses, item => item.name)
       if (meta.source === 'supportLines') options = this.toOptions(this.supportLines, item => item.name)
@@ -1835,7 +1858,7 @@ export default {
     },
 
     actionNeedsValue(action) {
-      return !['CLEAR_ASSIGNEE', 'CLEAR_DEADLINE'].includes(action.type)
+      return !['CLEAR_ASSIGNEE', 'CLEAR_DEADLINE', 'SET_ANSWER_REQUIRED'].includes(action.type)
     },
 
     actionValueOptions(action) {
@@ -1852,11 +1875,11 @@ export default {
     },
 
     actionValueLabel(action) {
-      if (action.type === 'SET_DEADLINE_MINUTES') return 'Минуты'
-      if (action.type === 'SEND_MESSAGE') return 'Текст сообщения'
-      if (action.type === 'SET_NAME') return 'Новое название'
-      if (action.type === 'SET_DESCRIPTION') return 'Новое описание'
-      return 'Значение'
+      if (action.type === 'SET_DEADLINE_MINUTES') return 'Минуты *'
+      if (action.type === 'SEND_MESSAGE') return 'Текст сообщения *'
+      if (action.type === 'SET_NAME') return 'Новое название *'
+      if (action.type === 'SET_DESCRIPTION') return 'Новое описание *'
+      return 'Значение *'
     },
 
     compileAction(action) {
@@ -1890,6 +1913,8 @@ export default {
           return 'task.clearDeadline()'
         case 'SEND_MESSAGE':
           return `client.sendMessage('${value}')`
+        case 'SET_ANSWER_REQUIRED':
+          return 'client.setAnswerRequired()'
         default:
           return ''
       }

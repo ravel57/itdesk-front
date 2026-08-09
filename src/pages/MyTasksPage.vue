@@ -228,7 +228,7 @@ export default {
       {
         selector: '[data-my-tasks-tour="search"]',
         title: 'Поиск по вашим заявкам',
-        text: 'Здесь можно быстро найти свою активную заявку по номеру, названию, статусу, приоритету или исполнителю.',
+        text: 'Здесь можно быстро найти свою активную заявку по номеру, названию, статусу или приоритету.',
         placement: 'bottom'
       },
       {
@@ -240,7 +240,13 @@ export default {
       {
         selector: '[data-my-tasks-tour="task-card"]',
         title: 'Карточка заявки',
-        text: 'Карточка показывает номер, тему, статус, приоритет, исполнителя, дедлайн и последнюю активность клиента.',
+        text: 'Карточка показывает основные параметры назначенной вам работы. Следующие подсказки отдельно объяснят поля внутри карточки.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] .task-card-title',
+        title: 'Номер и название',
+        text: 'Номер нужен для быстрых ссылок на заявку, а название коротко передает суть обращения.',
         placement: 'right'
       },
       {
@@ -250,9 +256,75 @@ export default {
         placement: 'left'
       },
       {
-        selector: '[data-my-tasks-tour="task-card"] table',
-        title: 'Ключевые поля заявки',
-        text: 'Здесь удобно быстро проверить приоритет, исполнителя, дату создания, дедлайн и последнюю активность без открытия полной карточки.',
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-description"]',
+        title: 'Описание',
+        text: 'Описание содержит подробности проблемы и контекст, который нужен для выполнения заявки.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-type"]',
+        title: 'Тип заявки',
+        text: 'Тип показывает категорию процесса и помогает понять, по какому сценарию должна обрабатываться заявка.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-service"]',
+        title: 'Сервис',
+        text: 'Сервис показывает систему или услугу, с которой связана заявка.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-checklist"]',
+        title: 'Чек-лист',
+        text: 'Прогресс чек-листа показывает, сколько обязательных действий уже выполнено.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-tags"]',
+        title: 'Теги',
+        text: 'Теги помогают быстро понять тему заявки и используются для поиска и фильтрации.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-support-line"]',
+        title: 'Линия поддержки',
+        text: 'Здесь видно, в какой очереди поддержки сейчас находится заявка.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-priority"]',
+        title: 'Приоритет',
+        text: 'Приоритет показывает срочность. Высокие и критичные заявки требуют более быстрого внимания.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-executor"]',
+        title: 'Исполнитель',
+        text: 'Поле подтверждает, кто сейчас отвечает за заявку. На экране «Мои заявки» здесь обычно указаны вы.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-created"]',
+        title: 'Дата создания',
+        text: 'Дата создания помогает оценить возраст обращения и понять, как долго заявка находится в работе.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-deadline"]',
+        title: 'Дедлайн',
+        text: 'Дедлайн показывает крайний срок решения заявки.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-sla"]',
+        title: 'SLA',
+        text: 'SLA показывает оставшееся регламентное время и помогает заметить риск нарушения срока.',
+        placement: 'right'
+      },
+      {
+        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-last-activity"]',
+        title: 'Последнее действие',
+        text: 'Поле показывает, когда заявка обновлялась в последний раз. Так проще замечать давно неактивные задачи.',
         placement: 'right'
       },
       {
@@ -267,12 +339,6 @@ export default {
         text: 'Тестовые карточки специально отличаются: одна срочная, другая обычная. Так проще понять, как выглядит очередь в реальной работе.',
         placement: 'right'
       },
-      {
-        selector: '[data-my-tasks-tour="help"]',
-        title: 'Повтор обучения',
-        text: 'Этой кнопкой можно снова открыть подсказки по экрану, если нужно быстро вспомнить назначение элементов.',
-        placement: 'bottom'
-      }
     ]
   }),
 
@@ -767,9 +833,17 @@ export default {
       return [
         {
           __demo: true,
+          __onboardingDemo: true,
           id: 9101,
           name: 'Не открывается 1С у бухгалтера',
           description: 'Пользователь не может открыть базу после обновления. Нужно проверить доступ к серверу и права.',
+          type: {id: 1, type: 'Инцидент'},
+          service: {id: 1, code: '1C', name: '1С:Предприятие'},
+          checklist: [
+            {id: 1, text: 'Проверить доступность сервера', completed: true},
+            {id: 2, text: 'Проверить права пользователя', completed: false}
+          ],
+          supportLine: {id: 1, name: 'Первая линия'},
           tags: [{id: 1, name: '1 линия'}, {id: 2, name: '1С'}],
           priority: {id: 1, name: 'Критичный', critical: true},
           executor: currentUser,
@@ -777,7 +851,19 @@ export default {
           completed: false,
           frozen: false,
           createdAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+          firstResponseDeadline: new Date(now + 20 * 60 * 1000).toISOString(),
           deadline: new Date(now + 55 * 60 * 1000).toISOString(),
+          lastActivity: new Date(now - 18 * 60 * 1000).toISOString(),
+          sla: {
+            startDate: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+            duration: 4 * 60 * 60
+          },
+          __onboardingSlaInfo: {
+            deadline: new Date(now + 55 * 60 * 1000).toISOString(),
+            remainingSeconds: 55 * 60,
+            pausedSeconds: 0,
+            paused: false
+          },
           client: {
             id: 'demo-client-accounting',
             firstname: 'Анна',
@@ -795,6 +881,7 @@ export default {
         },
         {
           __demo: true,
+          __onboardingDemo: true,
           id: 9102,
           name: 'Настроить доступ новому сотруднику',
           description: 'Создать учетную запись, выдать права на почту, VPN и рабочие папки.',
@@ -819,6 +906,7 @@ export default {
         },
         {
           __demo: true,
+          __onboardingDemo: true,
           id: 9103,
           name: 'Проверить медленную печать на складе',
           description: 'Принтер печатает с задержкой, нужно проверить очередь печати и сетевое подключение.',

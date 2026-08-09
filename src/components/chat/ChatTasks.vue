@@ -13,6 +13,7 @@
         :isMobile="this.isMobile"
         :client="this.client"
         :organizations="this.organizations"
+        :onboarding-demo="this.onboardingDemo"
         @updateClient="this.updateClient"
       />
     </div>
@@ -25,8 +26,46 @@
             style="margin-top: 3px"
             v-text="this.getDeclension(this.getTasksTotalForHeader)"
           />
+          <q-btn-dropdown
+            v-if="this.pingedTasks.length > 0"
+            flat
+            dense
+            no-caps
+            color="primary"
+            icon="alternate_email"
+            :loading="this.taskPingsLoading"
+            :label="this.pingedTasks.length.toString()"
+            class="task-ping-dropdown"
+          >
+            <q-list class="task-ping-menu">
+              <q-item-label header class="text-weight-medium">
+                Пинги в заявках
+              </q-item-label>
+              <q-separator/>
+              <q-item
+                v-for="task in this.pingedTasks"
+                :key="`task-ping-${task.id}`"
+                clickable
+                v-close-popup
+                @click="this.openPingedTask(task)"
+              >
+                <q-item-section avatar class="task-ping-icon-section">
+                  <q-icon name="alternate_email" color="primary"/>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label lines="1">
+                    №{{ task.id }} {{ task.name || 'Без названия' }}
+                  </q-item-label>
+                  <q-item-label caption lines="1">
+                    {{ getPingedTaskCaption(task) }}
+                  </q-item-label>
+                </q-item-section>
+              </q-item>
+            </q-list>
+          </q-btn-dropdown>
           <div class="container q-pa-none q-gutter-md q-position-relative">
             <q-toggle
+              data-tour="chat-tasks-completed"
               v-model="isShowCompletedTasks"
               icon="add_task"
               color="primary"
@@ -40,7 +79,7 @@
         </div>
         <q-btn
           data-tour="chat-create-task"
-          v-if="['ADMIN', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+          v-if="['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
           id="create-task"
           class="text-primary cursor-pointer"
           icon="add_circle"
@@ -50,6 +89,7 @@
           style="margin-right: 8px;"
         />
         <q-btn
+          data-tour="chat-task-search-toggle"
           icon="search"
           flat
           :class="this.showSearch ? 'text-primary' : 'text-grey-7'"
@@ -61,6 +101,7 @@
           </q-tooltip>
         </q-btn>
         <q-btn
+          data-tour="chat-task-sort"
           icon="sort"
           flat
           :class="this.selectedSorting.label ? 'text-primary' : 'text-grey-7'"
@@ -115,7 +156,8 @@
         />
         <div id="task-search">
           <q-input
-            v-if="this.showSearch"
+            v-if="this.showSearch || this.onboardingDemo"
+            data-tour="chat-task-search"
             v-model="search"
             label="Поиск по заявкам"
             style="margin-top: 8px"
@@ -264,7 +306,7 @@ import TaskCard from 'components/TaskCard.vue'
 import { useStore } from 'stores/store'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import moment from "moment";
-import { onTaskUpdated } from 'src/util/ws'
+import { onTaskMessage, onTaskUpdated } from 'src/util/ws'
 
 export default {
 
@@ -281,6 +323,7 @@ export default {
     'priorities',
     'organizations',
     'isMobile',
+    'onboardingDemo',
     'requestStatusChangeReason'
   ],
 
@@ -343,11 +386,89 @@ export default {
     taskPageLoadedOnce: false,
     loadedClientId: null,
     taskUpdatedUnsubscribe: null,
+    taskMessageUnsubscribe: null,
+    pingedTasks: [],
+    taskPingsLoading: false,
+    taskPingsRequestSeq: 0,
+    taskPingsReloadTimer: null,
     openingTaskFromUrl: false,
     lastOpenedTaskIdFromUrl: null,
   }),
 
   methods: {
+    async loadTaskPings () {
+      if (this.isDemoClient || !this.client?.id) {
+        this.pingedTasks = []
+        return
+      }
+
+      const requestClientId = Number(this.client.id)
+      const requestSeq = ++this.taskPingsRequestSeq
+      this.taskPingsLoading = true
+
+      try {
+        const response = await axios.get(`/api/v1/client/${requestClientId}/task-pings`)
+
+        if (requestSeq !== this.taskPingsRequestSeq || Number(this.client?.id) !== requestClientId) {
+          return
+        }
+
+        const tasks = Array.isArray(response.data) ? response.data : []
+        this.pingedTasks = tasks
+          .map(task => this.normalizeTaskPageTask(task))
+          .filter(task => task?.id)
+      } catch (e) {
+        if (requestSeq === this.taskPingsRequestSeq) {
+          console.error('Не удалось загрузить пинги по заявкам', e)
+        }
+      } finally {
+        if (requestSeq === this.taskPingsRequestSeq) {
+          this.taskPingsLoading = false
+        }
+      }
+    },
+
+    reloadTaskPingsDebounced () {
+      if (this.taskPingsReloadTimer) {
+        clearTimeout(this.taskPingsReloadTimer)
+      }
+      this.taskPingsReloadTimer = setTimeout(() => {
+        this.taskPingsReloadTimer = null
+        this.loadTaskPings()
+      }, 500)
+    },
+
+    openPingedTask (task) {
+      if (!task?.id) {
+        return
+      }
+      this.pingedTasks = this.pingedTasks.filter(item => {
+        return Number(item.id) !== Number(task.id)
+      })
+      this.openLinkedTask(task)
+    },
+
+    getPingedTaskCaption (task) {
+      const values = [
+        task?.status?.name,
+        task?.supportLine?.name
+      ].map(value => String(value || '').trim()).filter(Boolean)
+      return values.length > 0 ? values.join(' · ') : 'Открыть заявку'
+    },
+
+    onTaskMessageForPingList (payload) {
+      if (Number(payload?.clientId) !== Number(this.client?.id)) {
+        return
+      }
+      if (this.getPossibilityToOpenDialogTask && Number(payload?.taskId) === Number(this.selectedTask?.id)) {
+        this.pingedTasks = this.pingedTasks.filter(task => {
+          return Number(task.id) !== Number(payload.taskId)
+        })
+        return
+      }
+      this.reloadTaskPingsDebounced()
+    },
+
     normalizeTaskPageTask(task) {
       if (!task) {
         return task
@@ -568,6 +689,95 @@ export default {
         })
       }
       this.$emit('tasksLoaded', this.pagedTasks)
+    },
+
+    setTaskLinkedMessageId (taskId, linkedMessageId) {
+      const normalizedTaskId = Number(taskId)
+      if (!Number.isFinite(normalizedTaskId) || normalizedTaskId <= 0) {
+        return
+      }
+      const normalizedLinkedMessageId = linkedMessageId === null || linkedMessageId === undefined
+        ? null
+        : Number(linkedMessageId)
+
+      this.pagedTasks = (this.pagedTasks || []).map(task => {
+        return Number(task?.id) === normalizedTaskId
+          ? {
+              ...task,
+              linkedMessageId: normalizedLinkedMessageId
+            }
+          : task
+      })
+
+      this.pingedTasks = (this.pingedTasks || []).map(task => {
+        return Number(task?.id) === normalizedTaskId
+          ? {
+              ...task,
+              linkedMessageId: normalizedLinkedMessageId
+            }
+          : task
+      })
+
+      if (Number(this.selectedTask?.id) === normalizedTaskId) {
+        this.selectedTask = {
+          ...this.selectedTask,
+          linkedMessageId: normalizedLinkedMessageId
+        }
+      }
+    },
+
+    syncLinkedMessageIdsFromParent (tasks = []) {
+      if (!Array.isArray(tasks) || !Array.isArray(this.pagedTasks) || this.pagedTasks.length === 0) {
+        return
+      }
+
+      const parentTaskById = new Map(
+        tasks
+          .filter(task => task?.id !== undefined && task?.id !== null)
+          .map(task => [Number(task.id), task])
+      )
+      let changed = false
+      const nextPagedTasks = this.pagedTasks.map(task => {
+        const parentTask = parentTaskById.get(Number(task?.id))
+        if (!parentTask) {
+          return task
+        }
+        const currentLinkedMessageId = task?.linkedMessageId ?? null
+        const actualLinkedMessageId = parentTask?.linkedMessageId ?? null
+        const sameLinkedMessage = currentLinkedMessageId === null && actualLinkedMessageId === null
+          ? true
+          : Number(currentLinkedMessageId) === Number(actualLinkedMessageId)
+        if (sameLinkedMessage) {
+          return task
+        }
+        changed = true
+        return {
+          ...task,
+          linkedMessageId: actualLinkedMessageId
+        }
+      })
+
+      if (changed) {
+        this.pagedTasks = nextPagedTasks
+      }
+
+      const selectedTaskId = Number(this.selectedTask?.id)
+      if (selectedTaskId) {
+        const parentTask = parentTaskById.get(selectedTaskId)
+        if (parentTask) {
+          const selectedLinkedMessageId = this.selectedTask?.linkedMessageId ?? null
+          const actualLinkedMessageId = parentTask?.linkedMessageId ?? null
+          const sameLinkedMessage = selectedLinkedMessageId === null && actualLinkedMessageId === null
+            ? true
+            : Number(selectedLinkedMessageId) === Number(actualLinkedMessageId)
+          if (!sameLinkedMessage) {
+            this.selectedTask = {
+              ...this.selectedTask,
+              linkedMessageId: actualLinkedMessageId
+            }
+          }
+        }
+      }
     },
 
     updateClient (newClient) {
@@ -1162,6 +1372,7 @@ export default {
       if (payload?.clientId && Number(payload.clientId) !== Number(this.client?.id)) {
         return
       }
+      this.reloadTaskPingsDebounced()
       const existingTask = this.pagedTasks.find(item => {
         return Number(item?.id) === Number(socketTask.id)
       })
@@ -1266,7 +1477,7 @@ export default {
           return
         }
         if (message.id === undefined || message.id === null) {
-          map.set(Symbol(), message)
+          map.set(Symbol('message-without-id'), message)
           return
         }
         map.set(Number(message.id), message)
@@ -1277,9 +1488,30 @@ export default {
 
   computed: {
     getActualTasks () {
+      const actualLinkedMessageIdByTaskId = new Map(
+        (this.tasks || [])
+          .filter(task => task?.id !== undefined && task?.id !== null)
+          .map(task => [Number(task.id), task?.linkedMessageId ?? null])
+      )
       const sourceTasks = this.isDemoClient
         ? (this.tasks || [])
-        : this.pagedTasks
+        : (this.pagedTasks || []).map(task => {
+            const taskId = Number(task?.id)
+            if (!actualLinkedMessageIdByTaskId.has(taskId)) {
+              return task
+            }
+            const actualLinkedMessageId = actualLinkedMessageIdByTaskId.get(taskId)
+            const currentLinkedMessageId = task?.linkedMessageId ?? null
+            const sameLinkedMessage = currentLinkedMessageId === null && actualLinkedMessageId === null
+              ? true
+              : Number(currentLinkedMessageId) === Number(actualLinkedMessageId)
+            return sameLinkedMessage
+              ? task
+              : {
+                  ...task,
+                  linkedMessageId: actualLinkedMessageId
+                }
+          })
       const filteredTasks = sourceTasks.filter(task => {
         if (!task) {
           return false
@@ -1382,10 +1614,12 @@ export default {
     },
 
     tasks: {
-      handler () {
+      handler (tasks) {
         if (this.isDemoClient) {
           this.loadSlaInfosForTasks()
+          return
         }
+        this.syncLinkedMessageIdsFromParent(tasks)
       },
       deep: true
     },
@@ -1395,7 +1629,9 @@ export default {
         if (Number(newClientId || 0) === Number(oldClientId || 0)) {
           return
         }
+        this.pingedTasks = []
         this.resetTasksPageAndLoad(true)
+        this.loadTaskPings()
       }
     },
 
@@ -1418,6 +1654,8 @@ export default {
 
   mounted () {
     this.taskUpdatedUnsubscribe = onTaskUpdated(this.onTaskUpdatedFromSocket)
+    this.taskMessageUnsubscribe = onTaskMessage(this.onTaskMessageForPingList)
+    this.loadTaskPings()
     this.initializeTaskFromUrl()
     if (this.isDemoClient) {
       this.loadSlaInfosForTasks()
@@ -1437,9 +1675,17 @@ export default {
     if (this.taskScrollTimer) {
       clearTimeout(this.taskScrollTimer)
     }
+    if (this.taskPingsReloadTimer) {
+      clearTimeout(this.taskPingsReloadTimer)
+      this.taskPingsReloadTimer = null
+    }
     if (this.taskUpdatedUnsubscribe) {
       this.taskUpdatedUnsubscribe()
       this.taskUpdatedUnsubscribe = null
+    }
+    if (this.taskMessageUnsubscribe) {
+      this.taskMessageUnsubscribe()
+      this.taskMessageUnsubscribe = null
     }
   },
 
@@ -1459,6 +1705,22 @@ export default {
 <style scoped>
 .small-text {
   font-size: 0.9em;
+}
+
+.task-ping-dropdown {
+  margin-left: 6px;
+  min-height: 32px;
+}
+
+.task-ping-menu {
+  min-width: 300px;
+  max-width: 420px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.task-ping-icon-section {
+  min-width: 34px;
 }
 
 th {

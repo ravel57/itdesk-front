@@ -1,19 +1,34 @@
 <template>
   <div class="q-pa-md">
-    <q-btn
-      icon="add"
-      label="Добавить бота"
-      @click="this.dialogNewBotShow"
-      style="margin-bottom: 8px;margin-right: 8px"
-    />
-    <q-btn
-      icon="info"
-      label="Инструкция"
-      @click="this.isShowInstruction = true"
-      style="margin-bottom: 8px;"
-    />
+    <div class="settings-content-header">
+      <div class="settings-content-heading">
+        <div class="settings-content-title">Telegram</div>
+        <div class="settings-content-description">
+          Подключайте Telegram-ботов для приема и отправки сообщений.
+        </div>
+      </div>
+      <div class="settings-content-actions">
+        <q-btn
+          unelevated
+          no-caps
+          color="primary"
+          icon="add"
+          label="Добавить бота"
+          @click="this.dialogNewBotShow"
+        />
+        <q-btn
+          flat
+          no-caps
+          color="primary"
+          icon="info"
+          label="Инструкция"
+          @click="this.isShowInstruction = true"
+        />
+      </div>
+    </div>
     <div class="table-container">
       <q-table
+        class="settings-row-table"
         :rows="telegramBots"
         :columns="columns"
         :rows-per-page-options="[0]"
@@ -60,33 +75,35 @@
   >
     <q-card class="dialog-width">
       <q-toolbar class="justify-between">
-        <div class="text-h6" v-text="this.isNewTelegramBot ? 'Новый Telegram Bot' : 'Изменить Telegram Bot'" />
+        <div class="text-h6" v-text="this.isNewTelegramBot ? 'Новый Telegram Bot' : 'Изменить Telegram Bot'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
       <q-card-section style="padding-top: 0">
         <q-input
           v-model="this.dialogName"
-          label="Название"
+          label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
         <q-input
           v-model="this.dialogToken"
-          label="ключ API"
+          label="ключ API *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
         />
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
           v-if="!this.isNewTelegramBot"
-          color="white"
+          unelevated
+          no-caps
+          color="negative"
+          icon="delete"
           label="Удалить"
-          text-color="primary"
           @click="dialogDeleteBot"
         />
         <q-btn
           color="white"
-          label="Закрыть"
+          label="Отмена"
           text-color="primary"
           @click="dialogClose"
         />
@@ -110,13 +127,13 @@ import Telegram from 'components/instructions/Telegram.vue'
 
 export default {
   name: 'TelegramPage',
-  components: { 'telegram-instruction': Telegram },
+  components: {'telegram-instruction': Telegram},
 
   data: () => ({
     columns: [
-      { name: 'name', label: 'Название', align: 'left', field: 'name' },
-      { name: 'token', label: 'API-ключ', align: 'left', field: 'token' },
-      { name: 'show-token', label: 'Показать ключ', align: 'center', field: 'show-token' }
+      {name: 'name', label: 'Название', align: 'left', field: 'name'},
+      {name: 'token', label: 'API-ключ', align: 'left', field: 'token'},
+      {name: 'show-token', label: 'Показать ключ', align: 'center', field: 'show-token'}
     ],
     telegramBots: [],
     dialogVisible: false,
@@ -128,7 +145,7 @@ export default {
     isShowInstruction: false// for updates
   }),
 
-  created () {
+  created() {
     axios.get('/api/v1/telegram-bots')
       .then(response => {
         this.telegramBots = response.data
@@ -148,11 +165,11 @@ export default {
   },
 
   methods: {
-    toggleTokenVisibility (row) {
+    toggleTokenVisibility(row) {
       row.showToken = !row.showToken
     },
 
-    dialogNewBotShow () {
+    dialogNewBotShow() {
       this.dialogVisible = true
       this.isNewTelegramBot = true
       this.dialogName = ''
@@ -160,7 +177,7 @@ export default {
       setTimeout(() => this.$refs.dialogName.focus(), 250)
     },
 
-    updateToken (row) {
+    updateToken(row) {
       this.isNewTelegramBot = false
       this.dialogVisible = true
       this.dialogName = row.name
@@ -168,11 +185,11 @@ export default {
       this.telegramBotId = row.id
     },
 
-    dialogClose () {
+    dialogClose() {
       this.dialogVisible = false
     },
 
-    dialogDeleteBot () {
+    dialogDeleteBot() {
       const bot = this.telegramBots[this.telegramBots.indexOf(this.telegramBots.find(bot => bot.id === this.telegramBotId))]
       axios.delete(`/api/v1/telegram-bot/${bot.id}`, bot)
         .then(() => {
@@ -190,7 +207,7 @@ export default {
           }))
     },
 
-    dialogSaveNewOrUpdateBot () {
+    dialogSaveNewOrUpdateBot() {
       const bot = {
         id: this.isNewTelegramBot ? null : this.telegramBotId,
         name: this.dialogName,
