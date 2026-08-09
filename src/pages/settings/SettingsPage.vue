@@ -1,5 +1,5 @@
 <template>
-  <q-page class="settings-page">
+  <q-page class="settings-page" :style-fn="pageStyleFn">
     <div v-if="isMobile" class="settings-mobile-layout">
       <div v-if="mobileMenuOpen" class="settings-mobile-menu">
         <div class="settings-mobile-title">
@@ -61,36 +61,40 @@
           Настройки
         </div>
 
-        <q-list class="settings-menu-list settings-desktop-list">
-          <q-item
-            v-for="item in visibleMenuItems"
-            :key="item.link"
-            clickable
-            v-ripple
-            tag="router-link"
-            :to="item.link"
-            :active="isCurrentMenuItem(item)"
-            active-class="settings-menu-item--active"
-            class="settings-menu-item"
-          >
-            <q-item-section avatar class="settings-menu-icon-section">
-              <div class="settings-menu-icon-box">
-                <q-icon :name="item.icon" size="20px"/>
-              </div>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label class="settings-menu-item-title">
-                {{ item.title }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section side class="settings-menu-chevron-section">
-              <q-icon name="chevron_right" class="settings-menu-chevron"/>
-            </q-item-section>
-          </q-item>
-        </q-list>
+        <div class="settings-desktop-menu-scroll">
+          <q-list class="settings-menu-list settings-desktop-list">
+            <q-item
+              v-for="item in visibleMenuItems"
+              :key="item.link"
+              clickable
+              v-ripple
+              tag="router-link"
+              :to="item.link"
+              :active="isCurrentMenuItem(item)"
+              active-class="settings-menu-item--active"
+              class="settings-menu-item"
+            >
+              <q-item-section avatar class="settings-menu-icon-section">
+                <div class="settings-menu-icon-box">
+                  <q-icon :name="item.icon" size="20px"/>
+                </div>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="settings-menu-item-title">
+                  {{ item.title }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side class="settings-menu-chevron-section">
+                <q-icon name="chevron_right" class="settings-menu-chevron"/>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
       </div>
       <div class="settings-desktop-content col">
-        <router-view/>
+        <div class="settings-desktop-content-scroll">
+          <router-view/>
+        </div>
       </div>
     </div>
   </q-page>
@@ -138,13 +142,6 @@ export default {
         link: '/settings/organizations',
         slug: 'organizations',
         icon: 'business',
-        roles: ['ADMIN', 'MANAGER']
-      },
-      {
-        title: 'Причины выездов',
-        link: '/settings/visit-reasons',
-        slug: 'visit-reasons',
-        icon: 'directions_car',
         roles: ['ADMIN', 'MANAGER']
       },
       {
@@ -201,6 +198,13 @@ export default {
         roles: ['ADMIN', 'MANAGER']
       },
       {
+        title: 'Причины выездов',
+        link: '/settings/visit-reasons',
+        slug: 'visit-reasons',
+        icon: 'directions_car',
+        roles: ['ADMIN', 'MANAGER']
+      },
+      {
         title: 'Сервисы и мониторинг',
         link: '/settings/services',
         slug: 'dns',
@@ -232,6 +236,7 @@ export default {
       //   title: 'ИИ-агент',
       //   link: '/settings/ai-agent',
       //   slug: 'ai-agent',
+      //   icon: 'smart_toy',
       //   roles: ['ADMIN']
       // },
       {
@@ -246,6 +251,13 @@ export default {
         link: '/settings/plugins',
         slug: 'plugins',
         icon: 'extension',
+        roles: ['ADMIN']
+      },
+      {
+        title: 'JWT API',
+        link: '/settings/jwt',
+        slug: 'jwt',
+        icon: 'key',
         roles: ['ADMIN']
       },
       {
@@ -346,6 +358,22 @@ export default {
       }
       const normalized = String(path).trim().replace(/\/+$/, '')
       return normalized || '/'
+    },
+
+    pageStyleFn(offset) {
+      const pageHeight = offset ? `calc(100dvh - ${offset}px)` : '100dvh'
+
+      if (this.isMobile) {
+        return {
+          minHeight: pageHeight
+        }
+      }
+
+      return {
+        height: pageHeight,
+        minHeight: pageHeight,
+        overflow: 'hidden'
+      }
     }
   },
 
@@ -362,16 +390,32 @@ export default {
 }
 
 .settings-desktop-layout {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: #ffffff;
 }
 
 .settings-desktop-menu {
+  display: flex;
   flex: 0 0 304px;
+  flex-direction: column;
   width: 304px;
   min-width: 280px;
-  padding: 16px 12px 24px;
+  min-height: 0;
+  padding: 16px 12px 0;
+  overflow: hidden;
   background: #ffffff;
+}
+
+.settings-desktop-menu-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-bottom: 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .settings-desktop-title,
@@ -388,8 +432,20 @@ export default {
 
 .settings-desktop-content {
   min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-left: 1px solid #e7eaf0;
   background: #ffffff;
+}
+
+.settings-desktop-content-scroll {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .settings-menu-list {
@@ -469,13 +525,18 @@ export default {
 }
 
 .settings-mobile-layout {
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
   background: #f5f6fa;
 }
 
 .settings-mobile-menu {
-  min-height: 100vh;
-  padding-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: #ffffff;
 }
 
@@ -485,11 +546,21 @@ export default {
 }
 
 .settings-mobile-list {
-  padding: 10px 12px 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 12px 24px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .settings-mobile-content {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
   background: #ffffff;
 }
 
@@ -523,9 +594,27 @@ export default {
 }
 
 .settings-mobile-view {
+  flex: 1 1 auto;
   min-width: 0;
+  min-height: 0;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: #ffffff;
+}
+
+@media (min-width: 1024px) {
+  .settings-page {
+    min-height: 0 !important;
+    overflow: hidden;
+  }
+
+  .settings-desktop-layout {
+    flex-wrap: nowrap;
+    width: 100%;
+    height: 100%;
+  }
 }
 
 @media (max-width: 1023px) {

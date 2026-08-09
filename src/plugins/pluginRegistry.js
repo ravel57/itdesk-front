@@ -4,7 +4,7 @@ export const pluginRegistry = {
   extensions: [],
 
   async load () {
-    const response = await axios.get('/api/plugins/frontend-schema')
+    const response = await axios.get('/api/v1/plugins/frontend-schema')
 
     this.extensions = response.data?.extensions || []
   },

@@ -15,31 +15,31 @@
           <div class="license-summary-item">
             <div class="license-summary-item__label">Всего лицензий</div>
             <div class="license-summary-item__value">
-              {{ this.licenseInfo.maxUsers }}
+              {{ licenseInfo.maxUsers }}
             </div>
           </div>
 
           <div class="license-summary-item">
             <div class="license-summary-item__label">Занято</div>
             <div class="license-summary-item__value">
-              {{ this.licenseInfo.usedUsersCount }}
+              {{ licenseInfo.usedUsersCount }}
             </div>
           </div>
 
           <div
             class="license-summary-item"
-            :class="this.licenseInfo.availableUsersCount <= 0 ? 'license-summary-item--danger' : 'license-summary-item--success'"
+            :class="licenseInfo.availableUsersCount <= 0 ? 'license-summary-item--danger' : 'license-summary-item--success'"
           >
             <div class="license-summary-item__label">Доступно</div>
             <div class="license-summary-item__value">
-              {{ this.licenseInfo.availableUsersCount }}
+              {{ licenseInfo.availableUsersCount }}
             </div>
           </div>
 
           <div class="license-summary-item">
             <div class="license-summary-item__label">Действует до</div>
             <div class="license-summary-item__value license-summary-item__value--date">
-              {{ this.licenseUntilText }}
+              {{ licenseUntilText }}
             </div>
           </div>
         </div>
@@ -48,28 +48,38 @@
       <q-separator/>
 
       <q-card-section>
-        <div class="text-subtitle2 q-mb-md">Занято по ролям</div>
+        <div class="license-roles-heading q-mb-md">
+          <div class="text-subtitle2">Пользователи по ролям</div>
+          <div class="text-caption text-grey-7">
+            Лицензионное место занимают только роли, которые могут отвечать клиентам.
+          </div>
+        </div>
 
         <div class="license-roles">
-          <div class="license-role-row">
+          <div
+            v-for="role in licenseRoleRows"
+            :key="role.code"
+            class="license-role-row"
+            :class="{'license-role-row--free': !role.countsTowardsLicense}"
+          >
             <div class="license-role-row__title">
-              <q-icon name="admin_panel_settings"/>
-              Администраторы
+              <q-icon :name="roleIcon(role.code)"/>
+              <div>
+                <div>{{ role.name }}</div>
+                <div
+                  class="license-role-row__meta"
+                  :class="role.countsTowardsLicense ? 'text-primary' : 'text-grey-6'"
+                >
+                  {{ role.countsTowardsLicense ? 'Учитывается в лицензии' : 'Не учитывается в лицензии' }}
+                </div>
+              </div>
             </div>
 
-            <q-badge color="primary" rounded>
-              {{ this.licenseInfo.adminsCount }}
-            </q-badge>
-          </div>
-
-          <div class="license-role-row">
-            <div class="license-role-row__title">
-              <q-icon name="support_agent"/>
-              Операторы
-            </div>
-
-            <q-badge color="primary" rounded>
-              {{ this.licenseInfo.operatorsCount }}
+            <q-badge
+              :color="role.countsTowardsLicense ? 'primary' : 'grey-6'"
+              rounded
+            >
+              {{ role.count }}
             </q-badge>
           </div>
         </div>
@@ -79,12 +89,12 @@
           size="10px"
           color="primary"
           track-color="grey-3"
-          :value="this.licenseUsageProgress"
+          :value="licenseUsageProgress"
           class="q-mt-lg"
         />
 
         <div class="text-caption text-grey-7 q-mt-sm">
-          Использовано {{ this.licenseInfo.usedUsersCount }} из {{ this.licenseInfo.maxUsers }} лицензий.
+          Использовано {{ licenseInfo.usedUsersCount }} из {{ licenseInfo.maxUsers }} лицензий.
         </div>
       </q-card-section>
     </q-card>
@@ -94,6 +104,14 @@
 <script>
 import axios from 'axios'
 import moment from 'moment/moment'
+
+const FALLBACK_ROLES = [
+  {code: 'ADMIN', name: 'Администратор', field: 'adminsCount', countsTowardsLicense: true},
+  {code: 'MANAGER', name: 'Менеджер поддержки', field: 'managersCount', countsTowardsLicense: true},
+  {code: 'OPERATOR', name: 'Оператор поддержки', field: 'operatorsCount', countsTowardsLicense: true},
+  {code: 'OBSERVER', name: 'Менеджер организации', field: 'observersCount', countsTowardsLicense: false},
+  {code: 'CLIENT', name: 'Клиент', field: 'clientsCount', countsTowardsLicense: false}
+]
 
 export default {
   name: 'LicensePage',
@@ -105,7 +123,11 @@ export default {
       usedUsersCount: 0,
       availableUsersCount: 0,
       adminsCount: 0,
+      managersCount: 0,
       operatorsCount: 0,
+      observersCount: 0,
+      clientsCount: 0,
+      roleCounts: [],
       licenseUntil: null
     }
   }),
@@ -128,6 +150,43 @@ export default {
       }
 
       return Math.min(1, usedUsers / maxUsers)
+    },
+
+    licenseRoleRows() {
+      if (Array.isArray(this.licenseInfo.roleCounts) && this.licenseInfo.roleCounts.length) {
+        return this.licenseInfo.roleCounts.map(role => ({
+          code: role.code,
+          name: role.name,
+          count: Number(role.count || 0),
+          countsTowardsLicense: Boolean(role.countsTowardsLicense)
+        }))
+      }
+
+      return FALLBACK_ROLES.map(role => ({
+        code: role.code,
+        name: role.name,
+        count: Number(this.licenseInfo[role.field] || 0),
+        countsTowardsLicense: role.countsTowardsLicense
+      }))
+    }
+  },
+
+  methods: {
+    roleIcon(code) {
+      switch (code) {
+        case 'ADMIN':
+          return 'admin_panel_settings'
+        case 'MANAGER':
+          return 'manage_accounts'
+        case 'OPERATOR':
+          return 'support_agent'
+        case 'OBSERVER':
+          return 'visibility'
+        case 'CLIENT':
+          return 'person'
+        default:
+          return 'badge'
+      }
     }
   },
 
@@ -142,7 +201,11 @@ export default {
           usedUsersCount: Number(response.data.usedUsersCount || 0),
           availableUsersCount: Number(response.data.availableUsersCount || 0),
           adminsCount: Number(response.data.adminsCount || 0),
-          operatorsCount: Number(response.data.operatorsCount || 0)
+          managersCount: Number(response.data.managersCount || 0),
+          operatorsCount: Number(response.data.operatorsCount || 0),
+          observersCount: Number(response.data.observersCount || 0),
+          clientsCount: Number(response.data.clientsCount || 0),
+          roleCounts: Array.isArray(response.data.roleCounts) ? response.data.roleCounts : []
         }
       })
   }
@@ -198,6 +261,11 @@ export default {
   background: rgba(244, 67, 54, .06);
 }
 
+.license-roles-heading {
+  display: grid;
+  gap: 3px;
+}
+
 .license-roles {
   display: grid;
   gap: 10px;
@@ -213,11 +281,26 @@ export default {
   border-radius: 10px;
 }
 
+.license-role-row--free {
+  background: #fafafa;
+}
+
 .license-role-row__title {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-weight: 500;
+}
+
+.license-role-row__title > .q-icon {
+  font-size: 21px;
+}
+
+.license-role-row__meta {
+  margin-top: 1px;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 400;
 }
 
 @media (max-width: 700px) {

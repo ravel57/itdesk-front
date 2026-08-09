@@ -177,9 +177,9 @@
                 dense
                 outlined
                 type="number"
-                min="0"
+                min="1"
                 :disable="props.row.olaEnabled !== true"
-                @change="event => updateOlaLine(props.row, { olaValue: Math.max(0, Number(event.target.value || 0)) })"
+                @change="event => updateOlaLine(props.row, { olaValue: Number(event.target.value || 0) })"
               />
               <q-select
                 :model-value="props.row.olaUnit || 'HOURS'"
@@ -243,6 +243,7 @@ export default {
     tableData: [],
     isPopulatingSla: false,
     lastSent: {},
+    olaUpdateQueues: {},
     hoveredRowIndex: null,
     hoveredColumnIndex: null,
     focusedRowIndex: null,
@@ -307,15 +308,57 @@ export default {
 
   methods: {
     async updateOlaLine(line, patch) {
-      const payload = {...line, ...patch}
+      const lineId = line?.id
+      if (lineId == null) {
+        return
+      }
+
+      const previousUpdate = this.olaUpdateQueues[lineId] || Promise.resolve()
+      const update = previousUpdate
+        .catch(() => undefined)
+        .then(async () => {
+          const currentLine = this.store.supportLines.find(item => item.id === lineId) || line
+          const changesOlaEnabled = Object.prototype.hasOwnProperty.call(patch, 'olaEnabled')
+          const changesOlaValue = Object.prototype.hasOwnProperty.call(patch, 'olaValue')
+          const olaEnabled = changesOlaEnabled
+            ? patch.olaEnabled === true
+            : currentLine.olaEnabled === true
+
+          let olaValue = Number(changesOlaValue ? patch.olaValue : currentLine.olaValue)
+          if (olaEnabled && (!Number.isFinite(olaValue) || olaValue <= 0)) {
+            // Enabling OLA with an empty legacy value should still be possible.
+            // A zero/empty duration edit is not sent while OLA is active, because
+            // the backend correctly rejects such a configuration.
+            if (changesOlaEnabled && patch.olaEnabled === true) {
+              olaValue = 1
+            } else {
+              return
+            }
+          }
+
+          const payload = {
+            ...currentLine,
+            ...patch,
+            olaEnabled,
+            olaValue: olaEnabled ? Math.max(1, Math.trunc(olaValue)) : null
+          }
+
+          const {data} = await axios.patch('/api/v1/support-line', payload)
+          const index = this.store.supportLines.findIndex(item => item.id === lineId)
+          if (index >= 0) {
+            this.store.supportLines.splice(index, 1, data)
+          }
+        })
+
+      this.olaUpdateQueues[lineId] = update
       try {
-        const {data} = await axios.patch('/api/v1/support-line', payload)
-        const index = this.store.supportLines.findIndex(item => item.id === line.id)
-        if (index >= 0) {
-          this.store.supportLines.splice(index, 1, data)
-        }
+        await update
       } catch (e) {
         this.notifyError(e)
+      } finally {
+        if (this.olaUpdateQueues[lineId] === update) {
+          delete this.olaUpdateQueues[lineId]
+        }
       }
     },
 

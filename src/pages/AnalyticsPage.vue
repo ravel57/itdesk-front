@@ -1062,7 +1062,7 @@
 
 <script>
 import moment from 'moment'
-import {api} from 'boot/axios'
+import {api, getCsrfToken} from 'boot/axios'
 import {useStore} from 'stores/store'
 
 const ANALYTICS_SETTINGS_STORAGE_KEY = 'uldesk.analytics.page.settings'
@@ -2336,7 +2336,10 @@ export default {
         fetch('/api/v1/analytics/summary/cancel', {
           method: 'POST',
           keepalive: true,
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'X-XSRF-TOKEN': getCsrfToken()
+          }
         }).catch(() => {})
         return
       }

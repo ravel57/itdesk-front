@@ -9,7 +9,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: change directory
-        run: cd ~/ITdesk
+        run: cd ~/uldesk
       - name: git pull
         run: git pull
       - name: Build Docker containers

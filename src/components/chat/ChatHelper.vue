@@ -344,7 +344,7 @@ export default {
 
     aiQueryRequest () {
       this.aiLoading = true
-      axios.get(`/api/v1/llm-query?query=${encodeURI(this.aiQuery)}`)
+      axios.get(`/api/v1/llm/query?query=${encodeURI(this.aiQuery)}`)
         .then(response => {
           this.aiResponse = response.data
           this.aiLoading = false

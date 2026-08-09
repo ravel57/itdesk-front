@@ -1,7 +1,7 @@
 <template>
   <div class="q-pa-md knowledge-page">
     <div class="knowledge-toolbar row items-center q-col-gutter-sm">
-      <div class="col-12 col-md-auto">
+      <div class="col-12 col-md-auto row q-gutter-sm">
         <q-btn
           icon="add"
           label="Добавить статью"
@@ -9,6 +9,20 @@
           unelevated
           @click="this.dialogNewKnowledge"
         />
+        <q-btn
+          v-if="canRetrainLlm"
+          icon="model_training"
+          label="Переобучить LLM"
+          color="primary"
+          outline
+          :loading="retraining"
+          :disable="retraining"
+          @click="confirmRetrainLlm"
+        >
+          <q-tooltip>
+            Удалить старый LLM-индекс текущего инстанса и заново проиндексировать актуальную базу знаний
+          </q-tooltip>
+        </q-btn>
       </div>
 
       <div class="col-12 col-md">
@@ -332,6 +346,7 @@ export default {
 
     knowledgeSearch: '',
     dragging: true,
+    retraining: false,
 
     viewKnowledgeVisible: false,
     selectedKnowledgeId: null,
@@ -341,6 +356,13 @@ export default {
   }),
 
   computed: {
+    canRetrainLlm () {
+      const authorities = Array.isArray(this.store.currentUser?.authorities)
+        ? this.store.currentUser.authorities
+        : []
+      return authorities.includes('ADMIN')
+    },
+
     isKnowledgeSearchActive () {
       return this.normalizeKnowledgeSearch(this.knowledgeSearch).length > 0
     },
@@ -391,11 +413,50 @@ export default {
   },
 
   mounted () {
+    document.title = 'ULDESK : База знаний'
     this.ensureKnowledgeBaseLoaded()
       .then(() => this.openKnowledgeFromRoute())
   },
 
   methods: {
+    confirmRetrainLlm () {
+      // this.$q.dialog({
+      //   title: 'Переобучить LLM?',
+      //   message: 'Старый индекс текущего инстанса будет удалён, после чего LLM заново проиндексирует актуальные статьи базы знаний.',
+      //   persistent: true,
+      //   ok: {
+      //     label: 'Переобучить',
+      //     color: 'primary'
+      //   },
+      //   cancel: {
+      //     label: 'Отмена',
+      //     flat: true
+      //   }
+      // }).onOk(() => this.retrainLlm())
+      this.retrainLlm()
+    },
+
+    async retrainLlm () {
+      this.retraining = true
+      try {
+        const { data } = await axios.post('/api/v1/llm/retrain')
+        this.$q.notify({
+          type: 'positive',
+          position: 'top-right',
+          message: `LLM переобучена: ${data?.documents ?? 0} статей, ${data?.chunks ?? 0} чанков`
+        })
+      } catch (e) {
+        const detail = e?.response?.data?.detail || e?.response?.data?.message || e.message
+        this.$q.notify({
+          type: 'negative',
+          position: 'top-right',
+          message: `Не удалось переобучить LLM: ${detail}`
+        })
+      } finally {
+        this.retraining = false
+      }
+    },
+
     ensureKnowledgeBaseLoaded () {
       if ((this.store.knowledgeBase || []).length > 0) {
         return Promise.resolve()

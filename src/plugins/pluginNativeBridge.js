@@ -13,7 +13,7 @@ export const pluginNativeBridge = {
 
     const payload = resolvePayload(action.payload || {}, context)
 
-    return axios.post('/api/plugins/native-hook/execute', {
+    return axios.post('/api/v1/plugins/native-hook/execute', {
       hook: action.name,
       entityType: context.entityType,
       entityId: context.entity?.id,

@@ -11,7 +11,7 @@
       <div
         class="text-h7"
         style="color: white; margin: 8px;width: 100%;"
-        v-html="this.globalAlertMessage"
+        v-text="this.globalAlertMessage"
       />
       <q-btn
         v-if="this.isShowGlobalAlert"
@@ -255,7 +255,7 @@ export default {
       },
       {
         title: 'Организации',
-        icon: 'store',
+        icon: 'business',
         link: '/orgs',
         roles: ['ADMIN', 'MANAGER', 'OPERATOR']
       },
@@ -342,18 +342,17 @@ export default {
   },
 
   methods: {
-    logout () {
-      axios.post('/api/v1/user-offline', this.store.currentUser)
-        .then(() => {
-          axios.get('/logout')
-            .then(() => location.reload())
-            .catch(() => location.reload())
-        })
-        .catch(() => {
-          axios.get('/logout')
-            .then(() => location.reload())
-            .catch(() => location.reload())
-        })
+    async logout () {
+      try {
+        await axios.post('/api/v1/user-offline', this.store.currentUser)
+      } catch (e) {
+        // Logout itself should still proceed if the presence update failed.
+      }
+      try {
+        await axios.post('/logout')
+      } finally {
+        window.location.replace('/login')
+      }
     },
 
     getLinkCounter (title) {

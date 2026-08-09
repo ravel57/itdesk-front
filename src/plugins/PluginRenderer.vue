@@ -1,69 +1,69 @@
 <template>
   <div v-if="isVisible" class="plugin-renderer">
     <div
-        v-if="schema.component === 'field'"
-        class="plugin-field"
-        :class="{ 'plugin-field-inline': isInlineField }"
+      v-if="schema.component === 'field'"
+      class="plugin-field"
+      :class="{ 'plugin-field-inline': isInlineField }"
     >
       <div class="plugin-field-label">
         <q-icon
-            v-if="schema.props && schema.props.icon"
-            :name="schema.props.icon"
-            size="16px"
-            class="plugin-field-icon"
+          v-if="schema.props && schema.props.icon"
+          :name="schema.props.icon"
+          size="16px"
+          class="plugin-field-icon"
         />
 
         <span>{{ schema.props.label }}</span>
       </div>
 
       <div
-          v-if="schema.props.type === 'copyable-text'"
-          class="plugin-field-value plugin-copyable"
-          @click="copyToClipboard(resolvedValue)"
+        v-if="schema.props.type === 'copyable-text'"
+        class="plugin-field-value plugin-copyable"
+        @click="copyToClipboard(resolvedValue)"
       >
         {{ resolvedValue }}
       </div>
 
       <div
-          v-else
-          class="plugin-field-value"
+        v-else
+        class="plugin-field-value"
       >
         {{ resolvedValue }}
       </div>
     </div>
 
     <div
-        v-else-if="schema.component === 'section'"
-        class="plugin-section"
-        :class="{ 'plugin-section-inline': schema.props?.layout === 'inline' }"
+      v-else-if="schema.component === 'section'"
+      class="plugin-section"
+      :class="{ 'plugin-section-inline': schema.props?.layout === 'inline' }"
     >
       <div
-          v-if="schema.props && schema.props.title"
-          class="plugin-section-title"
+        v-if="schema.props && schema.props.title"
+        class="plugin-section-title"
       >
         {{ schema.props.title }}
       </div>
 
       <PluginRenderer
-          v-for="(child, index) in schema.props.children || []"
-          :key="index"
-          :schema="child"
-          :context="context"
+        v-for="(child, index) in schema.props.children || []"
+        :key="index"
+        :schema="child"
+        :context="context"
       />
     </div>
 
     <q-btn
-        v-else-if="schema.component === 'button'"
-        class="plugin-button"
-        :dense="schema.props.dense !== false"
-        :flat="schema.props.flat === true"
-        :round="schema.props.round === true"
-        :outline="schema.props.outline === true"
-        :no-caps="schema.props.noCaps !== false"
-        :color="schema.props.color || 'primary'"
-        :icon="schema.props.icon"
-        :label="schema.props.round ? undefined : schema.props.label"
-        @click="executeAction"
+      v-else-if="schema.component === 'button'"
+      class="plugin-button"
+      :dense="schema.props.dense !== false"
+      :flat="schema.props.flat === true"
+      :round="schema.props.round === true"
+      :outline="schema.props.outline === true"
+      :no-caps="schema.props.noCaps !== false"
+      :color="schema.props.color || 'primary'"
+      :icon="schema.props.icon"
+      :label="schema.props.round ? undefined : schema.props.label"
+      @click="executeAction"
     >
       <q-tooltip v-if="schema.props.tooltip">
         {{ schema.props.tooltip }}
@@ -71,47 +71,47 @@
     </q-btn>
 
     <q-badge
-        v-else-if="schema.component === 'badge'"
-        class="plugin-badge"
-        :color="schema.props.color || 'primary'"
+      v-else-if="schema.component === 'badge'"
+      class="plugin-badge"
+      :color="schema.props.color || 'primary'"
     >
       {{ resolvedLabel }}
     </q-badge>
 
     <div
-        v-else-if="schema.component === 'text'"
-        class="plugin-text"
+      v-else-if="schema.component === 'text'"
+      class="plugin-text"
     >
       {{ resolvedValue }}
     </div>
 
     <div
-        v-else-if="schema.component === 'remote-text'"
-        class="plugin-remote-text"
-        :class="remoteTextClasses"
-        v-text="remoteText"
+      v-else-if="schema.component === 'remote-text'"
+      class="plugin-remote-text"
+      :class="remoteTextClasses"
+      v-text="remoteText"
     />
 
     <a
-        v-else-if="schema.component === 'link'"
-        class="plugin-link"
-        :href="resolvedHref"
-        target="_blank"
-        rel="noopener noreferrer"
+      v-else-if="schema.component === 'link' && resolvedHref"
+      class="plugin-link"
+      :href="resolvedHref"
+      target="_blank"
+      rel="noopener noreferrer"
     >
       {{ resolvedLabel }}
     </a>
 
     <q-separator
-        v-else-if="schema.component === 'divider'"
-        class="plugin-divider"
+      v-else-if="schema.component === 'divider'"
+      class="plugin-divider"
     />
   </div>
 </template>
 
 <script>
-import { evaluateVisible, resolveValue } from './pluginUtils'
-import { pluginNativeBridge } from './pluginNativeBridge'
+import {evaluateVisible, resolveValue} from './pluginUtils'
+import {pluginNativeBridge} from './pluginNativeBridge'
 
 const remoteTextCache = new Map()
 const DEFAULT_REMOTE_TEXT_TTL_MS = 5000
@@ -137,20 +137,20 @@ export default {
   }),
 
   computed: {
-    isVisible () {
+    isVisible() {
       return evaluateVisible(this.schema.props?.visible, this.context)
     },
 
-    resolvedValue () {
+    resolvedValue() {
       return resolveValue(this.schema.props?.value, this.context)
     },
 
-    resolvedLabel () {
+    resolvedLabel() {
       return resolveValue(this.schema.props?.label, this.context)
     },
 
-    resolvedHref () {
-      return resolveValue(this.schema.props?.href, this.context)
+    resolvedHref() {
+      return this.safeExternalUrl(resolveValue(this.schema.props?.href, this.context))
     },
 
     isInlineField() {
@@ -168,7 +168,7 @@ export default {
   },
 
   methods: {
-    async copyToClipboard (value) {
+    async copyToClipboard(value) {
       await navigator.clipboard.writeText(String(value))
 
       this.$q.notify({
@@ -184,16 +184,16 @@ export default {
       })
     },
 
-    async executeAction () {
+    async executeAction() {
       try {
         const action = this.schema.props?.action
         if (!action) {
           return
         }
         if (action.type === 'open-url') {
-          const url = this.resolveActionUrl(action)
+          const url = this.safeExternalUrl(this.resolveActionUrl(action))
           if (url) {
-            window.location.href = url
+            window.location.assign(url)
           }
           return
         }
@@ -215,7 +215,7 @@ export default {
       }
     },
 
-    handlePluginResults (results) {
+    handlePluginResults(results) {
       results.forEach(result => {
         const commands = result?.commands || []
 
@@ -225,7 +225,7 @@ export default {
       })
     },
 
-    handlePluginCommand (command) {
+    handlePluginCommand(command) {
       if (command.type === 'SHOW_TOAST') {
         this.$q.notify({
           message: command.payload?.message || '',
@@ -241,10 +241,13 @@ export default {
       }
 
       if (command.type === 'OPEN_URL') {
-        const url = command.payload?.url
+        const url = this.safeExternalUrl(command.payload?.url)
 
         if (url) {
-          window.open(url, '_blank')
+          const opened = window.open(url, '_blank', 'noopener,noreferrer')
+          if (opened) {
+            opened.opener = null
+          }
         }
       }
 
@@ -253,7 +256,56 @@ export default {
       }
     },
 
-    resolveActionUrl (action) {
+    safeExternalUrl(value) {
+      if (value === null || value === undefined || value === '') {
+        return null
+      }
+      const raw = String(value).trim()
+      if (raw.length > 4096 || /[\u0000-\u001F\u007F]/.test(raw)) {
+        return null
+      }
+      const forbiddenProtocols = new Set([
+        'javascript:',
+        'data:',
+        'file:',
+        'vbscript:',
+        'blob:'
+      ])
+      const allowedProtocols = new Set([
+        'http:',
+        'https:'
+      ])
+      const backendGranted = this.schema.props?.__allowedUrlSchemes
+      if (Array.isArray(backendGranted)) {
+        backendGranted.forEach(scheme => {
+          const normalized = String(scheme).trim().toLowerCase()
+          if (/^[a-z][a-z0-9+.-]{0,31}$/.test(normalized)) {
+            const protocol = `${normalized}:`
+            if (!forbiddenProtocols.has(protocol)) {
+              allowedProtocols.add(protocol)
+            }
+          }
+        })
+      }
+      try {
+        const parsed = new URL(raw, window.location.origin)
+        if (forbiddenProtocols.has(parsed.protocol) || !allowedProtocols.has(parsed.protocol)) {
+          return null
+        }
+        /*
+         * Для web URLs credentials не нужны
+         * и могут случайно утечь.
+         */
+        if (['http:', 'https:'].includes(parsed.protocol) && (parsed.username || parsed.password)) {
+          return null
+        }
+        return parsed.href
+      } catch (e) {
+        return null
+      }
+    },
+
+    resolveActionUrl(action) {
       if (!action?.url) {
         return null
       }
@@ -266,7 +318,7 @@ export default {
       return null
     },
 
-    resolveTemplate (template) {
+    resolveTemplate(template) {
       if (!template) {
         return ''
       }
@@ -276,7 +328,7 @@ export default {
       })
     },
 
-    getByPathForTemplate (path) {
+    getByPathForTemplate(path) {
       return path.split('.').reduce((current, part) => {
         if (current === null || current === undefined) {
           return undefined
@@ -285,7 +337,7 @@ export default {
       }, this.context)
     },
 
-    getRemoteTextCacheKey () {
+    getRemoteTextCacheKey() {
       const hook = this.schema.props?.hook || ''
       const entityType = this.context?.entityType || ''
       const entityId = this.context?.entity?.id || ''
@@ -293,7 +345,7 @@ export default {
       return `${this.schema.pluginKey}:${this.schema.key}:${hook}:${entityType}:${entityId}`
     },
 
-    async loadRemoteText () {
+    async loadRemoteText() {
       if (this.schema.component !== 'remote-text') {
         return
       }
@@ -328,8 +380,8 @@ export default {
       }
 
       const hasOldText = this.remoteText !== null &&
-          this.remoteText !== undefined &&
-          this.remoteText !== ''
+        this.remoteText !== undefined &&
+        this.remoteText !== ''
 
       if (!hasOldText && cached?.text) {
         this.remoteText = cached.text
@@ -383,27 +435,27 @@ export default {
       }
     },
 
-    getRemoteTextCacheTtlMs () {
+    getRemoteTextCacheTtlMs() {
       const ttl = Number(this.schema.props?.cacheTtlMs)
 
       if (Number.isFinite(ttl) && ttl >= 0) {
-        return ttl
+        return Math.min(ttl, 60 * 60 * 1000)
       }
 
       return DEFAULT_REMOTE_TEXT_TTL_MS
     },
 
-    getRemoteTextRefreshIntervalMs () {
+    getRemoteTextRefreshIntervalMs() {
       const interval = Number(this.schema.props?.refreshIntervalMs)
 
       if (Number.isFinite(interval) && interval > 0) {
-        return interval
+        return Math.min(Math.max(interval, 1000), 60 * 60 * 1000)
       }
 
       return 0
     },
 
-    startRemoteTextInterval () {
+    startRemoteTextInterval() {
       if (this.schema.component !== 'remote-text') {
         return
       }
@@ -421,14 +473,14 @@ export default {
       }, interval)
     },
 
-    stopRemoteTextInterval () {
+    stopRemoteTextInterval() {
       if (this.remoteTextIntervalId) {
         window.clearInterval(this.remoteTextIntervalId)
         this.remoteTextIntervalId = null
       }
     },
 
-    restartRemoteTextInterval () {
+    restartRemoteTextInterval() {
       this.stopRemoteTextInterval()
       this.startRemoteTextInterval()
     },
@@ -453,19 +505,19 @@ export default {
   watch: {
     context: {
       deep: true,
-      handler () {
+      handler() {
         this.loadRemoteText()
         this.restartRemoteTextInterval()
       }
     }
   },
 
-  mounted () {
+  mounted() {
     this.loadRemoteText()
     this.startRemoteTextInterval()
   },
 
-  beforeUnmount () {
+  beforeUnmount() {
     this.stopRemoteTextInterval()
   },
 }

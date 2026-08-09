@@ -1,6 +1,7 @@
 import SockJS from 'sockjs-client/dist/sockjs'
 import {Stomp} from '@stomp/stompjs'
 import {appConfig} from 'src/config/appConfig'
+import {getCsrfToken} from 'boot/axios'
 
 const RECONNECT_DELAY_MS = 3000
 const MESSAGE_DESTINATION = '/user/queue/client-portal-messages'
@@ -72,8 +73,9 @@ function openConnection() {
   client.debug = () => {
   }
 
+  const csrfToken = getCsrfToken()
   client.connect(
-    {},
+    csrfToken ? {'X-XSRF-TOKEN': csrfToken} : {},
     () => handleConnected(client),
     error => handleConnectionLost(client, error),
     event => handleConnectionLost(client, event)

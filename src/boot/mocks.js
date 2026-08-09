@@ -200,11 +200,24 @@ export default boot(() => {
 
     // GET /license-info
     mock.onGet(withPrefix('\\/license-info')).reply(() =>
-      ok({maxUsers: 999, licenseUntil: '2099-12-31'})
+      ok({
+        maxUsers: 999,
+        usedUsersCount: 2,
+        availableUsersCount: 997,
+        licenseUntil: '2099-12-31',
+        roleCounts: [
+          {code: 'ADMIN', name: 'Администратор', count: 1, countsTowardsLicense: true},
+          {code: 'MANAGER', name: 'Менеджер поддержки', count: 0, countsTowardsLicense: true},
+          {code: 'OPERATOR', name: 'Оператор поддержки', count: 1, countsTowardsLicense: true},
+          {code: 'OBSERVER', name: 'Менеджер организации', count: 0, countsTowardsLicense: false},
+          {code: 'CLIENT', name: 'Клиент', count: 0, countsTowardsLicense: false}
+        ]
+      })
     )
 
-    // GET /llm-query?query=...
-    mock.onGet(withPrefix('\\/llm-query')).reply((config) => {
+
+    // GET /llm/query?query=...
+    mock.onGet(withPrefix('\\/llm/query')).reply((config) => {
       const q = config.params?.query || ''
       return ok({
         answer: `MOCK LLM ANSWER: ${q}`,

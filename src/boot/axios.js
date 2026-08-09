@@ -29,15 +29,85 @@ function normalizeApiBaseUrl(value) {
   return url
 }
 
+export function getCsrfToken() {
+  if (typeof document === 'undefined') {
+    return ''
+  }
+  const prefix = 'XSRF-TOKEN='
+  const item = document.cookie
+    .split(';')
+    .map(value => value.trim())
+    .find(value => value.startsWith(prefix))
+  if (!item) {
+    return ''
+  }
+  try {
+    return decodeURIComponent(item.substring(prefix.length))
+  } catch (e) {
+    return item.substring(prefix.length)
+  }
+}
+
+function isUnsafeMethod(method) {
+  return !['get', 'head', 'options', 'trace'].includes(String(method || 'get').toLowerCase())
+}
+
+function isSameOriginRequest(config) {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  try {
+    const base = config.baseURL || window.location.origin
+    const target = new URL(config.url || '', new URL(base, window.location.origin))
+    return target.origin === window.location.origin
+  } catch (e) {
+    return true
+  }
+}
+
+function attachCsrfToken(config) {
+  if (!isUnsafeMethod(config.method) || !isSameOriginRequest(config)) {
+    return config
+  }
+  const token = getCsrfToken()
+  if (!token) {
+    return config
+  }
+  config.headers = config.headers || {}
+  if (typeof config.headers.set === 'function') {
+    config.headers.set('X-XSRF-TOKEN', token)
+  } else {
+    config.headers['X-XSRF-TOKEN'] = token
+  }
+  return config
+}
+
 const apiBaseUrl = normalizeApiBaseUrl(appConfig.apiBaseUrl)
 
 axios.defaults.baseURL = apiBaseUrl
 axios.defaults.withCredentials = true
+axios.defaults.xsrfCookieName = 'XSRF-TOKEN'
+axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN'
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
-  withCredentials: true
+  withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN'
 })
+
+export async function getStompCsrfHeaders() {
+  const response = await api.get('/csrf')
+  const csrf = response?.data
+
+  if (!csrf?.headerName || !csrf?.token) {
+    throw new Error('Backend returned an invalid CSRF token for STOMP')
+  }
+
+  return {
+    [csrf.headerName]: csrf.token
+  }
+}
 
 export default boot(({app}) => {
   app.config.globalProperties.$axios = axios
@@ -55,6 +125,9 @@ function handleUnauthorized(error) {
 
   return Promise.reject(error)
 }
+
+axios.interceptors.request.use(attachCsrfToken)
+api.interceptors.request.use(attachCsrfToken)
 
 axios.interceptors.response.use(
   response => response,

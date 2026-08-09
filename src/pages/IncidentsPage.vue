@@ -150,6 +150,7 @@ import {useStore} from 'stores/store'
 
 export default {
   name: 'IncidentsPage',
+
   data: () => ({
     store: useStore(),
     incidents: [],
@@ -186,31 +187,39 @@ export default {
       ['MITIGATION', 'Устранение'], ['MONITORING', 'Наблюдение'], ['RESTORED', 'Восстановлен'], ['CLOSED', 'Закрыт'], ['CANCELLED', 'Отменён']
     ].map(([value, label]) => ({value, label}))
   }),
+
   computed: {
     canEdit() {
       return ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser?.authorities?.[0])
     },
+
     userOptions() {
       return this.users.map(user => ({value: user.id, label: this.userName(user)}))
     },
+
     organizationOptions() {
       return this.organizations.map(org => ({value: org.id, label: org.name}))
     },
+
     serviceOptions() {
       return this.services.filter(service => service.active !== false).map(service => ({
         value: service.id,
         label: this.serviceLabel(service)
       }))
     },
+
     supportLineOptions() {
       return this.supportLines.filter(line => line.active !== false).map(line => ({value: line.id, label: line.name}))
     }
   },
+
   mounted() {
+    document.title = 'ULDESK : Инциденты'
     this.resetForm()
     this.loadDictionaries()
     this.loadIncidents()
   },
+
   methods: {
     resetForm() {
       this.form = {
@@ -227,6 +236,7 @@ export default {
         updateIntervalMinutes: 30
       }
     },
+
     async loadDictionaries() {
       const requests = [axios.get('/api/v1/users'), axios.get('/api/v1/organizations'), axios.get('/api/v1/support-lines'), axios.get('/api/v1/services')]
       const results = await Promise.allSettled(requests)
@@ -235,6 +245,7 @@ export default {
       this.supportLines = results[2].status === 'fulfilled' ? results[2].value.data : []
       this.services = results[3].status === 'fulfilled' ? results[3].value.data : []
     },
+
     async loadIncidents() {
       this.loading = true
       try {
@@ -251,14 +262,17 @@ export default {
         this.loading = false
       }
     },
+
     onRequest({pagination}) {
       this.pagination.page = pagination.page
       this.pagination.rowsPerPage = pagination.rowsPerPage
       this.loadIncidents()
     },
+
     openIncident(event, row) {
       this.goToIncident(row?.id)
     },
+
     goToIncident(value) {
       const incidentId = Number(value)
       if (!Number.isSafeInteger(incidentId) || incidentId <= 0) {
@@ -277,10 +291,12 @@ export default {
       }
       this.$router.push({name: 'incident-detail', params: {incidentId: String(incidentId)}})
     },
+
     openCreateDialog() {
       this.resetForm();
       this.createDialog = true
     },
+
     async createIncident() {
       if (!String(this.form.title || '').trim()) return
       this.saving = true
@@ -294,20 +310,25 @@ export default {
         this.saving = false
       }
     },
+
     serviceLabel(service) {
       const code = String(service?.code || '').trim()
       const name = String(service?.name || '').trim()
       return code && name ? `${code} · ${name}` : (name || code || `Сервис #${service?.id}`)
     },
+
     userName(user) {
       return [user.lastname, user.firstname].filter(Boolean).join(' ') || user.username || `#${user.id}`
     },
+
     statusLabel(value) {
       return this.statusOptions.find(option => option.value === value)?.label || value
     },
+
     severityColor(value) {
       return ({P1: 'negative', P2: 'deep-orange', P3: 'warning', P4: 'blue-grey'})[value] || 'grey'
     },
+
     statusColor(value) {
       return ({
         CLOSED: 'positive',
@@ -319,14 +340,17 @@ export default {
         MONITORING: 'blue'
       })[value] || 'primary'
     },
+
     formatDate(value) {
       return value ? new Date(value).toLocaleString('ru-RU') : '—'
     },
+
     formatDuration(seconds) {
       const value = Number(seconds) || 0
       if (value >= 3600) return `${Math.floor(value / 3600)} ч ${Math.floor((value % 3600) / 60)} мин`
       return `${Math.max(1, Math.floor(value / 60))} мин`
     },
+
     notifyError(error) {
       this.$q.notify({
         type: 'negative',

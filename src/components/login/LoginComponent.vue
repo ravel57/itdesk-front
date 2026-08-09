@@ -46,6 +46,7 @@
         </div>
       </div>
       <form v-if="this.login" method="post" action="/perform_login" class="login-form">
+        <input type="hidden" name="_csrf" :value="csrfToken">
         <q-input
           name="username"
           class="input-field"
@@ -130,6 +131,7 @@ import LoginLogo from 'components/LoginLogo.vue'
 import axios from 'axios'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
+import { getCsrfToken } from 'boot/axios'
 
 export default {
   name: 'LoginComponent',
@@ -143,7 +145,8 @@ export default {
     login: true,
     passwordRestore: false,
     emailRestore: false,
-    requestSend: false
+    requestSend: false,
+    csrfToken: ''
   }),
 
   methods: {
@@ -213,10 +216,17 @@ export default {
   },
 
   mounted () {
+    this.csrfToken = getCsrfToken()
     const url = new URL(window.location.href)
-    if (url.searchParams.get('username') && url.searchParams.get('password')) {
-      this.username = url.searchParams.get('username')
-      this.password = url.searchParams.get('password')
+    const username = url.searchParams.get('username')
+    if (username) {
+      this.username = username
+    }
+    // Never consume passwords from the URL: query strings are persisted in
+    // history and are commonly logged by reverse proxies.
+    if (url.searchParams.has('password')) {
+      url.searchParams.delete('password')
+      window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`)
     }
   },
 

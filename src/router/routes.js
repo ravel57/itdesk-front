@@ -220,10 +220,15 @@ const routes = [
             meta: {roles: ['ADMIN']}
           },
           {
-            path: 'ai-agent',
-            component: () => import('pages/settings/AiAgent.vue'),
+            path: 'jwt',
+            component: () => import('pages/settings/JwtSettingsPage.vue'),
             meta: {roles: ['ADMIN']}
           },
+          // {
+          //   path: 'ai-agent',
+          //   component: () => import('pages/settings/AiAgent.vue'),
+          //   meta: {roles: ['ADMIN']}
+          // },
           {
             path: 'automatization',
             component: () => import('pages/settings/AutomatizationPage.vue'),

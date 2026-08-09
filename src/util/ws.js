@@ -4,6 +4,7 @@ import {useStore} from 'stores/store'
 import moment from 'moment/moment'
 import {appConfig} from 'src/config/appConfig'
 import {useSystemNotifications} from 'src/composables/useSystemNotifications'
+import {getStompCsrfHeaders} from 'boot/axios'
 
 let stompClient = null
 let observerChatRevision = null
@@ -11,6 +12,7 @@ let reconnectTimer = null
 let reconnectAttempt = 0
 let shouldReconnect = false
 let isConnecting = false
+let connectionGeneration = 0
 
 const RECONNECT_BASE_DELAY_MS = 1000
 const RECONNECT_MAX_DELAY_MS = 15000
@@ -23,6 +25,7 @@ export function connect() {
 }
 
 export function disconnect() {
+  connectionGeneration += 1
   shouldReconnect = false
   isConnecting = false
   reconnectAttempt = 0
@@ -38,7 +41,7 @@ export function isSocketConnected() {
   return Boolean(stompClient?.connected)
 }
 
-function openConnection() {
+async function openConnection() {
   if (!shouldReconnect || isConnecting || stompClient?.connected) {
     return
   }
@@ -50,9 +53,35 @@ function openConnection() {
 
   clearReconnectTimer()
   isConnecting = true
+  const generation = ++connectionGeneration
 
-  // Важно создавать новый SockJS для каждой попытки. Повторное использование
-  // уже закрытого WebSocket не позволяет STOMP восстановить соединение.
+  let connectHeaders
+  try {
+    // Spring Security WebSocket CSRF expects the request-attribute token
+    // (masked/XOR token), not the raw XSRF-TOKEN cookie value.
+    connectHeaders = await getStompCsrfHeaders()
+  } catch (error) {
+    if (generation !== connectionGeneration) {
+      return
+    }
+    isConnecting = false
+    console.warn('Failed to load CSRF token for STOMP, reconnect scheduled', error)
+    scheduleReconnect()
+    return
+  }
+
+  // disconnect() or a newer connection attempt may have happened while /csrf was loading.
+  if (generation !== connectionGeneration || !shouldReconnect) {
+    return
+  }
+
+  const currentStore = useStore()
+  if (!canConnectCurrentUser(currentStore.currentUser)) {
+    disconnect()
+    return
+  }
+
+  // Important: create a fresh SockJS instance for each attempt.
   const client = Stomp.over(() => new SockJS('/ws', null, {
     transports: ['websocket']
   }))
@@ -61,7 +90,7 @@ function openConnection() {
   }
 
   client.connect(
-    {},
+    connectHeaders,
     () => handleConnected(client),
     error => handleConnectionLost(client, error),
     event => handleConnectionLost(client, event)
@@ -129,17 +158,17 @@ function handleConnected(client) {
   }
   if (isSupportUser) {
     client.subscribe('/topic/authenticated-users/', message => authenticatedUsersCallback(message))
-    client.subscribe('/topic/mark-read/', message => currentClientCallback(message))
+    client.subscribe('/user/topic/mark-read/', message => currentClientCallback(message))
     client.subscribe('/topic/support-messages/', message => supportMessagesCallback(message))
-    client.subscribe('/topic/client-messages/', message => clientMessageCallback(message))
-    client.subscribe('/topic/client-message-edited/', message => editedMessageCallback(message))
-    client.subscribe('/topic/client-message-deleted/', message => deletedMessageCallback(message))
+    client.subscribe('/user/topic/client-messages/', message => clientMessageCallback(message))
+    client.subscribe('/user/topic/client-message-edited/', message => editedMessageCallback(message))
+    client.subscribe('/user/topic/client-message-deleted/', message => deletedMessageCallback(message))
   }
   client.subscribe('/topic/global-notifications/', message => globalAlertMessageCallback(message))
-  client.subscribe('/topic/user-notification/', message => userNotificationCallback(message))
-  client.subscribe('/topic/task-messages/', message => taskMessageCallback(message))
-  client.subscribe('/topic/task-updated/', message => taskUpdatedCallback(message))
-  client.subscribe('/topic/force-logout/', message => forceLogoutCallback(message))
+  client.subscribe('/user/topic/user-notification/', message => userNotificationCallback(message))
+  client.subscribe('/user/topic/task-messages/', message => taskMessageCallback(message))
+  client.subscribe('/user/topic/task-updated/', message => taskUpdatedCallback(message))
+  client.subscribe('/user/topic/force-logout/', message => forceLogoutCallback(message))
 
   // Синхронизация сразу после reconnect: периодический heartbeat userOnline
   // сам восстановится, но ждать следующего тика и следующего socket-event не нужно.
@@ -157,7 +186,7 @@ function handleConnectionLost(client, error) {
   observerChatRevision = null
 
   if (error) {
-    console.warn('STOMP connection lost, reconnect scheduled')
+    console.warn('STOMP connection lost, reconnect scheduled', error)
   }
 
   scheduleReconnect()
@@ -546,7 +575,6 @@ export function userOnline(user) {
     return
   }
   if (!stompClient || !stompClient.connected) {
-    console.warn('STOMP is not connected, user-online skipped')
     return
   }
   stompClient.send('/app/user-online', {}, JSON.stringify({

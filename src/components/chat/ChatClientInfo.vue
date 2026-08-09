@@ -63,7 +63,7 @@
     style="display: flex;flex-direction: row;flex-wrap: nowrap;align-items: center"
   >
     <q-icon
-      name="store"
+      name="business"
       style="margin-right: 8px;color: black !important"
     />
     <div

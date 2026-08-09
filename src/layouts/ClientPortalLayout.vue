@@ -222,8 +222,12 @@ export default {
       }
     },
 
-    logout () {
-      window.location.assign('/logout')
+    async logout () {
+      try {
+        await axios.post('/logout')
+      } finally {
+        window.location.replace('/login')
+      }
     }
   }
 }
