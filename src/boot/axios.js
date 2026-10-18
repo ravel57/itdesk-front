@@ -1,6 +1,7 @@
 import {boot} from 'quasar/wrappers'
 import axios from 'axios'
 import {appConfig} from 'src/config/appConfig'
+import {isPublicPage} from 'src/router/publicPages'
 
 function normalizeApiBaseUrl(value) {
   if (!value) {
@@ -118,7 +119,8 @@ function handleUnauthorized(error) {
   if (error.response && error.response.status === 401) {
     localStorage.removeItem('currentSessionId')
 
-    if (window.location.pathname !== '/login') {
+    // На публичных страницах (вход, смена пароля по ссылке) 401 — ожидаемый ответ, уводить некуда
+    if (!isPublicPage()) {
       window.location.replace('/login')
     }
   }

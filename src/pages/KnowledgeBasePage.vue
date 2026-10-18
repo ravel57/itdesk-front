@@ -3,6 +3,7 @@
     <div class="knowledge-toolbar row items-center q-col-gutter-sm">
       <div class="col-12 col-md-auto row q-gutter-sm">
         <q-btn
+          v-if="canManageKnowledge"
           icon="add"
           label="Добавить статью"
           color="primary"
@@ -67,7 +68,7 @@
           item-key="id"
           class="list-group"
           ghost-class="ghost"
-          :disabled="this.isKnowledgeSearchActive"
+          :disabled="this.isKnowledgeSearchActive || !canManageKnowledge"
           @start="dragging = true"
           @end="dragging = false"
         >
@@ -124,6 +125,7 @@
                 side
               >
                 <q-btn
+                  v-if="canManageKnowledge"
                   color="primary"
                   dense
                   flat
@@ -167,7 +169,7 @@
         </div>
 
         <q-btn
-          v-if="this.selectedKnowledge"
+          v-if="this.selectedKnowledge && canManageKnowledge"
           flat
           round
           dense
@@ -327,6 +329,11 @@ import { useStore } from 'stores/store'
 import axios from 'axios'
 import { watch } from 'vue'
 import draggable from 'vuedraggable'
+import { can } from 'src/util/access'
+
+function canManageKnowledgeBase () {
+  return can('KB_EDIT')
+}
 
 export default {
   name: 'KnowledgeBasePage',
@@ -356,11 +363,13 @@ export default {
   }),
 
   computed: {
+    // Backend: создание, изменение, удаление и сортировка статей — только ADMIN/MANAGER.
+    canManageKnowledge () {
+      return canManageKnowledgeBase()
+    },
+
     canRetrainLlm () {
-      const authorities = Array.isArray(this.store.currentUser?.authorities)
-        ? this.store.currentUser.authorities
-        : []
-      return authorities.includes('ADMIN')
+      return this.$can('LLM_MANAGE')
     },
 
     isKnowledgeSearchActive () {
@@ -442,14 +451,12 @@ export default {
         const { data } = await axios.post('/api/v1/llm/retrain')
         this.$q.notify({
           type: 'positive',
-          position: 'top-right',
           message: `LLM переобучена: ${data?.documents ?? 0} статей, ${data?.chunks ?? 0} чанков`
         })
       } catch (e) {
         const detail = e?.response?.data?.detail || e?.response?.data?.message || e.message
         this.$q.notify({
           type: 'negative',
-          position: 'top-right',
           message: `Не удалось переобучить LLM: ${detail}`
         })
       } finally {
@@ -482,11 +489,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
         .finally(() => {
@@ -648,11 +651,7 @@ export default {
       if (knowledge.title.length === 0) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -666,11 +665,7 @@ export default {
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
+              type: 'negative'
             }))
       } else {
         axios.patch('/api/v1/knowledge-base', knowledge)
@@ -690,11 +685,7 @@ export default {
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
+              type: 'negative'
             }))
       }
     },
@@ -713,11 +704,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -780,6 +767,9 @@ export default {
   setup () {
     const store = useStore()
     watch(() => store.knowledgeBase, () => {
+      if (!canManageKnowledgeBase()) {
+        return
+      }
       axios.post('/api/v1/knowledge-base/resort', store.knowledgeBase)
     }, { deep: true })
     return { store }

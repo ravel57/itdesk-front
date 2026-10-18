@@ -138,6 +138,12 @@
             @click="newPasswordDialogShow"
           />
         </q-card-section>
+
+        <q-separator/>
+
+        <q-card-section>
+          <mfa-profile-section/>
+        </q-card-section>
       </q-card>
     </div>
 
@@ -191,9 +197,11 @@
 import axios from 'axios'
 import {useStore} from 'stores/store'
 import {useSystemNotifications} from 'src/composables/useSystemNotifications'
+import MfaProfileSection from 'components/mfa/MfaProfileSection.vue'
 
 export default {
   name: 'ProfileSettings',
+  components: {MfaProfileSection},
 
   data() {
     const {
@@ -271,14 +279,7 @@ export default {
     showNegativeNotify(message) {
       this.$q.notify({
         message,
-        type: 'negative',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        type: 'negative'
       })
     },
 
@@ -322,14 +323,7 @@ export default {
         .then(() => {
           this.$q.notify({
             message: 'Настройки уведомлений сохранены',
-            type: 'positive',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'positive'
           })
         })
         .catch(e => {

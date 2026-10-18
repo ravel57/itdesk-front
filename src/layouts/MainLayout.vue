@@ -203,7 +203,7 @@ import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import LogoComponent from 'components/Logo.vue'
 import NotificationBell from 'components/notifications/NotificationBell.vue'
-import { onTaskUpdated } from 'src/util/ws'
+import { onIncidentUpdated, onTaskUpdated } from 'src/util/ws'
 
 export default {
   name: 'MainLayout',
@@ -221,49 +221,49 @@ export default {
         title: 'Чаты',
         icon: 'forum',
         link: '/chats',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']
+        permission: 'CHAT_VIEW'
       },
       {
         title: 'Мои заявки',
         icon: 'task',
         link: '/my-tasks',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR']
+        permission: 'TASK_EDIT'
       },
       {
         title: 'Заявки моих линий',
         icon: 'support_agent',
         link: '/my-lines',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR']
+        permission: 'TASK_EDIT'
       },
       {
         title: 'Чат',
         icon: 'forum',
         link: '/chats',
-        roles: ['CLIENT']
+        permission: 'PORTAL'
       },
       {
         title: 'Список заявок',
         icon: 'find_in_page',
         link: '/tasks',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']
+        permission: 'TASK_VIEW'
       },
       {
         title: 'Инциденты',
         icon: 'crisis_alert',
         link: '/incidents',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']
+        permission: 'INCIDENT_VIEW'
       },
       {
         title: 'Организации',
         icon: 'business',
         link: '/orgs',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR']
+        permission: 'ORGANIZATION_STATS'
       },
       {
         title: 'Поиск',
         icon: 'search',
         link: '/search',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR']
+        permission: 'GLOBAL_SEARCH'
       },
       // {
       //   title: 'История',
@@ -275,7 +275,7 @@ export default {
         title: 'Аналитика',
         icon: 'data_usage',
         link: '/analytics',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']
+        permission: 'ANALYTICS_VIEW'
       },
       // {
       //   title: 'Телефония',
@@ -286,13 +286,12 @@ export default {
         title: 'База знаний',
         icon: 'menu_book',
         link: '/knowledge-base',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR']
+        permission: 'KB_VIEW'
       },
       {
         title: 'Настройки',
         icon: 'settings',
-        link: '/settings',
-        roles: ['ADMIN', 'OPERATOR', 'MANAGER', 'OBSERVER', 'CLIENT']
+        link: '/settings'
       },
       // {
       //   title: 'Помощь',
@@ -315,19 +314,11 @@ export default {
 
   computed: {
     canUseNotifications () {
-      const authorities = Array.isArray(this.store.currentUser?.authorities)
-        ? this.store.currentUser.authorities
-        : []
-      return ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']
-        .some(role => authorities.includes(role))
+      return this.$can('NOTIFICATIONS')
     },
 
     canSeeOnlineUsers () {
-      const authorities = Array.isArray(this.store.currentUser?.authorities)
-        ? this.store.currentUser.authorities
-        : []
-      return ['ADMIN', 'MANAGER', 'OPERATOR']
-        .some(role => authorities.includes(role))
+      return this.$can('STAFF_DIRECTORY_VIEW')
     },
 
     operatorUsersOnline () {
@@ -384,6 +375,10 @@ export default {
     },
 
     async loadMyTasksCounter () {
+      if (!this.$can('TASK_EDIT')) {
+        this.myTasksCounter = 0
+        return
+      }
       try {
         const response = await axios.post('/api/v1/tasks-page', {
           page: 1,
@@ -420,6 +415,10 @@ export default {
     },
 
     async loadIncidentsCounter () {
+      if (!this.$can('INCIDENT_VIEW')) {
+        this.incidentsCounter = 0
+        return
+      }
       try {
         const response = await axios.post('/api/v1/incidents-page', {
           page: 1,
@@ -495,6 +494,9 @@ export default {
     this.taskUpdatedUnsubscribe = onTaskUpdated(() => {
       this.scheduleMyTasksCounterReload()
     })
+    this.incidentUpdatedUnsubscribe = onIncidentUpdated(() => {
+      this.loadIncidentsCounter()
+    })
     this.myTasksCounterInterval = setInterval(() => {
       this.loadMyTasksCounter()
       this.loadIncidentsCounter()
@@ -514,6 +516,9 @@ export default {
     }
     if (this.myTasksCounterReloadTimer) {
       clearTimeout(this.myTasksCounterReloadTimer)
+    }
+    if (this.incidentUpdatedUnsubscribe) {
+      this.incidentUpdatedUnsubscribe()
     }
     if (this.taskUpdatedUnsubscribe) {
       this.taskUpdatedUnsubscribe()

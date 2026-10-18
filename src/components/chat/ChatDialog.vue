@@ -298,7 +298,7 @@
                   </q-item-section>
                 </q-item>
                 <q-item
-                  v-if="this.allowMessageMutations && !message.deleted"
+                  v-if="this.canDeleteMessages && !message.deleted"
                   clickable
                   v-close-popup
                 >
@@ -1045,16 +1045,20 @@ export default {
     highlightMessageTimers: {},
     portionMessagesTimer: null,
     markReadEmitTimer: null,
+    stickToBottom: false,
+    stickToBottomTimer: null,
+    contentResizeObserver: null,
   }),
 
   mounted () {
     try {
       this.mentionTargetEl = this.$refs.textInput
       this.templateTargetEl = this.$refs.textInput
+      this.observeContentResize()
       if (this.getRouteMessageId()) {
         this.scrollToRouteMessage()
       } else {
-        this.scrollToBottom()
+        this.startStickToBottom()
       }
       this.$refs.textInput.focus()
       this.$nextTick(() => {
@@ -1109,6 +1113,54 @@ export default {
       }, timeout)
     },
 
+    // При открытии чата сообщения приходят позже монтирования (кэш, сервер), а картинки и превью
+    // догружаются ещё позже и меняют высоту. Поэтому несколько секунд держим прокрутку внизу
+    // при любом изменении высоты содержимого, пока пользователь сам не начнёт листать.
+    startStickToBottom (duration = 4000) {
+      if (this.getRouteMessageId() || this.routeMessageIdToScroll || this.linkedMessageId) {
+        return
+      }
+      this.stickToBottom = true
+      clearTimeout(this.stickToBottomTimer)
+      this.stickToBottomTimer = setTimeout(() => {
+        this.stickToBottom = false
+      }, duration)
+      this.$nextTick(() => this.scrollToBottomNow())
+    },
+
+    stopStickToBottom () {
+      this.stickToBottom = false
+      clearTimeout(this.stickToBottomTimer)
+      this.stickToBottomTimer = null
+    },
+
+    scrollToBottomNow () {
+      const scrollZone = this.getScrollZone()
+      if (scrollZone) {
+        scrollZone.scrollTop = scrollZone.scrollHeight
+      }
+    },
+
+    observeContentResize () {
+      const content = this.$refs[this.isDialog ? 'chatPopUp' : 'chat']?.$el
+      if (!content || typeof ResizeObserver === 'undefined') {
+        return
+      }
+      this.contentResizeObserver = new ResizeObserver(() => {
+        if (this.stickToBottom) {
+          this.scrollToBottomNow()
+        }
+      })
+      this.contentResizeObserver.observe(content)
+      const scrollZone = this.getScrollZone()
+      if (scrollZone) {
+        // Колесо, касание и перетаскивание полосы прокрутки — пользователь листает сам
+        scrollZone.addEventListener('wheel', this.stopStickToBottom, { passive: true })
+        scrollZone.addEventListener('touchstart', this.stopStickToBottom, { passive: true })
+        scrollZone.addEventListener('mousedown', this.stopStickToBottom)
+      }
+    },
+
     smoothScrollToBottom () {
       let scrollArea = document.querySelector('#chat-dialog > div > div')
       if (this.isDialog) {
@@ -1133,8 +1185,7 @@ export default {
         this.showListPinedFiles = true
         this.$q.notify({
           message: fileSizeError,
-          type: 'negative',
-          position: 'top-right'
+          type: 'negative'
         })
         return
       }
@@ -1144,8 +1195,7 @@ export default {
         if (!text) {
           this.$q.notify({
             message: 'Текст сообщения не может быть пустым',
-            type: 'warning',
-            position: 'top-right'
+            type: 'warning'
           })
           return
         }
@@ -1307,14 +1357,7 @@ export default {
         this.attachedFiles = fileInput.files[0]
         this.$q.notify({
           message: `Загружен файл: ${fileInput.files[0].name}`,
-          type: 'positive',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'positive'
         })
       })
     },
@@ -1462,7 +1505,7 @@ export default {
     },
 
     requestDeleteMessage (message) {
-      if (!this.allowMessageMutations || !message || message.deleted) {
+      if (!this.canDeleteMessages || !message || message.deleted) {
         return
       }
       this.deleteMessageCandidate = message
@@ -1558,14 +1601,7 @@ export default {
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close',
-                color: 'white',
-                dense: true,
-                handler: () => undefined
-              }]
+              type: 'negative'
             }))
         this.isShowSearchResults = true
       } else {
@@ -1577,6 +1613,7 @@ export default {
     },
 
     goToMessage (messageId, options = {}) {
+      this.stopStickToBottom()
       const id = this.isDialog ? `modal_message_${messageId}` : `message_${messageId}`
       return this.scrollToElementById(id, options)
     },
@@ -2450,8 +2487,7 @@ export default {
       if (!messageId) {
         this.$q.notify({
           message: 'Нельзя изменить признак ответа: сообщение ещё не сохранено',
-          type: 'warning',
-          position: 'top-right'
+          type: 'warning'
         })
         return
       }
@@ -2516,14 +2552,7 @@ export default {
         this.fileUploadError = getMessageFileSizeError(rejectedFiles)
         this.$q.notify({
           message: this.fileUploadError,
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
         this.showListPinedFiles = true
       }
@@ -2536,14 +2565,7 @@ export default {
       ]
       this.$q.notify({
         message: `Добавлено из буфера: ${allowedFiles.length}`,
-        type: 'positive',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        type: 'positive'
       })
       this.showListPinedFiles = true
     },
@@ -2631,7 +2653,15 @@ export default {
     },
 
     canEditMessage (message) {
-      return this.allowMessageMutations && message && !message.deleted && message.text && message.isSent === true
+      if (!this.allowMessageMutations || !message || message.deleted || !message.text || message.isSent !== true) {
+        return false
+      }
+      // Чат клиента: оператор редактирует только свои сообщения, ADMIN/MANAGER — любые исходящие.
+      if (this.isDialog || this.isAdminOrManager) {
+        return true
+      }
+      const currentUserId = this.currentUser?.id ?? this.store.currentUser?.id
+      return currentUserId != null && Number(message.user?.id) === Number(currentUserId)
     },
 
     startEditMessage (message) {
@@ -2766,11 +2796,23 @@ export default {
       const authorities = Array.isArray(this.currentUser?.authorities)
         ? this.currentUser.authorities
         : (Array.isArray(this.store.currentUser?.authorities) ? this.store.currentUser.authorities : [])
-      return authorities.some(role => ['ADMIN', 'MANAGER', 'OPERATOR', 'CLIENT'].includes(role))
+      return authorities.some(role => ['ADMIN', 'MANAGER', 'SENIOR_OPERATOR', 'OPERATOR', 'CLIENT'].includes(role))
     },
 
     canUseCustomContextMenu () {
       return !this.isObserverUser
+    },
+
+    isAdminOrManager () {
+      const authorities = Array.isArray(this.currentUser?.authorities)
+        ? this.currentUser.authorities
+        : (Array.isArray(this.store.currentUser?.authorities) ? this.store.currentUser.authorities : [])
+      return authorities.some(role => ['ADMIN', 'MANAGER'].includes(role))
+    },
+
+    // Удаление сообщений на backend разрешено только ADMIN/MANAGER.
+    canDeleteMessages () {
+      return this.allowMessageMutations && !this.isObserverUser && this.$can('CHAT_MESSAGE_DELETE')
     },
 
     maxMessageFileSizeBytes () {
@@ -2937,8 +2979,9 @@ export default {
     },
 
     sortedMessages () {
+      // Менеджер организации не видит удалённые сообщения и внутренние комментарии поддержки
       const messages = this.isObserverUser
-        ? (this.messages || []).filter(message => message?.deleted !== true)
+        ? (this.messages || []).filter(message => message?.deleted !== true && message?.isComment !== true)
         : this.messages
       return this.sortMessagesByDateAndId(messages)
     }
@@ -2955,12 +2998,24 @@ export default {
       }
     },
 
+    'client.id' (newId, oldId) {
+      if (!newId || Number(newId) === Number(oldId)) {
+        return
+      }
+      // Другой клиент в том же компоненте: следующий список сообщений считаем первой загрузкой
+      this.lastKnownLastMessageId = null
+      this.lastKnownMessagesLength = 0
+      this.startStickToBottom()
+    },
+
     linkedMessageId () {
       if (!this.linkedMessageId) {
         return
       }
+      // Переход к прикреплённому сообщению всегда начинает пользователь (кнопка «Привязано», поиск, уведомление),
+      // поэтому сообщение подсвечиваем; linkedMessageId сбрасывается после подсветки
       this.$nextTick(() => {
-        this.goToMessage(this.linkedMessageId, { highlight: false })
+        this.goToMessage(this.linkedMessageId)
       })
     },
 
@@ -2993,6 +3048,10 @@ export default {
           this.lastKnownLastMessageId = currentLastMessageId
           this.lastKnownMessagesLength = messages.length
           if (!previousLastMessageId) {
+            // Первая загрузка сообщений чата
+            if (currentLastMessageId) {
+              this.startStickToBottom()
+            }
             return
           }
           const messageWasAddedToBottom =
@@ -3093,6 +3152,14 @@ export default {
   },
 
   beforeUnmount () {
+    this.stopStickToBottom()
+    this.contentResizeObserver?.disconnect()
+    const scrollZone = this.getScrollZone()
+    if (scrollZone) {
+      scrollZone.removeEventListener('wheel', this.stopStickToBottom)
+      scrollZone.removeEventListener('touchstart', this.stopStickToBottom)
+      scrollZone.removeEventListener('mousedown', this.stopStickToBottom)
+    }
     Object.values(this.highlightMessageTimers || {}).forEach(timer => clearTimeout(timer))
     this.highlightMessageTimers = {}
     if (this.portionMessagesTimer) {

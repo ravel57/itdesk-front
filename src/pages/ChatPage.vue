@@ -84,7 +84,7 @@
         <div
           data-tour="chat-helper-wrapper"
           class="chat-page-column no-shadow"
-          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser?.authorities?.[0])"
+          v-if="(!this.isMobile || this.tab === 'tab2') && (this.isShowHelper || this.isMobile) && $can('CHAT_REPLY')"
         >
           <chat-helper
             :isMobile="this.isMobile"
@@ -210,6 +210,19 @@
       class="chat-onboarding-card no-shadow"
       :style="chatOnboardingCardStyle"
     >
+      <q-btn
+        flat
+        round
+        dense
+        size="sm"
+        icon="close"
+        color="grey-7"
+        class="onboarding-close-btn"
+        aria-label="Закрыть обучение"
+        @click="finishChatOnboarding"
+      >
+        <q-tooltip>Закрыть обучение</q-tooltip>
+      </q-btn>
       <div class="chat-onboarding-step-counter">
         Шаг {{ chatOnboardingStepIndex + 1 }} из {{ chatOnboardingSteps.length }}
       </div>
@@ -220,13 +233,6 @@
         {{ currentChatOnboardingStep.text }}
       </div>
       <div class="chat-onboarding-actions">
-        <q-btn
-          flat
-          dense
-          no-caps
-          label="Пропустить"
-          @click="finishChatOnboarding"
-        />
         <q-space/>
         <q-btn
           flat
@@ -681,11 +687,7 @@ export default {
             this.isSending = false
             this.$q.notify({
               message: getUploadErrorMessage(e),
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
+              type: 'negative'
             })
           })
           .finally(() => {
@@ -713,11 +715,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -785,6 +783,10 @@ export default {
     },
 
     onClientMessageFromSocket(payload) {
+      // Во время обучения показан демо-чат; после него finishChatOnboarding перезагружает переписку
+      if (this.isChatOnboardingActive) {
+        return
+      }
       // Глобальная observer-инвалидация намеренно не содержит clientId, чтобы
       // не раскрывать идентификаторы клиентов других организаций. Обновляем
       // только уже открытый чат; REST endpoint повторно проверит доступ.
@@ -897,11 +899,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message || 'Не удалось обновить сообщения',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
     },
@@ -1104,11 +1102,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
     },
@@ -1154,9 +1148,7 @@ export default {
       if (!task) {
         this.$q.notify({
           message: 'Связанная заявка не найдена',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'negative'
         })
         return
       }
@@ -1171,9 +1163,7 @@ export default {
         }
         this.$q.notify({
           message: 'Не найден компонент заявок',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'negative'
         })
       })
     },
@@ -1284,9 +1274,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.message || 'Не удалось загрузить связанную заявку',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'negative'
         })
         return null
       }
@@ -1312,11 +1300,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
     },
@@ -1456,14 +1440,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message || 'Не удалось загрузить сообщения',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
     },
@@ -1703,14 +1680,22 @@ export default {
         })
     },
 
+    // Повторное нажатие на то же сообщение во время подсветки тоже должно прокрутить к нему
+    showLinkedMessage(messageId) {
+      this.linkedMessageId = null
+      this.$nextTick(() => {
+        this.linkedMessageId = messageId
+      })
+    },
+
     getLinkedMessage(task) {
       if (this.isChatOnboardingActive) {
-        this.linkedMessageId = task.linkedMessageId
+        this.showLinkedMessage(task.linkedMessageId)
         return
       }
       const taskWithLinkedMessage = this.getClient.messages.filter(m => m.id === task.linkedMessageId)
       if (taskWithLinkedMessage.length > 0) {
-        this.linkedMessageId = task.linkedMessageId
+        this.showLinkedMessage(task.linkedMessageId)
       } else {
         axios.get(`/api/v1/client/${this.getClient.id}/linked-message?linkedMessageId=${task.linkedMessageId}`)
           .then(response => {
@@ -1974,8 +1959,7 @@ export default {
       if (!Number.isFinite(id) || id <= 0) {
         this.$q.notify({
           message: 'Сообщение ещё не сохранено, невозможно изменить признак ответа',
-          type: 'warning',
-          position: 'top-right'
+          type: 'warning'
         })
         return
       }
@@ -1983,8 +1967,7 @@ export default {
       if (!Number.isFinite(cid) || cid <= 0) {
         this.$q.notify({
           message: 'Не найден клиент для изменения признака ответа',
-          type: 'warning',
-          position: 'top-right'
+          type: 'warning'
         })
         return
       }
@@ -2076,11 +2059,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.response?.data?.message || e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
     },
@@ -2380,11 +2359,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           }))
         .finally(() => {
           this.isSending = false
@@ -2651,8 +2626,7 @@ export default {
     },
 
     isHelperVisible() {
-      const role = this.store.currentUser?.authorities?.[0]
-      return this.isShowHelper && ['ADMIN', 'OPERATOR'].includes(role)
+      return this.isShowHelper && this.$can('CHAT_REPLY')
     },
 
     desktopGridStyle() {
@@ -2728,11 +2702,13 @@ export default {
     if (this.isMobile) {
       this.tab = this.isChatOnboardingActive ? 'tab1' : 'tab3'
     }
+    // Подписка нужна и при обучении: после закрытия тура страница не монтируется заново,
+    // и без подписки новые сообщения пропадали бы из открытого чата до перезагрузки
+    this.clientMessageUnsubscribe = onClientMessage(this.onClientMessageFromSocket)
     if (this.isChatOnboardingActive) {
       this.startChatOnboarding()
       return
     }
-    this.clientMessageUnsubscribe = onClientMessage(this.onClientMessageFromSocket)
     this.$nextTick(() => {
       setTimeout(() => {
         this.markMessagesRead()
@@ -2872,5 +2848,18 @@ export default {
   align-items: center;
   gap: 8px;
   margin-top: 16px;
+}
+
+/* Крестик закрытия обучения в правом верхнем углу карточки */
+.onboarding-close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+}
+
+.chat-onboarding-step-counter,
+.chat-onboarding-title {
+  padding-right: 28px;
 }
 </style>

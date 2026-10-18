@@ -27,7 +27,7 @@ export const useAuthStore = defineStore('auth', {
         const mainStore = useStore()
         mainStore.currentUser = response.data
 
-        await mainStore.loadCurrentSession()
+        await Promise.all([mainStore.loadCurrentSession(), mainStore.loadPermissions()])
 
         return response.data
       } catch (e) {
@@ -37,6 +37,7 @@ export const useAuthStore = defineStore('auth', {
         const mainStore = useStore()
         mainStore.currentUser = null
         mainStore.currentSessionId = null
+        mainStore.permissions = []
 
         if (e.response && e.response.status === 401) {
           return null

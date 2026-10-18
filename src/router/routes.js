@@ -5,6 +5,23 @@ const routes = [
     path: '/login',
     component: () => import('pages/LoginPage.vue')
   },
+  // Сюда бэкенд возвращает после неудачного входа и завершённого сеанса: та же страница входа с сообщением
+  {
+    path: '/login-error',
+    component: () => import('pages/LoginPage.vue')
+  },
+  {
+    path: '/session-expired',
+    component: () => import('pages/LoginPage.vue')
+  },
+  {
+    path: '/login/mfa',
+    component: () => import('pages/MfaPage.vue')
+  },
+  {
+    path: '/reset-password',
+    component: () => import('pages/ResetPasswordPage.vue')
+  },
   {
     path: '/portal',
     component: () => import('layouts/ClientPortalLayout.vue'),
@@ -23,27 +40,27 @@ const routes = [
       {
         path: 'my-tasks',
         component: () => import('pages/MyTasksPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR']}
+        meta: {permission: 'TASK_EDIT'}
       },
       {
         path: 'my-lines',
         component: () => import('pages/MyLinesPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR']}
+        meta: {permission: 'TASK_EDIT'}
       },
       {
         path: 'chat',
         component: () => import('pages/ChatPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']}
+        meta: {permission: 'CHAT_VIEW'}
       },
       {
         path: 'chats',
         component: () => import('pages/ClientsChatsPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']}
+        meta: {permission: 'CHAT_VIEW'}
       },
       {
         path: 'chats/:clientId(\\d+)',
         component: () => import('pages/ChatPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']},
+        meta: {permission: 'CHAT_VIEW'},
         beforeEnter: (to, from, next) => {
           const store = useStore()
           const clientId = Number(to.params.clientId)
@@ -77,18 +94,18 @@ const routes = [
       {
         path: 'tasks',
         component: () => import('pages/TasksPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']}
+        meta: {permission: 'TASK_VIEW'}
       },
       {
         path: 'incidents',
         component: () => import('pages/IncidentsPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']}
+        meta: {permission: 'INCIDENT_VIEW'}
       },
       {
         path: 'incidents/:incidentId',
         name: 'incident-detail',
         component: () => import('pages/IncidentDetailPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']},
+        meta: {permission: 'INCIDENT_VIEW'},
         props: route => ({ incidentId: Number(route.params.incidentId) }),
         beforeEnter: to => {
           const incidentId = Number(to.params.incidentId)
@@ -99,7 +116,7 @@ const routes = [
         path: 'orgs',
         alias: 'organizations',
         component: () => import('pages/OrganizationsPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR']}
+        meta: {permission: 'ORGANIZATION_STATS'}
       },
       {
         path: 'history',
@@ -108,12 +125,12 @@ const routes = [
       {
         path: 'search',
         component: () => import('pages/SearchPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR']}
+        meta: {permission: 'GLOBAL_SEARCH'}
       },
       {
         path: 'knowledge-base',
         component: () => import('pages/KnowledgeBasePage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR']}
+        meta: {permission: 'KB_VIEW'}
       },
       {
         path: 'settings',
@@ -122,122 +139,132 @@ const routes = [
           {
             path: 'profile',
             component: () => import('pages/settings/ProfileSettings.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER', 'CLIENT']}
+            meta: {}
           },
           {
             path: 'general',
             component: () => import('pages/settings/GeneralSettings.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'SETTINGS_MANAGE'}
           },
           {
             path: 'users',
             component: () => import('pages/settings/UsersPage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'USER_MANAGE'}
           },
           {
             path: 'clients',
             component: () => import('pages/settings/ClientsPage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'USER_MANAGE'}
           },
           {
             path: 'organizations',
             component: () => import('pages/settings/OrganizationsPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'ORGANIZATION_MANAGE'}
           },
           {
             path: 'visit-reasons',
             component: () => import('pages/settings/VisitReasonsPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'tags',
             component: () => import('pages/settings/TagsPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'priorities',
             component: () => import('pages/settings/PriorityPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'statuses',
             component: () => import('pages/settings/StatusesPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'templates',
             component: () => import('pages/settings/TemplatesPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'macros',
             component: () => import('pages/settings/SettingsPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'sla',
             component: () => import('pages/settings/SlaPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'SLA_MANAGE'}
           },
           {
             path: 'task-types',
             component: () => import('pages/settings/TaskTypePage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'support-lines',
             component: () => import('pages/settings/SupportLinesPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'REFERENCE_MANAGE'}
           },
           {
             path: 'services',
             component: () => import('pages/settings/ServicesPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'SERVICE_MANAGE'}
+          },
+          {
+            path: 'incident-templates',
+            component: () => import('pages/settings/IncidentUpdateTemplatesPage.vue'),
+            meta: {permission: 'INCIDENT_TEMPLATE_MANAGE'}
           },
           {
             path: 'telegram',
             component: () => import('pages/settings/TelegramPage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'CHANNEL_MANAGE'}
           },
           {
             path: 'whatsapp',
             component: () => import('pages/settings/WhatsappPage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'CHANNEL_MANAGE'}
           },
           {
             path: 'email',
             component: () => import('pages/settings/EmailPage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'CHANNEL_MANAGE'}
           },
           {
             path: 'license',
             component: () => import('pages/settings/LicensePage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'SETTINGS_MANAGE'}
           },
           {
             path: 'plugins',
             component: () => import('pages/settings/PluginsPage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'PLUGIN_MANAGE'}
           },
           {
             path: 'jwt',
             component: () => import('pages/settings/JwtSettingsPage.vue'),
-            meta: {roles: ['ADMIN']}
+            meta: {permission: 'JWT_MANAGE'}
+          },
+          {
+            path: 'security-audit',
+            component: () => import('pages/settings/SecurityAuditPage.vue'),
+            meta: {permission: 'SECURITY_AUDIT_VIEW'}
           },
           // {
           //   path: 'ai-agent',
           //   component: () => import('pages/settings/AiAgent.vue'),
-          //   meta: {roles: ['ADMIN']}
+          //   meta: {permission: 'SETTINGS_MANAGE'}
           // },
           {
             path: 'automatization',
             component: () => import('pages/settings/AutomatizationPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'AUTOMATION_MANAGE'}
           },
           {
             path: 'export',
             component: () => import('pages/settings/ExportPage.vue'),
-            meta: {roles: ['ADMIN', 'MANAGER']}
+            meta: {permission: 'TASK_EXPORT'}
           }
         ]
       },
@@ -248,7 +275,7 @@ const routes = [
       {
         path: 'analytics',
         component: () => import('pages/AnalyticsPage.vue'),
-        meta: {roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']}
+        meta: {permission: 'ANALYTICS_VIEW'}
       }
       // {
       //   path: 'phone',
