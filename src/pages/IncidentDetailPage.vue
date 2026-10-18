@@ -315,30 +315,51 @@
     </q-tab-panels>
 
     <q-dialog v-model="timelineDialog" persistent>
-      <q-card style="width: 680px; max-width: 95vw">
+      <q-card class="timeline-entry-dialog">
         <q-toolbar>
           <q-toolbar-title>Новая запись</q-toolbar-title>
           <q-btn flat round dense icon="close" v-close-popup/>
         </q-toolbar>
-        <q-card-section class="q-gutter-md">
+
+        <q-separator/>
+
+        <q-card-section>
           <div class="row q-col-gutter-md">
-            <div class="col-6">
+            <div class="col-12 col-sm-6">
               <q-select v-model="timelineForm.audience" outlined :options="audienceOptions" emit-value map-options
                         label="Аудитория"/>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-sm-6">
               <q-select v-model="timelineForm.type" outlined :options="timelineTypeOptions" emit-value map-options
                         label="Тип"/>
             </div>
+            <div class="col-12">
+              <q-select v-model="selectedTemplateKey" outlined clearable :options="templateOptions" emit-value
+                        map-options label="Шаблон обновления" @update:model-value="applyTemplate">
+                <template #no-option>
+                  <q-item>
+                    <q-item-section class="text-grey-7">Шаблоны не настроены</q-item-section>
+                  </q-item>
+                </template>
+              </q-select>
+            </div>
+            <div class="col-12">
+              <q-input v-model="timelineForm.text" outlined type="textarea" autogrow label="Текст *"
+                       :input-style="{minHeight: '120px'}"/>
+            </div>
+            <div class="col-12 col-sm-6">
+              <q-input v-model="timelineForm.nextUpdateAt" outlined stack-label type="datetime-local"
+                       label="Следующее обновление"/>
+            </div>
           </div>
-          <q-select v-model="selectedTemplateKey" outlined clearable :options="templateOptions" emit-value map-options
-                    label="Шаблон обновления" @update:model-value="applyTemplate"/>
-          <q-input v-model="timelineForm.text" outlined type="textarea" autogrow label="Текст *"/>
-          <q-input v-model="timelineForm.nextUpdateAt" outlined type="datetime-local" label="Следующее обновление"/>
         </q-card-section>
+
+        <q-separator/>
+
         <q-card-actions align="right">
-          <q-btn flat label="Отмена" v-close-popup/>
-          <q-btn color="primary" label="Опубликовать" :loading="timelineSaving" @click="addTimelineEntry"/>
+          <q-btn flat no-caps color="primary" label="Отмена" v-close-popup/>
+          <q-btn unelevated no-caps color="primary" label="Опубликовать" :loading="timelineSaving"
+                 @click="addTimelineEntry"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -351,15 +372,33 @@
 <script>
 import axios from 'axios'
 import {useStore} from 'stores/store'
+import {onIncidentUpdated} from 'src/util/ws'
 
 export default {
   name: 'IncidentDetailPage',
   data: () => ({
-    store: useStore(), incident: null, form: {}, tab: 'overview', saving: false,
-    users: [], organizations: [], supportLines: [], services: [], templates: [], suggestions: [],
-    timelineDialog: false, timelineSaving: false, selectedTemplateKey: null,
-    timelineForm: {}, taskIdsText: '', taskActionLoading: false, suggestionsLoading: false,
-    selectedTaskRows: [], selectedSuggestionIds: [], suggestionsLoaded: false, refreshTimer: null,
+    store: useStore(),
+    incident: null,
+    form: {},
+    tab: 'overview',
+    saving: false,
+    users: [],
+    organizations: [],
+    supportLines: [],
+    services: [],
+    templates: [],
+    suggestions: [],
+    timelineDialog: false,
+    timelineSaving: false,
+    selectedTemplateKey: null,
+    timelineForm: {},
+    taskIdsText: '',
+    taskActionLoading: false,
+    suggestionsLoading: false,
+    selectedTaskRows: [],
+    selectedSuggestionIds: [],
+    suggestionsLoaded: false,
+    refreshTimer: null,
     severityOptions: ['P1', 'P2', 'P3', 'P4'].map(value => ({value, label: value})),
     statusOptions: [['DRAFT', 'Черновик'], ['VERIFYING', 'Проверка'], ['DECLARED', 'Объявлен'], ['DIAGNOSIS', 'Диагностика'], ['MITIGATION', 'Устранение'], ['MONITORING', 'Наблюдение'], ['RESTORED', 'Восстановлен'], ['CLOSED', 'Закрыт'], ['CANCELLED', 'Отменён']].map(([value, label]) => ({
       value,
@@ -394,7 +433,7 @@ export default {
       return Number(this.$route.params.incidentId)
     },
     canEdit() {
-      return ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser?.authorities?.[0])
+      return this.$can('INCIDENT_EDIT')
     },
     userOptions() {
       return this.users.map(user => ({value: user.id, label: this.userName(user)}))
@@ -433,9 +472,13 @@ export default {
     this.refreshTimer = setInterval(() => {
       if (!document.hidden) this.loadIncident(false)
     }, 30000)
+    this.incidentUpdatedUnsubscribe = onIncidentUpdated(payload => {
+      if (Number(payload.incidentId) === Number(this.incidentId)) this.loadIncident(false)
+    })
   },
   beforeUnmount() {
     if (this.refreshTimer) clearInterval(this.refreshTimer)
+    if (this.incidentUpdatedUnsubscribe) this.incidentUpdatedUnsubscribe()
   },
   methods: {
     async loadDictionaries() {
@@ -504,14 +547,7 @@ export default {
         this.form = this.toForm(response.data)
         this.$q.notify({
           type: 'positive',
-          message: 'Инцидент сохранён',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Инцидент сохранён'
         })
       } catch (error) {
         this.notifyError(error)
@@ -528,6 +564,7 @@ export default {
         nextUpdateAt: this.toLocalInput(this.incident.nextUpdateAt)
       }
       this.timelineDialog = true
+      this.loadTemplates()
     },
     applyTemplate(key) {
       const template = this.templates.find(item => item.key === key)
@@ -685,14 +722,7 @@ export default {
     notifyError(error) {
       this.$q.notify({
         type: 'negative',
-        message: error.response?.data?.message || error.response?.data || error.message || 'Ошибка',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        message: error.response?.data?.message || error.response?.data || error.message || 'Ошибка'
       })
     }
   }
@@ -706,6 +736,11 @@ export default {
   gap: 16px;
   padding: 7px 0;
   border-bottom: 1px solid rgba(0, 0, 0, .06);
+}
+
+.timeline-entry-dialog {
+  width: 680px;
+  max-width: calc(100vw - 32px);
 }
 
 .incident-client-chip {
