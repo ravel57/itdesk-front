@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="q-pa-md services-page">
     <div class="settings-content-header">
       <div class="settings-content-heading">
         <div class="settings-content-title">Сервисы и мониторинг</div>
@@ -115,9 +115,20 @@
 
       <q-tab-panel name="zabbix" class="q-pa-none">
         <q-table class="settings-row-table" flat bordered row-key="id" :rows="zabbixIntegrations" :columns="zabbixColumns" :loading="loading">
+          <template #body-cell-mode="props">
+            <q-td :props="props">
+              <q-badge outline :color="props.row.mode === 'WEBHOOK' ? 'deep-purple-6' : 'blue-7'"
+                       :label="props.row.mode === 'WEBHOOK' ? 'Веб-хук' : 'Опрос API'"/>
+            </q-td>
+          </template>
           <template #body-cell-auth="props">
             <q-td :props="props">
-              {{ props.row.hasApiToken ? 'API token' : props.row.hasPassword ? 'Логин / пароль' : 'Не настроена' }}
+              <template v-if="props.row.mode === 'WEBHOOK'">
+                {{ props.row.hasWebhookToken ? 'Токен веб-хука' : 'Токен не выпущен' }}
+              </template>
+              <template v-else>
+                {{ props.row.hasApiToken ? 'API token' : props.row.hasPassword ? 'Логин / пароль' : 'Не настроена' }}
+              </template>
             </q-td>
           </template>
           <template #body-cell-lastTest="props">
@@ -129,8 +140,13 @@
           </template>
           <template #body-cell-actions="props">
             <q-td :props="props">
+              <q-btn v-if="props.row.mode === 'WEBHOOK'" flat round dense icon="receipt_long" @click="openZabbixLog(props.row)">
+                <q-tooltip>Журнал приёма</q-tooltip>
+              </q-btn>
               <q-btn flat round dense icon="network_check" :loading="testingZabbixId === props.row.id"
-                     @click="testZabbix(props.row)"/>
+                     @click="testZabbix(props.row)">
+                <q-tooltip>{{ props.row.mode === 'WEBHOOK' ? 'Проверить связь' : 'Проверить подключение' }}</q-tooltip>
+              </q-btn>
               <q-btn flat round dense icon="edit" @click="openZabbix(props.row)"/>
               <q-btn flat round dense icon="delete" color="negative" @click="removeZabbix(props.row)"/>
             </q-td>
@@ -139,214 +155,342 @@
       </q-tab-panel>
 
       <q-tab-panel name="criticalities" class="q-pa-none">
-        <q-table class="settings-row-table" flat bordered row-key="id" :rows="criticalities" :columns="criticalityColumns" :loading="loading">
-          <template #body-cell-defaultSelection="props">
-            <q-td :props="props">
-              <q-icon v-if="props.row.defaultSelection" name="star" color="amber"/>
-            </q-td>
-          </template>
-          <template #body-cell-actions="props">
-            <q-td :props="props">
-              <q-btn flat round dense icon="edit" @click="openCriticality(props.row)"/>
-              <q-btn flat round dense icon="delete" color="negative" @click="removeCriticality(props.row)"/>
-            </q-td>
-          </template>
-        </q-table>
+        <q-list bordered separator class="rounded-borders settings-row-list">
+          <q-item header class="text-bold">
+            Критичность
+          </q-item>
+
+          <q-item v-if="loading && !criticalities.length">
+            <q-item-section class="text-grey-7">
+              Загрузка...
+            </q-item-section>
+          </q-item>
+
+          <q-item v-else-if="!criticalities.length">
+            <q-item-section class="text-grey-7">
+              Критичности не добавлены
+            </q-item-section>
+          </q-item>
+
+          <draggable
+            v-else
+            :list="criticalities"
+            item-key="id"
+            class="list-group"
+            ghost-class="ghost"
+            handle=".settings-drag-handle"
+            @end="resortCriticalities"
+          >
+            <template #item="{ element }">
+              <q-item class="list-group-item">
+                <q-item-section side class="settings-drag-handle cursor-grab">
+                  <q-icon name="drag_indicator" color="grey-6"/>
+                </q-item-section>
+
+                <q-item-section>
+                  <q-item-label class="row items-center q-gutter-sm">
+                    <span class="text-weight-medium">{{ element.name }}</span>
+                    <q-badge v-if="element.defaultSelection" color="primary">По умолчанию</q-badge>
+                  </q-item-label>
+                  <q-item-label caption>
+                    Сервисов: {{ criticalityUsage(element) }}
+                  </q-item-label>
+                </q-item-section>
+
+                <q-item-section side>
+                  <div class="row no-wrap">
+                    <q-btn
+                      flat
+                      dense
+                      :text-color="element.defaultSelection ? 'primary' : 'grey'"
+                      icon="beenhere"
+                      @click.stop="setDefaultCriticality(element)"
+                    >
+                      <q-tooltip>
+                        {{ element.defaultSelection ? 'Используется по умолчанию' : 'Использовать по умолчанию' }}
+                      </q-tooltip>
+                    </q-btn>
+                    <q-btn flat dense color="primary" icon="edit" @click.stop="openCriticality(element)">
+                      <q-tooltip>Редактировать критичность</q-tooltip>
+                    </q-btn>
+                    <q-btn flat dense color="negative" icon="delete" @click.stop="removeCriticality(element)">
+                      <q-tooltip>Удалить критичность</q-tooltip>
+                    </q-btn>
+                  </div>
+                </q-item-section>
+              </q-item>
+            </template>
+          </draggable>
+        </q-list>
       </q-tab-panel>
     </q-tab-panels>
 
-    <q-dialog v-model="serviceDialog" persistent maximized transition-show="slide-up" transition-hide="slide-down">
-      <q-card>
-        <q-toolbar class="bg-primary text-white">
-          <q-toolbar-title>{{ serviceForm.id ? 'Редактирование сервиса' : 'Новый сервис' }}</q-toolbar-title>
-          <q-btn flat round dense icon="close" v-close-popup/>
+    <q-dialog v-model="serviceDialog" persistent>
+      <q-card class="service-dialog column no-wrap">
+        <q-toolbar class="service-dialog__toolbar">
+          <q-toolbar-title>{{ serviceForm.id ? 'Изменить сервис' : 'Новый сервис' }}</q-toolbar-title>
+          <q-btn flat round dense icon="close" @click="closeService"/>
         </q-toolbar>
-        <q-card-section class="q-pa-md service-form">
-          <q-form ref="serviceFormRef" class="q-gutter-md" @submit="saveService">
-            <div class="row q-col-gutter-md">
-              <q-input v-model="serviceForm.code" class="col-12 col-md-3" outlined label="Код *" :rules="[required]"/>
-              <q-input v-model="serviceForm.name" class="col-12 col-md-6" outlined label="Название *"
-                       :rules="[required]"/>
-              <q-toggle v-model="serviceForm.active" class="col-12 col-md-3" label="Активен"/>
-              <q-input v-model="serviceForm.description" class="col-12" type="textarea" outlined autogrow
-                       label="Описание"/>
-            </div>
 
-            <q-separator/>
-            <div class="text-subtitle1">Ответственные и маршрутизация</div>
-            <div class="row q-col-gutter-md">
-              <q-select v-model="serviceForm.criticalityId" class="col-12 col-md-3" outlined clearable emit-value
-                        map-options :options="criticalityOptions" label="Критичность"/>
-              <q-select v-model="serviceForm.ownerId" class="col-12 col-md-3" outlined clearable emit-value map-options
-                        use-input input-debounce="0" :options="userOptions" label="Владелец"/>
-              <q-select v-model="serviceForm.defaultSupportLineId" class="col-12 col-md-3" outlined clearable emit-value
-                        map-options :options="supportLineOptions" label="Линия по умолчанию"/>
-              <q-select v-model="serviceForm.defaultPriorityId" class="col-12 col-md-3" outlined clearable emit-value
-                        map-options :options="priorityOptions" label="Приоритет по умолчанию"/>
-              <q-select v-model="serviceForm.taskTypeIds" class="col-12 col-md-6" outlined multiple use-chips emit-value
-                        map-options :options="taskTypeOptions" label="Разрешённые типы заявок"/>
-              <q-select v-model="serviceForm.executorIds" class="col-12 col-md-6" outlined multiple use-chips emit-value
-                        map-options :options="userOptions" label="Команда сервиса"/>
-              <q-select v-model="serviceForm.dependencyIds" class="col-12" outlined multiple use-chips emit-value
-                        map-options :options="dependencyOptions" label="Зависимые сервисы"/>
+        <q-tabs
+          v-model="serviceTab"
+          dense
+          align="left"
+          active-color="primary"
+          indicator-color="primary"
+          class="service-dialog__tabs"
+        >
+          <q-tab name="general" label="Основное" no-caps/>
+          <q-tab name="routing" label="Маршрутизация" no-caps/>
+          <q-tab name="sla" label="SLA" no-caps/>
+          <q-tab name="priority" label="Приоритеты" no-caps/>
+          <q-tab name="ola" label="OLA" no-caps/>
+          <q-tab name="monitoring" label="Мониторинг" no-caps/>
+        </q-tabs>
+
+        <q-separator/>
+
+        <q-tab-panels v-model="serviceTab" animated class="service-dialog__panels col">
+          <q-tab-panel name="general" class="service-dialog__panel">
+            <div class="service-dialog__content">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-sm-4">
+                  <q-input v-model="serviceForm.code" outlined label="Код *" autofocus/>
+                </div>
+                <div class="col-12 col-sm-8">
+                  <q-input v-model="serviceForm.name" outlined label="Название *"/>
+                </div>
+              </div>
+              <q-input v-model="serviceForm.description" outlined type="textarea" autogrow label="Описание"/>
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-sm-6">
+                  <q-select v-model="serviceForm.criticalityId" outlined clearable emit-value map-options
+                            :options="criticalityOptions" label="Критичность"/>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-select v-model="serviceForm.ownerId" outlined clearable emit-value map-options
+                            :options="userOptions" label="Владелец"/>
+                </div>
+              </div>
+              <q-toggle v-model="serviceForm.active" label="Активен"/>
+            </div>
+          </q-tab-panel>
+
+          <q-tab-panel name="routing" class="service-dialog__panel">
+            <div class="service-dialog__content">
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-sm-6">
+                  <q-select v-model="serviceForm.defaultSupportLineId" outlined clearable emit-value map-options
+                            :options="supportLineOptions" label="Линия по умолчанию"/>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-select v-model="serviceForm.defaultPriorityId" outlined clearable emit-value map-options
+                            :options="priorityOptions" label="Приоритет по умолчанию"/>
+                </div>
+              </div>
+              <q-select v-model="serviceForm.taskTypeIds" outlined multiple use-chips emit-value map-options
+                        :options="taskTypeOptions" label="Разрешённые типы заявок"/>
+              <q-select v-model="serviceForm.executorIds" outlined multiple use-chips emit-value map-options
+                        :options="userOptions" label="Команда сервиса"/>
+              <q-select v-model="serviceForm.dependencyIds" outlined multiple use-chips emit-value map-options
+                        :options="dependencyOptions" label="Зависимые сервисы"/>
               <q-toggle v-model="serviceForm.autoAssignDefaultLine" label="Автоматически назначать линию по умолчанию"/>
             </div>
+          </q-tab-panel>
 
-            <q-separator/>
-            <div class="text-subtitle1">SLA</div>
-            <div class="row q-col-gutter-md">
-              <q-input v-model.number="serviceForm.firstResponseSlaMinutes" class="col-12 col-md-3" outlined
-                       type="number" min="0" label="Первый ответ, минут"/>
-              <q-input v-model.number="serviceForm.resolutionSlaMinutes" class="col-12 col-md-3" outlined type="number"
-                       min="0" label="Решение, минут"/>
-              <q-input v-model="serviceForm.supportCalendar" class="col-12 col-md-3" outlined
-                       label="Календарь поддержки" hint="GENERAL_SETTINGS — общий календарь"/>
-              <q-toggle v-model="serviceForm.pauseSlaOnWaitingClient" class="col-12 col-md-3"
-                        label="Пауза при ожидании клиента"/>
+          <q-tab-panel name="sla" class="service-dialog__panel">
+            <div class="service-dialog__content">
+              <div>
+                <div class="text-subtitle1">Нормативы сервиса</div>
+                <div class="text-caption text-grey-7">Пустое значение — используются общие правила SLA.</div>
+              </div>
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-sm-6">
+                  <q-input v-model.number="serviceForm.firstResponseSlaMinutes" outlined type="number" min="0"
+                           label="Первый ответ, минут"/>
+                </div>
+                <div class="col-12 col-sm-6">
+                  <q-input v-model.number="serviceForm.resolutionSlaMinutes" outlined type="number" min="0"
+                           label="Решение, минут"/>
+                </div>
+              </div>
+              <q-input v-model="serviceForm.supportCalendar" outlined label="Календарь поддержки"
+                       hint="GENERAL_SETTINGS — общий календарь"/>
+              <q-toggle v-model="serviceForm.pauseSlaOnWaitingClient" label="Пауза при ожидании клиента"/>
             </div>
+          </q-tab-panel>
 
-            <div class="row items-center q-mt-md">
-              <div class="text-subtitle1">Правила приоритета</div>
-              <q-space/>
-              <q-btn flat color="primary" icon="add" label="Правило" @click="addPriorityRule"/>
+          <q-tab-panel name="priority" class="service-dialog__panel">
+            <div class="service-dialog__content">
+              <div class="service-dialog__section-header">
+                <div>
+                  <div class="text-subtitle1">Правила приоритета</div>
+                  <div class="text-caption text-grey-7">
+                    Первое подходящее правило по порядку задаёт приоритет новой заявки.
+                  </div>
+                </div>
+                <q-btn flat no-caps color="primary" icon="add" label="Добавить правило" @click="addPriorityRule"/>
+              </div>
+              <div v-if="!serviceForm.priorityRules.length" class="service-dialog__empty">
+                Правила не добавлены
+              </div>
+              <q-markup-table v-else flat bordered class="service-dialog__table">
+                <thead>
+                <tr>
+                  <th class="text-left">Порядок</th>
+                  <th class="text-left">Тип заявки</th>
+                  <th class="text-left">Ключевое слово / regex</th>
+                  <th class="text-left">Приоритет</th>
+                  <th class="text-center">Активно</th>
+                  <th/>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(rule, index) in serviceForm.priorityRules" :key="index">
+                  <td class="service-dialog__order">
+                    <q-input v-model.number="rule.orderNumber" dense borderless type="number"/>
+                  </td>
+                  <td>
+                    <q-select v-model="rule.taskTypeId" dense borderless clearable emit-value map-options
+                              :options="taskTypeOptions" placeholder="Любой"/>
+                  </td>
+                  <td>
+                    <q-input v-model="rule.keyword" dense borderless placeholder="ошибка или regex:ошибк(а|и)"/>
+                  </td>
+                  <td>
+                    <q-select v-model="rule.priorityId" dense borderless emit-value map-options
+                              :options="priorityOptions"/>
+                  </td>
+                  <td class="text-center">
+                    <q-toggle v-model="rule.active" dense/>
+                  </td>
+                  <td class="text-right">
+                    <q-btn flat round dense icon="delete" color="negative"
+                           @click="serviceForm.priorityRules.splice(index, 1)"/>
+                  </td>
+                </tr>
+                </tbody>
+              </q-markup-table>
             </div>
-            <q-markup-table v-if="serviceForm.priorityRules.length" flat bordered>
-              <thead>
-              <tr>
-                <th>Порядок</th>
-                <th>Тип заявки</th>
-                <th>Ключевое слово / regex</th>
-                <th>Приоритет</th>
-                <th>Активно</th>
-                <th/>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="(rule, index) in serviceForm.priorityRules" :key="index">
-                <td>
-                  <q-input v-model.number="rule.orderNumber" dense borderless type="number"/>
-                </td>
-                <td>
-                  <q-select v-model="rule.taskTypeId" dense borderless clearable emit-value map-options
-                            :options="taskTypeOptions"/>
-                </td>
-                <td>
-                  <q-input v-model="rule.keyword" dense borderless placeholder="ошибка или regex:ошибк(а|и)"/>
-                </td>
-                <td>
-                  <q-select v-model="rule.priorityId" dense borderless emit-value map-options
-                            :options="priorityOptions"/>
-                </td>
-                <td>
-                  <q-toggle v-model="rule.active" dense/>
-                </td>
-                <td>
-                  <q-btn flat round dense icon="delete" color="negative"
-                         @click="serviceForm.priorityRules.splice(index, 1)"/>
-                </td>
-              </tr>
-              </tbody>
-            </q-markup-table>
+          </q-tab-panel>
 
-            <div class="row items-center q-mt-md">
-              <div class="text-subtitle1">OLA по линиям</div>
-              <q-space/>
-              <q-btn flat color="primary" icon="add" label="Этап OLA" @click="addOlaStage"/>
+          <q-tab-panel name="ola" class="service-dialog__panel">
+            <div class="service-dialog__content">
+              <div class="service-dialog__section-header">
+                <div>
+                  <div class="text-subtitle1">OLA по линиям</div>
+                  <div class="text-caption text-grey-7">
+                    Сколько времени заявка может находиться на каждой линии поддержки.
+                  </div>
+                </div>
+                <q-btn flat no-caps color="primary" icon="add" label="Добавить этап" @click="addOlaStage"/>
+              </div>
+              <div v-if="!serviceForm.olaStages.length" class="service-dialog__empty">
+                Этапы OLA не добавлены
+              </div>
+              <q-markup-table v-else flat bordered class="service-dialog__table">
+                <thead>
+                <tr>
+                  <th class="text-left">Порядок</th>
+                  <th class="text-left">Линия</th>
+                  <th class="text-left">Длительность, сек.</th>
+                  <th class="text-center">Рабочее время</th>
+                  <th class="text-left">Предупреждение, %</th>
+                  <th class="text-center">Активно</th>
+                  <th/>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="(stage, index) in serviceForm.olaStages" :key="index">
+                  <td class="service-dialog__order">
+                    <q-input v-model.number="stage.orderNumber" dense borderless type="number"/>
+                  </td>
+                  <td>
+                    <q-select v-model="stage.supportLineId" dense borderless emit-value map-options
+                              :options="supportLineOptions"/>
+                  </td>
+                  <td>
+                    <q-input v-model.number="stage.durationSeconds" dense borderless type="number" min="1"/>
+                  </td>
+                  <td class="text-center">
+                    <q-toggle v-model="stage.useWorkingTime" dense/>
+                  </td>
+                  <td>
+                    <q-input v-model.number="stage.warningPercent" dense borderless type="number" min="1" max="100"/>
+                  </td>
+                  <td class="text-center">
+                    <q-toggle v-model="stage.active" dense/>
+                  </td>
+                  <td class="text-right">
+                    <q-btn flat round dense icon="delete" color="negative"
+                           @click="serviceForm.olaStages.splice(index, 1)"/>
+                  </td>
+                </tr>
+                </tbody>
+              </q-markup-table>
             </div>
-            <q-markup-table v-if="serviceForm.olaStages.length" flat bordered>
-              <thead>
-              <tr>
-                <th>Порядок</th>
-                <th>Линия</th>
-                <th>Длительность, сек.</th>
-                <th>Рабочее время</th>
-                <th>Предупреждение, %</th>
-                <th>Активно</th>
-                <th/>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="(stage, index) in serviceForm.olaStages" :key="index">
-                <td>
-                  <q-input v-model.number="stage.orderNumber" dense borderless type="number"/>
-                </td>
-                <td>
-                  <q-select v-model="stage.supportLineId" dense borderless emit-value map-options
-                            :options="supportLineOptions"/>
-                </td>
-                <td>
-                  <q-input v-model.number="stage.durationSeconds" dense borderless type="number" min="1"/>
-                </td>
-                <td>
-                  <q-toggle v-model="stage.useWorkingTime" dense/>
-                </td>
-                <td>
-                  <q-input v-model.number="stage.warningPercent" dense borderless type="number" min="1" max="100"/>
-                </td>
-                <td>
-                  <q-toggle v-model="stage.active" dense/>
-                </td>
-                <td>
-                  <q-btn flat round dense icon="delete" color="negative"
-                         @click="serviceForm.olaStages.splice(index, 1)"/>
-                </td>
-              </tr>
-              </tbody>
-            </q-markup-table>
+          </q-tab-panel>
 
-            <q-separator/>
-            <div class="text-subtitle1">Zabbix</div>
-            <div class="row q-col-gutter-md">
-              <q-toggle v-model="serviceForm.zabbixEnabled" class="col-12 col-md-2" label="Мониторинг включён"/>
-              <q-select v-model="serviceForm.zabbixIntegrationId" class="col-12 col-md-4" outlined clearable emit-value
-                        map-options :options="zabbixOptions" label="Интеграция Zabbix"/>
-              <q-input v-model="serviceForm.monitoringUrl" class="col-12 col-md-6" outlined
-                       label="Ссылка на мониторинг / дашборд"/>
-              <q-input v-model="serviceForm.monitoringIdentifiers.hostIds" class="col-12 col-md-3" outlined
-                       label="Host ID" hint="Через запятую"/>
-              <q-input v-model="serviceForm.monitoringIdentifiers.hostNames" class="col-12 col-md-3" outlined
-                       label="Host names" hint="Через запятую"/>
-              <q-input v-model="serviceForm.monitoringIdentifiers.hostGroupIds" class="col-12 col-md-3" outlined
-                       label="Host group ID" hint="Через запятую"/>
+          <q-tab-panel name="monitoring" class="service-dialog__panel">
+            <div class="service-dialog__content">
+              <div class="service-dialog__section-header">
+                <div>
+                  <div class="text-subtitle1">Мониторинг Zabbix</div>
+                  <div class="text-caption text-grey-7">
+                    Хосты и группы, по которым определяется состояние сервиса. Значения — через запятую.
+                    Для интеграции через веб-хук проще всего поставить в Zabbix тег
+                    <code>uldesk_service={{ serviceForm.code || 'код сервиса' }}</code> на триггер или узел.
+                  </div>
+                </div>
+                <q-toggle v-model="serviceForm.zabbixEnabled" label="Мониторинг включён"/>
+              </div>
+              <q-select v-model="serviceForm.zabbixIntegrationId" outlined clearable emit-value map-options
+                        :options="zabbixOptions" label="Интеграция Zabbix" :disable="!serviceForm.zabbixEnabled"/>
+              <div class="row q-col-gutter-md">
+                <div class="col-12 col-sm-4">
+                  <q-input v-model="serviceForm.monitoringIdentifiers.hostIds" outlined label="Host ID"
+                           :disable="!serviceForm.zabbixEnabled"/>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <q-input v-model="serviceForm.monitoringIdentifiers.hostNames" outlined label="Host names"
+                           :disable="!serviceForm.zabbixEnabled"/>
+                </div>
+                <div class="col-12 col-sm-4">
+                  <q-input v-model="serviceForm.monitoringIdentifiers.hostGroupIds" outlined label="Host group ID"
+                           :disable="!serviceForm.zabbixEnabled" hint="Для опроса API"/>
+                </div>
+                <div class="col-12">
+                  <q-input v-model="serviceForm.monitoringIdentifiers.hostGroupNames" outlined label="Группы узлов (названия)"
+                           :disable="!serviceForm.zabbixEnabled"
+                           hint="Для веб-хука: Zabbix передаёт названия групп, а не ID"/>
+                </div>
+              </div>
+              <q-input v-model="serviceForm.monitoringUrl" outlined label="Ссылка на мониторинг / дашборд"/>
             </div>
+          </q-tab-panel>
+        </q-tab-panels>
 
-            <div class="row justify-end q-gutter-sm q-pt-md">
-              <q-btn flat label="Отмена" v-close-popup/>
-              <q-btn color="primary" type="submit" label="Сохранить" :loading="saving"/>
-            </div>
-          </q-form>
-        </q-card-section>
-      </q-card>
-    </q-dialog>
+        <q-separator/>
 
-    <q-dialog v-model="zabbixDialog" persistent>
-      <q-card style="min-width: min(720px, 95vw)">
-        <q-card-section>
-          <div class="text-h6">{{ zabbixForm.id ? 'Интеграция Zabbix' : 'Новая интеграция Zabbix' }}</div>
-        </q-card-section>
-        <q-card-section class="q-gutter-md">
-          <q-input v-model="zabbixForm.name" outlined label="Название *" :rules="[required]"/>
-          <q-input v-model="zabbixForm.baseUrl" outlined label="URL Zabbix *" hint="Например https://zabbix.example.com"
-                   :rules="[required]"/>
-          <div class="row q-col-gutter-md">
-            <q-input v-model="zabbixForm.username" class="col-6" outlined label="Логин"/>
-            <q-input v-model="zabbixForm.password" class="col-6" outlined type="password" label="Пароль"
-                     hint="Пусто — оставить прежний"/>
-          </div>
-          <q-input v-model="zabbixForm.apiToken" outlined type="password" label="API token"
-                   hint="При наличии token логин и пароль не используются"/>
-          <div class="row q-col-gutter-md">
-            <q-input v-model.number="zabbixForm.requestTimeoutSeconds" class="col-6" outlined type="number" min="2"
-                     max="120" label="Таймаут, сек."/>
-            <q-toggle v-model="zabbixForm.active" class="col-6" label="Активна"/>
-          </div>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Отмена" v-close-popup/>
-          <q-btn color="primary" label="Сохранить" :loading="saving" @click="saveZabbix"/>
+        <q-card-actions align="right" class="service-dialog__actions">
+          <q-btn
+            v-if="serviceForm.id"
+            unelevated
+            no-caps
+            color="negative"
+            icon="delete"
+            label="Удалить"
+            @click="removeService(serviceForm)"
+          />
+          <q-space/>
+          <q-btn flat label="Отмена" @click="closeService"/>
+          <q-btn color="primary" label="Сохранить" :loading="saving" @click="saveService"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <zabbix-integration-dialog v-model="zabbixDialog" :integration="zabbixEditing" @saved="loadAll"/>
+    <zabbix-webhook-log-dialog v-model="zabbixLogDialog" :integration="zabbixEditing"/>
 
     <q-dialog v-model="assignmentDialog" persistent>
       <q-card style="min-width: min(900px, 96vw)">
@@ -388,18 +532,28 @@
     </q-dialog>
 
     <q-dialog v-model="criticalityDialog">
-      <q-card style="min-width: 420px">
+      <q-card class="criticality-dialog">
+        <q-toolbar>
+          <q-toolbar-title>
+            {{ criticalityForm.id ? 'Редактирование критичности' : 'Новая критичность' }}
+          </q-toolbar-title>
+          <q-btn flat round dense icon="close" v-close-popup/>
+        </q-toolbar>
+
+        <q-separator/>
+
         <q-card-section>
-          <div class="text-h6">Критичность сервиса</div>
+          <q-input v-model="criticalityForm.name" outlined autofocus label="Название *"
+                   @keyup.enter="saveCriticality"/>
+          <q-toggle v-model="criticalityForm.defaultSelection" class="q-mt-md"
+                    label="Использовать критичность по умолчанию"/>
         </q-card-section>
-        <q-card-section class="q-gutter-md">
-          <q-input v-model="criticalityForm.name" outlined label="Название *"/>
-          <q-input v-model.number="criticalityForm.orderNumber" outlined type="number" label="Порядок"/>
-          <q-toggle v-model="criticalityForm.defaultSelection" label="По умолчанию"/>
-        </q-card-section>
+
+        <q-separator/>
+
         <q-card-actions align="right">
-          <q-btn flat label="Отмена" v-close-popup/>
-          <q-btn color="primary" label="Сохранить" :loading="saving" @click="saveCriticality"/>
+          <q-btn flat no-caps color="primary" label="Отмена" v-close-popup/>
+          <q-btn unelevated no-caps color="primary" label="Сохранить" :loading="saving" @click="saveCriticality"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -409,6 +563,9 @@
 <script>
 import axios from 'axios'
 import {useStore} from 'stores/store'
+import draggable from 'vuedraggable'
+import ZabbixIntegrationDialog from 'components/monitoring/ZabbixIntegrationDialog.vue'
+import ZabbixWebhookLogDialog from 'components/monitoring/ZabbixWebhookLogDialog.vue'
 
 const emptyService = () => ({
   id: null,
@@ -434,18 +591,7 @@ const emptyService = () => ({
   olaStages: [],
   zabbixIntegrationId: null,
   zabbixEnabled: false,
-  monitoringIdentifiers: {hostIds: '', hostNames: '', hostGroupIds: ''}
-})
-
-const emptyZabbix = () => ({
-  id: null,
-  name: '',
-  baseUrl: '',
-  username: '',
-  password: '',
-  apiToken: '',
-  active: true,
-  requestTimeoutSeconds: 15
+  monitoringIdentifiers: {hostIds: '', hostNames: '', hostGroupIds: '', hostGroupNames: ''}
 })
 
 const emptyAssignment = () => ({
@@ -466,10 +612,12 @@ const emptyAssignment = () => ({
   notes: ''
 })
 
-const emptyCriticality = () => ({id: null, name: '', orderNumber: 0, defaultSelection: false})
+const emptyCriticality = () => ({id: null, name: '', orderNumber: null, defaultSelection: false})
 
 export default {
   name: 'ServicesPage',
+
+  components: {draggable, ZabbixIntegrationDialog, ZabbixWebhookLogDialog},
 
   setup() {
     return {store: useStore()}
@@ -489,11 +637,13 @@ export default {
       zabbixIntegrations: [],
       criticalities: [],
       serviceDialog: false,
+      serviceTab: 'general',
       zabbixDialog: false,
       assignmentDialog: false,
       criticalityDialog: false,
       serviceForm: emptyService(),
-      zabbixForm: emptyZabbix(),
+      zabbixEditing: null,
+      zabbixLogDialog: false,
       assignmentForm: emptyAssignment(),
       criticalityForm: emptyCriticality(),
       serviceColumns: [
@@ -538,15 +688,15 @@ export default {
       ],
       zabbixColumns: [
         {name: 'name', label: 'Название', field: 'name', align: 'left', sortable: true},
-        {name: 'url', label: 'URL', field: 'baseUrl', align: 'left'},
+        {name: 'mode', label: 'Режим', field: 'mode', align: 'left'},
+        {
+          name: 'url',
+          label: 'Адрес',
+          field: row => (row.mode === 'WEBHOOK' ? row.eventsUrl || 'адрес появится после выпуска токена' : row.baseUrl),
+          align: 'left'
+        },
         {name: 'auth', label: 'Авторизация', field: 'hasApiToken', align: 'left'},
         {name: 'lastTest', label: 'Последняя проверка', field: 'lastTestMessage', align: 'left'},
-        {name: 'actions', label: '', field: 'id', align: 'right'}
-      ],
-      criticalityColumns: [
-        {name: 'name', label: 'Название', field: 'name', align: 'left', sortable: true},
-        {name: 'orderNumber', label: 'Порядок', field: 'orderNumber', align: 'center', sortable: true},
-        {name: 'defaultSelection', label: 'По умолчанию', field: 'defaultSelection', align: 'center'},
         {name: 'actions', label: '', field: 'id', align: 'right'}
       ],
       channelOptions: ['EMAIL', 'TELEGRAM', 'WHATSAPP', 'PORTAL', 'PHONE'].map(value => ({label: value, value}))
@@ -597,6 +747,10 @@ export default {
   },
 
   mounted() {
+    // ?tab=zabbix — переход из уведомления о связи с Zabbix
+    if (['services', 'assignments', 'zabbix', 'criticalities'].includes(this.$route.query.tab)) {
+      this.tab = this.$route.query.tab
+    }
     this.store.fetchData();
     this.loadAll()
   },
@@ -668,10 +822,20 @@ export default {
           olaStages: JSON.parse(JSON.stringify(row.olaStages || [])),
           zabbixIntegrationId: row.zabbixIntegration?.id || null,
           zabbixEnabled: Boolean(row.zabbixEnabled),
-          monitoringIdentifiers: {hostIds: '', hostNames: '', hostGroupIds: '', ...(row.monitoringIdentifiers || {})}
+          monitoringIdentifiers: {hostIds: '', hostNames: '', hostGroupIds: '', hostGroupNames: '', ...(row.monitoringIdentifiers || {})}
         }
       }
+      this.serviceTab = 'general'
       this.serviceDialog = true
+    },
+
+    closeService() {
+      this.serviceDialog = false
+      if (this.$route.query.serviceId) {
+        const query = {...this.$route.query}
+        delete query.serviceId
+        this.$router.replace({query})
+      }
     },
 
     addPriorityRule() {
@@ -696,14 +860,18 @@ export default {
     },
 
     async saveService() {
-      if (!await this.$refs.serviceFormRef.validate()) return
+      if (!this.serviceForm.code?.trim() || !this.serviceForm.name?.trim()) {
+        this.serviceTab = 'general'
+        this.notifyError(new Error('Код и название сервиса обязательны'))
+        return
+      }
       this.saving = true
       try {
         const id = this.serviceForm.id;
         const payload = {...this.serviceForm};
         delete payload.id
         if (id) await axios.patch(`/api/v1/service/${id}`, payload); else await axios.post('/api/v1/service', payload)
-        this.serviceDialog = false;
+        this.closeService();
         await this.loadAll();
         this.notifyOk('Сервис сохранён')
       } catch (error) {
@@ -721,6 +889,7 @@ export default {
       }).onOk(async () => {
         try {
           await axios.delete(`/api/v1/service/${row.id}`);
+          if (this.serviceDialog && this.serviceForm.id === row.id) this.closeService()
           await this.loadAll()
         } catch (e) {
           this.notifyError(e)
@@ -735,14 +904,7 @@ export default {
         await this.loadAll();
         this.$q.notify({
           type: data.status === 'OK' ? 'positive' : 'warning',
-          message: data.message || 'Проверка завершена',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: data.message || 'Проверка завершена'
         })
       } catch (e) {
         this.notifyError(e)
@@ -752,25 +914,13 @@ export default {
     },
 
     openZabbix(row = null) {
-      this.zabbixForm = row ? {...emptyZabbix(), ...row, password: '', apiToken: ''} : emptyZabbix();
+      this.zabbixEditing = row
       this.zabbixDialog = true
     },
 
-    async saveZabbix() {
-      this.saving = true;
-      try {
-        const id = this.zabbixForm.id;
-        const payload = {...this.zabbixForm};
-        delete payload.id;
-        if (id) await axios.patch(`/api/v1/zabbix-integration/${id}`, payload); else await axios.post('/api/v1/zabbix-integration', payload);
-        this.zabbixDialog = false;
-        await this.loadAll();
-        this.notifyOk('Интеграция сохранена')
-      } catch (e) {
-        this.notifyError(e)
-      } finally {
-        this.saving = false
-      }
+    openZabbixLog(row) {
+      this.zabbixEditing = row
+      this.zabbixLogDialog = true
     },
 
     async testZabbix(row) {
@@ -780,14 +930,8 @@ export default {
         await this.loadAll();
         this.$q.notify({
           type: data.success ? 'positive' : 'negative',
-          message: data.message,
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]})
+          message: data.message
+        })
       } catch (e) {
         this.notifyError(e)
       } finally {
@@ -866,8 +1010,37 @@ export default {
       }
     },
 
+    async resortCriticalities() {
+      try {
+        const {data} = await axios.patch('/api/v1/service-criticalities/resort', this.criticalities.map(item => item.id))
+        if (Array.isArray(data)) this.criticalities = data
+      } catch (e) {
+        this.notifyError(e)
+        await this.loadAll()
+      }
+    },
+
+    async setDefaultCriticality(row) {
+      if (row.defaultSelection) return
+      try {
+        await axios.patch('/api/v1/service-criticality', {...row, defaultSelection: true})
+        await this.loadAll()
+      } catch (e) {
+        this.notifyError(e)
+      }
+    },
+
+    criticalityUsage(row) {
+      return this.services.filter(service => service.criticality?.id === row.id).length
+    },
+
     removeCriticality(row) {
-      this.$q.dialog({title: 'Удалить критичность?', cancel: true}).onOk(async () => {
+      this.$q.dialog({
+        title: 'Удалить критичность?',
+        message: `Критичность «${row.name}» будет снята со всех сервисов.`,
+        cancel: {flat: true, noCaps: true, label: 'Отмена'},
+        ok: {unelevated: true, noCaps: true, color: 'negative', label: 'Удалить'}
+      }).onOk(async () => {
         try {
           await axios.delete(`/api/v1/service-criticality/${row.id}`);
           await this.loadAll()
@@ -909,8 +1082,100 @@ export default {
 </script>
 
 <style scoped>
-.service-form {
-  max-width: 1500px;
-  margin: 0 auto;
+.services-page {
+  width: 100%;
+}
+
+.service-dialog {
+  width: 860px;
+  max-width: 96vw;
+  height: 600px;
+  max-height: 92vh;
+  overflow: hidden;
+}
+
+.service-dialog__toolbar {
+  min-height: 52px;
+  padding: 0 16px;
+}
+
+.service-dialog__tabs {
+  flex: 0 0 auto;
+  padding: 0 4px;
+}
+
+.service-dialog__panels {
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.service-dialog__panel {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.service-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+}
+
+.service-dialog__section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.service-dialog__empty {
+  padding: 14px;
+  border: 1px dashed #c9c9c9;
+  border-radius: 8px;
+  color: #777;
+  background: #fafafa;
+}
+
+.service-dialog__table {
+  border-radius: 8px;
+}
+
+.service-dialog__table thead th {
+  color: #737b89;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.service-dialog__order {
+  width: 90px;
+}
+
+.service-dialog__actions {
+  flex: 0 0 auto;
+  min-height: 58px;
+  padding: 10px 8px 10px 16px;
+}
+
+.criticality-dialog {
+  width: 480px;
+  max-width: calc(100vw - 32px);
+}
+
+@media (max-width: 700px) {
+  .service-dialog {
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .service-dialog__content {
+    padding: 16px;
+  }
 }
 </style>
