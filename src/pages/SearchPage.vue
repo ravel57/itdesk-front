@@ -210,11 +210,7 @@ export default {
           this.results = []
           this.$q.notify({
             type: 'negative',
-            message: 'Ошибка глобального поиска',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            message: 'Ошибка глобального поиска'
           })
         })
         .finally(() => {

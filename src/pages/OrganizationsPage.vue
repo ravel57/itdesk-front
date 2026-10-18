@@ -2288,9 +2288,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.response?.data?.message || e.response?.data || e.message || 'Не удалось загрузить историю выездов',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+            type: 'negative'
           })
         })
         .finally(() => {
@@ -2323,9 +2321,7 @@ export default {
       this.refreshOrganizationTasksData()
       this.$q.notify({
         message: 'Выезд добавлен',
-        type: 'positive',
-        position: 'top-right',
-        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        type: 'positive'
       })
     },
 
@@ -2366,17 +2362,13 @@ export default {
           this.addVisitDialog = false
           this.$q.notify({
             message: 'Выезд добавлен',
-            type: 'positive',
-            position: 'top-right',
-            actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+            type: 'positive'
           })
         })
         .catch(e => {
           this.$q.notify({
             message: e.response?.data?.message || e.response?.data || e.message || 'Не удалось добавить выезд',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+            type: 'negative'
           })
         })
         .finally(() => {
@@ -2448,11 +2440,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message || 'Не удалось загрузить статистику организаций',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
     },
@@ -2504,14 +2492,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.message || 'Не удалось загрузить заявки организаций',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         if (requestSeq === this.organizationTasksLoadSeq) {

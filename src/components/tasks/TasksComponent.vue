@@ -151,7 +151,23 @@
         class="tasks-onboarding-tooltip"
         :style="this.tasksOnboardingTooltipStyle"
       >
-        <q-card-section class="q-pb-xs">
+        <q-btn
+          flat
+          round
+          dense
+          size="sm"
+          icon="close"
+          color="grey-7"
+          class="onboarding-close-btn"
+          aria-label="Закрыть обучение"
+          @click="finishTasksOnboarding"
+        >
+          <q-tooltip>Закрыть обучение</q-tooltip>
+        </q-btn>
+        <q-card-section class="q-pb-xs" style="padding-right: 40px">
+          <div class="tasks-onboarding-progress">
+            {{ this.tasksOnboardingStepIndex + 1 }} / {{ this.activeTasksOnboardingSteps.length }}
+          </div>
           <div class="text-subtitle1 text-weight-bold">
             {{ this.currentTasksOnboardingStep.title }}
           </div>
@@ -159,14 +175,7 @@
             {{ this.currentTasksOnboardingStep.text }}
           </div>
         </q-card-section>
-        <q-card-actions align="between" class="q-pt-none">
-          <q-btn
-            flat
-            dense
-            color="grey"
-            label="Пропустить"
-            @click="finishTasksOnboarding"
-          />
+        <q-card-actions align="right" class="q-pt-none">
           <div>
             <q-btn
               flat
@@ -185,9 +194,6 @@
             />
           </div>
         </q-card-actions>
-        <div class="tasks-onboarding-progress">
-          {{ this.tasksOnboardingStepIndex + 1 }} / {{ this.tasksOnboardingSteps.length }}
-        </div>
       </q-card>
     </div>
   </teleport>
@@ -237,6 +243,8 @@ export default {
     tasksOnboardingStepIndex: 0,
     tasksOnboardingTooltipStyle: {},
     tasksOnboardingSpotlightStyle: {},
+    // Шаги, для которых при запуске нашёлся элемент на экране (поле могли убрать из карточки)
+    tasksOnboardingVisibleSteps: [],
     tasksOnboardingRefreshHandler: null,
     tasksOnboardingDemoTask: {
       id: 900001,
@@ -622,8 +630,15 @@ export default {
     startTasksOnboarding () {
       this.tasksOnboardingActive = true
       this.tasksOnboardingStepIndex = 0
+      this.tasksOnboardingVisibleSteps = []
       this.$nextTick(() => {
-        setTimeout(() => this.updateTasksOnboardingPosition(), 80)
+        setTimeout(() => {
+          // демо-карточки уже отрисованы: оставляем только шаги, у которых есть элемент
+          this.tasksOnboardingVisibleSteps = this.tasksOnboardingSteps.filter(step => {
+            return Boolean(document.querySelector(`[data-tour="${step.target}"]`))
+          })
+          this.updateTasksOnboardingPosition()
+        }, 80)
       })
     },
 
@@ -632,6 +647,7 @@ export default {
       localStorage.setItem(this.tasksOnboardingKey, 'done')
       this.tasksOnboardingTooltipStyle = {}
       this.tasksOnboardingSpotlightStyle = {}
+      this.tasksOnboardingVisibleSteps = []
     },
 
     nextTasksOnboardingStep () {
@@ -667,7 +683,8 @@ export default {
         this.tasksOnboardingSpotlightStyle = { display: 'none' }
         this.tasksOnboardingTooltipStyle = {
           top: 'calc(50vh - 120px)',
-          left: 'calc(50vw - 180px)'
+          left: 'calc(50vw - 180px)',
+          width: '360px'
         }
         return
       }
@@ -762,12 +779,18 @@ export default {
       return this.tableRows
     },
 
+    activeTasksOnboardingSteps () {
+      return this.tasksOnboardingVisibleSteps.length > 0
+        ? this.tasksOnboardingVisibleSteps
+        : this.tasksOnboardingSteps
+    },
+
     currentTasksOnboardingStep () {
-      return this.tasksOnboardingSteps[this.tasksOnboardingStepIndex] || this.tasksOnboardingSteps[0]
+      return this.activeTasksOnboardingSteps[this.tasksOnboardingStepIndex] || this.activeTasksOnboardingSteps[0]
     },
 
     isLastTasksOnboardingStep () {
-      return this.tasksOnboardingStepIndex === this.tasksOnboardingSteps.length - 1
+      return this.tasksOnboardingStepIndex === this.activeTasksOnboardingSteps.length - 1
     },
 
     getPossibilityToOpenDialogTask () {
@@ -904,12 +927,13 @@ export default {
   z-index: 10001;
   pointer-events: auto;
   border-radius: 12px;
+  max-width: calc(100vw - 32px);
 }
 
 .tasks-onboarding-progress {
-  position: absolute;
-  right: 16px;
-  top: 12px;
+  /* в потоке над заголовком: справа в углу теперь крестик закрытия */
+  margin-bottom: 4px;
+  text-align: right;
   color: #777;
   font-size: 12px;
 }
@@ -940,5 +964,13 @@ export default {
   font-size: 12px;
   line-height: 16px;
   white-space: nowrap;
+}
+
+/* Крестик закрытия обучения в правом верхнем углу карточки */
+.onboarding-close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
 }
 </style>

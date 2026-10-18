@@ -378,14 +378,7 @@ export default {
         .catch(error => {
           this.$q.notify({
             type: 'negative',
-            message: error.response?.data || 'Не удалось выгрузить отчет',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            message: error.response?.data || 'Не удалось выгрузить отчет'
           })
         })
         .finally(() => {

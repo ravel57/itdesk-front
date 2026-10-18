@@ -59,7 +59,7 @@
                 />
               </q-item-label>
               <q-item-label caption>
-                {{ element.triggerType }} · срабатываний: {{ Number(element.matchCount || 0).toLocaleString('ru-RU') }}
+                {{ this.store.triggerTypeLabels[element.triggerType] || element.triggerType }} · срабатываний: {{ Number(element.matchCount || 0).toLocaleString('ru-RU') }}
                 <span v-if="element.lastMatchedAt"> · последнее: {{ formatDateTime(element.lastMatchedAt) }}</span>
               </q-item-label>
             </q-item-section>
@@ -140,7 +140,7 @@
         <div v-if="this.editorMode === 'workflow'" class="automation-workflow-wrapper">
           <automation-flow-editor
             v-model="this.workflow"
-            :trigger-types="this.store.triggerTypes"
+            :trigger-types="this.store.triggerTypeOptions"
             :triggers="this.store.triggers"
             :task-types="this.store.taskTypes"
             :services="this.store.services"
@@ -173,10 +173,10 @@
         <div v-else-if="this.editorMode === 'graph'" class="automation-graph">
           <div class="automation-node automation-node-event">
             <div class="automation-node-title">Событие</div>
-            <q-select
+            <automation-event-select
               v-model="this.selectedTriggerType"
               label="Когда выполнять *"
-              :options="this.store.triggerTypes"
+              :options="this.store.triggerTypeOptions"
             />
           </div>
 
@@ -505,11 +505,11 @@
         </q-expansion-item>
 
         <div v-if="this.editorMode === 'script'">
-          <q-select
+          <automation-event-select
             id="task-executor"
             v-model="this.selectedTriggerType"
             label="Событие *"
-            :options="this.store.triggerTypes"
+            :options="this.store.triggerTypeOptions"
           />
           <automation-expression-input
             v-model="this.dialogTriggerExpression"
@@ -561,6 +561,7 @@ import draggable from 'vuedraggable'
 import axios from 'axios'
 import AutomationFlowEditor from 'components/automation/AutomationFlowEditor.vue'
 import AutomationExpressionInput from 'components/automation/AutomationExpressionInput.vue'
+import AutomationEventSelect from 'components/automation/AutomationEventSelect.vue'
 import {useStore} from 'stores/store'
 import {watch} from 'vue'
 import {
@@ -576,7 +577,8 @@ export default {
   components: {
     draggable,
     AutomationFlowEditor,
-    AutomationExpressionInput
+    AutomationExpressionInput,
+    AutomationEventSelect
   },
 
   data: () => ({
@@ -1183,14 +1185,7 @@ export default {
         if (this.workflowValidation.errors?.length) {
           this.$q.notify({
             message: this.workflowValidation.errors[0],
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return
         }
@@ -1232,11 +1227,7 @@ export default {
       if (!trigger.name?.trim() || !trigger.triggerType || invalidLegacyRule) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -1264,11 +1255,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.response?.data?.message || e.message,
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         this.saving = false
@@ -1293,8 +1280,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.response?.data?.message || e.message,
-          type: 'negative',
-          position: 'top-right'
+          type: 'negative'
         })
       } finally {
         this.togglingTriggerIds = this.togglingTriggerIds.filter(id => id !== trigger.id)
@@ -1305,8 +1291,7 @@ export default {
       if (!this.testTaskId) {
         this.$q.notify({
           message: 'Укажите ID заявки',
-          type: 'negative',
-          position: 'top-right'
+          type: 'negative'
         })
         return
       }
@@ -1316,8 +1301,7 @@ export default {
         if (this.workflowValidation.errors?.length) {
           this.$q.notify({
             message: this.workflowValidation.errors[0],
-            type: 'negative',
-            position: 'top-right'
+            type: 'negative'
           })
           return
         }
@@ -1332,8 +1316,7 @@ export default {
         if (!expression || !action) {
           this.$q.notify({
             message: 'Заполните правило',
-            type: 'negative',
-            position: 'top-right'
+            type: 'negative'
           })
           return
         }
@@ -1417,11 +1400,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 

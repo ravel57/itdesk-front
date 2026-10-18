@@ -341,9 +341,7 @@ export default {
           this.visitReasons = []
           this.$q.notify({
             message: e.response?.data?.message || e.response?.data || e.message || 'Не удалось загрузить причины выездов',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+            type: 'negative'
           })
         })
         .finally(() => {
@@ -395,9 +393,7 @@ export default {
       if (!this.organization?.id) {
         this.$q.notify({
           message: 'Не выбрана организация для выезда',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'negative'
         })
         return
       }
@@ -405,9 +401,7 @@ export default {
       if (!this.visitForm.type) {
         this.$q.notify({
           message: 'Выберите причину выезда',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'negative'
         })
         return
       }
@@ -441,9 +435,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.response?.data?.message || e.response?.data || e.message || 'Не удалось добавить выезд',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+            type: 'negative'
           })
         })
         .finally(() => {

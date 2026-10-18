@@ -204,8 +204,7 @@ export default {
       if (!name) {
         this.$q.notify({
           message: 'Заполните название причины',
-          type: 'negative',
-          position: 'top-right'
+          type: 'negative'
         })
         return
       }
@@ -269,9 +268,7 @@ export default {
     notifyError(error) {
       this.$q.notify({
         message: error?.response?.data?.message || error?.response?.data || error?.message || 'Не удалось выполнить операцию',
-        type: 'negative',
-        position: 'top-right',
-        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        type: 'negative'
       })
     }
   }

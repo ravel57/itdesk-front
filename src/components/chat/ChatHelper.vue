@@ -320,13 +320,7 @@ export default {
       navigator.clipboard.writeText(text)
       this.$q.notify({
         message: 'Текст скопирован в буфер обмена',
-        type: 'positive',
-        position: 'top-right',
-        actions: [
-          {
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }
-        ]
+        type: 'positive'
       })
     },
 

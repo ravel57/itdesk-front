@@ -305,14 +305,7 @@ export default {
         }
         this.$q.notify({
           type: 'positive',
-          message: 'Спасибо, восстановление подтверждено',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Спасибо, восстановление подтверждено'
         })
       } catch (error) {
         this.notifyError(error, 'Не удалось подтвердить восстановление')
@@ -639,14 +632,7 @@ export default {
     notifyError(error, fallback) {
       this.$q.notify({
         type: 'negative',
-        message: this.getErrorMessage(error, fallback),
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        message: this.getErrorMessage(error, fallback)
       })
     }
   },

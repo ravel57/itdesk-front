@@ -108,6 +108,7 @@ import moment from 'moment/moment'
 const FALLBACK_ROLES = [
   {code: 'ADMIN', name: 'Администратор', field: 'adminsCount', countsTowardsLicense: true},
   {code: 'MANAGER', name: 'Менеджер поддержки', field: 'managersCount', countsTowardsLicense: true},
+  {code: 'SENIOR_OPERATOR', name: 'Старший оператор', field: 'seniorOperatorsCount', countsTowardsLicense: true},
   {code: 'OPERATOR', name: 'Оператор поддержки', field: 'operatorsCount', countsTowardsLicense: true},
   {code: 'OBSERVER', name: 'Менеджер организации', field: 'observersCount', countsTowardsLicense: false},
   {code: 'CLIENT', name: 'Клиент', field: 'clientsCount', countsTowardsLicense: false}
@@ -178,6 +179,8 @@ export default {
           return 'admin_panel_settings'
         case 'MANAGER':
           return 'manage_accounts'
+        case 'SENIOR_OPERATOR':
+          return 'military_tech'
         case 'OPERATOR':
           return 'support_agent'
         case 'OBSERVER':

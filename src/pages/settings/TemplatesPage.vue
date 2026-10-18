@@ -182,11 +182,7 @@ export default {
       if (template.text.length === 0) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -199,11 +195,7 @@ export default {
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
+              type: 'negative'
             }))
       } else {
         axios.patch('/api/v1/template', template)
@@ -214,11 +206,7 @@ export default {
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
+              type: 'negative'
             }))
       }
     },
@@ -232,11 +220,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           }))
     }
   },

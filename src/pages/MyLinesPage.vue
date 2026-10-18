@@ -703,9 +703,7 @@ export default {
     showError(error, fallback) {
       this.$q.notify({
         type: 'negative',
-        position: 'top-right',
-        message: error?.response?.data?.message || error?.message || fallback,
-        actions: [{icon: 'close', color: 'white', dense: true}]
+        message: error?.response?.data?.message || error?.message || fallback
       })
     }
   },
@@ -958,38 +956,36 @@ export default {
   gap: 10px;
 }
 
+/* Угол «Перейти в чат»: треугольник в правом верхнем углу внешней рамки карточки.
+   Карточка вложена в q-item с отступом 8px, поэтому угол выносится на эту величину. */
 .link-to-chat-container {
-  background-color: var(--q-primary);
   display: none;
-  height: 60px;
-  overflow: hidden;
   position: absolute;
-  right: -38px;
-  top: -38px;
-  transform: rotate(45deg);
-  transition: transform 0.3s ease;
-  width: 60px;
+  top: var(--chat-link-top, -8px);
+  right: var(--chat-link-right, -8px);
+  width: 28px;
+  height: 28px;
+  background-color: var(--q-primary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
   z-index: 1;
+  transition: filter .2s ease;
 }
 
 .link-container {
-  display: flex;
   position: absolute;
-  right: 25%;
-  bottom: 0;
-  width: 50%;
-  height: 50%;
+  top: 3px;
+  right: 3px;
+  width: 13px;
+  height: 13px;
+  display: flex;
 }
 
 .link {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  transform: rotate(-45deg);
+  font-size: 13px;
 }
 
 .link-to-chat-container:hover {
-  transform: rotate(45deg) scale(1.2);
+  filter: brightness(1.2);
 }
 
 .task-card:hover .link-to-chat-container {

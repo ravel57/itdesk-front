@@ -365,14 +365,7 @@ export default {
     notifyError(e) {
       this.$q.notify({
         message: e?.response?.data?.message || e.message,
-        type: 'negative',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        type: 'negative'
       })
     },
 

@@ -193,14 +193,7 @@ export default {
         this.newPasswordConfirm = ''
         this.$q.notify({
           type: 'positive',
-          message: 'Пароль изменён',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Пароль изменён'
         })
       } catch (error) {
         const message = error?.response?.data?.message ||
@@ -208,14 +201,7 @@ export default {
           'Не удалось изменить пароль'
         this.$q.notify({
           type: 'negative',
-          message,
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message
         })
       } finally {
         this.passwordSaving = false

@@ -920,18 +920,14 @@ export default {
     notifyPositive(message) {
       this.$q.notify({
         message,
-        type: 'positive',
-        position: 'top-right',
-        actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        type: 'positive'
       })
     },
 
     notifyNegative(message) {
       this.$q.notify({
         message,
-        type: 'negative',
-        position: 'top-right',
-        actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+        type: 'negative'
       })
     },
 
