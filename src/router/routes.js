@@ -257,6 +257,11 @@ const routes = [
           //   meta: {permission: 'SETTINGS_MANAGE'}
           // },
           {
+            path: 'jev',
+            component: () => import('pages/settings/JevSettingsPage.vue'),
+            meta: {roles: ['ADMIN']}
+          },
+          {
             path: 'automatization',
             component: () => import('pages/settings/AutomatizationPage.vue'),
             meta: {permission: 'AUTOMATION_MANAGE'}

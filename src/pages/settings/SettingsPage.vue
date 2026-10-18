@@ -247,6 +247,13 @@ export default {
       //   permission: 'SETTINGS_MANAGE'
       // },
       {
+        title: 'Jev (ИИ-решения)',
+        link: '/settings/jev',
+        slug: 'jev',
+        icon: 'psychology',
+        roles: ['ADMIN']
+      },
+      {
         title: 'Автоматизации',
         link: '/settings/automatization',
         slug: 'automatization',
