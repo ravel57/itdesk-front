@@ -230,6 +230,11 @@ const routes = [
           //   meta: {roles: ['ADMIN']}
           // },
           {
+            path: 'jev',
+            component: () => import('pages/settings/JevSettingsPage.vue'),
+            meta: {roles: ['ADMIN']}
+          },
+          {
             path: 'automatization',
             component: () => import('pages/settings/AutomatizationPage.vue'),
             meta: {roles: ['ADMIN', 'MANAGER']}

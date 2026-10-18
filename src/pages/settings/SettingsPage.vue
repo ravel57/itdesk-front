@@ -240,6 +240,13 @@ export default {
       //   roles: ['ADMIN']
       // },
       {
+        title: 'Jev (ИИ-решения)',
+        link: '/settings/jev',
+        slug: 'jev',
+        icon: 'psychology',
+        roles: ['ADMIN']
+      },
+      {
         title: 'Автоматизации',
         link: '/settings/automatization',
         slug: 'automatization',
