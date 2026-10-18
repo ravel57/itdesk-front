@@ -25,6 +25,7 @@
 
 <script>
 import axios from 'axios'
+import {onIncidentUpdated} from 'src/util/ws'
 
 export default {
   name: 'IncidentTaskBanner',
@@ -38,6 +39,13 @@ export default {
         this.loadIncident()
       }
     }
+  },
+  mounted() {
+    // заявку могли привязать к инциденту (или изменить инцидент) автоматизацией
+    this.incidentUpdatedUnsubscribe = onIncidentUpdated(() => this.loadIncident())
+  },
+  beforeUnmount() {
+    if (this.incidentUpdatedUnsubscribe) this.incidentUpdatedUnsubscribe()
   },
   methods: {
     openIncident() {

@@ -114,7 +114,7 @@ function handleConnected(client) {
   }
 
   const role = store.currentUser.authorities[0]
-  const isSupportUser = ['ADMIN', 'MANAGER', 'OPERATOR'].includes(role)
+  const isSupportUser = ['ADMIN', 'MANAGER', 'SENIOR_OPERATOR', 'OPERATOR'].includes(role)
   const isObserver = role === 'OBSERVER'
 
   if (isSupportUser || isObserver) {
@@ -168,6 +168,7 @@ function handleConnected(client) {
   client.subscribe('/user/topic/user-notification/', message => userNotificationCallback(message))
   client.subscribe('/user/topic/task-messages/', message => taskMessageCallback(message))
   client.subscribe('/user/topic/task-updated/', message => taskUpdatedCallback(message))
+  client.subscribe('/user/topic/incidents-updated/', message => incidentUpdatedCallback(message))
   client.subscribe('/user/topic/force-logout/', message => forceLogoutCallback(message))
 
   // Синхронизация сразу после reconnect: периодический heartbeat userOnline
@@ -548,7 +549,7 @@ export function markRead(client) {
   if (!user) {
     return
   }
-  if (Array.isArray(user.authorities) && user.authorities.includes('OBSERVER')) {
+  if (isObserverUser(user)) {
     return
   }
 
@@ -567,11 +568,17 @@ export function markRead(client) {
   }))
 }
 
+// OBSERVER is read-only: the backend denies its /app/* sends except
+// /app/clients/refresh, and a denied SEND closes the whole STOMP session.
+function isObserverUser(user) {
+  return Array.isArray(user?.authorities) && user.authorities.includes('OBSERVER')
+}
+
 export function userOnline(user) {
   if (appConfig.useMocks) {
     return
   }
-  if (!user) {
+  if (!user || isObserverUser(user)) {
     return
   }
   if (!stompClient || !stompClient.connected) {
@@ -624,7 +631,7 @@ export function typing(client, user, text) {
     console.warn('STOMP is not connected, typing skipped')
     return
   }
-  if (!client || !user) {
+  if (!client || !user || isObserverUser(user)) {
     return
   }
   stompClient.send('/app/typing', {}, JSON.stringify({
@@ -895,6 +902,14 @@ function getLegacyNotificationBody(notification) {
       return message || 'Дедлайн нарушен'
     case 'INCIDENT_UPDATE_OVERDUE':
       return message || 'Просрочено обязательное обновление по инциденту'
+    case 'INCIDENT_DETECTED':
+      return message || 'Обнаружен массовый сбой'
+    case 'INCIDENT_RECOVERY_FAILED':
+      return message || 'Клиент сообщает, что после восстановления проблема сохраняется'
+    case 'MONITORING_CONNECTION_LOST':
+      return message || 'Нет связи с Zabbix'
+    case 'MONITORING_CONNECTION_RESTORED':
+      return message || 'Связь с Zabbix восстановлена'
     default:
       return message || 'Новое уведомление'
   }
@@ -907,6 +922,27 @@ export function onTaskMessage(listener) {
   return () => {
     taskMessageListeners.delete(listener)
   }
+}
+
+const incidentUpdatedListeners = new Set()
+
+// Инцидент изменился (в том числе автоматизацией): payload { incidentId }, данные перечитываются через API
+export function onIncidentUpdated(listener) {
+  incidentUpdatedListeners.add(listener)
+
+  return () => {
+    incidentUpdatedListeners.delete(listener)
+  }
+}
+
+function incidentUpdatedCallback(message) {
+  const payload = safeParseJson(message.body, null)
+  if (!payload?.incidentId) {
+    return
+  }
+  incidentUpdatedListeners.forEach(listener => {
+    listener(payload)
+  })
 }
 
 const taskUpdatedListeners = new Set()
@@ -1038,6 +1074,11 @@ function updateTaskInClient(client, task) {
   })
 
   if (index === -1) {
+    // Новая заявка (например, созданная автоматизацией) — добавляем в список клиента
+    client.tasks.push(normalizeTaskFromSocket({
+      ...task,
+      client: task.client || client
+    }))
     return
   }
 
