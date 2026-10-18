@@ -1,6 +1,6 @@
 <template>
   <q-item
-    v-if="this.roles.includes(this.user.authorities[0])"
+    v-if="this.isVisible"
     clickable
     tag="router-link"
     :to="link"
@@ -73,11 +73,25 @@ export default defineComponent({
     roles: {
       type: Array
     },
+    // Право, по которому пункт меню виден (как на бэкенде); без права — виден всем вошедшим
+    permission: {
+      type: String,
+      default: ''
+    },
     user: {
       type: Object
     },
     miniState: {
       type: Boolean
+    }
+  },
+
+  computed: {
+    isVisible () {
+      if (this.permission) {
+        return this.$can(this.permission)
+      }
+      return !this.roles || this.roles.includes(this.user?.authorities?.[0])
     }
   }
 

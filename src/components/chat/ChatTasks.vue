@@ -18,7 +18,10 @@
       />
     </div>
     <q-separator/>
-    <div data-tour="chat-task-toolbar" class="flex" style="margin-bottom: 8px;">
+    <div v-if="!this.canViewTasks" class="text-caption text-grey-7 q-mt-md">
+      Заявки недоступны: раздел закрыт для вашей роли.
+    </div>
+    <div v-if="this.canViewTasks" data-tour="chat-task-toolbar" class="flex" style="margin-bottom: 8px;">
       <div>
         <div class="flex">
           <span
@@ -79,7 +82,7 @@
         </div>
         <q-btn
           data-tour="chat-create-task"
-          v-if="['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+          v-if="$can('TASK_EDIT')"
           id="create-task"
           class="text-primary cursor-pointer"
           icon="add_circle"
@@ -172,18 +175,17 @@
       </div>
     </div>
     <div
+      v-if="this.canViewTasks"
       id="task-vertical-carousel"
       ref="taskScroll"
       style="overflow: auto;position: relative;width: 100%;height: 100%"
       @scroll.passive="this.onTaskScroll"
     >
       <div
-        v-if="!this.isDemoClient"
+        v-if="!this.isDemoClient && this.isInitialTasksLoading"
         class="text-grey-6 text-center q-py-md"
       >
-        <div v-if="this.isInitialTasksLoading">
-          Загружаю заявки...
-        </div>
+        Загружаю заявки...
       </div>
 <!--      :style="this.isMobile ? 'height: calc(100vh - 333px)' : 'height: calc(100vh - 280px)'"-->
       <div class="row justify-center">
@@ -382,6 +384,9 @@ export default {
     taskPageIsEnd: false,
     taskPageLoading: false,
     taskPageReloadTimer: null,
+    // Перезагрузка, запрошенная во время текущей загрузки: выполняется сразу после неё, а не теряется
+    taskPageReloadPending: false,
+    taskPageRefreshTimer: null,
     taskScrollTimer: null,
     taskPageLoadedOnce: false,
     loadedClientId: null,
@@ -397,7 +402,8 @@ export default {
 
   methods: {
     async loadTaskPings () {
-      if (this.isDemoClient || !this.client?.id) {
+      const canLoadTaskPings = this.$can('TASK_EDIT')
+      if (this.isDemoClient || !this.client?.id || !canLoadTaskPings) {
         this.pingedTasks = []
         return
       }
@@ -536,11 +542,14 @@ export default {
     },
 
     async loadTasksPage(reset = false) {
-      if (this.isDemoClient || !this.client?.id) {
+      if (this.isDemoClient || !this.client?.id || !this.canViewTasks) {
         return
       }
 
       if (this.taskPageLoading) {
+        if (reset) {
+          this.taskPageReloadPending = true
+        }
         return
       }
 
@@ -583,15 +592,27 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.message || 'Не удалось загрузить заявки',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         this.taskPageLoading = false
+        if (this.taskPageReloadPending) {
+          // ответ мог устареть (например, заявка создана автоматизацией во время запроса) — перечитываем
+          this.taskPageReloadPending = false
+          this.loadTasksPage(true)
+        }
       }
+    },
+
+    // Перечитать первую страницу без очистки списка (без мигания) — для заявок, пришедших по WebSocket
+    refreshTasksPageSoon() {
+      if (this.taskPageRefreshTimer) {
+        clearTimeout(this.taskPageRefreshTimer)
+      }
+      this.taskPageRefreshTimer = setTimeout(() => {
+        this.taskPageRefreshTimer = null
+        this.loadTasksPage(true)
+      }, 300)
     },
 
     resetTasksPageAndLoad(force = false) {
@@ -665,9 +686,11 @@ export default {
       })
       if (shouldHide) {
         if (index !== -1) {
+          // заявку закрыли или заморозили, а закрытые не показываются: убираем из списка и из счётчика
           this.pagedTasks = this.pagedTasks.filter(item => {
             return Number(item.id) !== Number(normalizedTask.id)
           })
+          this.taskPageTotalElements = Math.max(0, Number(this.taskPageTotalElements || 0) - 1)
         }
         this.$emit('tasksLoaded', this.pagedTasks)
         return
@@ -877,11 +900,7 @@ export default {
       if (!task.executor || !task.executor.id) {
         this.$q.notify({
           message: 'Перед закрытием заявки укажите исполнителя',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -916,21 +935,13 @@ export default {
           this.updateTask(task, newTask)
           this.$q.notify({
             message: 'Заявка закрыта',
-            type: 'positive',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'positive'
           })
         })
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -1001,14 +1012,7 @@ export default {
         if (!taskFromUrl) {
           this.$q.notify({
             message: `Заявка #${taskIdFromUrl} не найдена или нет доступа`,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return
         }
@@ -1377,6 +1381,13 @@ export default {
         return Number(item?.id) === Number(socketTask.id)
       })
       if (!existingTask) {
+        // Новая заявка клиента (например, созданная автоматизацией): показываем сразу и сверяемся с сервером,
+        // т.к. параллельный запрос списка мог вернуть состояние до её создания и затереть её
+        this.upsertPagedTask({
+          ...socketTask,
+          client: socketTask.client?.id ? socketTask.client : this.client
+        })
+        this.refreshTasksPageSoon()
         return
       }
       const normalizedTask = this.normalizeTaskPageTask({
@@ -1417,7 +1428,7 @@ export default {
     },
 
     async loadTaskByIdForUrl (taskId) {
-      if (this.isDemoClient || !this.client?.id) {
+      if (this.isDemoClient || !this.client?.id || !this.canViewTasks) {
         return this.findLoadedTaskById(taskId)
       }
       const response = await axios.post('/api/v1/tasks-page', {
@@ -1487,6 +1498,11 @@ export default {
   },
 
   computed: {
+    // Раздел заявок может быть закрыт менеджеру организации в настройках
+    canViewTasks () {
+      return Boolean(this.onboardingDemo) || this.$can('TASK_VIEW')
+    },
+
     getActualTasks () {
       const actualLinkedMessageIdByTaskId = new Map(
         (this.tasks || [])
@@ -1671,6 +1687,9 @@ export default {
     clearInterval(this.slaTimer)
     if (this.taskPageReloadTimer) {
       clearTimeout(this.taskPageReloadTimer)
+    }
+    if (this.taskPageRefreshTimer) {
+      clearTimeout(this.taskPageRefreshTimer)
     }
     if (this.taskScrollTimer) {
       clearTimeout(this.taskScrollTimer)

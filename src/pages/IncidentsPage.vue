@@ -147,6 +147,7 @@
 <script>
 import axios from 'axios'
 import {useStore} from 'stores/store'
+import {onIncidentUpdated} from 'src/util/ws'
 
 export default {
   name: 'IncidentsPage',
@@ -190,7 +191,7 @@ export default {
 
   computed: {
     canEdit() {
-      return ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser?.authorities?.[0])
+      return this.$can('INCIDENT_EDIT')
     },
 
     userOptions() {
@@ -218,6 +219,16 @@ export default {
     this.resetForm()
     this.loadDictionaries()
     this.loadIncidents()
+    // инциденты, созданные или изменённые другими пользователями и автоматизациями
+    this.incidentUpdatedUnsubscribe = onIncidentUpdated(() => {
+      clearTimeout(this.incidentsReloadTimer)
+      this.incidentsReloadTimer = setTimeout(() => this.loadIncidents(), 500)
+    })
+  },
+
+  beforeUnmount() {
+    clearTimeout(this.incidentsReloadTimer)
+    if (this.incidentUpdatedUnsubscribe) this.incidentUpdatedUnsubscribe()
   },
 
   methods: {
@@ -278,14 +289,7 @@ export default {
       if (!Number.isSafeInteger(incidentId) || incidentId <= 0) {
         this.$q.notify({
           type: 'negative',
-          message: 'Сервер не вернул корректный идентификатор инцидента',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Сервер не вернул корректный идентификатор инцидента'
         })
         return
       }
@@ -354,14 +358,7 @@ export default {
     notifyError(error) {
       this.$q.notify({
         type: 'negative',
-        message: error.response?.data?.message || error.response?.data || error.message || 'Ошибка',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        message: error.response?.data?.message || error.response?.data || error.message || 'Ошибка'
       })
     }
   }

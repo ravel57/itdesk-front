@@ -16,6 +16,14 @@
           label="Добавить пользователя"
           @click="dialogNewUser"
         />
+        <q-btn
+          flat
+          no-caps
+          color="primary"
+          icon="admin_panel_settings"
+          label="Права ролей"
+          @click="openPermissionsDialog"
+        />
         <q-input
           v-model="userSearch"
           dense
@@ -42,6 +50,12 @@
         :rows-per-page-options="[10, 20, 50]"
         rows-per-page-label="Строк на странице"
       >
+        <template #body-cell-mfa="props">
+          <q-td :props="props">
+            <q-badge v-if="props.row.mfaEnabled" color="positive" label="Включена"/>
+            <span v-else class="text-grey-6">—</span>
+          </q-td>
+        </template>
         <template #body-cell-edit="props">
           <q-td>
             <q-btn
@@ -105,7 +119,7 @@
         <q-select
           v-if="showDialogOrganizations"
           v-model="dialogOrganization"
-          :multiple="dialogRole === 'Оператор поддержки'"
+          :multiple="showDialogOrganizations"
           :options="organizationOptions"
           option-label="name"
           option-value="id"
@@ -117,6 +131,23 @@
           use-input
           @update:model-value="onDialogOrganizationChanged"
         />
+      </q-card-section>
+
+      <q-card-section v-if="!isNewUser && dialogMfaEnabled" class="q-pt-none">
+        <div class="row items-center no-wrap q-gutter-sm">
+          <q-icon name="verified_user" color="positive" size="sm"/>
+          <div class="col">Двухфакторная аутентификация включена</div>
+          <q-btn
+            flat
+            no-caps
+            color="negative"
+            label="Сбросить 2FA"
+            @click="resetUserMfa"
+          />
+        </div>
+        <div class="text-caption text-grey-7">
+          Если сотрудник потерял телефон и коды восстановления: при следующем входе он подключит приложение заново.
+        </div>
       </q-card-section>
 
       <q-card-actions align="right">
@@ -143,11 +174,52 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="permissionsDialogVisible">
+    <q-card class="permissions-card">
+      <q-toolbar class="justify-between">
+        <div class="text-h6">Права ролей</div>
+        <q-btn flat round dense icon="close" v-close-popup/>
+      </q-toolbar>
+      <q-card-section class="q-pt-none text-caption text-grey-7">
+        Старшая роль получает все права младшей: Администратор → Менеджер поддержки → Старший оператор → Оператор.
+        Разделы менеджера организации настраиваются в «Общих» настройках.
+      </q-card-section>
+      <q-card-section class="q-pt-none permissions-body">
+        <q-markup-table flat bordered dense separator="cell">
+          <thead>
+          <tr>
+            <th class="text-left">Право</th>
+            <th v-for="role in permissionRoles" :key="role.code" class="text-center">{{ role.name }}</th>
+          </tr>
+          </thead>
+          <tbody>
+          <template v-for="group in permissionGroups" :key="group.name">
+            <tr>
+              <td :colspan="permissionRoles.length + 1" class="text-weight-medium bg-grey-2">{{ group.name }}</td>
+            </tr>
+            <tr v-for="permission in group.items" :key="permission.code">
+              <td>{{ permission.label }}</td>
+              <td v-for="role in permissionRoles" :key="role.code" class="text-center">
+                <q-icon v-if="permission.roles.includes(role.code)" name="check" color="positive"/>
+              </td>
+            </tr>
+          </template>
+          </tbody>
+        </q-markup-table>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
 import {useStore} from 'stores/store'
 import axios from 'axios'
+import {roleLabel} from 'src/util/access'
+
+// Роли линейной поддержки: им можно ограничить организации или дать «Все организации»
+const OPERATOR_ROLE_NAMES = ['Оператор поддержки', 'Старший оператор']
+const OBSERVER_ROLE_NAME = 'Менеджер организации'
 
 export default {
   name: 'UsersComponent',
@@ -161,21 +233,9 @@ export default {
         name: 'roles',
         label: 'Роли',
         align: 'left',
-        field: row => {
-          switch (row.authorities?.[0]) {
-            case 'ADMIN':
-              return 'Администратор'
-            case 'MANAGER':
-              return 'Менеджер поддержки'
-            case 'OPERATOR':
-              return 'Оператор поддержки'
-            case 'OBSERVER':
-              return 'Менеджер организации'
-            default:
-              return ''
-          }
-        }
+        field: row => roleLabel(row.authorities?.[0]) || ''
       },
+      {name: 'mfa', label: '2FA', align: 'left', field: 'mfaEnabled'},
       {name: 'edit', label: '', align: 'center', field: 'edit'}
     ],
 
@@ -191,7 +251,12 @@ export default {
     allOrganizationsOptionId: '__ALL_ORGANIZATIONS__',
 
     isNewUser: true,
-    userId: null
+    userId: null,
+    dialogMfaEnabled: false,
+
+    permissionsDialogVisible: false,
+    permissionRoles: [],
+    permissionGroups: []
   }),
 
   computed: {
@@ -227,8 +292,12 @@ export default {
         .filter(Boolean)
     },
 
+    isOperatorRole() {
+      return OPERATOR_ROLE_NAMES.includes(this.dialogRole)
+    },
+
     showDialogOrganizations() {
-      return ['Оператор поддержки', 'Менеджер организации'].includes(this.dialogRole)
+      return this.isOperatorRole || this.dialogRole === OBSERVER_ROLE_NAME
     },
 
     organizationOptions() {
@@ -239,7 +308,7 @@ export default {
           name: organization.name || `Организация ${organization.id}`
         }))
 
-      if (this.dialogRole === 'Оператор поддержки') {
+      if (this.isOperatorRole) {
         return [
           {id: this.allOrganizationsOptionId, name: 'Все организации'},
           ...organizations
@@ -293,13 +362,54 @@ export default {
       this.dialogLastName = row.lastname || ''
       this.dialogFirstName = row.firstname || ''
       this.dialogRole = this.getRoleName(row.authorities?.[0])
+      this.dialogMfaEnabled = Boolean(row.mfaEnabled)
 
       const availableOrganizations = row.availableOrganizations || []
-      this.dialogOrganization = this.dialogRole === 'Оператор поддержки'
-        ? (availableOrganizations.length > 0
-            ? availableOrganizations.map(organization => organization.id)
-            : [this.allOrganizationsOptionId])
-        : (availableOrganizations[0]?.id || null)
+      // Менеджеру организации можно назначить несколько организаций, как и оператору
+      this.dialogOrganization = this.isOperatorRole && availableOrganizations.length === 0
+        ? [this.allOrganizationsOptionId]
+        : availableOrganizations.map(organization => organization.id)
+    },
+
+    resetUserMfa() {
+      this.$q.dialog({
+        title: 'Сбросить двухфакторную аутентификацию?',
+        message: 'При следующем входе сотрудник заново подключит приложение-аутентификатор.',
+        cancel: {label: 'Отмена', flat: true, color: 'primary'},
+        ok: {label: 'Сбросить', color: 'negative', unelevated: true, noCaps: true},
+        persistent: true
+      }).onOk(() => {
+        axios.post(`/api/v1/user/${this.userId}/mfa/reset`)
+          .then(() => {
+            this.dialogMfaEnabled = false
+            const user = this.store.users.find(item => item.id === this.userId)
+            if (user) {
+              user.mfaEnabled = false
+            }
+            this.$q.notify({message: 'Двухфакторная аутентификация сброшена', type: 'positive'})
+          })
+          .catch(error => this.notifyError(this.getErrorMessage(error)))
+      })
+    },
+
+    openPermissionsDialog() {
+      axios.get('/api/v1/permissions')
+        .then(({data}) => {
+          this.permissionRoles = (data?.roles || []).filter(role => role.code !== 'CLIENT')
+          const groups = new Map()
+          for (const permission of data?.permissions || []) {
+            if (permission.code === 'PORTAL') {
+              continue
+            }
+            if (!groups.has(permission.group)) {
+              groups.set(permission.group, [])
+            }
+            groups.get(permission.group).push(permission)
+          }
+          this.permissionGroups = [...groups.entries()].map(([name, items]) => ({name, items}))
+          this.permissionsDialogVisible = true
+        })
+        .catch(error => this.notifyError(this.getErrorMessage(error)))
     },
 
     dialogClose() {
@@ -371,14 +481,7 @@ export default {
             this.dialogClose()
             this.$q.notify({
               message: 'Пользователь удалён из интерфейса',
-              type: 'positive',
-              position: 'top-right',
-              actions: [{
-                icon: 'close',
-                color: 'white',
-                dense: true,
-                handler: () => undefined
-              }]
+              type: 'positive'
             })
           })
           .catch(error => this.notifyError(this.getErrorMessage(error)))
@@ -386,18 +489,7 @@ export default {
     },
 
     getRoleName(role) {
-      switch (role) {
-        case 'ADMIN':
-          return 'Администратор'
-        case 'MANAGER':
-          return 'Менеджер поддержки'
-        case 'OPERATOR':
-          return 'Оператор поддержки'
-        case 'OBSERVER':
-          return 'Менеджер организации'
-        default:
-          return ''
-      }
+      return role === 'CLIENT' ? '' : (roleLabel(role) || '')
     },
 
     getSelectedOrganizationIdsForSave() {
@@ -412,22 +504,20 @@ export default {
         return Number(value)
       }
 
-      if (this.dialogRole === 'Оператор поддержки') {
-        const selected = Array.isArray(this.dialogOrganization) ? this.dialogOrganization : []
-        if (selected.includes(this.allOrganizationsOptionId)) {
-          return []
-        }
-        return selected
-          .map(normalizeOrganizationId)
-          .filter(id => Number.isFinite(id))
+      const selected = Array.isArray(this.dialogOrganization)
+        ? this.dialogOrganization
+        : (this.dialogOrganization ? [this.dialogOrganization] : [])
+      if (this.isOperatorRole && selected.includes(this.allOrganizationsOptionId)) {
+        return []
       }
-
-      const organizationId = normalizeOrganizationId(this.dialogOrganization)
-      return Number.isFinite(organizationId) ? [organizationId] : []
+      return selected
+        .filter(value => value !== this.allOrganizationsOptionId)
+        .map(normalizeOrganizationId)
+        .filter(id => Number.isFinite(id))
     },
 
     onDialogOrganizationChanged(value) {
-      if (this.dialogRole !== 'Оператор поддержки') {
+      if (!this.isOperatorRole) {
         return
       }
       const selected = Array.isArray(value) ? value : []
@@ -437,17 +527,15 @@ export default {
     },
 
     onDialogRoleChanged(newRole) {
-      this.dialogOrganization = newRole === 'Оператор поддержки'
+      this.dialogOrganization = OPERATOR_ROLE_NAMES.includes(newRole)
         ? [this.allOrganizationsOptionId]
-        : null
+        : []
     },
 
     notifyError(message) {
       this.$q.notify({
         message,
-        type: 'negative',
-        position: 'top-right',
-        actions: [{icon: 'close', color: 'white', dense: true}]
+        type: 'negative'
       })
     },
 
@@ -471,5 +559,15 @@ export default {
 .settings-search {
   width: 320px;
   max-width: 100%;
+}
+
+.permissions-card {
+  width: 1100px;
+  max-width: 96vw;
+}
+
+.permissions-body {
+  max-height: 70vh;
+  overflow: auto;
 }
 </style>

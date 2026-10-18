@@ -28,48 +28,8 @@ export const useStore = defineStore('store', {
     templates: [],
     knowledgeBase: [],
     triggers: [],
-    triggerTypes: [ // FIXME
-      'MANUAL_MACRO_APPLIED',
-      'MESSAGE_INCOMING',
-      'MESSAGE_OUTGOING',
-      'MESSAGE_EDITED',
-      'MESSAGE_MENTIONED_USER',
-      'MESSAGE_CONTAINS_KEYWORD',
-      'MESSAGE_DELETED',
-      'ATTACHMENT_ADDED',
-      'SLA_WARNING',
-      'SLA_BREACHED',
-      'FIRST_RESPONSE_SLA_WARNING',
-      'FIRST_RESPONSE_SLA_BREACHED',
-      'INACTIVITY_TIMEOUT',
-      'SCHEDULED_CRON',
-      'TASK_CREATED',
-      'TASK_UPDATED',
-      'TASK_STATUS_CHANGED',
-      'TASK_PRIORITY_CHANGED',
-      'TASK_TYPE_CHANGED',
-      'TASK_SERVICE_CHANGED',
-      'TASK_ASSIGNEE_CHANGED',
-      'TASK_GROUP_CHANGED',
-      'TASK_TAG_ADDED',
-      'TASK_TAG_REMOVED',
-      'TASK_DUE_DATE_CHANGED',
-      'TASK_CLOSED',
-      'TASK_REOPENED',
-      'TASK_COMPLETED',
-      'TASK_OVERDUE',
-      'CLIENT_CREATED',
-      'CLIENT_UPDATED',
-      'CLIENT_DELETED',
-      'USER_CREATED',
-      'USER_UPDATED',
-      'USER_OPEN_DIALOG',
-      'USER_CLOSED_DIALOG',
-      'KNOWLEDGE_BASE_ARTICLE_CREATED',
-      'KNOWLEDGE_BASE_ARTICLE_UPDATED',
-      'WEBHOOK_RECEIVED',
-      'INTEGRATION_EVENT_RECEIVED'
-    ],
+    // События автоматизаций с названиями: [{ value, label, group }] из GET /api/v1/trigger-types/options
+    triggerTypeOptions: [],
     usersOnline: [],
     currentClient: {},
     currentChatMessageData: {
@@ -138,6 +98,8 @@ export const useStore = defineStore('store', {
 
     currentSessionId: null,
     currentUser: null,
+    // Права текущего пользователя (Permission с бэкенда): проверяются через can() из util/access
+    permissions: [],
 
     miniState: false,
     globalAlertMessage: [],
@@ -166,6 +128,8 @@ export const useStore = defineStore('store', {
   }),
 
   getters: {
+    triggerTypes: state => state.triggerTypeOptions.map(option => option.value),
+    triggerTypeLabels: state => Object.fromEntries(state.triggerTypeOptions.map(option => [option.value, option.label])),
     getTasks: state => state.taskPage.tasks,
     getTaskPageTasks: state => state.taskPage.tasks
   },
@@ -482,15 +446,15 @@ export const useStore = defineStore('store', {
             this.triggers = response.data
           })
 
-        axios.get('/api/v1/trigger-types')
+        axios.get('/api/v1/trigger-types/options')
           .then(response => {
-            this.triggerTypes = response.data
+            this.triggerTypeOptions = Array.isArray(response.data) ? response.data : []
           })
       } else {
         this.templates = []
         this.knowledgeBase = []
         this.triggers = []
-        this.triggerTypes = []
+        this.triggerTypeOptions = []
       }
     },
 
@@ -697,6 +661,18 @@ export const useStore = defineStore('store', {
           }
 
           return this.analyticsSummary
+        })
+    },
+
+    loadPermissions() {
+      return axios.get('/api/v1/user/permissions')
+        .then(response => {
+          this.permissions = Array.isArray(response.data?.permissions) ? response.data.permissions : []
+          return this.permissions
+        })
+        .catch(() => {
+          this.permissions = []
+          return this.permissions
         })
     },
 

@@ -11,7 +11,7 @@
       data-tour="task-dialog-card"
       :class="[
         'task-dialog-card',
-        this.isMobile || !['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) || this.isNewTask
+        this.isMobile || !$can('TASK_EDIT') || this.isNewTask
           ? 'dialog-width'
           : 'large-dialog-width'
   ]"
@@ -179,7 +179,7 @@
                     :style="this.getBackgroundColor(this.dialogTaskStatus)"
                   />
                   <q-btn
-                    v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+                    v-if="!this.isNewTask && !this.dialogTaskComplete && $can('TASK_EDIT')"
                     dense
                     outline
                     no-caps
@@ -190,7 +190,7 @@
                     @click="this.setTaskCompleted(this.task)"
                   />
                   <q-btn
-                    v-if="this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0])"
+                    v-if="this.dialogTaskComplete && $can('TASK_EDIT')"
                     dense
                     outline
                     no-caps
@@ -202,7 +202,7 @@
                   />
                   <div id="unfreeze-task-btn">
                     <q-btn
-                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && this.task.frozen"
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && $can('TASK_EDIT') && this.task.frozen"
                       dense
                       outline
                       icon="ac_unit"
@@ -233,7 +233,7 @@
                   </div>
                   <div id="freeze-task-btn">
                     <q-btn
-                      v-if="!this.isNewTask && !this.dialogTaskComplete && ['ADMIN', 'MANAGER', 'OPERATOR'].includes(this.store.currentUser.authorities[0]) && !this.task.frozen"
+                      v-if="!this.isNewTask && !this.dialogTaskComplete && $can('TASK_EDIT') && !this.task.frozen"
                       dense
                       outline
                       icon="ac_unit"
@@ -249,6 +249,7 @@
                   id="task-description"
                   data-tour="task-dialog-description"
                   type="textarea"
+                  rows="1"
                   v-model="this.dialogTaskDescription"
                   :readonly="this.isObserverReadOnly"
                   label="Описание"
@@ -314,8 +315,6 @@
                 <q-select
                   id="task-tags"
                   data-tour="task-dialog-tags"
-                  style="padding-top: 16px"
-                  class="custom-select"
                   v-model="this.dialogTaskTags"
                   :readonly="this.isObserverReadOnly"
                   :options="this.filteredTags"
@@ -323,7 +322,6 @@
                   label="Теги"
                   use-chips
                   use-input
-                  dense
                   @filter="filterTags"
                 />
                 <q-input
@@ -846,7 +844,20 @@
         class="task-dialog-onboarding-tooltip"
         :style="this.taskDialogOnboardingTooltipStyle"
       >
-        <q-card-section class="q-pb-xs">
+        <q-btn
+          flat
+          round
+          dense
+          size="sm"
+          icon="close"
+          color="grey-7"
+          class="onboarding-close-btn"
+          aria-label="Закрыть обучение"
+          @click="this.finishTaskDialogOnboarding"
+        >
+          <q-tooltip>Закрыть обучение</q-tooltip>
+        </q-btn>
+        <q-card-section class="q-pb-xs" style="padding-right: 40px">
           <div class="task-dialog-onboarding-progress text-caption text-grey-7">
             {{ this.taskDialogOnboardingStepIndex + 1 }} / {{ this.visibleTaskDialogOnboardingSteps.length }}
           </div>
@@ -857,14 +868,7 @@
             {{ this.currentTaskDialogOnboardingStep.text }}
           </div>
         </q-card-section>
-        <q-card-actions align="between" class="q-pt-none">
-          <q-btn
-            flat
-            dense
-            color="grey"
-            label="Пропустить"
-            @click="this.finishTaskDialogOnboarding"
-          />
+        <q-card-actions align="right" class="q-pt-none">
           <div>
             <q-btn
               flat
@@ -1315,9 +1319,7 @@ export default {
       if (!this.canCreateVisitFromTask) {
         this.$q.notify({
           message: 'Для добавления выезда у заявки должна быть организация',
-          type: 'warning',
-          position: 'top-right',
-          actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+          type: 'warning'
         })
         return
       }
@@ -1348,9 +1350,7 @@ export default {
 
       this.$q.notify({
         message: 'Выезд добавлен к заявке',
-        type: 'positive',
-        position: 'top-right',
-        actions: [{ icon: 'close', color: 'white', dense: true, handler: () => undefined }]
+        type: 'positive'
       })
     },
 
@@ -1398,14 +1398,7 @@ export default {
         if (!closedStatus) {
           this.$q.notify({
             message: 'Не найден статус закрытия заявки',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return false
         }
@@ -1419,14 +1412,7 @@ export default {
         if (!reopenStatus) {
           this.$q.notify({
             message: 'Не найден открытый статус для возврата заявки в работу',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return false
         }
@@ -1675,14 +1661,7 @@ export default {
       if (!this.dialogTaskName || !this.dialogTaskType || !this.dialogTaskPriority || !this.dialogTaskStatus) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -1696,14 +1675,7 @@ export default {
       if (!this.isNewTask && !currentTaskId) {
         this.$q.notify({
           message: 'Не найден id заявки для обновления',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -1746,14 +1718,7 @@ export default {
           this.openFreezeDialog()
           this.$q.notify({
             message: 'Для заморозки укажите срок заморозки',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return
         }
@@ -1793,14 +1758,7 @@ export default {
           .catch(e => {
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close',
-                color: 'white',
-                dense: true,
-                handler: () => undefined
-              }]
+              type: 'negative'
             })
           })
           .finally(() => {
@@ -1809,14 +1767,7 @@ export default {
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close',
-                color: 'white',
-                dense: true,
-                handler: () => undefined
-              }]
+              type: 'negative'
             }))
       } else {
         axios.patch(`/api/v1/client/${this.client.id}/task`, task)
@@ -1829,14 +1780,7 @@ export default {
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close',
-                color: 'white',
-                dense: true,
-                handler: () => undefined
-              }]
+              type: 'negative'
             }))
       }
     },
@@ -1895,27 +1839,13 @@ export default {
           this.$emit('updateTask', task, updatedTask)
           this.$q.notify({
             message: 'Заявка закрыта',
-            type: 'positive',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'positive'
           })
         })
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -1928,14 +1858,7 @@ export default {
       if (!reopenStatus) {
         this.$q.notify({
           message: 'Не найден открытый статус для возврата заявки в работу',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -1967,14 +1890,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -1985,14 +1901,7 @@ export default {
       if (!currentTaskId) {
         this.$q.notify({
           message: 'Не найден id заявки для обновления',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -2006,14 +1915,7 @@ export default {
         if (!this.dialogTaskFreezeUntil) {
           this.$q.notify({
             message: 'Не заполнена дата заморозки',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return
         }
@@ -2021,42 +1923,21 @@ export default {
         if (!parsedFrozenUntil.isValid()) {
           this.$q.notify({
             message: 'Некорректная дата заморозки. Используйте формат дд.мм.гггг чч:мм',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return
         }
         if (parsedFrozenUntil.isSameOrBefore(moment())) {
           this.$q.notify({
             message: 'Дата заморозки должна быть в будущем',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return
         }
         if (!this.dialogTaskFreezeReason || !this.dialogTaskFreezeReason.trim()) {
           this.$q.notify({
             message: 'Не заполнена причина заморозки',
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           })
           return
         }
@@ -2098,27 +1979,13 @@ export default {
           this.$emit('updateTask', task, newTask.data)
           this.$q.notify({
             message: task.frozen ? 'Заявка заморожена' : 'Заявка разморожена',
-            type: 'positive',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'positive'
           })
         })
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -2161,14 +2028,7 @@ export default {
             this.isSending = false
             this.$q.notify({
               message: getUploadErrorMessage(e),
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close',
-                color: 'white',
-                dense: true,
-                handler: () => undefined
-              }]
+              type: 'negative'
             })
           })
           .finally(() => {
@@ -2190,14 +2050,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           }))
         .finally(() => {
           this.isSending = false
@@ -2338,7 +2191,8 @@ export default {
       const lineId = Number(selectedLine?.id)
       const requestId = ++this.supportLineAssignableUsersRequestId
 
-      if (!Number.isFinite(lineId)) {
+      // assignable-users доступен только поддержке: OBSERVER не назначает исполнителей.
+      if (!Number.isFinite(lineId) || !this.isTaskDialogOperator) {
         this.supportLineAssignableUsers = []
         this.supportLineAssignableUsersLineId = null
         this.refreshFilteredUsers()
@@ -2372,8 +2226,7 @@ export default {
         this.dialogTaskExecutor = ''
         this.$q.notify({
           type: 'info',
-          message: 'Исполнитель снят: он не состоит в выбранной линии поддержки',
-          position: 'top-right'
+          message: 'Исполнитель снят: он не состоит в выбранной линии поддержки'
         })
       }
       this.refreshFilteredUsers()
@@ -2704,14 +2557,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -2826,7 +2672,8 @@ export default {
       if (payload.message?.fileUuid) {
         this.loadTaskFiles()
       }
-      if (this.taskRightTab === 'messages') {
+      // mark-message-read на backend разрешён только поддержке, не OBSERVER.
+      if (this.taskRightTab === 'messages' && this.isTaskDialogOperator) {
         axios.post(`/api/v1/client/${this.client.id}/task/${this.task.id}/mark-message-read`, {
           userId: this.store.currentUser.id
         })
@@ -2875,14 +2722,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            type: 'negative'
           }))
         .finally(() => {
           this.isSending = false
@@ -2921,14 +2761,7 @@ export default {
     notifyExecutorRequiredForClosingTask () {
       this.$q.notify({
         message: 'Перед закрытием заявки укажите исполнителя',
-        type: 'negative',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        type: 'negative'
       })
     },
 
@@ -3132,8 +2965,7 @@ export default {
     },
 
     isTaskDialogOperator () {
-      return Array.isArray(this.store.currentUser?.authorities) &&
-        this.store.currentUser.authorities.some(role => ['ADMIN', 'MANAGER', 'OPERATOR'].includes(role))
+      return this.$can('TASK_EDIT')
     },
 
     currentTaskOrganization () {
@@ -3365,7 +3197,7 @@ export default {
           this.loadTaskFiles()
         }
         const currentTaskId = this.getCurrentTaskId()
-        if (!this.isNewTask && currentTaskId) {
+        if (!this.isNewTask && currentTaskId && this.isTaskDialogOperator) {
           axios.post(`/api/v1/client/${this.client.id}/task/${currentTaskId}/mark-message-read`, { userId: this.store.currentUser.id })
         }
         if (this.taskRightTab === 'history') {
@@ -3467,9 +3299,14 @@ th {
   min-height: 0;
 }
 
+/* Полоса прокрутки — правее полей, в промежутке между колонками: панель выступает вправо на 12px
+   (margin-right), а внутренний отступ компенсирует это, поэтому ширина полей не меняется */
 .task-left-panel {
   overflow-y: auto;
   overflow-x: hidden;
+  box-sizing: content-box;
+  padding-right: 12px;
+  margin-right: -12px;
 }
 
 .task-left-panel > .q-card {
@@ -3534,10 +3371,6 @@ th {
 .no-border-card {
   border: none;
   box-shadow: none;
-}
-
-.custom-select .q-field__label {
-  font-size: 16px;
 }
 
 .task-dialog-onboarding-layer {
@@ -3626,5 +3459,13 @@ th {
 
 .opacity-80 {
   opacity: .8;
+}
+
+/* Крестик закрытия обучения в правом верхнем углу карточки */
+.onboarding-close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
 }
 </style>

@@ -2,9 +2,7 @@
   <q-layout>
     <q-page-container style="background-color: var(--q-primary); position: relative; overflow: hidden">
       <q-page>
-        <login-component
-          @resetPassword="this.resetPassword"
-        />
+        <login-component/>
         <div style="animation-delay: 0.45s;" class="backgroundImage">
           <svg width="1980" height="841" viewBox="0 0 1980 841" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
@@ -81,7 +79,6 @@
 </template>
 
 <script>
-import axios from 'axios'
 import LoginComponent from 'components/login/LoginComponent.vue'
 
 export default {
@@ -100,22 +97,6 @@ export default {
 
   methods: {
 
-    resetPassword(email) {
-      axios.post('/api/v1/support/reset-password', {username: email})
-        .then(() => {
-          this.requestSend = true
-        })
-        .catch(e => {
-          this.$q.notify({
-            message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
-          })
-        })
-    }
     // login () {
     //   axios.post(`/login?username=${this.username}&password=${this.password}`)
     //     .catch(e => {

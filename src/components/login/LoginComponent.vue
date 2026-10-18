@@ -45,6 +45,9 @@
           </div>
         </div>
       </div>
+      <div v-if="this.login && this.loginMessage" class="login-message" role="alert">
+        {{ this.loginMessage }}
+      </div>
       <form v-if="this.login" method="post" action="/perform_login" class="login-form">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <q-input
@@ -97,6 +100,7 @@
         </div>
         <q-btn
           @click="this.resetPassword"
+          :loading="this.resetPending"
           class="submit-btn"
           color="primary"
         >
@@ -120,7 +124,9 @@
         <q-icon class="check-icon" name="check" />
         Отправили запрос
       </div>
-      <div class="request-sent-instruction">Мы отправили запрос на восстановление пароля</div>
+      <div class="request-sent-instruction">
+        Если аккаунт с такой почтой есть, на неё придёт ссылка для смены пароля. Ссылка действует 60 минут.
+      </div>
       <q-btn @click="this.closeNotify" class="success-btn">Отлично</q-btn>
     </div>
   </div>
@@ -146,8 +152,22 @@ export default {
     passwordRestore: false,
     emailRestore: false,
     requestSend: false,
+    resetPending: false,
     csrfToken: ''
   }),
+
+  computed: {
+    loginMessage () {
+      const route = this.$route
+      if (route?.path === '/login-error') {
+        return 'Неверная почта или пароль'
+      }
+      if (route?.path === '/session-expired' || route?.query?.sessionExpired !== undefined || route?.query?.expired !== undefined) {
+        return 'Сеанс завершён. Войдите снова'
+      }
+      return ''
+    }
+  },
 
   methods: {
     changeView (view) {
@@ -178,26 +198,33 @@ export default {
       if (this.email.length === 0) {
         this.$q.notify({
           message: 'Поле почты не заполнено',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
       if (!isValidEmail) {
         this.$q.notify({
           message: 'Почта указана не корректно',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
-      this.$emit('resetPassword', this.email)
+      this.resetPending = true
+      axios.post('/api/v1/support/reset-password', { username: this.email.trim() })
+        .then(() => {
+          this.requestSend = true
+        })
+        .catch(error => {
+          this.$q.notify({
+            message: error?.response?.status === 429
+              ? 'Слишком много запросов. Попробуйте через 15 минут'
+              : 'Не удалось отправить запрос. Попробуйте позже',
+            type: 'negative'
+          })
+        })
+        .finally(() => {
+          this.resetPending = false
+        })
     },
 
     closeNotify () {
@@ -371,7 +398,7 @@ export default {
   background-color: white;
   padding: 8px;
   width: 240px;
-  height: 207px;
+  height: auto;
   border-radius: 4px;
   min-width: 240px;
   min-height: 207px;
@@ -401,6 +428,16 @@ export default {
   background-color: rgb(52, 199, 89);
   width: 100%;
   margin-top: 16px;
+}
+
+.login-message {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background-color: rgba(193, 0, 21, 0.08);
+  color: var(--q-negative);
+  font-size: 13px;
+  text-align: center;
 }
 
 .input-field :deep(.q-field__bottom) {

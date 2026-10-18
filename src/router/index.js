@@ -9,6 +9,8 @@ import {
 import routes from './routes'
 import { useAuthStore } from 'stores/auth'
 import { appConfig } from 'src/config/appConfig'
+import { isPublicPage } from './publicPages'
+import { canAny } from 'src/util/access'
 
 export default route(function () {
   const createHistory = process.env.SERVER
@@ -25,12 +27,7 @@ export default route(function () {
     if (appConfig.disableAuth) {
       return true
     }
-    const publicPages = [
-      '/login',
-      '/login-error',
-      '/session-expired'
-    ]
-    if (publicPages.includes(to.path)) {
+    if (isPublicPage(to.path)) {
       return true
     }
     const auth = useAuthStore()
@@ -52,9 +49,10 @@ export default route(function () {
     if (!isClientPortalUser && to.path.startsWith('/portal')) {
       return '/chats'
     }
-    const allowedRoles = Array.isArray(to.meta?.roles) ? to.meta.roles : []
-    if (allowedRoles.length > 0 && !authorities.some(role => allowedRoles.includes(role))) {
-      return isClientPortalUser ? '/portal' : '/chats'
+    // Доступ к странице — по праву (meta.permission: строка или список «любое из»), как проверяет бэкенд
+    const requiredPermissions = [].concat(to.meta?.permission || []).filter(Boolean)
+    if (requiredPermissions.length > 0 && !canAny(requiredPermissions)) {
+      return isClientPortalUser ? '/portal' : (canAny('CHAT_VIEW') ? '/chats' : '/settings/profile')
     }
 
     return true

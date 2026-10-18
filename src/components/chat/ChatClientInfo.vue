@@ -6,6 +6,7 @@
         v-text="this.getClientName"
       />
       <q-btn
+        v-if="this.canEditClient"
         data-tour="chat-client-edit"
         class="edit-client-btn"
         :class="{ 'edit-client-btn--onboarding': this.onboardingDemo }"
@@ -146,6 +147,7 @@
       </q-card-section>
       <q-card-actions align="right">
         <q-btn
+          v-if="this.canDeleteClient"
           unelevated
           no-caps
           color="negative"
@@ -203,6 +205,7 @@
 <script>
 import axios from 'axios'
 import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
+import { useStore } from 'stores/store'
 
 export default {
   name: 'ChatClientInfo',
@@ -256,11 +259,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
       this.dialogVisible = false
@@ -275,11 +274,7 @@ export default {
         .catch(e => {
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           })
         })
     },
@@ -290,6 +285,19 @@ export default {
   },
 
   computed: {
+    currentAuthorities() {
+      const authorities = useStore().currentUser?.authorities
+      return Array.isArray(authorities) ? authorities : []
+    },
+
+    canEditClient() {
+      return this.$can('CLIENT_EDIT')
+    },
+
+    canDeleteClient() {
+      return this.$can('CLIENT_DELETE')
+    },
+
     getOrganizations() {
       if (this.organizations) {
         return this.organizations.map(o => o.name)

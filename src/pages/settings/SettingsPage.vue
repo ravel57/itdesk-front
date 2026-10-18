@@ -114,63 +114,63 @@ export default {
         link: '/settings/profile',
         slug: 'profile',
         icon: 'person',
-        roles: ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER', 'CLIENT']
+        permission: null
       },
       {
         title: 'Общее',
         link: '/settings/general',
         slug: 'general',
         icon: 'tune',
-        roles: ['ADMIN']
+        permission: 'SETTINGS_MANAGE'
       },
       {
         title: 'Пользователи',
         link: '/settings/users',
         slug: 'users',
         icon: 'group',
-        roles: ['ADMIN']
+        permission: 'USER_MANAGE'
       },
       {
         title: 'Клиенты',
         link: '/settings/clients',
         slug: 'clients',
         icon: 'contacts',
-        roles: ['ADMIN']
+        permission: 'USER_MANAGE'
       },
       {
         title: 'Организации',
         link: '/settings/organizations',
         slug: 'organizations',
         icon: 'business',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'ORGANIZATION_MANAGE'
       },
       {
         title: 'Теги',
         link: '/settings/tags',
         slug: 'tags',
         icon: 'label',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'REFERENCE_MANAGE'
       },
       {
         title: 'Приоритеты',
         link: '/settings/priorities',
         slug: 'priorities',
         icon: 'flag',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'REFERENCE_MANAGE'
       },
       {
         title: 'Статусы',
         link: '/settings/statuses',
         slug: 'statuses',
         icon: 'check_circle',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'REFERENCE_MANAGE'
       },
       {
         title: 'Шаблоны',
         link: '/settings/templates',
         slug: 'templates',
         icon: 'description',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'REFERENCE_MANAGE'
       },
       // { title: 'Макросы',
       // link: '/settings/macros', s
@@ -181,98 +181,112 @@ export default {
         link: '/settings/sla',
         slug: 'sla',
         icon: 'timer',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'SLA_MANAGE'
       },
       {
         title: 'Типы заявок и чек-листы',
         link: '/settings/task-types',
         slug: 'playlist_add_check',
         icon: 'playlist_add_check',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'REFERENCE_MANAGE'
       },
       {
         title: 'Линии поддержки',
         link: '/settings/support-lines',
         slug: 'account_tree',
         icon: 'account_tree',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'REFERENCE_MANAGE'
       },
       {
         title: 'Причины выездов',
         link: '/settings/visit-reasons',
         slug: 'visit-reasons',
         icon: 'directions_car',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'REFERENCE_MANAGE'
       },
       {
         title: 'Сервисы и мониторинг',
         link: '/settings/services',
         slug: 'dns',
         icon: 'dns',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'SERVICE_MANAGE'
+      },
+      {
+        title: 'Шаблоны обновлений инцидентов',
+        link: '/settings/incident-templates',
+        slug: 'incident-templates',
+        icon: 'campaign',
+        permission: 'INCIDENT_TEMPLATE_MANAGE'
       },
       {
         title: 'Telegram',
         link: '/settings/telegram',
         slug: 'telegram',
         icon: 'send',
-        roles: ['ADMIN']
+        permission: 'CHANNEL_MANAGE'
       },
       {
         title: 'WhatsApp',
         link: '/settings/whatsapp',
         slug: 'whatsapp',
         icon: 'chat',
-        roles: ['ADMIN']
+        permission: 'CHANNEL_MANAGE'
       },
       {
         title: 'Электронная почта',
         link: '/settings/email',
         slug: 'email',
         icon: 'email',
-        roles: ['ADMIN']
+        permission: 'CHANNEL_MANAGE'
       },
       // {
       //   title: 'ИИ-агент',
       //   link: '/settings/ai-agent',
       //   slug: 'ai-agent',
       //   icon: 'smart_toy',
-      //   roles: ['ADMIN']
+      //   permission: 'SETTINGS_MANAGE'
       // },
       {
         title: 'Автоматизации',
         link: '/settings/automatization',
         slug: 'automatization',
         icon: 'autorenew',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'AUTOMATION_MANAGE'
       },
       {
         title: 'Плагины',
         link: '/settings/plugins',
         slug: 'plugins',
         icon: 'extension',
-        roles: ['ADMIN']
+        permission: 'PLUGIN_MANAGE'
       },
       {
         title: 'JWT API',
         link: '/settings/jwt',
         slug: 'jwt',
         icon: 'key',
-        roles: ['ADMIN']
+        permission: 'JWT_MANAGE'
+      },
+      {
+        title: 'Журнал безопасности',
+        link: '/settings/security-audit',
+        slug: 'security-audit',
+        icon: 'policy',
+        permission: 'SECURITY_AUDIT_VIEW'
       },
       {
         title: 'Лицензия',
         link: '/settings/license',
         slug: 'license',
         icon: 'vpn_key',
-        roles: ['ADMIN']
+        permission: 'SETTINGS_MANAGE'
       },
       {
         title: 'Экспорт',
         link: '/settings/export',
         slug: 'export',
         icon: 'file_download',
-        roles: ['ADMIN', 'MANAGER']
+        permission: 'TASK_EXPORT'
       }
     ]
   }),
@@ -344,12 +358,7 @@ export default {
     },
 
     canShowMenuItem(item) {
-      if (!item.roles || !item.roles.length) {
-        return true
-      }
-
-      const authorities = this.store.currentUser?.authorities || this.store.currentUser?.roles || []
-      return item.roles.some(role => authorities.includes(role) || authorities.includes(`ROLE_${role}`))
+      return !item.permission || this.$can(item.permission)
     },
 
     normalizePath(path) {
