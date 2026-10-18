@@ -963,28 +963,30 @@ export default {
   position: absolute;
   top: var(--chat-link-top, -8px);
   right: var(--chat-link-right, -8px);
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   background-color: var(--q-primary);
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   z-index: 1;
-  transition: filter .2s ease;
+  transform-origin: top right;
+  transition: transform .2s ease, filter .2s ease;
 }
 
 .link-container {
   position: absolute;
-  top: 3px;
-  right: 3px;
-  width: 13px;
-  height: 13px;
+  top: 4px;
+  right: 4px;
+  width: 16px;
+  height: 16px;
   display: flex;
 }
 
 .link {
-  font-size: 13px;
+  font-size: 16px;
 }
 
 .link-to-chat-container:hover {
+  transform: scale(1.3);
   filter: brightness(1.2);
 }
 
