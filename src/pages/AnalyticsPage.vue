@@ -1317,9 +1317,9 @@ export default {
       const authorities = Array.isArray(this.store.currentUser?.authorities)
         ? this.store.currentUser.authorities
         : []
-      const role = ['ADMIN', 'MANAGER', 'OPERATOR', 'OBSERVER']
+      const role = ['ADMIN', 'MANAGER', 'SENIOR_OPERATOR', 'OPERATOR', 'OBSERVER']
         .find(item => authorities.includes(item)) || null
-      const canViewInternalData = ['ADMIN', 'MANAGER', 'OPERATOR'].includes(role)
+      const canViewInternalData = ['ADMIN', 'MANAGER', 'SENIOR_OPERATOR', 'OPERATOR'].includes(role)
       return {
         role,
         scope: ['ADMIN', 'MANAGER'].includes(role) ? 'ALL' : role ? 'RESTRICTED' : 'NONE',
@@ -2411,14 +2411,7 @@ export default {
           this.analyticsSummary = {}
           this.$q.notify({
             type: 'negative',
-            message: 'Не удалось загрузить аналитику',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            message: 'Не удалось загрузить аналитику'
           })
         })
         .finally(() => {

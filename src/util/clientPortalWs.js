@@ -1,7 +1,7 @@
 import SockJS from 'sockjs-client/dist/sockjs'
 import {Stomp} from '@stomp/stompjs'
 import {appConfig} from 'src/config/appConfig'
-import {getCsrfToken} from 'boot/axios'
+import {getStompCsrfHeaders} from 'boot/axios'
 
 const RECONNECT_DELAY_MS = 3000
 const MESSAGE_DESTINATION = '/user/queue/client-portal-messages'
@@ -57,13 +57,31 @@ export function isClientPortalSocketConnected() {
   return Boolean(stompClient?.connected)
 }
 
-function openConnection() {
+async function openConnection() {
   if (!shouldReconnect || isConnecting || stompClient?.connected) {
     return
   }
 
   clearReconnectTimer()
   isConnecting = true
+
+  // STOMP CONNECT проверяется маскированным CSRF-токеном из /csrf (как в сокете сотрудников),
+  // «сырое» значение из cookie XSRF-TOKEN сервер отклоняет
+  let connectHeaders
+  try {
+    connectHeaders = await getStompCsrfHeaders()
+  } catch (error) {
+    isConnecting = false
+    if (typeof callbacks.onError === 'function') {
+      callbacks.onError(error)
+    }
+    scheduleReconnect()
+    return
+  }
+  if (!shouldReconnect) {
+    isConnecting = false
+    return
+  }
 
   const socket = new SockJS('/client-portal-ws', null, {
     transports: ['websocket']
@@ -73,9 +91,8 @@ function openConnection() {
   client.debug = () => {
   }
 
-  const csrfToken = getCsrfToken()
   client.connect(
-    csrfToken ? {'X-XSRF-TOKEN': csrfToken} : {},
+    connectHeaders,
     () => handleConnected(client),
     error => handleConnectionLost(client, error),
     event => handleConnectionLost(client, event)

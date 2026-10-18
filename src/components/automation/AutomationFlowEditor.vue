@@ -295,14 +295,12 @@
           />
 
           <template v-if="selectedNode.type === 'EVENT'">
-            <q-select
+            <automation-event-select
               v-model="selectedNode.config.triggerType"
               outlined
               dense
               label="Событие *"
               :options="triggerTypeOptions"
-              emit-value
-              map-options
               class="q-mt-md"
               @update:model-value="commit"
             />
@@ -681,6 +679,7 @@
 import {nextTick} from 'vue'
 import AutomationAdvancedNodeInspector from 'src/components/automation/AutomationAdvancedNodeInspector.vue'
 import AutomationExpressionInput from 'src/components/automation/AutomationExpressionInput.vue'
+import AutomationEventSelect from 'src/components/automation/AutomationEventSelect.vue'
 import {
   createDefaultWorkflow,
   createEdge,
@@ -689,27 +688,6 @@ import {
   nextFlowId,
   normalizeWorkflow
 } from 'src/util/automationFlow'
-
-const EVENT_LABELS = {
-  TASK_CREATED: 'Заявка создана',
-  TASK_UPDATED: 'Заявка изменена',
-  TASK_STATUS_CHANGED: 'Изменён статус заявки',
-  TASK_PRIORITY_CHANGED: 'Изменён приоритет заявки',
-  TASK_TYPE_CHANGED: 'Изменён тип заявки',
-  TASK_SERVICE_CHANGED: 'Изменён сервис заявки',
-  TASK_ASSIGNEE_CHANGED: 'Изменён исполнитель',
-  TASK_GROUP_CHANGED: 'Изменена линия поддержки',
-  TASK_TAG_ADDED: 'Добавлен тег',
-  TASK_TAG_REMOVED: 'Удалён тег',
-  TASK_CLOSED: 'Заявка закрыта',
-  TASK_REOPENED: 'Заявка возвращена в работу',
-  SLA_WARNING: 'Предупреждение SLA',
-  SLA_BREACHED: 'SLA нарушен',
-  MESSAGE_INCOMING: 'Входящее сообщение',
-  MESSAGE_OUTGOING: 'Исходящее сообщение',
-  INACTIVITY_TIMEOUT: 'Нет активности',
-  SCHEDULED_CRON: 'По расписанию'
-}
 
 const NODE_SIZES = {
   EVENT: {width: 250, height: 145},
@@ -748,10 +726,11 @@ const ADVANCED_NODE_TYPES = [
 
 export default {
   name: 'AutomationFlowEditor',
-  components: {AutomationAdvancedNodeInspector, AutomationExpressionInput},
+  components: {AutomationAdvancedNodeInspector, AutomationExpressionInput, AutomationEventSelect},
 
   props: {
     modelValue: {type: Object, required: true},
+    // [{ value, label, group }] — события с названиями из GET /api/v1/trigger-types/options
     triggerTypes: {type: Array, default: () => []},
     triggers: {type: Array, default: () => []},
     taskTypes: {type: Array, default: () => []},
@@ -947,10 +926,11 @@ export default {
     },
 
     triggerTypeOptions() {
-      return (this.triggerTypes || []).map(value => ({
-        value,
-        label: EVENT_LABELS[value] || value
-      }))
+      return this.triggerTypes || []
+    },
+
+    eventLabels() {
+      return Object.fromEntries(this.triggerTypeOptions.map(option => [option.value, option.label]))
     },
 
     nodeMap() {
@@ -1170,7 +1150,7 @@ export default {
 
     nodeSummary(node) {
       const c = node.config || {}
-      if (node.type === 'EVENT') return EVENT_LABELS[c.triggerType] || c.triggerType || 'Событие не выбрано'
+      if (node.type === 'EVENT') return this.eventLabels[c.triggerType] || c.triggerType || 'Событие не выбрано'
       if (node.type === 'CONDITION') return c.expression || 'Условие не заполнено'
       if (node.type === 'SWITCH') return `${c.valueExpression || 'значение не задано'} · вариантов: ${(c.cases || []).length}`
       if (node.type === 'ACTION') {
@@ -1181,8 +1161,8 @@ export default {
       }
       if (node.type === 'DELAY') return `${c.amount || 0} ${this.delayUnits.find(item => item.value === c.unit)?.label || ''}`
       if (node.type === 'WAIT_UNTIL') return c.mode === 'FIXED' ? (c.dateTime || 'Дата не задана') : (c.mode || 'Режим не выбран')
-      if (node.type === 'WAIT_EVENT') return `${EVENT_LABELS[c.eventType] || c.eventType || 'Событие не выбрано'} · ${c.scope || 'TASK'}`
-      if (node.type === 'WAIT_TASK') return `${EVENT_LABELS[c.eventType] || c.eventType || 'Событие'} · заявка ${c.taskIdExpression || '?'}`
+      if (node.type === 'WAIT_EVENT') return `${this.eventLabels[c.eventType] || c.eventType || 'Событие не выбрано'} · ${c.scope || 'TASK'}`
+      if (node.type === 'WAIT_TASK') return `${this.eventLabels[c.eventType] || c.eventType || 'Событие'} · заявка ${c.taskIdExpression || '?'}`
       if (node.type === 'APPROVAL') return c.title || 'Решение не настроено'
       if (node.type === 'SUBFLOW') return `Автоматизация #${c.triggerId || '?'} · ${c.mode || 'INLINE'}`
       if (node.type === 'FORK') return `${(c.branches || []).length} ветки → ${c.joinNodeId || 'JOIN не выбран'}`
@@ -1324,7 +1304,7 @@ export default {
     },
 
     defaultConfig(type) {
-      if (type === 'EVENT') return {triggerType: this.triggerTypes[0] || 'TASK_CREATED'}
+      if (type === 'EVENT') return {triggerType: this.triggerTypes[0]?.value || 'TASK_CREATED'}
       if (type === 'CONDITION') return {expression: 'true', groups: [], manualExpression: false}
       if (type === 'SWITCH') return {
         valueExpression: 'task.priority.id',

@@ -410,14 +410,7 @@ export default {
         .then(() => {
           this.$q.notify({
             type: 'positive',
-            message: 'Тип заявки сохранён',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            message: 'Тип заявки сохранён'
           })
           this.taskTypeDialog = false
           this.loadTaskTypes()
@@ -435,14 +428,7 @@ export default {
         .then(() => {
           this.$q.notify({
             type: 'positive',
-            message: 'Тип заявки удалён',
-            position: 'top-right',
-            actions: [{
-              icon: 'close',
-              color: 'white',
-              dense: true,
-              handler: () => undefined
-            }]
+            message: 'Тип заявки удалён'
           })
           this.deleteTaskTypeDialog = false
           this.taskTypeDialog = false
@@ -489,14 +475,7 @@ export default {
     notifyError(message) {
       this.$q.notify({
         type: 'negative',
-        message,
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        message
       })
     },
 

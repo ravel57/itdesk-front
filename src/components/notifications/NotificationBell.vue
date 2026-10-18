@@ -308,7 +308,12 @@ export default {
         case 'DEADLINE_OVERDUE':
           return {path: '/tasks'}
         case 'INCIDENT_UPDATE_OVERDUE':
+        case 'INCIDENT_DETECTED':
+        case 'INCIDENT_RECOVERY_FAILED':
           return {path: '/incidents'}
+        case 'MONITORING_CONNECTION_LOST':
+        case 'MONITORING_CONNECTION_RESTORED':
+          return {path: '/settings/services', query: {tab: 'zabbix'}}
         default:
           return null
       }
@@ -342,7 +347,11 @@ export default {
         CHAT_UNANSWERED_TOO_LONG: 'Чат без ответа',
         DEADLINE_SOON: 'Приближается дедлайн',
         DEADLINE_OVERDUE: 'Дедлайн нарушен',
-        INCIDENT_UPDATE_OVERDUE: 'Обновление инцидента просрочено'
+        INCIDENT_UPDATE_OVERDUE: 'Обновление инцидента просрочено',
+        INCIDENT_DETECTED: 'Массовый сбой',
+        INCIDENT_RECOVERY_FAILED: 'Проблема после восстановления',
+        MONITORING_CONNECTION_LOST: 'Нет связи с Zabbix',
+        MONITORING_CONNECTION_RESTORED: 'Связь с Zabbix восстановлена'
       }[event] || 'Уведомление'
     },
 
@@ -357,13 +366,21 @@ export default {
         CHAT_UNANSWERED_TOO_LONG: 'mark_chat_unread',
         DEADLINE_SOON: 'event',
         DEADLINE_OVERDUE: 'event_busy',
-        INCIDENT_UPDATE_OVERDUE: 'crisis_alert'
+        INCIDENT_UPDATE_OVERDUE: 'crisis_alert',
+        INCIDENT_DETECTED: 'warning',
+        INCIDENT_RECOVERY_FAILED: 'report_problem',
+        MONITORING_CONNECTION_LOST: 'cloud_off',
+        MONITORING_CONNECTION_RESTORED: 'cloud_done'
       }[event] || 'notifications'
     },
 
     eventColor (event) {
-      if (['SLA_OVERDUE', 'DEADLINE_OVERDUE', 'INCIDENT_UPDATE_OVERDUE'].includes(event)) {
+      if (['SLA_OVERDUE', 'DEADLINE_OVERDUE', 'INCIDENT_UPDATE_OVERDUE', 'INCIDENT_DETECTED', 'INCIDENT_RECOVERY_FAILED',
+        'MONITORING_CONNECTION_LOST'].includes(event)) {
         return 'negative'
+      }
+      if (event === 'MONITORING_CONNECTION_RESTORED') {
+        return 'positive'
       }
       if (['SLA_HALF_TIME_PASSED', 'DEADLINE_SOON', 'CHAT_UNANSWERED_TOO_LONG'].includes(event)) {
         return 'warning'

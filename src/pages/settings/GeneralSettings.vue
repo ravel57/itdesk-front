@@ -146,6 +146,8 @@
         </q-card-section>
       </q-card>
 
+      <access-security-settings/>
+
       <div class="general-settings__actions row justify-end q-gutter-sm">
         <q-btn
           flat
@@ -168,6 +170,7 @@
 
 <script>
 import {useStore} from 'stores/store'
+import AccessSecuritySettings from 'components/settings/AccessSecuritySettings.vue'
 
 const FALLBACK_TIMEZONES = [
   'Europe/Moscow',
@@ -222,6 +225,8 @@ const SUPPORT_LINE_ACCESS_MODES = [
 
 export default {
   name: 'GeneralSettingsTab',
+
+  components: {AccessSecuritySettings},
 
   data() {
     return {
@@ -312,21 +317,13 @@ export default {
         .then(() => {
           this.$q.notify({
             type: 'positive',
-            message: 'Общие настройки сохранены',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            message: 'Общие настройки сохранены'
           })
         })
         .catch(error => {
           this.$q.notify({
             type: 'negative',
-            message: error.response?.data || 'Не удалось сохранить общие настройки',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            message: error.response?.data || 'Не удалось сохранить общие настройки'
           })
         })
         .finally(() => {

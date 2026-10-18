@@ -607,7 +607,7 @@ export default {
       }
       const authorities = Array.isArray(user.authorities) ? user.authorities : []
       const roles = Array.isArray(user.roles) ? user.roles : (user.roles ? [user.roles] : [])
-      const allowedRoles = new Set(['ADMIN', 'MANAGER', 'OPERATOR'])
+      const allowedRoles = new Set(['ADMIN', 'MANAGER', 'SENIOR_OPERATOR', 'OPERATOR'])
       return [...authorities, ...roles]
         .map(role => this.normalizeUserRole(role))
         .some(role => allowedRoles.has(role))
@@ -734,28 +734,14 @@ export default {
       if (!this.form.name.trim()) {
         this.$q.notify({
           type: 'negative',
-          message: 'Укажите название линии',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Укажите название линии'
         })
         return
       }
       if (this.form.olaEnabled && Number(this.form.olaValue || 0) <= 0) {
         this.$q.notify({
           type: 'negative',
-          message: 'Укажите положительный срок OLA',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Укажите положительный срок OLA'
         })
         this.dialogTab = 'ola'
         return
@@ -864,14 +850,7 @@ export default {
       this.resetRoutingForm()
       this.$q.notify({
         type: 'positive',
-        message: 'Черновик маршрутизации сохранён',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        message: 'Черновик маршрутизации сохранён'
       })
     },
 
@@ -902,26 +881,12 @@ export default {
         await navigator.clipboard.writeText(this.routingPreview)
         this.$q.notify({
           type: 'positive',
-          message: 'Заготовка скопирована',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Заготовка скопирована'
         })
       } catch (e) {
         this.$q.notify({
           type: 'negative',
-          message: 'Не удалось скопировать заготовку',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          message: 'Не удалось скопировать заготовку'
         })
       }
     },
@@ -933,14 +898,7 @@ export default {
     showError(error) {
       this.$q.notify({
         type: 'negative',
-        message: error?.response?.data?.message || error?.message || 'Ошибка сохранения',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        message: error?.response?.data?.message || error?.message || 'Ошибка сохранения'
       })
     }
   },

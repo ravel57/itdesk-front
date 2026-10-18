@@ -131,14 +131,12 @@ export default {
         this.kbCount = Number(data?.count ?? 0)
         this.$q.notify({
           type: 'positive',
-          position: 'top-right',
           message: `LLM переобучена: ${data?.documents ?? 0} статей, ${data?.chunks ?? 0} чанков`
         })
       } catch (e) {
         const detail = e?.response?.data?.detail || e?.response?.data?.message || e.message
         this.$q.notify({
           type: 'negative',
-          position: 'top-right',
           message: `Не удалось переобучить LLM: ${detail}`
         })
         await this.loadKbCount()

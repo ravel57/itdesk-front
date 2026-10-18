@@ -1,5 +1,10 @@
 <template>
-  <div id="task-card" class="task-card" :data-tour="this.isOnboardingDemo ? 'tasks-task-card-inner' : null">
+  <div
+    id="task-card"
+    class="task-card"
+    :class="{ 'task-card--with-chat-link': !!this.$slots.chatLink }"
+    :data-tour="this.isOnboardingDemo ? 'tasks-task-card-inner' : null"
+  >
     <slot name="chatLink"></slot>
     <div class="task-card-header">
       <div class="task-card-header-left">
@@ -618,14 +623,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.response?.data || e.message || 'Не удалось снять SLA с паузы',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         this.slaActionLoading = false
@@ -1021,5 +1019,10 @@ th {
   border-radius: 999px;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+/* место под угол «Перейти в чат», чтобы он не перекрывал статус */
+.task-card--with-chat-link .task-card-status-container {
+  right: 14px;
 }
 </style>

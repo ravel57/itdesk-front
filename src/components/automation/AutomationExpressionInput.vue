@@ -13,6 +13,34 @@
       @change="onChange"
     />
 
+    <!-- Подсказка параметров вызова, как в IDE: текущий аргумент жирным, неподходящие перегрузки бледнее -->
+    <q-tooltip
+      v-model="signatureVisible"
+      no-parent-event
+      anchor="top left"
+      self="bottom left"
+      :offset="[0, 6]"
+      max-width="560px"
+      transition-show="none"
+      transition-hide="none"
+      class="automation-signature-hint"
+    >
+      <div
+        v-for="(signature, index) in signatureLines"
+        :key="index"
+        class="automation-signature-hint__line"
+        :class="{ 'automation-signature-hint__line--inapplicable': !signature.applicable }"
+      >
+        <template v-if="signature.parameters.length">
+          <template v-for="(parameter, parameterIndex) in signature.parameters" :key="parameterIndex">
+            <span :class="{ 'automation-signature-hint__current': parameter.current }">{{ parameter.text }}</span>
+            <span v-if="parameterIndex < signature.parameters.length - 1">, </span>
+          </template>
+        </template>
+        <span v-else>&lt;без параметров&gt;</span>
+      </div>
+    </q-tooltip>
+
     <q-menu
       v-model="menuVisible"
       no-parent-event
@@ -116,6 +144,8 @@ export default {
       loading: false,
       menuVisible: false,
       suggestions: [],
+      signatureHelp: null,
+      signatureVisible: false,
       activeIndex: 0,
       replaceFrom: 0,
       replaceTo: 0,
@@ -146,6 +176,23 @@ export default {
       delete attrs.onKeyup
       delete attrs.onClick
       return attrs
+    },
+
+    signatureLines () {
+      const help = this.signatureHelp
+      if (!help || !Array.isArray(help.signatures)) return []
+      const active = Number(help.activeParameter) || 0
+      return help.signatures.map(signature => {
+        const parameters = Array.isArray(signature.parameters) ? signature.parameters : []
+        const applicable = parameters.length > active || (active === 0 && parameters.length === 0)
+        return {
+          applicable,
+          parameters: parameters.map((parameter, index) => ({
+            text: parameter.name ? `${parameter.type} ${parameter.name}` : parameter.type,
+            current: applicable && index === active
+          }))
+        }
+      })
     },
 
     normalizedVariables () {
@@ -211,7 +258,10 @@ export default {
       this.loading = false
 
       window.setTimeout(() => {
-        if (!this.focused) this.menuVisible = false
+        if (!this.focused) {
+          this.menuVisible = false
+          this.signatureVisible = false
+        }
       }, 100)
     },
 
@@ -246,9 +296,10 @@ export default {
         return
       }
 
-      if (event.key === 'Escape' && this.menuVisible) {
+      if (event.key === 'Escape' && (this.menuVisible || this.signatureVisible)) {
         event.preventDefault()
         this.menuVisible = false
+        this.signatureVisible = false
       }
     },
 
@@ -397,6 +448,7 @@ export default {
         if (sequence !== this.requestSequence) return
         this.suggestions = []
         this.menuVisible = false
+        this.signatureVisible = false
         console.warn('Unable to load automation expression suggestions', error)
       } finally {
         if (sequence === this.requestSequence) this.loading = false
@@ -414,6 +466,8 @@ export default {
       this.suggestions = Array.isArray(data?.suggestions) ? data.suggestions : []
       this.activeIndex = 0
       this.menuVisible = this.focused && (this.loading || this.suggestions.length > 0)
+      this.signatureHelp = data?.signatureHelp || null
+      this.signatureVisible = this.focused && this.signatureLines.length > 0
     },
 
     selectSuggestion (suggestion) {
@@ -507,6 +561,35 @@ export default {
 .automation-expression-icon-section {
   min-width: 34px !important;
   padding-right: 4px !important;
+}
+
+.automation-signature-hint {
+  padding: 6px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--q-dark, #1d1d1d);
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.body--dark .automation-signature-hint {
+  color: #e6e6e6;
+  background: #2b2d30;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.automation-signature-hint__line {
+  white-space: nowrap;
+}
+
+.automation-signature-hint__line--inapplicable {
+  opacity: 0.45;
+}
+
+.automation-signature-hint__current {
+  font-weight: 700;
 }
 
 .automation-expression-label {

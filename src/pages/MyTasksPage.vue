@@ -144,6 +144,19 @@
           class="my-tasks-onboarding-tooltip"
           :style="this.myTasksOnboardingTooltipStyle"
         >
+          <q-btn
+            flat
+            round
+            dense
+            size="sm"
+            icon="close"
+            color="grey-7"
+            class="onboarding-close-btn"
+            aria-label="Закрыть обучение"
+            @click="this.skipMyTasksOnboarding"
+          >
+            <q-tooltip>Закрыть обучение</q-tooltip>
+          </q-btn>
           <div class="my-tasks-onboarding-progress">
             {{ this.myTasksOnboardingStepIndex + 1 }} / {{ this.myTasksOnboardingSteps.length }}
           </div>
@@ -153,14 +166,7 @@
           <div class="my-tasks-onboarding-text">
             {{ this.myTasksCurrentOnboardingStep.text }}
           </div>
-          <div class="my-tasks-onboarding-actions">
-            <q-btn
-              flat
-              dense
-              color="grey"
-              label="Пропустить"
-              @click="this.skipMyTasksOnboarding"
-            />
+          <div class="my-tasks-onboarding-actions" style="justify-content: flex-end">
             <div class="my-tasks-onboarding-nav">
               <q-btn
                 flat
@@ -468,11 +474,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.message || 'Не удалось загрузить мои заявки',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         this.myTasksPageLoading = false
@@ -1025,44 +1027,36 @@ export default {
   margin-bottom: 8px
 }
 
+/* Угол «Перейти в чат»: треугольник в правом верхнем углу внешней рамки карточки.
+   Карточка вложена в q-item с отступом 8px, поэтому угол выносится на эту величину. */
 .link-to-chat-container {
-  background-color: var(--q-primary);
   display: none;
-  height: 60px;
-  overflow: hidden;
   position: absolute;
-  right: -38px;
-  top: -38px;
-  transform: rotate(45deg);
-  transition: transform .3s ease;
-  width: 60px;
+  top: var(--chat-link-top, -8px);
+  right: var(--chat-link-right, -8px);
+  width: 28px;
+  height: 28px;
+  background-color: var(--q-primary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
   z-index: 1;
+  transition: filter .2s ease;
 }
 
 .link-container {
-  color: var(--q-primary);
-  display: flex;
-  font-size: 15px;
-  margin-left: 3px;
-  padding: 0;
-  text-decoration: none;
-  transition: transform .3s ease;
-  width: 50%;
   position: absolute;
-  right: 25%;
-  bottom: 0;
-  height: 50%;
+  top: 3px;
+  right: 3px;
+  width: 13px;
+  height: 13px;
+  display: flex;
 }
 
 .link {
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  transform: rotate(-45deg);
+  font-size: 13px;
 }
 
 .link-to-chat-container:hover {
-  transform: rotate(45deg) scale(1.2);
+  filter: brightness(1.2);
 }
 
 .task-card:hover {
@@ -1166,4 +1160,16 @@ a:hover, a:active {
   gap: 8px;
 }
 
+/* Крестик закрытия обучения в правом верхнем углу карточки */
+.onboarding-close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+}
+
+.my-tasks-onboarding-progress,
+.my-tasks-onboarding-title {
+  padding-right: 28px;
+}
 </style>

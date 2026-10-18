@@ -260,7 +260,20 @@
         class="onboarding-card"
         :style="onboardingCardStyle"
       >
-        <q-card-section class="q-pb-sm">
+        <q-btn
+          flat
+          round
+          dense
+          size="sm"
+          icon="close"
+          color="grey-7"
+          class="onboarding-close-btn"
+          aria-label="Закрыть обучение"
+          @click="skipOnboarding"
+        >
+          <q-tooltip>Закрыть обучение</q-tooltip>
+        </q-btn>
+        <q-card-section class="q-pb-sm" style="padding-right: 40px">
           <div class="onboarding-card__step">
             Шаг {{ getCurrentOnboardingStepNumber() }} из {{ getAvailableOnboardingStepsCount() }}
           </div>
@@ -272,15 +285,7 @@
           </div>
         </q-card-section>
 
-        <q-card-actions align="between" class="q-pt-none">
-          <q-btn
-            flat
-            dense
-            color="grey-7"
-            label="Пропустить"
-            @click="skipOnboarding"
-          />
-
+        <q-card-actions align="right" class="q-pt-none">
           <div class="row items-center q-gutter-xs">
             <q-btn
               flat
@@ -2016,5 +2021,13 @@ export default {
     min-width: 0;
     overflow: hidden;
   }
+}
+
+/* Крестик закрытия обучения в правом верхнем углу карточки */
+.onboarding-close-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
 }
 </style>

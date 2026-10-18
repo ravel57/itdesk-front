@@ -988,8 +988,7 @@ Get-ADUser -Filter 'Enabled -eq $true' -Properties GivenName,Surname,mail,teleph
             this.dialogClose()
             this.$q.notify({
               message: 'Клиентская учётная запись удалена',
-              type: 'positive',
-              position: 'top-right'
+              type: 'positive'
             })
           })
           .catch(error => this.notifyError(this.getErrorMessage(error)))
@@ -1065,7 +1064,7 @@ Get-ADUser -Filter 'Enabled -eq $true' -Properties GivenName,Surname,mail,teleph
       this.passwordSaving = true
       axios.post(`/api/v1/user/${this.userId}/change-password`, {password: this.newClientPassword})
         .then(() => {
-          this.$q.notify({message: 'Пароль клиента изменён', type: 'positive', position: 'top-right'})
+          this.$q.notify({message: 'Пароль клиента изменён', type: 'positive'})
           this.closePasswordDialog()
         })
         .catch(error => this.notifyError(this.getErrorMessage(error)))
@@ -1124,7 +1123,7 @@ Get-ADUser -Filter 'Enabled -eq $true' -Properties GivenName,Surname,mail,teleph
           }))
           this.importStage = 'preview'
           if (!rows.length) {
-            this.$q.notify({message: 'В CSV нет строк для импорта', type: 'warning', position: 'top-right'})
+            this.$q.notify({message: 'В CSV нет строк для импорта', type: 'warning'})
           }
         })
         .catch(error => this.notifyError(this.getErrorMessage(error)))
@@ -1291,7 +1290,7 @@ Get-ADUser -Filter 'Enabled -eq $true' -Properties GivenName,Surname,mail,teleph
     },
 
     copyPowerShell() {
-      const done = () => this.$q.notify({message: 'PowerShell-команда скопирована', type: 'positive', position: 'top-right'})
+      const done = () => this.$q.notify({message: 'PowerShell-команда скопирована', type: 'positive'})
       if (navigator?.clipboard?.writeText) {
         navigator.clipboard.writeText(this.powershellScript).then(done).catch(() => this.copyTextFallback(this.powershellScript, done))
         return
@@ -1367,9 +1366,7 @@ Get-ADUser -Filter 'Enabled -eq $true' -Properties GivenName,Surname,mail,teleph
     notifyError(message) {
       this.$q.notify({
         message,
-        type: 'negative',
-        position: 'top-right',
-        actions: [{icon: 'close', color: 'white', dense: true}]
+        type: 'negative'
       })
     },
 

@@ -1,13 +1,9 @@
 import {boot} from 'quasar/wrappers'
 import {pluginRegistry} from 'src/plugins/pluginRegistry'
+import {isPublicPage} from 'src/router/publicPages'
 
 export default boot(async () => {
-  const publicPages = [
-    '/login',
-    '/login-error',
-    '/session-expired'
-  ]
-  if (publicPages.includes(window.location.pathname)) {
+  if (isPublicPage()) {
     return
   }
   try {

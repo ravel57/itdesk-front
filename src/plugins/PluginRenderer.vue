@@ -173,14 +173,7 @@ export default {
 
       this.$q.notify({
         message: 'Скопировано',
-        type: 'positive',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        type: 'positive'
       })
     },
 
@@ -203,14 +196,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: 'Ошибка выполнения действия плагина',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
       }
     },
@@ -229,14 +215,7 @@ export default {
       if (command.type === 'SHOW_TOAST') {
         this.$q.notify({
           message: command.payload?.message || '',
-          type: command.payload?.type || 'info',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: command.payload?.type || 'info'
         })
       }
 

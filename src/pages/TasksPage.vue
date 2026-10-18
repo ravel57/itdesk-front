@@ -1216,11 +1216,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.message || 'Не удалось загрузить заявки',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         this.cardTaskColumnsLoading = false
@@ -1299,11 +1295,7 @@ export default {
       } catch (e) {
         this.$q.notify({
           message: e.message || 'Не удалось загрузить заявки',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         this.taskPageLoading = false
@@ -1608,8 +1600,7 @@ export default {
       if (selectedFilter && !this.canEditSelectedSavedFilter) {
         this.$q.notify({
           message: 'У вас нет прав на изменение этого фильтра',
-          type: 'negative',
-          position: 'top-right'
+          type: 'negative'
         })
         return
       }
@@ -1637,27 +1628,18 @@ export default {
             this.$q.notify({
               message: selectedFilter ? 'Фильтр обновлён' : 'Фильтр сохранён',
               type: 'positive',
-              position: 'top-right',
               timeout: 1500
             })
           })
           .catch(e =>
             this.$q.notify({
               message: e.message,
-              type: 'negative',
-              position: 'top-right',
-              actions: [{
-                icon: 'close', color: 'white', dense: true, handler: () => undefined
-              }]
+              type: 'negative'
             }))
       } else {
         this.$q.notify({
           message: 'Необходимо задать имя фильтра',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
       }
     },
@@ -1720,11 +1702,7 @@ export default {
         .catch(e =>
           this.$q.notify({
             message: e.message,
-            type: 'negative',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            type: 'negative'
           }))
     },
 
@@ -2357,21 +2335,12 @@ export default {
       this.$q.notify({
         message: `Массовое действие сохранено в истории: ${this.getBulkActionLabel(action)} (${count})`,
         type: 'info',
-        position: 'top-right',
         timeout: 5000,
-        actions: [
-          {
+        actions: [{
             label: 'Отменить',
             color: 'white',
             handler: () => this.undoBulkAction()
-          },
-          {
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }
-        ]
+          }]
       })
     },
 
@@ -2464,9 +2433,7 @@ export default {
       if (!this.canUndoBulkAction || this.isBulkHistoryProcessing) {
         this.$q.notify({
           message: 'Нет массовых действий для отмены',
-          type: 'warning',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'warning'
         })
         return
       }
@@ -2483,17 +2450,13 @@ export default {
         })
         this.$q.notify({
           message: `Отменено: ${this.getBulkActionLabel(history.action)} (${restoredTasks.length})`,
-          type: 'positive',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'positive'
         })
       } catch (e) {
         this.bulkActionHistory.push(history)
         this.$q.notify({
           message: e.message || 'Не удалось отменить массовое действие',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'negative'
         })
       } finally {
         this.isBulkHistoryProcessing = false
@@ -2520,17 +2483,13 @@ export default {
         })
         this.$q.notify({
           message: `Повторено: ${this.getBulkActionLabel(history.action)} (${redoneTasks.length})`,
-          type: 'positive',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'positive'
         })
       } catch (e) {
         this.bulkActionRedoHistory.push(history)
         this.$q.notify({
           message: e.message || 'Не удалось повторить массовое действие',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{icon: 'close', color: 'white', dense: true, handler: () => undefined}]
+          type: 'negative'
         })
       } finally {
         this.isBulkHistoryProcessing = false
@@ -2599,14 +2558,7 @@ export default {
         message: taskNumbers
           ? `Перед закрытием укажите исполнителя у заявок: ${taskNumbers}`
           : 'Перед закрытием заявок укажите исполнителя',
-        type: 'negative',
-        position: 'top-right',
-        actions: [{
-          icon: 'close',
-          color: 'white',
-          dense: true,
-          handler: () => undefined
-        }]
+        type: 'negative'
       })
       return false
     },
@@ -2862,26 +2814,12 @@ export default {
         this.store.checkedTasks = []
         this.$q.notify({
           message: `Закрыто заявок: ${selectedTasks.length}`,
-          type: 'positive',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'positive'
         })
       } catch (e) {
         this.$q.notify({
           message: e.message || 'Не удалось закрыть заявки',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close',
-            color: 'white',
-            dense: true,
-            handler: () => undefined
-          }]
+          type: 'negative'
         })
       } finally {
         this.clearBulkReasonDialogState()
@@ -3641,6 +3579,8 @@ export default {
       })
 
       if (!loadedTask) {
+        // Новая заявка (например, от автоматизации): перечитываем страницу, чтобы учесть фильтры и сортировку
+        this.reloadTasksPageDebounced()
         return
       }
 
@@ -4280,11 +4220,7 @@ export default {
       .catch(e =>
         this.$q.notify({
           message: e.message,
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         }))
       .finally(() => {
         this.resetTasksPageAndLoad()

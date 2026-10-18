@@ -35,8 +35,8 @@
     </template>
 
     <template v-else-if="node.type === 'WAIT_EVENT' || node.type === 'WAIT_TASK'">
-      <q-select v-model="node.config.eventType" outlined dense label="Ожидаемое событие *" :options="triggerTypeOptions"
-                emit-value map-options @update:model-value="changed"/>
+      <automation-event-select v-model="node.config.eventType" outlined dense label="Ожидаемое событие *"
+                               :options="triggerTypeOptions" @update:model-value="changed"/>
       <q-select v-if="node.type === 'WAIT_EVENT'" v-model="node.config.scope" outlined dense label="Связать событие"
                 :options="waitScopes" emit-value map-options class="q-mt-md" @update:model-value="changed"/>
       <q-input v-else v-model="node.config.taskIdExpression" outlined dense label="ID заявки или переменная *"
@@ -226,24 +226,15 @@
 
 <script>
 import {nextFlowId} from 'src/util/automationFlow'
-
-const EVENT_LABELS = {
-  TASK_CREATED: 'Заявка создана', TASK_UPDATED: 'Заявка изменена', TASK_STATUS_CHANGED: 'Изменён статус',
-  TASK_PRIORITY_CHANGED: 'Изменён приоритет', TASK_TYPE_CHANGED: 'Изменён тип заявки',
-  TASK_SERVICE_CHANGED: 'Изменён сервис заявки',
-  TASK_ASSIGNEE_CHANGED: 'Изменён исполнитель',
-  TASK_GROUP_CHANGED: 'Изменена линия', TASK_TAG_ADDED: 'Добавлен тег', TASK_TAG_REMOVED: 'Удалён тег',
-  TASK_CLOSED: 'Заявка закрыта', TASK_REOPENED: 'Заявка возвращена', SLA_WARNING: 'Предупреждение SLA',
-  SLA_BREACHED: 'SLA нарушен', FIRST_RESPONSE_SLA_WARNING: 'Срок первого ответа истекает',
-  FIRST_RESPONSE_SLA_BREACHED: 'Срок первого ответа нарушен', MESSAGE_INCOMING: 'Входящее сообщение',
-  MESSAGE_OUTGOING: 'Исходящее сообщение'
-}
+import AutomationEventSelect from 'src/components/automation/AutomationEventSelect.vue'
 
 export default {
   name: 'AutomationAdvancedNodeInspector',
+  components: {AutomationEventSelect},
   props: {
     node: {type: Object, required: true},
     flow: {type: Object, required: true},
+    // [{ value, label, group }] из GET /api/v1/trigger-types/options
     triggerTypes: {type: Array, default: () => []},
     triggers: {type: Array, default: () => []},
     taskTypes: {type: Array, default: () => []},
@@ -296,7 +287,7 @@ export default {
   }),
   computed: {
     triggerTypeOptions() {
-      return (this.triggerTypes || []).map(value => ({value, label: EVENT_LABELS[value] || value}))
+      return this.triggerTypes || []
     },
     triggerOptions() {
       return (this.triggers || []).filter(item => item?.id).map(item => ({

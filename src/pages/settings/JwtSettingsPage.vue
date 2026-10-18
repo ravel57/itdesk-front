@@ -405,22 +405,14 @@ export default {
         }
         this.$q.notify({
           type: 'positive',
-          message: `JWT «${this.generatedName}» сгенерирован`,
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          message: `JWT «${this.generatedName}» сгенерирован`
         })
         this.tokenName = ''
         await Promise.all([this.loadTokens(), this.loadKeys()])
       } catch (error) {
         this.$q.notify({
           type: 'negative',
-          message: this.errorMessage(error, 'Не удалось создать JWT'),
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          message: this.errorMessage(error, 'Не удалось создать JWT')
         })
       } finally {
         this.generating = false
@@ -439,11 +431,7 @@ export default {
         this.scopeOptions = [{value: 'api:full', title: 'Полный доступ к API', description: ''}]
         this.$q.notify({
           type: 'negative',
-          message: this.errorMessage(error, 'Не удалось загрузить JWT scopes'),
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          message: this.errorMessage(error, 'Не удалось загрузить JWT scopes')
         })
       } finally {
         this.scopesLoading = false
@@ -458,11 +446,7 @@ export default {
       } catch (error) {
         this.$q.notify({
           type: 'negative',
-          message: this.errorMessage(error, 'Не удалось загрузить JWT'),
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          message: this.errorMessage(error, 'Не удалось загрузить JWT')
         })
       } finally {
         this.tokensLoading = false
@@ -477,11 +461,7 @@ export default {
       } catch (error) {
         this.$q.notify({
           type: 'negative',
-          message: this.errorMessage(error, 'Не удалось загрузить ключи JWT'),
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          message: this.errorMessage(error, 'Не удалось загрузить ключи JWT')
         })
       } finally {
         this.keysLoading = false
@@ -502,20 +482,12 @@ export default {
           await this.loadKeys()
           this.$q.notify({
             type: 'positive',
-            message: 'Ключ подписи JWT ротирован',
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            message: 'Ключ подписи JWT ротирован'
           })
         } catch (error) {
           this.$q.notify({
             type: 'negative',
-            message: this.errorMessage(error, 'Не удалось ротировать ключ JWT'),
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            message: this.errorMessage(error, 'Не удалось ротировать ключ JWT')
           })
         } finally {
           this.rotatingKey = false
@@ -550,20 +522,12 @@ export default {
           await this.loadTokens()
           this.$q.notify({
             type: 'positive',
-            message: 'JWT отозван',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+            message: 'JWT отозван'
           })
         } catch (error) {
           this.$q.notify({
             type: 'negative',
-            message: this.errorMessage(error, 'Не удалось отозвать JWT'),
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+            message: this.errorMessage(error, 'Не удалось отозвать JWT')
           })
         } finally {
           this.revokingId = null
@@ -590,20 +554,12 @@ export default {
           const revoked = response.data?.revoked ?? 0
           this.$q.notify({
             type: 'positive',
-            message: `Отозвано JWT: ${revoked}`,
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            message: `Отозвано JWT: ${revoked}`
           })
         } catch (error) {
           this.$q.notify({
             type: 'negative',
-            message: this.errorMessage(error, 'Не удалось отозвать JWT'),
-            position: 'top-right',
-            actions: [{
-              icon: 'close', color: 'white', dense: true, handler: () => undefined
-            }]
+            message: this.errorMessage(error, 'Не удалось отозвать JWT')
           })
         } finally {
           this.revokingAll = false
@@ -619,20 +575,12 @@ export default {
         await copyToClipboard(this.token)
         this.$q.notify({
           type: 'positive',
-          message: 'JWT скопирован',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          message: 'JWT скопирован'
         })
       } catch (e) {
         this.$q.notify({
           type: 'negative',
-          message: 'Не удалось скопировать JWT',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          message: 'Не удалось скопировать JWT'
         })
       }
     },

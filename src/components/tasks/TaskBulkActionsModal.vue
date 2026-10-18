@@ -318,7 +318,7 @@ export default {
         .filter(Boolean)
         .map(role => String(role).trim().toUpperCase())
 
-      return userRoles.includes('ADMIN') || userRoles.includes('MANAGER') || userRoles.includes('OPERATOR')
+      return ['ADMIN', 'MANAGER', 'SENIOR_OPERATOR', 'OPERATOR'].some(role => userRoles.includes(role))
     },
 
     getAssignableExecutorUsers() {
@@ -787,11 +787,7 @@ export default {
       if (!this.hasRequiredActionValue()) {
         this.$q.notify({
           message: 'Не заполнены обязательные поля',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return
       }
@@ -814,21 +810,13 @@ export default {
         this.store.checkedTasks = []
         this.$q.notify({
           message: this.getNotify,
-          type: 'positive',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'positive'
         })
         this.$emit('close')
       } catch (e) {
         this.$q.notify({
           message: e.message,
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
       }
     },
@@ -1011,11 +999,7 @@ export default {
       if (!selectedStatus) {
         this.$q.notify({
           message: this.action === 'status' ? 'Выберите статус' : 'Не найден целевой статус',
-          type: 'negative',
-          position: 'top-right',
-          actions: [{
-            icon: 'close', color: 'white', dense: true, handler: () => undefined
-          }]
+          type: 'negative'
         })
         return null
       }
@@ -1090,11 +1074,7 @@ export default {
         message: taskNumbers
           ? `Перед закрытием укажите исполнителя у заявок: ${taskNumbers}`
           : 'Перед закрытием заявок укажите исполнителя',
-        type: 'negative',
-        position: 'top-right',
-        actions: [{
-          icon: 'close', color: 'white', dense: true, handler: () => undefined
-        }]
+        type: 'negative'
       })
       return false
     },

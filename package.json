@@ -33,6 +33,7 @@
     "moment-timezone": "^0.5.45",
     "npm": "^10.7.0",
     "pinia": "^2.1.7",
+    "qrcode": "1.5.4",
     "quasar": "^2.8.0",
     "sockjs-client": "^1.6.1",
     "vue": "^3.4.18",
