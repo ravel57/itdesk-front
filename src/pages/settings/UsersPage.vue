@@ -24,19 +24,6 @@
           label="Права ролей"
           @click="openPermissionsDialog"
         />
-        <q-input
-          v-model="userSearch"
-          dense
-          outlined
-          clearable
-          debounce="150"
-          placeholder="Поиск пользователей"
-          class="settings-search"
-        >
-          <template #prepend>
-            <q-icon name="search"/>
-          </template>
-        </q-input>
       </div>
     </div>
 
@@ -50,6 +37,21 @@
         :rows-per-page-options="[10, 20, 50]"
         rows-per-page-label="Строк на странице"
       >
+        <template #top>
+          <q-input
+            v-model="userSearch"
+            dense
+            outlined
+            clearable
+            debounce="150"
+            placeholder="Поиск пользователей"
+            class="settings-search"
+          >
+            <template #prepend>
+              <q-icon name="search"/>
+            </template>
+          </q-input>
+        </template>
         <template #body-cell-mfa="props">
           <q-td :props="props">
             <q-badge v-if="props.row.mfaEnabled" color="positive" label="Включена"/>
@@ -175,39 +177,58 @@
     </q-card>
   </q-dialog>
 
-  <q-dialog v-model="permissionsDialogVisible">
-    <q-card class="permissions-card">
-      <q-toolbar class="justify-between">
-        <div class="text-h6">Права ролей</div>
+  <q-dialog
+    v-model="permissionsDialogVisible"
+    full-width
+    :maximized="$q.screen.lt.sm"
+  >
+    <q-card class="permissions-card column no-wrap">
+      <q-card-section class="row items-start no-wrap q-pb-sm">
+        <div class="col">
+          <div class="text-h6">Права ролей</div>
+          <div class="text-caption text-grey-7">
+            Старшая роль получает все права младшей: Администратор → Менеджер поддержки → Старший оператор → Оператор.
+            Разделы менеджера организации настраиваются в «Общих» настройках.
+          </div>
+        </div>
         <q-btn flat round dense icon="close" v-close-popup/>
-      </q-toolbar>
-      <q-card-section class="q-pt-none text-caption text-grey-7">
-        Старшая роль получает все права младшей: Администратор → Менеджер поддержки → Старший оператор → Оператор.
-        Разделы менеджера организации настраиваются в «Общих» настройках.
       </q-card-section>
-      <q-card-section class="q-pt-none permissions-body">
-        <q-markup-table flat bordered dense separator="cell">
+
+      <div class="permissions-scroll col">
+        <table class="permissions-table">
           <thead>
           <tr>
-            <th class="text-left">Право</th>
-            <th v-for="role in permissionRoles" :key="role.code" class="text-center">{{ role.name }}</th>
+            <th class="permissions-table__name">Право</th>
+            <th v-for="role in permissionRoles" :key="role.code" class="permissions-table__role">
+              <q-chip
+                dense
+                square
+                :color="roleColor(role.code)"
+                text-color="white"
+                class="q-ma-none"
+                :label="role.name"
+              />
+            </th>
           </tr>
           </thead>
           <tbody>
           <template v-for="group in permissionGroups" :key="group.name">
-            <tr>
-              <td :colspan="permissionRoles.length + 1" class="text-weight-medium bg-grey-2">{{ group.name }}</td>
+            <tr class="permissions-table__group">
+              <td :colspan="permissionRoles.length + 1">
+                <span class="permissions-table__group-label">{{ group.name }}</span>
+              </td>
             </tr>
-            <tr v-for="permission in group.items" :key="permission.code">
-              <td>{{ permission.label }}</td>
-              <td v-for="role in permissionRoles" :key="role.code" class="text-center">
-                <q-icon v-if="permission.roles.includes(role.code)" name="check" color="positive"/>
+            <tr v-for="permission in group.items" :key="permission.code" class="permissions-table__row">
+              <td class="permissions-table__name">{{ permission.label }}</td>
+              <td v-for="role in permissionRoles" :key="role.code" class="permissions-table__cell">
+                <q-icon v-if="permission.roles.includes(role.code)" name="check_circle" color="positive" size="20px"/>
+                <span v-else class="permissions-table__no">—</span>
               </td>
             </tr>
           </template>
           </tbody>
-        </q-markup-table>
-      </q-card-section>
+        </table>
+      </div>
     </q-card>
   </q-dialog>
 </template>
@@ -488,6 +509,16 @@ export default {
       })
     },
 
+    roleColor(role) {
+      return {
+        ADMIN: 'deep-purple-6',
+        MANAGER: 'indigo-6',
+        SENIOR_OPERATOR: 'teal-6',
+        OPERATOR: 'blue-6',
+        OBSERVER: 'blue-grey-6'
+      }[role] || 'grey-6'
+    },
+
     getRoleName(role) {
       return role === 'CLIENT' ? '' : (roleLabel(role) || '')
     },
@@ -562,12 +593,81 @@ export default {
 }
 
 .permissions-card {
-  width: 1100px;
-  max-width: 96vw;
+  max-width: 1200px !important;
+  max-height: 88vh;
 }
 
-.permissions-body {
-  max-height: 70vh;
+/* Прокручивается только таблица: заголовок с ролями и колонка прав остаются на месте */
+.permissions-scroll {
   overflow: auto;
+  margin: 0 16px 16px;
+  border: 1px solid #e0e3e8;
+  border-radius: 12px;
+}
+
+.permissions-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.permissions-table th,
+.permissions-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.permissions-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fafbfc;
+  color: #737b89;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.permissions-table .permissions-table__name {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 260px;
+  text-align: left;
+  background: #fff;
+}
+
+.permissions-table thead .permissions-table__name {
+  z-index: 3;
+  background: #fafbfc;
+}
+
+.permissions-table__group td {
+  padding-top: 14px;
+  background: #f5f3ff;
+  color: #4b3fb5;
+  font-weight: 600;
+}
+
+/* Ячейка группы на всю ширину не может «прилипнуть», поэтому закреплена сама подпись */
+.permissions-table__group-label {
+  position: sticky;
+  left: 12px;
+}
+
+.permissions-table__row:hover td {
+  background: #f0ecff;
+}
+
+.permissions-table__cell {
+  width: 140px;
+  text-align: center;
+}
+
+.permissions-table__no {
+  color: #c6cbd3;
 }
 </style>

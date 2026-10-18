@@ -41,11 +41,6 @@
         :disable="savingSecurity"
         @update:model-value="toggleMfaRequired"
       />
-      <div class="text-caption text-grey-7 q-mt-xs">
-        Администратор без настроенной 2FA подключит приложение при следующем входе. Остальные сотрудники
-        включают её сами в профиле. Если доступ потерян у всех администраторов, временно задайте
-        переменную окружения MFA_DISABLED=true.
-      </div>
     </q-card-section>
   </q-card>
 </template>
@@ -65,10 +60,14 @@ export default {
 
   mounted () {
     axios.get('/api/v1/settings/observer-access')
-      .then(({ data }) => { this.observerFeatures = Array.isArray(data) ? data : [] })
+      .then(({ data }) => {
+        this.observerFeatures = Array.isArray(data) ? data : []
+      })
       .catch(error => this.notifyError(error))
     axios.get('/api/v1/settings/security')
-      .then(({ data }) => { this.mfaRequiredForAdmins = Boolean(data?.mfaRequiredForAdmins) })
+      .then(({ data }) => {
+        this.mfaRequiredForAdmins = Boolean(data?.mfaRequiredForAdmins)
+      })
       .catch(error => this.notifyError(error))
   },
 
@@ -81,10 +80,15 @@ export default {
       axios.patch('/api/v1/settings/observer-access', { features })
         .then(({ data }) => {
           this.observerFeatures = Array.isArray(data) ? data : this.observerFeatures
-          this.$q.notify({ type: 'positive', message: 'Разделы менеджера организации сохранены' })
+          this.$q.notify({
+            type: 'positive',
+            message: 'Разделы менеджера организации сохранены'
+          })
         })
         .catch(error => this.notifyError(error))
-        .finally(() => { this.savingObserver = false })
+        .finally(() => {
+          this.savingObserver = false
+        })
     },
 
     toggleMfaRequired (required) {
@@ -92,14 +96,22 @@ export default {
       axios.patch('/api/v1/settings/security', { mfaRequiredForAdmins: required })
         .then(({ data }) => {
           this.mfaRequiredForAdmins = Boolean(data?.mfaRequiredForAdmins)
-          this.$q.notify({ type: 'positive', message: 'Настройки безопасности сохранены' })
+          this.$q.notify({
+            type: 'positive',
+            message: 'Настройки безопасности сохранены'
+          })
         })
         .catch(error => this.notifyError(error))
-        .finally(() => { this.savingSecurity = false })
+        .finally(() => {
+          this.savingSecurity = false
+        })
     },
 
     notifyError (error) {
-      this.$q.notify({ type: 'negative', message: error?.response?.data?.message || 'Не удалось сохранить настройки' })
+      this.$q.notify({
+        type: 'negative',
+        message: error?.response?.data?.message || 'Не удалось сохранить настройки'
+      })
     }
   }
 }

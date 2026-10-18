@@ -7,6 +7,14 @@
           Базовые параметры системы: часовой пояс, рабочее время и правила доступа к заявкам.
         </div>
       </div>
+      <div class="settings-content-actions">
+        <div class="general-settings__status text-caption" :class="saveStatusClass">
+          <q-spinner v-if="saveState === 'saving'" size="14px" class="q-mr-xs"/>
+          <q-icon v-else-if="saveState === 'saved'" name="check" size="16px" class="q-mr-xs"/>
+          <q-icon v-else-if="saveState === 'error'" name="error_outline" size="16px" class="q-mr-xs"/>
+          {{ saveStatusLabel }}
+        </div>
+      </div>
     </div>
 
     <div class="general-settings__sections column q-gutter-md">
@@ -147,23 +155,6 @@
       </q-card>
 
       <access-security-settings/>
-
-      <div class="general-settings__actions row justify-end q-gutter-sm">
-        <q-btn
-          flat
-          label="Сбросить"
-          :disable="loading || saving"
-          @click="load"
-        />
-
-        <q-btn
-          color="primary"
-          label="Сохранить"
-          :loading="saving"
-          :disable="loading"
-          @click="save"
-        />
-      </div>
     </div>
   </div>
 </template>
@@ -233,6 +224,11 @@ export default {
       store: useStore(),
       loading: false,
       saving: false,
+      // Автосохранение: форма сохраняется через паузу после правки, без кнопки «Сохранить»
+      ready: false,
+      saveTimer: null,
+      saveState: 'idle',
+      lastSavedJson: '',
       timezones: [],
       filteredTimezones: [],
       supportLineAccessModeOptions: SUPPORT_LINE_ACCESS_MODES,
@@ -241,15 +237,47 @@ export default {
   },
 
   computed: {
+    saveStatusLabel() {
+      return {
+        saving: 'Сохранение…',
+        saved: 'Сохранено',
+        error: 'Не сохранено'
+      }[this.saveState] || ''
+    },
+
+    saveStatusClass() {
+      return this.saveState === 'error' ? 'text-negative' : 'text-grey-7'
+    },
+
     selectedAccessMode() {
       return SUPPORT_LINE_ACCESS_MODES.find(item => item.value === this.form.supportLineAccessMode) ||
         SUPPORT_LINE_ACCESS_MODES[2]
     }
   },
 
+  watch: {
+    form: {
+      deep: true,
+      handler() {
+        if (this.ready) {
+          this.scheduleSave()
+        }
+      }
+    }
+  },
+
   mounted() {
     this.initTimezones()
     this.load()
+  },
+
+  beforeUnmount() {
+    // Правка, сделанная перед уходом со страницы, не должна потеряться
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer)
+      this.saveTimer = null
+      this.save()
+    }
   },
 
   methods: {
@@ -296,6 +324,7 @@ export default {
 
     load() {
       this.loading = true
+      this.ready = false
 
       this.store.fetchGeneralSettings()
         .then(settings => {
@@ -304,23 +333,45 @@ export default {
             ...settings,
             supportLineAccessMode: settings.supportLineAccessMode || 'HYBRID'
           }
+          this.lastSavedJson = JSON.stringify(this.form)
         })
         .finally(() => {
           this.loading = false
+          // Присвоение формы при загрузке не считается правкой
+          this.$nextTick(() => {
+            this.ready = true
+          })
         })
     },
 
-    save() {
-      this.saving = true
+    scheduleSave() {
+      clearTimeout(this.saveTimer)
+      this.saveTimer = setTimeout(() => {
+        this.saveTimer = null
+        this.save()
+      }, 600)
+    },
 
-      this.store.saveGeneralSettings(this.form)
+    save() {
+      const payload = JSON.stringify(this.form)
+      if (payload === this.lastSavedJson) {
+        return
+      }
+      if (this.saving) {
+        // Дождёмся текущего запроса и сохраним последнее состояние
+        this.scheduleSave()
+        return
+      }
+      this.saving = true
+      this.saveState = 'saving'
+
+      this.store.saveGeneralSettings({...this.form})
         .then(() => {
-          this.$q.notify({
-            type: 'positive',
-            message: 'Общие настройки сохранены'
-          })
+          this.lastSavedJson = payload
+          this.saveState = 'saved'
         })
         .catch(error => {
+          this.saveState = 'error'
           this.$q.notify({
             type: 'negative',
             message: error.response?.data || 'Не удалось сохранить общие настройки'
@@ -352,6 +403,12 @@ export default {
 
 .settings-card {
   border-radius: 12px;
+}
+
+.general-settings__status {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
 }
 
 .settings-block__header {
