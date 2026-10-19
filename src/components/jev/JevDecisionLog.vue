@@ -193,6 +193,8 @@ const ACTION_LABELS = {
   classifyTask: 'Классификация заявки',
   setPriority: 'Приоритет',
   setAnswerRequiredIfNeeded: 'Нужен ответ',
+  analyzeOutage: 'Детектор инцидентов: разметка',
+  verifyBatch: 'Детектор инцидентов: проверка пачки',
   detectIncident: 'Детектор инцидентов'
 }
 

@@ -132,87 +132,22 @@
         <q-card-section class="settings-block">
           <div class="text-subtitle1">Детектор массовых инцидентов</div>
           <div class="text-caption text-grey-7">
-            Jev размечает входящие сообщения (сбой ли это, какой сервис и симптом). Когда за окно набирается
-            достаточно разных клиентов с одинаковым сбоем, Jev проверяет пачку целиком, и ответственные получают
-            уведомление: владелец и исполнители сервиса, ответственный и участники линии, а если их нет — администраторы.
-            Включается правилом автоматизации на входящее сообщение с действием <code>jev.detectIncident()</code>.
+            Окно, нужное число разных клиентов, порог «это сбой», паузу после срабатывания, серьёзность и схему
+            (уведомить или создать черновик) настраивают сами ноды правила автоматизации
+            «Детектор массовых инцидентов (Jev)». Там же можно задать свои числа для отдельных организаций:
+            добавьте условие, например <code>client.organization.id = 5</code>, и свой шаг
+            <code>incident.countSignals(...)</code>. Ответственные получают уведомление: владелец и исполнители
+            сервиса, ответственный и участники линии, а если их нет — администраторы.
           </div>
-
-          <q-option-group
-            v-model="form.incidentMode"
-            :options="incidentModeOptions"
-            type="radio"
+          <q-btn
+            flat
+            no-caps
+            color="primary"
+            icon="account_tree"
+            label="Открыть автоматизации"
             class="q-mt-sm"
+            to="/settings/automatization"
           />
-
-          <div class="row q-col-gutter-md q-mt-sm">
-            <div class="col-12 col-sm-6">
-              <q-input
-                v-model.number="form.incidentWindowMinutes"
-                outlined
-                dense
-                type="number"
-                min="1"
-                max="1440"
-                label="Окно, мин"
-                hint="За какой период считаются похожие обращения"
-              />
-            </div>
-            <div class="col-12 col-sm-6">
-              <q-input
-                v-model.number="form.incidentMinClients"
-                outlined
-                dense
-                type="number"
-                min="2"
-                max="1000"
-                label="Минимум разных клиентов"
-                hint="При тревоге мониторинга сервиса порог на 1 ниже"
-              />
-            </div>
-            <div class="col-12 col-sm-6">
-              <q-input
-                v-model.number="form.incidentCooldownMinutes"
-                outlined
-                dense
-                type="number"
-                min="0"
-                max="10080"
-                label="Пауза после срабатывания, мин"
-                hint="Пока идёт пауза, похожие обращения привязываются к созданному инциденту"
-              />
-            </div>
-            <div class="col-12 col-sm-6">
-              <q-input
-                v-model.number="form.incidentP1MinClients"
-                outlined
-                dense
-                type="number"
-                min="2"
-                max="10000"
-                label="Клиентов для P1"
-                hint="Меньше — серьёзность не выше P2, даже если Jev оценил P1"
-              />
-            </div>
-          </div>
-          <div v-if="detectorError" class="text-caption text-negative q-mt-sm">
-            {{ detectorError }}
-          </div>
-
-          <div class="q-mt-md">
-            <div class="text-body2">
-              Считать сбоем, если вероятность не ниже: <b>{{ percent(form.incidentOutageThreshold) }}</b>
-            </div>
-            <q-slider
-              v-model="form.incidentOutageThreshold"
-              :min="0"
-              :max="1"
-              :step="0.05"
-              label
-              :label-value="percent(form.incidentOutageThreshold)"
-              color="primary"
-            />
-          </div>
         </q-card-section>
       </q-card>
 
@@ -244,16 +179,6 @@ export default {
       allPriorityNames: [],
       thresholdItems: [],
       priorityOptions: [],
-      incidentModeOptions: [
-        {
-          value: 'NOTIFY_ONLY',
-          label: 'Только уведомлять — ответственные получают уведомление о массовом сбое, инцидент не создаётся'
-        },
-        {
-          value: 'CREATE_DRAFT',
-          label: 'Создавать черновик — инцидент в статусе «Черновик» с заполненными полями, заявки привязываются, ответственные получают уведомление'
-        }
-      ],
       meta: {
         enabled: false,
         apiKeyConfigured: false
@@ -267,16 +192,6 @@ export default {
       return this.form.replyNotRequiredThreshold >= this.form.replyRequiredThreshold
         ? 'Порог «ответ не нужен» должен быть меньше порога «ответ нужен»'
         : ''
-    },
-
-    detectorError () {
-      const f = this.form
-      const outOfRange = (value, min, max) => !Number.isInteger(value) || value < min || value > max
-      if (outOfRange(f.incidentWindowMinutes, 1, 1440)) return 'Окно: от 1 до 1440 минут'
-      if (outOfRange(f.incidentMinClients, 2, 1000)) return 'Минимум разных клиентов: от 2 до 1000'
-      if (outOfRange(f.incidentCooldownMinutes, 0, 10080)) return 'Пауза: от 0 до 10080 минут'
-      if (outOfRange(f.incidentP1MinClients, 2, 10000)) return 'Клиентов для P1: от 2 до 10000'
-      return ''
     }
   },
 
@@ -309,13 +224,7 @@ export default {
         thresholds: {},
         replyRequiredThreshold: 0.6,
         replyNotRequiredThreshold: 0.25,
-        priorityExcluded: [],
-        incidentWindowMinutes: 15,
-        incidentMinClients: 3,
-        incidentOutageThreshold: 0.7,
-        incidentCooldownMinutes: 60,
-        incidentMode: 'NOTIFY_ONLY',
-        incidentP1MinClients: 10
+        priorityExcluded: []
       }
     },
 
@@ -333,13 +242,7 @@ export default {
         thresholds: Object.fromEntries(this.thresholdItems.map(item => [item.key, item.value])),
         replyRequiredThreshold: data.replyRequiredThreshold,
         replyNotRequiredThreshold: data.replyNotRequiredThreshold,
-        priorityExcluded: [...(data.priorityExcluded || [])],
-        incidentWindowMinutes: data.incidentWindowMinutes,
-        incidentMinClients: data.incidentMinClients,
-        incidentOutageThreshold: data.incidentOutageThreshold,
-        incidentCooldownMinutes: data.incidentCooldownMinutes,
-        incidentMode: data.incidentMode || 'NOTIFY_ONLY',
-        incidentP1MinClients: data.incidentP1MinClients
+        priorityExcluded: [...(data.priorityExcluded || [])]
       }
       this.lastSavedJson = this.payloadJson()
       this.applyMeta(data)
@@ -395,7 +298,7 @@ export default {
     },
 
     async save () {
-      if (this.thresholdError || this.detectorError) {
+      if (this.thresholdError) {
         this.saveState = 'error'
         return
       }
