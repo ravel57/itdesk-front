@@ -373,6 +373,7 @@
 import axios from 'axios'
 import {useStore} from 'stores/store'
 import {onIncidentUpdated} from 'src/util/ws'
+import {isStaff} from 'src/util/access'
 
 export default {
   name: 'IncidentDetailPage',
@@ -436,7 +437,17 @@ export default {
       return this.$can('INCIDENT_EDIT')
     },
     userOptions() {
-      return this.users.map(user => ({value: user.id, label: this.userName(user)}))
+      // Менеджеры организаций (OBSERVER) не выбираются; уже назначенных ранее оставляем, чтобы не терять подписи
+      const assignedIds = new Set([
+        this.form.leaderId,
+        this.form.technicalOwnerId,
+        this.form.communicationOwnerId,
+        ...(this.form.participantIds || []),
+        ...(this.form.observerIds || [])
+      ].filter(id => id !== null && id !== undefined))
+      return this.users
+        .filter(user => isStaff(user) || assignedIds.has(user.id))
+        .map(user => ({value: user.id, label: this.userName(user)}))
     },
     organizationOptions() {
       return this.organizations.map(org => ({value: org.id, label: org.name}))

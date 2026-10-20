@@ -19,6 +19,14 @@ const routes = [
     component: () => import('pages/MfaPage.vue')
   },
   {
+    path: '/403',
+    component: () => import('pages/errors/ErrorForbidden.vue')
+  },
+  {
+    path: '/welcome',
+    component: () => import('pages/WelcomeScreenPage.vue')
+  },
+  {
     path: '/reset-password',
     component: () => import('pages/ResetPasswordPage.vue')
   },
@@ -94,7 +102,22 @@ const routes = [
       {
         path: 'tasks',
         component: () => import('pages/TasksPage.vue'),
-        meta: {permission: 'TASK_VIEW'}
+        meta: {permission: ['TASK_VIEW', 'TASK_EDIT']},
+        // Возвращаем последний выбранный пункт («Мои заявки» / «Заявки моих линий») до отрисовки страницы
+        beforeEnter: to => {
+          if (to.query.scope) {
+            return true
+          }
+          let savedScope = null
+          try {
+            savedScope = localStorage.getItem('tasksScope')
+          } catch (e) {
+            return true
+          }
+          return ['my', 'my-lines'].includes(savedScope)
+            ? {path: to.path, query: {...to.query, scope: savedScope}, replace: true}
+            : true
+        }
       },
       {
         path: 'incidents',
@@ -126,6 +149,11 @@ const routes = [
         path: 'search',
         component: () => import('pages/SearchPage.vue'),
         meta: {permission: 'GLOBAL_SEARCH'}
+      },
+      {
+        path: 'operators/:userId(\\d+)?',
+        component: () => import('pages/OperatorsPage.vue'),
+        meta: {permission: 'STAFF_DIRECTORY_VIEW'}
       },
       {
         path: 'knowledge-base',
@@ -165,6 +193,10 @@ const routes = [
             path: 'visit-reasons',
             component: () => import('pages/settings/VisitReasonsPage.vue'),
             meta: {permission: 'REFERENCE_MANAGE'}
+          },
+          {
+            path: 'task-card',
+            component: () => import('pages/settings/TaskCardConfigPage.vue')
           },
           {
             path: 'tags',

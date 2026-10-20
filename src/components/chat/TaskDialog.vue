@@ -111,10 +111,10 @@
             >
               <q-card-section
                 class="no-padding"
+                data-tour="task-dialog-fields"
               >
                 <q-input
                   id="task-name"
-                  data-tour="task-dialog-name"
                   v-model="this.dialogTaskName"
                   :readonly="this.isObserverReadOnly"
                   ref="taskName"
@@ -123,7 +123,6 @@
                 />
                 <q-select
                   id="task-type"
-                  data-tour="task-dialog-type"
                   v-model="this.dialogTaskType"
                   :readonly="this.isObserverReadOnly"
                   :options="this.filteredTaskTypes"
@@ -247,7 +246,6 @@
                 </div>
                 <q-input
                   id="task-description"
-                  data-tour="task-dialog-description"
                   type="textarea"
                   rows="1"
                   v-model="this.dialogTaskDescription"
@@ -256,7 +254,6 @@
                 />
                 <q-select
                   id="task-priority"
-                  data-tour="task-dialog-priority"
                   v-model="this.dialogTaskPriority"
                   :readonly="this.isObserverReadOnly"
                   :options="this.store.priorities.map(priority => priority.name)"
@@ -265,7 +262,6 @@
                 />
                 <q-select
                   id="task-support-line"
-                  data-tour="task-dialog-support-line"
                   v-model="this.dialogTaskSupportLine"
                   :readonly="this.isObserverReadOnly"
                   :options="this.activeSupportLineNames"
@@ -274,7 +270,6 @@
                 />
                 <q-select
                   id="task-executor"
-                  data-tour="task-dialog-executor"
                   v-model="this.dialogTaskExecutor"
                   :readonly="this.isObserverReadOnly"
                   :options="this.filteredUsers"
@@ -314,7 +309,6 @@
                 </q-banner>
                 <q-select
                   id="task-tags"
-                  data-tour="task-dialog-tags"
                   v-model="this.dialogTaskTags"
                   :readonly="this.isObserverReadOnly"
                   :options="this.filteredTags"
@@ -326,7 +320,6 @@
                 />
                 <q-input
                   id="task-deadline"
-                  data-tour="task-dialog-deadline"
                   v-model="this.dialogTaskDeadline"
                   :readonly="this.isObserverReadOnly"
                   :clearable="!this.isObserverReadOnly"
@@ -363,7 +356,6 @@
                 </q-input>
                 <q-select
                   id="task-service"
-                  data-tour="task-dialog-service"
                   v-model="this.dialogTaskService"
                   :readonly="this.isObserverReadOnly"
                   :options="this.availableServiceLabels"
@@ -421,7 +413,8 @@
                   :linkedMessageId="this.linkedMessageId"
                   :client-id="this.client.id"
                   :client="this.client"
-                  :is-show-helper="true"
+                  :is-show-helper="false"
+                  :show-helper-action="false"
                   :taskWatchingNow="[]"
                   :typing="[]"
                   :isDialog="true"
@@ -902,7 +895,9 @@ import OrganizationVisitDialog from 'components/organization/OrganizationVisitDi
 import IncidentTaskBanner from 'components/incidents/IncidentTaskBanner.vue'
 import draggable from 'vuedraggable'
 import { useRoute } from 'vue-router'
-import { onTaskMessage, onTaskUpdated } from 'src/util/ws'
+import { onTaskMessage, onTaskUpdated, notifyTaskOpened } from 'src/util/ws'
+import { getClientDisplayName } from 'src/util/clientName'
+import { wantsOnboarding, getOnboardingStatus, setOnboardingStatus } from 'src/util/onboarding'
 
 export default {
 
@@ -978,6 +973,7 @@ export default {
 
     taskMessageUnsubscribe: null,
     taskUpdatedUnsubscribe: null,
+    taskOpeningRequests: new Set(),
     taskHistoryRefreshTimer: null,
     localTaskMessages: [],
 
@@ -995,63 +991,15 @@ export default {
         dialogTab: 'tab1'
       },
       {
-        target: 'task-dialog-name',
-        title: 'Название заявки',
-        text: 'Коротко сформулируйте проблему или запрос. Хорошее название помогает быстро найти заявку в общем списке.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-type',
-        title: 'Тип заявки',
-        text: 'Тип задает категорию процесса и может предложить стандартный чек-лист для этого вида работ.',
+        target: 'task-dialog-fields',
+        title: 'Поля заявки',
+        text: 'Название, тип, описание, приоритет, линия поддержки, исполнитель, теги, дедлайн и сервис — все поля подписаны. Тип может подставить стандартный чек-лист, а линия поддержки влияет на список доступных исполнителей.',
         dialogTab: 'tab1'
       },
       {
         target: 'task-dialog-status-controls',
         title: 'Статус и закрытие',
         text: 'Статус показывает этап обработки. Рядом доступны быстрые действия: закрыть заявку, вернуть в работу или заморозить выполнение.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-description',
-        title: 'Описание',
-        text: 'В описании фиксируются детали обращения: что произошло, какие действия уже выполнены и какой результат ожидается.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-priority',
-        title: 'Приоритет',
-        text: 'Приоритет помогает понять срочность. Критичные и высокие заявки легче поднять в очереди и контролировать по SLA.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-support-line',
-        title: 'Линия поддержки',
-        text: 'Линия поддержки определяет текущую очередь ответственности. От выбранной линии также зависит список доступных исполнителей и OLA.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-executor',
-        title: 'Исполнитель',
-        text: 'Исполнитель отвечает за решение заявки. Если поле пустое, заявка может попасть в очередь без ответственного.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-tags',
-        title: 'Теги',
-        text: 'Теги нужны для классификации: тип проблемы, продукт, отдел, канал или причина обращения.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-deadline',
-        title: 'Дедлайн',
-        text: 'Дедлайн задаёт ожидаемый срок решения. Его удобно использовать для сортировки и контроля просрочек.',
-        dialogTab: 'tab1'
-      },
-      {
-        target: 'task-dialog-service',
-        title: 'Сервис',
-        text: 'Сервис связывает заявку с конкретной услугой организации и помогает учитывать договорный контекст обращения.',
         dialogTab: 'tab1'
       },
       {
@@ -1065,36 +1013,9 @@ export default {
       {
         target: 'task-dialog-right-panel',
         title: 'Сообщения, чек-лист и история',
-        text: 'Правая часть заявки хранит связанную переписку, рабочий чек-лист и историю изменений. На мобильном экране этот блок открывается отдельной вкладкой.',
+        text: 'Правая часть заявки хранит связанную переписку, рабочий чек-лист и историю изменений, каждый на своей вкладке. На мобильном экране этот блок открывается отдельно.',
         dialogTab: 'tab2',
         rightTab: 'messages',
-        requiresExistingTask: true,
-        requiresOperator: true
-      },
-      {
-        target: 'task-dialog-messages-panel',
-        title: 'Сообщения по заявке',
-        text: 'Здесь видна переписка, связанная именно с этой заявкой. Можно отвечать клиенту, не выходя из карточки заявки.',
-        dialogTab: 'tab2',
-        rightTab: 'messages',
-        requiresExistingTask: true,
-        requiresOperator: true
-      },
-      {
-        target: 'task-dialog-checklist-panel',
-        title: 'Чек-лист заявки',
-        text: 'Чек-лист разбивает работу на конкретные действия. Пункты можно добавлять, отмечать выполненными, редактировать и менять местами.',
-        dialogTab: 'tab2',
-        rightTab: 'checklist',
-        requiresExistingTask: true,
-        requiresOperator: true
-      },
-      {
-        target: 'task-dialog-history-panel',
-        title: 'История изменений',
-        text: 'История показывает, кто и когда менял статус, приоритет, исполнителя, дедлайн и другие поля заявки.',
-        dialogTab: 'tab2',
-        rightTab: 'history',
         requiresExistingTask: true,
         requiresOperator: true
       },
@@ -1110,8 +1031,27 @@ export default {
 
   methods: {
 
+    async markTaskOpened () {
+      const taskId = this.task?.id
+      const userId = this.store.currentUser?.id
+      if (this.isNewTask || !this.getPossibilityToOpenDialogTask || !taskId || !userId) {
+        return
+      }
+      const key = `${userId}:${taskId}`
+      if (this.taskOpeningRequests.has(key)) {
+        return
+      }
+      this.taskOpeningRequests.add(key)
+      try {
+        await axios.post(`/api/v1/task/${taskId}/opened`)
+        notifyTaskOpened({ taskId })
+      } catch (error) {
+        this.taskOpeningRequests.delete(key)
+      }
+    },
+
     startTaskDialogOnboarding (force = false) {
-      if (!force && localStorage.getItem(this.taskDialogOnboardingKey)) {
+      if (!force && (getOnboardingStatus(this.taskDialogOnboardingKey) || !wantsOnboarding())) {
         return
       }
       if (!this.getPossibilityToOpenDialogTask) {
@@ -1125,7 +1065,7 @@ export default {
 
     finishTaskDialogOnboarding () {
       this.taskDialogOnboardingActive = false
-      localStorage.setItem(this.taskDialogOnboardingKey, 'done')
+      setOnboardingStatus(this.taskDialogOnboardingKey, 'done')
       this.taskDialogOnboardingTooltipStyle = {}
       this.taskDialogOnboardingSpotlightStyle = {}
       this.removeTaskDialogOnboardingListeners()
@@ -3059,7 +2999,7 @@ export default {
       if (!client) {
         return ''
       }
-      return `${client.lastname || ''} ${client.firstname || ''}`.trim()
+      return getClientDisplayName(client)
     },
 
     getLinkedMessage () {
@@ -3092,6 +3032,7 @@ export default {
   watch: {
     getPossibilityToOpenDialogTask (value) {
       if (value) {
+        this.markTaskOpened()
         this.getTaskField()
         this.syncLocalTaskMessages()
         if (!this.isNewTask) {
@@ -3169,6 +3110,7 @@ export default {
     },
 
     'task.id' () {
+      this.markTaskOpened()
       this.taskHistory = []
       this.taskFiles = []
       this.syncLocalTaskMessages()
@@ -3189,6 +3131,7 @@ export default {
   },
 
   mounted () {
+    this.markTaskOpened()
     this.loadTaskTypes()
       .finally(() => {
         this.getTaskField()

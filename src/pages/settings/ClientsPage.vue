@@ -24,19 +24,6 @@
           label="Добавить клиента"
           @click="dialogNewClient"
         />
-        <q-input
-          v-model="clientSearch"
-          dense
-          outlined
-          clearable
-          debounce="150"
-          placeholder="Поиск клиентов"
-          class="settings-search"
-        >
-          <template #prepend>
-            <q-icon name="search"/>
-          </template>
-        </q-input>
       </div>
     </div>
 
@@ -104,6 +91,20 @@
         </div>
       </q-card-section>
     </q-card>
+
+    <q-input
+      v-model="clientSearch"
+      dense
+      outlined
+      clearable
+      debounce="150"
+      placeholder="Поиск клиентов"
+      class="settings-search q-mb-md"
+    >
+      <template #prepend>
+        <q-icon name="search"/>
+      </template>
+    </q-input>
 
     <div class="table-container">
       <q-table
@@ -658,6 +659,7 @@
 <script>
 import {useStore} from 'stores/store'
 import axios from 'axios'
+import {getClientDisplayName as sharedClientDisplayName} from 'src/util/clientName'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
@@ -1328,7 +1330,7 @@ Get-ADUser -Filter 'Enabled -eq $true' -Properties GivenName,Surname,mail,teleph
     },
 
     getClientDisplayName(client) {
-      return `${client?.lastname || ''} ${client?.firstname || ''}`.trim() || `Клиент #${client?.id}`
+      return sharedClientDisplayName(client)
     },
 
     resetClientOptions() {
@@ -1392,7 +1394,7 @@ Get-ADUser -Filter 'Enabled -eq $true' -Properties GivenName,Surname,mail,teleph
 }
 
 .settings-search {
-  width: 320px;
+  width: 420px;
   max-width: 100%;
 }
 

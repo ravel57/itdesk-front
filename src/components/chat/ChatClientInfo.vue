@@ -9,13 +9,16 @@
         v-if="this.canEditClient"
         data-tour="chat-client-edit"
         class="edit-client-btn"
-        :class="{ 'edit-client-btn--onboarding': this.onboardingDemo }"
         icon="edit"
         @click="dialogShow"
         dense
         flat
-        size="xs"
-      />
+        round
+        size="sm"
+        color="grey-7"
+      >
+        <q-tooltip>Изменить данные клиента</q-tooltip>
+      </q-btn>
     </div>
 
     <PluginExtensionPoint
@@ -102,6 +105,12 @@
       alt="email"
       style="width: 16px;margin-right: 8px"
     >
+    <q-icon
+      v-else-if="client.messageFrom === 'PORTAL'"
+      name="language"
+      size="16px"
+      class="q-mr-sm"
+    />
     {{ this.client.sourceChannel }}
   </div>
 
@@ -206,6 +215,7 @@
 import axios from 'axios'
 import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
 import { useStore } from 'stores/store'
+import { getClientDisplayName } from 'src/util/clientName'
 
 export default {
   name: 'ChatClientInfo',
@@ -253,8 +263,8 @@ export default {
       }
 
       axios.patch(`/api/v1/client/${this.client.id}/client`, client)
-        .then(newClient => {
-          this.$emit('updateClient', newClient)
+        .then(response => {
+          this.$emit('updateClient', response.data)
         })
         .catch(e => {
           this.$q.notify({
@@ -315,7 +325,7 @@ export default {
     },
 
     getClientName() {
-      return `${this.client.lastname ? this.client.lastname : ''} ${this.client.firstname ? this.client.firstname : ''}`
+      return getClientDisplayName(this.client)
     }
   },
 
@@ -324,9 +334,7 @@ export default {
       immediate: true,
       handler(newVal) {
         if (newVal !== undefined) {
-          if ((newVal.firstname || newVal.lastname) !== undefined) {
-            document.title = `Чат: ${this.client.firstname} ${this.client.lastname !== null ? this.client.lastname : ''}`
-          }
+          document.title = `Чат: ${getClientDisplayName(newVal)}`
         }
       }
     }
@@ -382,16 +390,6 @@ export default {
 .edit-client-btn {
   flex: 0 0 auto;
   margin-left: 2px;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-
-.client-name-edit-row:hover .edit-client-btn,
-.edit-client-btn:hover,
-.edit-client-btn--onboarding {
-  visibility: visible;
-  opacity: 1;
 }
 
 .client-header-plugin {

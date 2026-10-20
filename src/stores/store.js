@@ -1,6 +1,7 @@
 import {defineStore} from 'pinia'
 import axios from 'axios'
 import moment from 'moment'
+import {normalizeAnswerWaitingSettings} from 'src/util/answerWaiting'
 
 export const useStore = defineStore('store', {
   state: () => ({
@@ -124,7 +125,11 @@ export const useStore = defineStore('store', {
       saturdayEnabled: false,
       sundayEnabled: false,
       supportLineAccessMode: 'HYBRID',
+      answerWaitingWorkingTimeEnabled: false,
     },
+
+    // Как считать «Ожидает ответа» (календарное/рабочее время). Доступно всем, кто видит чаты — в отличие от generalSettings
+    answerWaitingSettings: normalizeAnswerWaitingSettings(),
   }),
 
   getters: {
@@ -824,6 +829,7 @@ export const useStore = defineStore('store', {
             saturdayEnabled: response.data?.saturdayEnabled ?? false,
             sundayEnabled: response.data?.sundayEnabled ?? false,
             supportLineAccessMode: response.data?.supportLineAccessMode ?? 'HYBRID',
+            answerWaitingWorkingTimeEnabled: response.data?.answerWaitingWorkingTimeEnabled ?? false,
           }
 
           return this.generalSettings
@@ -841,7 +847,17 @@ export const useStore = defineStore('store', {
               ?? this.generalSettings.supportLineAccessMode
               ?? 'HYBRID'
           }
+          // Рабочий календарь или флаг «Ожидает ответа» могли измениться — список чатов подхватывает без перезагрузки
+          this.fetchAnswerWaitingSettings().catch(() => {})
           return this.generalSettings
+        })
+    },
+
+    fetchAnswerWaitingSettings() {
+      return axios.get('/api/v1/settings/answer-waiting')
+        .then(response => {
+          this.answerWaitingSettings = normalizeAnswerWaitingSettings(response.data)
+          return this.answerWaitingSettings
         })
     },
 

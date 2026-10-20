@@ -7,7 +7,7 @@
     style="overflow: hidden;border-radius: 0;display: flex;flex-direction: column;padding: 16px 16px 0;"
     :style="this.isMobile ? 'height: calc(100vh - 89px)' : 'height: 100vh;'"
   >
-    <div data-tour="chat-client-card" style="margin-bottom: 3px">
+    <div data-tour="chat-client-card" class="client-card-area" style="margin-bottom: 3px">
       <chat-info
         style="z-index: 1"
         :isMobile="this.isMobile"
@@ -309,6 +309,7 @@ import { useStore } from 'stores/store'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import moment from "moment";
 import { onTaskMessage, onTaskUpdated } from 'src/util/ws'
+import { useSlaInfo } from 'src/composables/useSlaInfo'
 
 export default {
 
@@ -996,7 +997,7 @@ export default {
       }
       if (
         this.isNewTaskDialogShow &&
-        Number(this.selectedTask?.id) === Number(taskIdFromUrl)
+        String(this.selectedTask?.id) === String(taskIdFromUrl)
       ) {
         return
       }
@@ -1135,10 +1136,10 @@ export default {
         [task.id]: true
       }
       try {
-        const response = await axios.get(`/api/v1/task/${task.id}/sla/info`)
+        const info = await this.slaScope.load(task.id, { force })
         this.slaInfoByTaskId = {
           ...this.slaInfoByTaskId,
-          [task.id]: response.data
+          [task.id]: info
         }
       } catch (e) {
         console.warn('SLA info load failed', task.id, e)
@@ -1404,16 +1405,15 @@ export default {
     },
 
     getRouteTaskId () {
-      const taskId = Number(this.$route.query.task)
-      return Number.isFinite(taskId) && taskId > 0
+      const taskId = this.$route.query.task
+      return taskId !== undefined && taskId !== null && taskId !== ''
         ? taskId
         : null
     },
 
     findLoadedTaskById (taskId) {
-      const id = Number(taskId)
       return [...(this.pagedTasks || []), ...(this.tasks || [])]
-        .find(task => Number(task?.id) === id)
+        .find(task => String(task?.id) === String(taskId))
     },
 
     openTaskDialogFromUrl (task) {
@@ -1424,7 +1424,7 @@ export default {
       this.isNewTask = false
       this.isTaskDialogShow = true
       this.isNewTaskDialogShow = true
-      this.lastOpenedTaskIdFromUrl = Number(task.id)
+      this.lastOpenedTaskIdFromUrl = task.id
     },
 
     async loadTaskByIdForUrl (taskId) {
@@ -1436,7 +1436,7 @@ export default {
         page: 1,
         size: 1,
         search: '',
-        taskId: Number(taskId),
+        taskId,
         includeCompleted: true,
         filterChain: [],
         requiredFilterChain: []
@@ -1444,7 +1444,7 @@ export default {
       const task = Array.isArray(response.data?.tasks)
         ? response.data.tasks
           .map(item => this.normalizeTaskPageTask(item))
-          .find(item => Number(item?.id) === Number(taskId))
+          .find(item => String(item?.id) === String(taskId))
         : null
       return task || null
     },
@@ -1715,13 +1715,32 @@ export default {
 
   setup () {
     const store = useStore()
-    return { store }
+    const slaScope = useSlaInfo()
+    return { store, slaScope }
   }
 
 }
 </script>
 
 <style scoped>
+/* Карандаш редактирования клиента появляется при наведении на карточку клиента */
+.client-card-area :deep(.edit-client-btn) {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.client-card-area:hover :deep(.edit-client-btn),
+.client-card-area :deep(.edit-client-btn:focus-visible) {
+  opacity: 1;
+}
+
+/* На устройствах без наведения (тач) карандаш показываем всегда */
+@media (hover: none) {
+  .client-card-area :deep(.edit-client-btn) {
+    opacity: 1;
+  }
+}
+
 .small-text {
   font-size: 0.9em;
 }

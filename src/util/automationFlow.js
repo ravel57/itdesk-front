@@ -1,4 +1,4 @@
-export const FLOW_VERSION = 2
+export const FLOW_VERSION = 3
 
 let sequence = 1
 
@@ -24,15 +24,16 @@ export function createDefaultWorkflow(triggerType = 'TASK_CREATED') {
     nodes: [
       createNode('EVENT', 80, 220, {triggerType}, eventId),
       createNode('CONDITION', 410, 190, {
+        rule: {left: '=true', operator: 'true'},
         expression: 'true',
         groups: [],
         manualExpression: false
       }, conditionId),
-      createNode('ACTION', 810, 90, {
-        actionScript: '',
-        actions: [{id: nextFlowId('action-item'), type: 'ASSIGN_LINE', value: null}],
-        continueOnError: false,
-        manualScript: false
+      createNode('OPERATION', 810, 90, {
+        operation: '',
+        arguments: {},
+        resultVariable: '',
+        background: false
       }, actionId),
       createNode('END', 1210, 220, {result: 'Сценарий завершён'}, endId)
     ],
@@ -40,7 +41,8 @@ export function createDefaultWorkflow(triggerType = 'TASK_CREATED') {
       createEdge(eventId, conditionId, 'next'),
       createEdge(conditionId, actionId, 'true'),
       createEdge(conditionId, endId, 'false'),
-      createEdge(actionId, endId, 'next')
+      createEdge(actionId, endId, 'success'),
+      createEdge(actionId, endId, 'error')
     ]
   }
 }
@@ -66,6 +68,8 @@ export function createEdge(source, target, sourceHandle = 'next') {
 }
 
 export function defaultNodeLabel(type) {
+  const transparentLabels = {OPERATION: 'Выберите шаг', PARAMETERS: 'Настройки сценария', FOR_EACH: 'Для каждого элемента', LOOP_END: 'Следующий элемент', LOOP_BREAK: 'Остановить цикл'}
+  if (transparentLabels[type]) return transparentLabels[type]
   switch (String(type || '').toUpperCase()) {
     case 'EVENT':
       return 'Событие'
@@ -74,7 +78,7 @@ export function defaultNodeLabel(type) {
     case 'SWITCH':
       return 'Разветвление по значению'
     case 'ACTION':
-      return 'Действия'
+      return 'Скрипт команд'
     case 'DELAY':
       return 'Задержка'
     case 'WAIT_UNTIL':
@@ -116,7 +120,7 @@ export function defaultNodeLabel(type) {
     case 'DEDUPLICATE':
       return 'Поиск дубля'
     case 'NOTE':
-      return 'Комментарий'
+      return 'Пояснение на холсте'
     case 'END':
       return 'Завершение'
     default:
@@ -133,6 +137,9 @@ export function normalizeWorkflow(value, fallbackTriggerType = 'TASK_CREATED') {
   flow.version = Number(flow.version || FLOW_VERSION)
   flow.nodes = Array.isArray(flow.nodes) ? flow.nodes : []
   flow.edges = Array.isArray(flow.edges) ? flow.edges : []
+  // Manual drag order for the section-navigation bar; sections missing here fall back
+  // to the order they first appear among the nodes.
+  flow.sectionOrder = Array.isArray(flow.sectionOrder) ? flow.sectionOrder.filter(s => typeof s === 'string') : []
 
   flow.nodes = flow.nodes.map((node, index) => ({
     id: node.id || nextFlowId('node'),

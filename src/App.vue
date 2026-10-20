@@ -7,6 +7,7 @@ import { useStore } from 'stores/store'
 import { useAuthStore } from 'stores/auth'
 import { connect, disconnect, userOnline } from 'src/util/ws'
 import axios from 'axios'
+import { isPublicPage } from 'src/router/publicPages'
 
 export default {
   name: 'App',
@@ -17,6 +18,9 @@ export default {
   }),
 
   async created () {
+    if (isPublicPage()) {
+      return
+    }
     try {
       const auth = useAuthStore()
       const currentUser = await auth.init()
@@ -30,6 +34,11 @@ export default {
       // подключается к общим операторским websocket-топикам.
       if (authorities.includes('CLIENT')) {
         return
+      }
+
+      // Приветственный экран: один раз для нового сотрудника, пока он не прошёл его сам
+      if (currentUser.welcomeSeen !== true && this.$route.path !== '/welcome') {
+        this.$router.replace('/welcome')
       }
 
       const response = await axios.post('/api/v1/user-online')

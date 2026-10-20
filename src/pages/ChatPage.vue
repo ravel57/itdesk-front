@@ -30,8 +30,21 @@
           v-if="!this.isMobile || this.tab === 'tab1'"
           id="chatColumn"
           class="chat-page-column no-shadow"
+          @dragenter.prevent="onChatDragEnter"
+          @dragover.prevent
+          @dragleave.prevent="onChatDragLeave"
+          @drop.prevent="onChatFilesDropped"
         >
+          <div
+            v-if="isDraggingFilesOverChat"
+            class="chat-drop-overlay"
+          >
+            <q-icon name="upload_file" size="40px" color="primary"/>
+            <div class="chat-drop-overlay__title">Отпустите файлы, чтобы прикрепить к чату</div>
+            <div class="chat-drop-overlay__hint">Работает в любом месте окна чата</div>
+          </div>
           <chat-dialog
+            ref="chatDialogRef"
             :isMobile="this.isMobile"
             :messages="this.getClient.messages"
             :inputField="this.inputField"
@@ -43,6 +56,7 @@
             :currentUser="this.store.currentUser"
             :read-only="this.isObserverUser"
             :linkedMessageId="this.linkedMessageId"
+            :highlight-linked-message="!this.isSilentLinkedMessage"
             :tasks="this.activeClientTasks"
             :onboarding-demo="this.isChatOnboardingActive"
             :task-watching-now="this.getClient.watchingUsers"
@@ -62,6 +76,7 @@
             @clearLinkedMessageId="this.clearLinkedMessageId"
             @deleteMessage="this.deleteMessage"
             @showHelper="this.showHelper"
+            @hideHelper="this.hideHelper"
             @getMessagePage="this.getMessagePage"
             @getNewerMessagePage="this.getNewerMessagePage"
             @scrollToMessageAfterSearch="this.getMessageOnSearch($event)"
@@ -264,11 +279,14 @@ import {useRoute} from 'vue-router'
 import {markRead, typing, onClientMessage} from 'src/util/ws'
 import axios from 'axios'
 import { getUploadErrorMessage, getUploadProgress } from 'src/util/messageFileUpload'
+import { wantsOnboarding, getOnboardingStatus, setOnboardingStatus } from 'src/util/onboarding'
 
 export default {
   components: {ChatTasks, ChatHelper, ChatDialog},
 
   data: () => ({
+    isDraggingFilesOverChat: false,
+    chatDragCounter: 0,
     tab: 'tab1',
     inputField: '',
     isComment: false,
@@ -276,8 +294,10 @@ export default {
     isSending: false,
     uploadProgress: null,
     linkedMessageId: null,
+    // Переход к неотвеченному сообщению при открытии чата из списка — без подсветки пузыря
+    isSilentLinkedMessage: false,
     routeMessageIdHandled: false,
-    isShowHelper: true,
+    isShowHelper: false,
     isEnd: false,
     pageCounter: 0,
     messagesLoadedForCurrentChat: false,
@@ -301,7 +321,7 @@ export default {
     helperAiQueryVersion: 0,
 
     chatOnboardingStorageKey: 'chat-page-onboarding-v1',
-    isChatOnboardingActive: typeof localStorage !== 'undefined' && localStorage.getItem('chat-page-onboarding-v1') !== 'done',
+    isChatOnboardingActive: getOnboardingStatus('chat-page-onboarding-v1') !== 'done' && wantsOnboarding(),
     chatOnboardingStepIndex: 0,
     chatOnboardingTargetRect: null,
     chatOnboardingCardStyle: {},
@@ -446,6 +466,32 @@ export default {
   }),
 
   methods: {
+    // Drag-n-drop работает по всей области окна чата (эта колонка), а не только
+    // в диалоге «Добавить файлы» за скрепкой — ChatDialog передаёт файлы себе же
+    // через публичный метод addDroppedFiles, т.к. его собственные корневые узлы
+    // не образуют единый контейнер на весь экран чата.
+    onChatDragEnter(event) {
+      if (!Array.from(event.dataTransfer?.types || []).includes('Files')) {
+        return
+      }
+      this.chatDragCounter++
+      this.isDraggingFilesOverChat = true
+    },
+
+    onChatDragLeave() {
+      this.chatDragCounter = Math.max(0, this.chatDragCounter - 1)
+      if (this.chatDragCounter === 0) {
+        this.isDraggingFilesOverChat = false
+      }
+    },
+
+    onChatFilesDropped(event) {
+      this.chatDragCounter = 0
+      this.isDraggingFilesOverChat = false
+      const files = Array.from(event.dataTransfer?.files || [])
+      this.$refs.chatDialogRef?.addDroppedFiles(files)
+    },
+
     getRealClientByRoute() {
       const clientId = Number(this.$route.params.clientId)
       return this.store.clients.find(client => Number(client?.id) === clientId)
@@ -506,7 +552,7 @@ export default {
     },
 
     startChatOnboarding(force = false) {
-      if (!force && localStorage.getItem(this.chatOnboardingStorageKey) === 'done') {
+      if (!force && getOnboardingStatus(this.chatOnboardingStorageKey) === 'done') {
         return
       }
       this.chatOnboardingPreviousInputField = this.inputField
@@ -521,7 +567,7 @@ export default {
     },
 
     finishChatOnboarding() {
-      localStorage.setItem(this.chatOnboardingStorageKey, 'done')
+      setOnboardingStatus(this.chatOnboardingStorageKey, 'done')
       this.isChatOnboardingActive = false
       this.chatOnboardingTargetRect = null
       this.chatOnboardingCardStyle = {}
@@ -1282,6 +1328,7 @@ export default {
 
     clearLinkedMessageId() {
       this.linkedMessageId = null
+      this.isSilentLinkedMessage = false
     },
 
     deleteMessage(message) {
@@ -2185,6 +2232,7 @@ export default {
 
     activateNavigationMessage(clientId, messageId, routeKey) {
       this.linkedMessageId = null
+      this.isSilentLinkedMessage = !this.getRouteMessageId()
       this.$nextTick(() => {
         setTimeout(() => {
           if (Number(this.$route.params.clientId) !== Number(clientId)) {
@@ -2428,158 +2476,39 @@ export default {
           target: 'chat-dialog-column',
           tab: 'tab1',
           title: 'Диалог с клиентом',
-          text: 'Здесь идет основная переписка. Во время обучения показан тестовый чат; после завершения он заменится реальными данными.'
-        },
-        {
-          target: 'chat-message-search',
-          tab: 'tab1',
-          title: 'Поиск по сообщениям',
-          text: 'Используйте поиск, чтобы быстро найти старое сообщение, файл, номер заявки или фразу клиента.'
-        },
-        {
-          target: 'chat-message-list',
-          tab: 'tab1',
-          title: 'История переписки',
-          text: 'В центре отображаются входящие сообщения клиента, ответы оператора, комментарии и вложения.'
+          text: 'Здесь идёт переписка, а поиск по сообщениям — сверху. Во время обучения показан тестовый чат; после завершения он заменится реальными данными.'
         },
         {
           target: 'chat-answer-required',
           tab: 'tab1',
           title: 'Нужно ли отвечать',
-          text: 'Последнее входящее сообщение можно пометить как требующее ответа или не требующее ответа. От этого зависит очередь внимания и таймер ожидания.'
-        },
-        {
-          target: 'chat-message-composer',
-          tab: 'tab1',
-          title: 'Поле ответа',
-          text: 'В нижней части диалога собраны инструменты отправки сообщения. Следующие подсказки отдельно покажут ввод текста и вложения.'
-        },
-        {
-          target: 'chat-message-input',
-          tab: 'tab1',
-          title: 'Текст сообщения',
-          text: 'Здесь набирается ответ клиенту. В поле также работают упоминания и быстрые шаблоны по сокращениям.'
-        },
-        {
-          target: 'chat-attach-file',
-          tab: 'tab1',
-          title: 'Вложения',
-          text: 'Кнопка со скрепкой добавляет к ответу файлы. Перед отправкой вложения отображаются над полем сообщения.'
-        },
-        {
-          target: 'chat-comment-mode',
-          tab: 'tab1',
-          title: 'Внутренний комментарий',
-          text: 'Режим комментария нужен для заметок команды. Клиент такие сообщения не увидит.'
+          text: 'Последнее входящее сообщение можно пометить как требующее ответа или не требующее. От этого зависит очередь внимания и таймер ожидания.'
         },
         {
           target: 'chat-helper-column',
           tab: 'tab2',
           requiresHelper: true,
           title: 'Помощник оператора',
-          text: 'В этой колонке собраны шаблоны ответов, база знаний и ИИ-поиск по материалам поддержки.'
-        },
-        {
-          target: 'chat-helper-templates',
-          tab: 'tab2',
-          requiresHelper: true,
-          title: 'Шаблоны ответов',
-          text: 'Шаблоны ускоряют типовые ответы. Нажатие на шаблон вставляет готовый текст в сообщение.'
-        },
-        {
-          target: 'chat-helper-template-search',
-          tab: 'tab2',
-          requiresHelper: true,
-          title: 'Поиск по шаблонам',
-          text: 'Ищите шаблон по тексту или его короткому сокращению, чтобы не прокручивать весь список.'
-        },
-        {
-          target: 'chat-helper-kb',
-          tab: 'tab2',
-          requiresHelper: true,
-          title: 'База знаний',
-          text: 'База знаний помогает оператору быстро найти инструкцию, регламент или готовый порядок действий.'
-        },
-        {
-          target: 'chat-helper-kb-search',
-          tab: 'tab2',
-          requiresHelper: true,
-          title: 'Поиск по базе знаний',
-          text: 'Поле ищет материалы по названию статьи.'
-        },
-        {
-          target: 'chat-helper-kb-tags',
-          tab: 'tab2',
-          requiresHelper: true,
-          title: 'Фильтр по тегам',
-          text: 'Теги сужают базу знаний до материалов по нужной теме, продукту или типу проблемы.'
+          text: 'Шаблоны ответов и база знаний с поиском и тегами — каждый со своим полем поиска. Шаблон или статья вставляются кликом.'
         },
         {
           target: 'chat-helper-ai-query',
           tab: 'tab2',
           requiresHelper: true,
           title: 'Запрос к ИИ',
-          text: 'Сформулируйте вопрос по проблеме клиента. ИИ использует доступные материалы поддержки и показывает ответ прямо в Хелпере.'
+          text: 'Сформулируйте вопрос по проблеме клиента. ИИ использует доступные материалы поддержки и показывает ответ прямо здесь.'
         },
         {
           target: 'chat-client-card',
           tab: 'tab3',
           title: 'Карточка клиента',
-          text: 'В верхней части колонки собрана информация о клиенте. Следующие подсказки отдельно разберут каждое поле.'
-        },
-        {
-          target: 'chat-client-name',
-          tab: 'tab3',
-          title: 'Имя клиента',
-          text: 'Имя помогает быстро убедиться, что открыт нужный диалог.'
-        },
-        {
-          target: 'chat-client-organization',
-          tab: 'tab3',
-          title: 'Организация',
-          text: 'Организация задает корпоративный контекст клиента и связана с договорами, сервисами и SLA.'
-        },
-        {
-          target: 'chat-client-extra',
-          tab: 'tab3',
-          title: 'Дополнительные сведения',
-          text: 'Здесь хранятся короткие заметки о клиенте, которые важно видеть оператору во время общения.'
-        },
-        {
-          target: 'chat-client-channel',
-          tab: 'tab3',
-          title: 'Канал обращения',
-          text: 'Поле показывает, откуда пришел диалог: Telegram, WhatsApp, Email или другой подключенный канал.'
-        },
-        {
-          target: 'chat-client-edit',
-          tab: 'tab3',
-          title: 'Редактирование клиента',
-          text: 'Нажмите на карандаш рядом с именем, чтобы изменить имя, организацию и дополнительные сведения о клиенте.'
+          text: 'Имя, организация, заметки и канал обращения — всё видно сразу. Карандаш рядом с именем открывает редактирование.'
         },
         {
           target: 'chat-task-toolbar',
           tab: 'tab3',
           title: 'Заявки клиента',
-          text: 'Ниже карточки клиента находятся связанные заявки и инструменты работы с их списком.'
-        },
-        {
-          target: 'chat-tasks-completed',
-          tab: 'tab3',
-          title: 'Закрытые и замороженные',
-          text: 'Переключатель добавляет в список уже закрытые и замороженные заявки этого клиента.'
-        },
-        {
-          target: 'chat-task-search',
-          tab: 'tab3',
-          title: 'Поиск по заявкам клиента',
-          text: 'Поле позволяет быстро найти нужную заявку внутри истории конкретного клиента.'
-        },
-        {
-          target: 'chat-task-sort',
-          tab: 'tab3',
-          title: 'Сортировка заявок',
-          text: 'Сортировка меняет порядок связанных заявок по выбранному признаку.'
+          text: 'Ниже — связанные заявки. У поиска, сортировки и переключателя закрытых уже есть подсказки при наведении.'
         },
         {
           target: 'chat-create-task',
@@ -2692,7 +2621,8 @@ export default {
   },
 
   mounted() {
-    this.isShowHelper = this.isChatOnboardingActive || localStorage.getItem('isShowHelper') !== 'false'
+    // По умолчанию спрятан — пользователь открывает его сам по значку, когда понадобится
+    this.isShowHelper = this.isChatOnboardingActive || localStorage.getItem('isShowHelper') === 'true'
     this.$nextTick(() => {
       this.initColumnWidths()
       window.addEventListener('resize', this.handleWindowResize)
@@ -2763,9 +2693,36 @@ export default {
 }
 
 .chat-page-column {
+  position: relative;
   min-width: 0;
   height: 100%;
   overflow: hidden;
+}
+
+.chat-drop-overlay {
+  position: absolute;
+  inset: 8px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px dashed var(--q-primary);
+  border-radius: 16px;
+  background: rgba(92, 53, 249, 0.06);
+  pointer-events: none;
+}
+
+.chat-drop-overlay__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--q-primary);
+}
+
+.chat-drop-overlay__hint {
+  font-size: 12px;
+  color: #6a6a70;
 }
 
 .chat-page-column-resizer {

@@ -67,7 +67,7 @@ export default defineComponent({
       default: ''
     },
     counter: {
-      type: String,
+      type: [String, Number],
       default: ''
     },
     roles: {
@@ -78,16 +78,30 @@ export default defineComponent({
       type: String,
       default: ''
     },
+    // Список прав «любое из» — используется вместо permission, когда пункт объединяет несколько разделов
+    permissions: {
+      type: Array,
+      default: () => []
+    },
     user: {
       type: Object
     },
     miniState: {
       type: Boolean
+    },
+    // Показывать только в мобильной версии (фильтруется на уровне MainLayout); объявлено как проп,
+    // чтобы флаг не утёк в DOM как произвольный атрибут
+    mobileOnly: {
+      type: Boolean,
+      default: false
     }
   },
 
   computed: {
     isVisible () {
+      if (this.permissions?.length) {
+        return this.$canAny(...this.permissions)
+      }
       if (this.permission) {
         return this.$can(this.permission)
       }

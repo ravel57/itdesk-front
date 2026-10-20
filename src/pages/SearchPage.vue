@@ -231,6 +231,10 @@ export default {
         })
         return
       }
+      if (result.entityType === 'USER' && result.entityId) {
+        this.$router.push(`/operators/${result.entityId}`)
+        return
+      }
       if (result.clientId) {
         const query = {}
         if (result.taskId) {

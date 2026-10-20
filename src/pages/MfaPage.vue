@@ -55,6 +55,7 @@
 <script>
 import axios from 'axios'
 import LoginLogo from 'components/LoginLogo.vue'
+import { loginTargetFromRoute, loginUrl, safeLoginRedirect } from 'src/util/loginRedirect'
 import MfaEnrollment from 'components/mfa/MfaEnrollment.vue'
 
 export default {
@@ -74,16 +75,19 @@ export default {
     try {
       const { data } = await axios.get('/api/v1/auth/mfa/status')
       if (!data?.state) {
-        window.location.replace('/')
+        this.finish()
         return
       }
       this.state = data.state
     } catch (error) {
-      window.location.replace('/login')
+      this.returnToLogin()
     }
   },
 
   methods: {
+    returnToLogin () {
+      window.location.replace(loginUrl(loginTargetFromRoute(this.$route)))
+    },
     toggleRecovery () {
       this.useRecoveryCode = !this.useRecoveryCode
       this.code = ''
@@ -102,7 +106,7 @@ export default {
         this.code = ''
         if (body.loggedOut) {
           this.$q.notify({ type: 'negative', message: body.message })
-          setTimeout(() => window.location.replace('/login'), 1500)
+          setTimeout(() => this.returnToLogin(), 1500)
           return
         }
         this.attemptsLeft = body.attemptsLeft ?? null
@@ -114,7 +118,7 @@ export default {
 
     finish (redirect) {
       // Полная загрузка: приложение заново получит пользователя, права и подключит сокет
-      window.location.replace(redirect || '/')
+      window.location.replace(loginTargetFromRoute(this.$route) || safeLoginRedirect(redirect) || '/')
     }
   }
 }

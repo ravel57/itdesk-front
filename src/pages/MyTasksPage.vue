@@ -71,6 +71,7 @@
                   >
                     <div class="link-container">
                       <q-icon class="link" color="white" name="open_in_new"/>
+                      <q-tooltip>Открыть чат с клиентом по этой заявке</q-tooltip>
                     </div>
                   </div>
                 </a>
@@ -199,6 +200,7 @@ import moment from 'moment'
 import TaskCard from 'components/TaskCard.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
+import { wantsOnboarding, getOnboardingStatus, setOnboardingStatus } from 'src/util/onboarding'
 
 export default {
 
@@ -246,98 +248,8 @@ export default {
       {
         selector: '[data-my-tasks-tour="task-card"]',
         title: 'Карточка заявки',
-        text: 'Карточка показывает основные параметры назначенной вам работы. Следующие подсказки отдельно объяснят поля внутри карточки.',
+        text: 'Каждое поле подписано и говорит само за себя. Задержите курсор на названии поля (например, SLA) или на значке в углу карточки — появится короткая подсказка с деталями.',
         placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] .task-card-title',
-        title: 'Номер и название',
-        text: 'Номер нужен для быстрых ссылок на заявку, а название коротко передает суть обращения.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] .task-card-status-container',
-        title: 'Статус и индикаторы',
-        text: 'В правом верхнем углу видно текущее состояние заявки. Если по заявке есть пинг или важное обновление, рядом появляется отдельный индикатор.',
-        placement: 'left'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-description"]',
-        title: 'Описание',
-        text: 'Описание содержит подробности проблемы и контекст, который нужен для выполнения заявки.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-type"]',
-        title: 'Тип заявки',
-        text: 'Тип показывает категорию процесса и помогает понять, по какому сценарию должна обрабатываться заявка.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-service"]',
-        title: 'Сервис',
-        text: 'Сервис показывает систему или услугу, с которой связана заявка.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-checklist"]',
-        title: 'Чек-лист',
-        text: 'Прогресс чек-листа показывает, сколько обязательных действий уже выполнено.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-tags"]',
-        title: 'Теги',
-        text: 'Теги помогают быстро понять тему заявки и используются для поиска и фильтрации.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-support-line"]',
-        title: 'Линия поддержки',
-        text: 'Здесь видно, в какой очереди поддержки сейчас находится заявка.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-priority"]',
-        title: 'Приоритет',
-        text: 'Приоритет показывает срочность. Высокие и критичные заявки требуют более быстрого внимания.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-executor"]',
-        title: 'Исполнитель',
-        text: 'Поле подтверждает, кто сейчас отвечает за заявку. На экране «Мои заявки» здесь обычно указаны вы.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-created"]',
-        title: 'Дата создания',
-        text: 'Дата создания помогает оценить возраст обращения и понять, как долго заявка находится в работе.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-deadline"]',
-        title: 'Дедлайн',
-        text: 'Дедлайн показывает крайний срок решения заявки.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-sla"]',
-        title: 'SLA',
-        text: 'SLA показывает оставшееся регламентное время и помогает заметить риск нарушения срока.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="task-card"] [data-tour="tasks-task-last-activity"]',
-        title: 'Последнее действие',
-        text: 'Поле показывает, когда заявка обновлялась в последний раз. Так проще замечать давно неактивные задачи.',
-        placement: 'right'
-      },
-      {
-        selector: '[data-my-tasks-tour="chat-link"]',
-        title: 'Переход в чат клиента',
-        text: 'Иконка в углу открывает чат клиента, чтобы посмотреть переписку и ответить без поиска клиента вручную.',
-        placement: 'left'
       },
       {
         selector: '[data-my-tasks-tour="second-task-card"]',
@@ -598,7 +510,7 @@ export default {
     },
 
     startMyTasksOnboarding(force = false) {
-      if (!force && this.isMyTasksOnboardingPassed()) {
+      if (!force && (this.isMyTasksOnboardingPassed() || !wantsOnboarding())) {
         return
       }
       this.isTaskDialogShow = false
@@ -632,18 +544,13 @@ export default {
     },
 
     isMyTasksOnboardingPassed() {
-      try {
-        return window.localStorage.getItem(this.myTasksOnboardingStorageKey) === 'true'
-      } catch (e) {
-        return false
-      }
+      // Если пользователь уже прошёл обучение на странице «Заявки», карточки заявок ему знакомы — не повторяем
+      return getOnboardingStatus(this.myTasksOnboardingStorageKey) === 'true' ||
+        Boolean(getOnboardingStatus('tasks-page-onboarding-v1'))
     },
 
     persistMyTasksOnboardingPassed() {
-      try {
-        window.localStorage.setItem(this.myTasksOnboardingStorageKey, 'true')
-      } catch (e) {
-      }
+      setOnboardingStatus(this.myTasksOnboardingStorageKey, 'true')
     },
 
     nextMyTasksOnboardingStep() {

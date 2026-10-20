@@ -168,6 +168,7 @@ function handleConnected(client) {
   client.subscribe('/user/topic/user-notification/', message => userNotificationCallback(message))
   client.subscribe('/user/topic/task-messages/', message => taskMessageCallback(message))
   client.subscribe('/user/topic/task-updated/', message => taskUpdatedCallback(message))
+  client.subscribe('/user/topic/task-opened/', message => notifyTaskOpened(safeParseJson(message.body, null)))
   client.subscribe('/user/topic/incidents-updated/', message => incidentUpdatedCallback(message))
   client.subscribe('/user/topic/force-logout/', message => forceLogoutCallback(message))
 
@@ -320,7 +321,6 @@ function observerChatInvalidatedCallback(eventType = 'updated') {
   })
 }
 
-
 function handleObserverClientEvent(payload) {
   if (!payload || Array.isArray(payload) || payload.observerClientEvent !== true) {
     return false
@@ -354,7 +354,6 @@ function handleObserverClientEvent(payload) {
 
   return true
 }
-
 
 function getLastMessageSignature(message) {
   if (!message) {
@@ -435,6 +434,9 @@ function deriveClientSourceChannel(client) {
   }
   if (messageFrom === 'EMAIL') {
     return normalizeNonBlankString(client.emailAccountSender?.name)
+  }
+  if (messageFrom === 'PORTAL') {
+    return 'Личный кабинет'
   }
 
   return null
@@ -946,6 +948,19 @@ function incidentUpdatedCallback(message) {
 }
 
 const taskUpdatedListeners = new Set()
+
+const taskOpenedListeners = new Set()
+
+export function onTaskOpened(listener) {
+  taskOpenedListeners.add(listener)
+  return () => taskOpenedListeners.delete(listener)
+}
+
+export function notifyTaskOpened(payload) {
+  if (payload?.taskId) {
+    taskOpenedListeners.forEach(listener => listener(payload))
+  }
+}
 
 export function onTaskUpdated(listener) {
   taskUpdatedListeners.add(listener)

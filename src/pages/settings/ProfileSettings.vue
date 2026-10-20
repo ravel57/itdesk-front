@@ -22,89 +22,99 @@
 
         <q-separator/>
 
-        <q-card-section class="column q-gutter-y-sm">
-          <div class="row items-center q-gutter-sm">
-            <q-btn
-              v-if="perm !== 'granted'"
-              color="primary"
-              unelevated
-              label="Разрешить уведомления"
-              @click="ask"
-            />
+        <q-card-section class="column q-gutter-y-md">
+          <div class="column q-gutter-y-xs">
+            <div class="notification-group-label">Браузер</div>
+            <div class="row items-center q-gutter-sm">
+              <q-btn
+                v-if="perm !== 'granted'"
+                color="primary"
+                unelevated
+                label="Разрешить уведомления"
+                @click="ask"
+              />
 
-            <q-badge
-              v-else
-              color="positive"
-              outline
-              label="Уведомления разрешены"
+              <q-badge
+                v-else
+                color="positive"
+                outline
+                label="Уведомления разрешены"
+              />
+            </div>
+          </div>
+
+          <div class="column q-gutter-y-xs">
+            <div class="notification-group-label">Чаты и сообщения</div>
+            <q-checkbox
+              v-model="notifyChatPing"
+              label="Уведомлять при пинге в чате"
+            />
+            <q-checkbox
+              v-model="notifyTaskChatPing"
+              label="Уведомлять при пинге в чате внутри заявки"
+            />
+            <q-checkbox
+              v-model="notifyTaskNewMessageAssigned"
+              label="Уведомлять при новом сообщении в чате внутри заявки, где вы назначены исполнителем"
             />
           </div>
 
-          <q-checkbox
-            v-model="notifyChatPing"
-            label="Уведомлять при пинге в чате"
-          />
-          <q-checkbox
-            v-model="notifyTaskChatPing"
-            label="Уведомлять при пинге в чате внутри заявки"
-          />
-          <q-checkbox
-            v-model="notifyNewAssignedTask"
-            label="Уведомлять о новой заявке, где вы назначены исполнителем"
-          />
-          <q-checkbox
-            v-model="notifyTaskNewMessageAssigned"
-            label="Уведомлять при новом сообщении в чате внутри заявки, где вы назначены исполнителем"
-          />
-          <q-checkbox
-            v-model="notifySlaHalfTimePassed"
-            label="Уведомлять, когда SLA прошёл на 50%"
-          />
-          <q-checkbox
-            v-model="notifySlaOverdue"
-            label="Уведомлять, когда SLA нарушен"
-          />
-          <div class="row items-center q-gutter-sm">
+          <div class="column q-gutter-y-xs">
+            <div class="notification-group-label">Задачи и SLA</div>
             <q-checkbox
-              v-model="notifyChatUnansweredTooLong"
-              label="Уведомлять, если новое сообщение в чате без ответа дольше"
+              v-model="notifyNewAssignedTask"
+              label="Уведомлять о новой заявке, где вы назначены исполнителем"
             />
-
-            <q-input
-              v-model.number="notifyChatUnansweredTooLongMinutes"
-              type="number"
-              dense
-              outlined
-              suffix="мин."
-              style="width: 130px"
-              :disable="!notifyChatUnansweredTooLong"
-              :min="1"
-              :step="1"
-            />
-          </div>
-
-          <q-checkbox
-            v-model="notifyDeadlineOverdue"
-            label="Уведомлять о нарушении дедлайна"
-          />
-
-          <div class="row items-center q-gutter-sm">
             <q-checkbox
-              v-model="notifyDeadlineOverdueBeforeMinutesEnabled"
-              label="Уведомлять за"
+              v-model="notifySlaHalfTimePassed"
+              label="Уведомлять, когда SLA прошёл на 50%"
             />
-            <q-input
-              v-model.number="notifyDeadlineOverdueBeforeMinutes"
-              type="number"
-              dense
-              outlined
-              suffix="мин."
-              style="width: 130px"
-              :disable="!notifyDeadlineOverdueBeforeMinutesEnabled"
-              :min="1"
-              :step="1"
+            <q-checkbox
+              v-model="notifySlaOverdue"
+              label="Уведомлять, когда SLA нарушен"
             />
-            <span>до дедлайна</span>
+            <div class="row items-center q-gutter-sm">
+              <q-checkbox
+                v-model="notifyChatUnansweredTooLong"
+                label="Уведомлять, если новое сообщение в чате без ответа дольше"
+              />
+
+              <q-input
+                v-model.number="notifyChatUnansweredTooLongMinutes"
+                type="number"
+                dense
+                outlined
+                suffix="мин."
+                style="width: 130px"
+                :disable="!notifyChatUnansweredTooLong"
+                :min="1"
+                :step="1"
+              />
+            </div>
+
+            <q-checkbox
+              v-model="notifyDeadlineOverdue"
+              label="Уведомлять о нарушении дедлайна"
+            />
+
+            <div class="row items-center q-gutter-sm">
+              <q-checkbox
+                v-model="notifyDeadlineOverdueBeforeMinutesEnabled"
+                label="Уведомлять за"
+              />
+              <q-input
+                v-model.number="notifyDeadlineOverdueBeforeMinutes"
+                type="number"
+                dense
+                outlined
+                suffix="мин."
+                style="width: 130px"
+                :disable="!notifyDeadlineOverdueBeforeMinutesEnabled"
+                :min="1"
+                :step="1"
+              />
+              <span>до дедлайна</span>
+            </div>
           </div>
 
           <div class="row q-mt-md">
@@ -415,6 +425,14 @@ export default {
 
 .profile-card {
   border-radius: 12px;
+}
+
+.notification-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #a3a9b3;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .dialog-width {

@@ -129,7 +129,7 @@ export default {
     suggestionMode: {
       type: String,
       default: 'EXPRESSION',
-      validator: value => ['EXPRESSION', 'ACTION'].includes(String(value || '').toUpperCase())
+      validator: value => ['EXPRESSION', 'ACTION', 'TEMPLATE'].includes(String(value || '').toUpperCase())
     },
     suggestionLimit: {
       type: Number,
@@ -195,16 +195,28 @@ export default {
       })
     },
 
+    variableTypes () {
+      return Object.fromEntries(this.variables.filter(value => value && typeof value === 'object' && value.name)
+        .map(({ name, ...schema }) => [name.replace(/^var\./, ''), schema]))
+    },
+
     normalizedVariables () {
       return [...new Set((this.variables || [])
         .filter(Boolean)
-        .map(value => String(value).trim().replace(/^var\./, ''))
+        .map(value => String(typeof value === 'object' ? value.name : value).trim().replace(/^var\./, ''))
         .filter(Boolean))]
         .sort((left, right) => left.localeCompare(right))
     }
   },
 
   watch: {
+    variables: {
+      deep: true,
+      handler () {
+        this.cache.clear()
+        if (this.focused) this.scheduleSuggestions(0)
+      }
+    },
     suggestionMode () {
       this.cache.clear()
       if (this.focused) this.scheduleSuggestions(0)
@@ -290,6 +302,11 @@ export default {
         return
       }
 
+      if (event.key === 'Enter' && this.nativeInput()?.tagName === 'TEXTAREA') {
+        this.menuVisible = false
+        return
+      }
+
       if ((event.key === 'Enter' || event.key === 'Tab') && this.menuVisible && this.suggestions.length) {
         event.preventDefault()
         this.selectSuggestion(this.suggestions[this.activeIndex] || this.suggestions[0])
@@ -313,6 +330,9 @@ export default {
       if (template) return template
 
       const mode = String(this.suggestionMode || 'EXPRESSION').toUpperCase()
+      // Plain template text (kind "Текст"): only {{ ... }} spans are expressions —
+      // the rest is literal text, so outside a {{ }} there is nothing to suggest.
+      if (mode === 'TEMPLATE') return null
       if (mode === 'ACTION') {
         const bounds = this.actionStatementBounds(text, cursor)
         return {
@@ -373,7 +393,7 @@ export default {
           depth += 1
         } else if (value === ')') {
           depth = Math.max(0, depth - 1)
-        } else if ((value === ';' || value === '\n') && depth === 0) {
+        } else if ((value === ';' || value === '\n' || value === '\r') && depth === 0) {
           start = index + 1
         }
       }
@@ -402,7 +422,7 @@ export default {
           depth += 1
         } else if (value === ')') {
           depth = Math.max(0, depth - 1)
-        } else if (index >= cursor && (value === ';' || value === '\n') && depth === 0) {
+        } else if (index >= cursor && (value === ';' || value === '\n' || value === '\r') && depth === 0) {
           end = index
           break
         }
@@ -417,11 +437,20 @@ export default {
       const fullText = String(this.modelValue ?? '')
       const fullCursor = this.cursorPosition()
       const context = this.suggestionContext(fullText, fullCursor)
+      if (!context) {
+        this.requestSequence += 1
+        this.loading = false
+        this.suggestions = []
+        this.menuVisible = false
+        this.signatureVisible = false
+        return
+      }
       const payload = {
         text: context.text,
         cursor: context.cursor,
         mode: context.mode,
         variables: this.normalizedVariables,
+        variableTypes: this.variableTypes,
         limit: this.suggestionLimit
       }
       const cacheKey = JSON.stringify(payload)

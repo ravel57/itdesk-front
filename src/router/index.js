@@ -9,8 +9,9 @@ import {
 import routes from './routes'
 import { useAuthStore } from 'stores/auth'
 import { appConfig } from 'src/config/appConfig'
-import { isPublicPage } from './publicPages'
+import { isPublicPage, setWelcomeInviteActive } from './publicPages'
 import { canAny } from 'src/util/access'
+import { loginLocation } from 'src/util/loginRedirect'
 
 export default route(function () {
   const createHistory = process.env.SERVER
@@ -24,20 +25,23 @@ export default route(function () {
   })
 
   Router.beforeEach(async (to) => {
+    if (to.path !== '/welcome') {
+      setWelcomeInviteActive(false)
+    }
     if (appConfig.disableAuth) {
       return true
     }
-    if (isPublicPage(to.path)) {
+    if (isPublicPage(to.path, to.query)) {
       return true
     }
     const auth = useAuthStore()
     try {
       await auth.init()
     } catch (e) {
-      return '/login'
+      return loginLocation(to.fullPath)
     }
     if (!auth.isAuthenticated) {
-      return '/login'
+      return loginLocation(to.fullPath)
     }
 
     const authorities = Array.isArray(auth.user?.authorities) ? auth.user.authorities : []
@@ -52,7 +56,7 @@ export default route(function () {
     // Доступ к странице — по праву (meta.permission: строка или список «любое из»), как проверяет бэкенд
     const requiredPermissions = [].concat(to.meta?.permission || []).filter(Boolean)
     if (requiredPermissions.length > 0 && !canAny(requiredPermissions)) {
-      return isClientPortalUser ? '/portal' : (canAny('CHAT_VIEW') ? '/chats' : '/settings/profile')
+      return isClientPortalUser ? '/portal' : '/403'
     }
 
     return true

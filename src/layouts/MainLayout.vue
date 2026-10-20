@@ -24,7 +24,7 @@
       />
     </div>
   </div>
-  <q-layout>
+  <q-layout view="hHh lpr fff">
     <q-header
       elevated
     >
@@ -108,7 +108,7 @@
           </q-list>
           <q-list class="main-navigation__scroll">
           <essential-link
-            v-for="link in linksList"
+            v-for="link in visibleLinksList"
             :key="link.title"
             v-bind="link"
             :counter="this.getLinkCounter(link.title)"
@@ -117,6 +117,8 @@
           />
           <q-item
             v-if="canSeeOnlineUsers"
+            clickable
+            to="/operators"
           >
             <q-item-section avatar>
               <q-icon
@@ -129,7 +131,7 @@
                 class="mini-counter"
               />
             </q-item-section>
-            <q-item-section style="position: absolute;margin-left: 55px;">
+            <q-item-section :style="this.miniState ? 'position: absolute;margin-left: 55px;' : ''">
               <q-item-label>Операторы онлайн:</q-item-label>
               <q-item-label caption style="white-space: pre-wrap;">{{ this.formatUsersOnline(this.operatorUsersOnline) }}</q-item-label>
             </q-item-section>
@@ -148,14 +150,14 @@
                 class="mini-counter"
               />
             </q-item-section>
-            <q-item-section style="position: absolute;margin-left: 55px;">
+            <q-item-section :style="this.miniState ? 'position: absolute;margin-left: 55px;' : ''">
               <q-item-label>Менеджеры организаций онлайн:</q-item-label>
               <q-item-label caption style="white-space: pre-wrap;">{{ this.formatUsersOnline(this.observerUsersOnline) }}</q-item-label>
             </q-item-section>
           </q-item>
           </q-list>
           <q-list class="main-navigation__footer">
-            <q-item v-if="this.store.currentUser.lastname">
+            <q-item v-if="this.store.currentUser?.lastname">
               <q-item-section avatar>
                 <div
                   style="background-color: var(--q-primary);
@@ -167,11 +169,11 @@
                       position: relative;
                   "
                 >
-                  <q-item-label style="position: absolute;top: 5px;right: 8px; display: flex !important;">{{ (this.store.currentUser.lastname).slice(0, 1).toUpperCase() }}</q-item-label>
+                  <q-item-label style="position: absolute;top: 5px;right: 8px; display: flex !important;">{{ (this.store.currentUser?.lastname).slice(0, 1).toUpperCase() }}</q-item-label>
                 </div>
               </q-item-section>
               <q-item-section>
-                <q-item-label style="white-space: pre-wrap;">{{ this.store.currentUser.lastname + ' ' + this.store.currentUser.firstname}}</q-item-label>
+                <q-item-label style="white-space: pre-wrap;">{{ this.store.currentUser?.lastname + ' ' + this.store.currentUser?.firstname}}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item
@@ -203,7 +205,7 @@ import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import LogoComponent from 'components/Logo.vue'
 import NotificationBell from 'components/notifications/NotificationBell.vue'
-import { onIncidentUpdated, onTaskUpdated } from 'src/util/ws'
+import { onIncidentUpdated, onTaskUpdated, onTaskOpened } from 'src/util/ws'
 
 export default {
   name: 'MainLayout',
@@ -224,28 +226,25 @@ export default {
         permission: 'CHAT_VIEW'
       },
       {
+        title: 'Заявки',
+        icon: 'find_in_page',
+        link: '/tasks',
+        permissions: ['TASK_VIEW', 'TASK_EDIT']
+      },
+      {
         title: 'Мои заявки',
         icon: 'task',
         link: '/my-tasks',
-        permission: 'TASK_EDIT'
-      },
-      {
-        title: 'Заявки моих линий',
-        icon: 'support_agent',
-        link: '/my-lines',
-        permission: 'TASK_EDIT'
+        permission: 'TASK_EDIT',
+        // Быстрый доступ к своим заявкам нужен только в мобильной версии — на десктопе
+        // эту роль закрывает переключатель «Моих линий / Все» на самой странице «Заявки».
+        mobileOnly: true
       },
       {
         title: 'Чат',
         icon: 'forum',
         link: '/chats',
         permission: 'PORTAL'
-      },
-      {
-        title: 'Список заявок',
-        icon: 'find_in_page',
-        link: '/tasks',
-        permission: 'TASK_VIEW'
       },
       {
         title: 'Инциденты',
@@ -309,10 +308,17 @@ export default {
     incidentsCounter: 0,
     myTasksCounterInterval: null,
     myTasksCounterReloadTimer: null,
+    myTasksCounterRequestId: 0,
     taskUpdatedUnsubscribe: null,
+    taskOpenedUnsubscribe: null,
   }),
 
   computed: {
+    visibleLinksList () {
+      const isMobile = this.$q.screen.width < 1023
+      return this.linksList.filter(link => isMobile || !link.mobileOnly)
+    },
+
     canUseNotifications () {
       return this.$can('NOTIFICATIONS')
     },
@@ -358,7 +364,7 @@ export default {
         }
       }
 
-      if (title === 'Мои заявки') {
+      if (title === 'Заявки' || title === 'Мои заявки') {
         return this.formatCounter(this.myTasksCounter)
       }
 
@@ -375,31 +381,20 @@ export default {
     },
 
     async loadMyTasksCounter () {
-      if (!this.$can('TASK_EDIT')) {
+      const requestId = ++this.myTasksCounterRequestId
+      if (!this.$can('TASK_VIEW') && !this.$can('TASK_EDIT')) {
         this.myTasksCounter = 0
         return
       }
       try {
-        const response = await axios.post('/api/v1/tasks-page', {
-          page: 1,
-          size: 1,
-          search: '',
-          includeCompleted: false,
-          sortSlug: 'creating',
-          ascendingSort: false,
-          filterJoinOperator: 'AND',
-          filterChain: [{
-            label: 'Исполнитель',
-            slug: 'executor',
-            selectedOptions: ['Вы'],
-            isBeforeDeadline: false
-          }],
-          requiredFilterChain: []
-        })
-
-        this.myTasksCounter = Number(response.data?.totalElements) || 0
+        const response = await axios.get('/api/v1/tasks/unopened-assigned-count')
+        if (requestId === this.myTasksCounterRequestId) {
+          this.myTasksCounter = Number(response.data?.count) || 0
+        }
       } catch (e) {
-        this.myTasksCounter = 0
+        if (requestId === this.myTasksCounterRequestId) {
+          this.myTasksCounter = 0
+        }
       }
     },
 
@@ -494,6 +489,9 @@ export default {
     this.taskUpdatedUnsubscribe = onTaskUpdated(() => {
       this.scheduleMyTasksCounterReload()
     })
+    this.taskOpenedUnsubscribe = onTaskOpened(() => {
+      this.scheduleMyTasksCounterReload()
+    })
     this.incidentUpdatedUnsubscribe = onIncidentUpdated(() => {
       this.loadIncidentsCounter()
     })
@@ -511,6 +509,10 @@ export default {
   },
 
   beforeUnmount () {
+    if (this.taskOpenedUnsubscribe) {
+      this.taskOpenedUnsubscribe()
+      this.taskOpenedUnsubscribe = null
+    }
     if (this.myTasksCounterInterval) {
       clearInterval(this.myTasksCounterInterval)
     }

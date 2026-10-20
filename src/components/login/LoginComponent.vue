@@ -50,6 +50,7 @@
       </div>
       <form v-if="this.login" method="post" action="/perform_login" class="login-form">
         <input type="hidden" name="_csrf" :value="csrfToken">
+        <input v-if="redirectTarget" type="hidden" name="redirect" :value="redirectTarget">
         <q-input
           name="username"
           class="input-field"
@@ -138,6 +139,7 @@ import axios from 'axios'
 import { useStore } from 'stores/store'
 import { useRoute } from 'vue-router'
 import { getCsrfToken } from 'boot/axios'
+import { loginTargetFromRoute } from 'src/util/loginRedirect'
 
 export default {
   name: 'LoginComponent',
@@ -157,13 +159,30 @@ export default {
   }),
 
   computed: {
+    redirectTarget () {
+      return loginTargetFromRoute(this.$route)
+    },
     loginMessage () {
       const route = this.$route
       if (route?.path === '/login-error') {
         return 'Неверная почта или пароль'
       }
-      if (route?.path === '/session-expired' || route?.query?.sessionExpired !== undefined || route?.query?.expired !== undefined) {
-        return 'Сеанс завершён. Войдите снова'
+      const isSessionEnded = route?.path === '/session-expired' ||
+        route?.query?.sessionExpired !== undefined ||
+        route?.query?.expired !== undefined
+      if (isSessionEnded) {
+        // Причина выхода из аккаунта (кроме выхода по кнопке «Выйти», который сразу
+        // ведёт на /login без reason): бэкенд передаёт код через ?reason=, здесь —
+        // только человекочитаемые формулировки без кодов ошибок.
+        const reasons = {
+          PASSWORD_CHANGED: 'Администратор сменил ваш пароль. Войдите заново.',
+          LOGGED_IN_ELSEWHERE: 'Вы вошли в аккаунт с другого устройства или браузера.',
+          ACCOUNT_DISABLED: 'Доступ к аккаунту заблокирован администратором.',
+          ROLE_CHANGED: 'Администратор изменил вашу роль. Войдите заново, чтобы применить права.',
+          IDLE_TIMEOUT: 'Сеанс завершён из-за долгого бездействия. Войдите снова.'
+        }
+        const reason = String(route?.query?.reason || '').toUpperCase()
+        return reasons[reason] || 'Сеанс завершён. Войдите снова'
       }
       return ''
     }
@@ -236,7 +255,7 @@ export default {
       axios.post('/api/auth/login', { username: this.username, password: this.password })
         .then(response => {
           if (response.status === 200) {
-            this.$router.push('/chats')
+            this.$router.replace(this.redirectTarget || '/')
           }
         })
     }

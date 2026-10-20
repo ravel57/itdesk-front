@@ -5,8 +5,8 @@
         <div class="col">
           <div class="text-h6">Журнал решений Jev</div>
           <div class="text-caption text-grey-7">
-            Уверенность Jev по каждому вопросу каждой автоматизации. Решения ниже порога не применяются.
-            Много решений «у порога» — повод подвинуть порог в настройках.
+            Все вопросы к Jev, ответы, ошибки и пропуски. Применение ответа определяется условиями графа.
+            Порог здесь не отображается: один ответ может проверяться несколькими условиями.
           </div>
         </div>
         <q-select
@@ -36,7 +36,7 @@
           dense
           :rows="stats"
           :columns="statsColumns"
-          :row-key="row => `${row.action}|${row.question}`"
+          :row-key="row => JSON.stringify([row.ruleId, row.ruleName, row.nodeId, row.nodeLabel, row.action, row.question, row.questionTitle, row.answerType])"
           :pagination="{ rowsPerPage: 0 }"
           hide-bottom
           no-data-label="За период решений нет"
@@ -49,19 +49,15 @@
               :class="{ 'jev-log__row--active': isActiveFilter(props.row) }"
               @click="toggleFilter(props.row)"
             >
-              <q-td key="action" :props="props">{{ actionLabel(props.row.action) }}</q-td>
-              <q-td key="question" :props="props">{{ questionLabel(props.row.question) }}</q-td>
+              <q-td key="ruleName" :props="props">{{ props.row.ruleName || actionLabel(props.row.action) }}</q-td>
+              <q-td key="nodeLabel" :props="props">{{ props.row.nodeLabel || actionLabel(props.row.action) }}</q-td>
+              <q-td key="question" :props="props" class="jev-log__question">{{ props.row.questionTitle || questionLabel(props.row.question) }}</q-td>
               <q-td key="total" :props="props">{{ props.row.total }}</q-td>
-              <q-td key="avgConfidence" :props="props">{{ percent(props.row.avgConfidence) }}</q-td>
-              <q-td key="threshold" :props="props">{{ props.row.threshold == null ? '—' : percent(props.row.threshold) }}</q-td>
-              <q-td key="accepted" :props="props">{{ share(props.row.accepted, props.row.total) }}</q-td>
-              <q-td key="rejected" :props="props">{{ props.row.rejected }}</q-td>
-              <q-td key="none" :props="props">{{ props.row.none }}</q-td>
-              <q-td key="nearThreshold" :props="props">
-                <span :class="props.row.nearThreshold > 0 ? 'text-warning text-weight-medium' : ''">
-                  {{ props.row.nearThreshold }}
-                </span>
-              </q-td>
+              <q-td key="avgConfidence" :props="props">{{ measurement(props.row.avgConfidence, props.row.answerType) }}</q-td>
+              <q-td key="answered" :props="props">{{ props.row.answered }}</q-td>
+              <q-td key="failed" :props="props">{{ props.row.failed }}</q-td>
+              <q-td key="skipped" :props="props">{{ props.row.skipped }}</q-td>
+              <q-td key="pending" :props="props">{{ props.row.pending }}</q-td>
             </q-tr>
           </template>
         </q-table>
@@ -70,14 +66,14 @@
           <div class="text-subtitle1">Решения</div>
           <q-space/>
           <q-chip
-            v-if="filter.action"
+            v-if="filter.action || filter.question || filter.ruleId || filter.nodeId"
             removable
             dense
             color="primary"
             text-color="white"
             @remove="clearFilter"
           >
-            {{ actionLabel(filter.action) }} · {{ questionLabel(filter.question) }}
+            {{ filter.label || actionLabel(filter.action) }}
           </q-chip>
           <q-select
             v-model="filter.outcome"
@@ -87,7 +83,7 @@
             clearable
             dense
             outlined
-            label="Итог"
+            label="Статус / результат"
             class="jev-log__outcome"
             @update:model-value="reloadDecisions(1)"
           />
@@ -106,6 +102,12 @@
           no-data-label="Решений нет"
           @request="onRequest"
         >
+          <template #body-cell-step="props">
+            <q-td :props="props">
+              <div>{{ props.row.nodeLabel || actionLabel(props.row.action) }}</div>
+              <q-badge v-if="props.row.source === 'GRAPH_TRACE'" outline color="grey" label="Из трассировки"/>
+            </q-td>
+          </template>
           <template #body-cell-context="props">
             <q-td :props="props" class="jev-log__objects">
               <template v-if="references(props.row.context).length">
@@ -150,26 +152,35 @@
                 </q-chip>
               </template>
               <span v-else>{{ props.row.context || '—' }}</span>
+              <div v-if="props.row.eventId" class="text-caption text-grey-7">Событие #{{ props.row.eventId }}</div>
             </q-td>
+          </template>
+          <template #body-cell-question="props">
+            <q-td :props="props" class="jev-log__question">{{ props.row.questionTitle || questionLabel(props.row.question) }}</q-td>
+          </template>
+          <template #body-cell-choice="props">
+            <q-td :props="props" class="jev-log__question">{{ props.row.choice || '—' }}</q-td>
           </template>
           <template #body-cell-confidence="props">
             <q-td :props="props">
               <div class="row items-center no-wrap q-gutter-xs">
                 <q-linear-progress
-                  :value="Number(props.row.confidence) || 0"
-                  :color="confidenceColor(props.row)"
+                  v-if="props.row.confidence != null && props.row.answerType !== 'score'"
+                  :value="Math.max(0, Math.min(1, Number(props.row.confidence)))"
+                  color="primary"
                   track-color="grey-3"
                   rounded
                   size="6px"
                   class="jev-log__bar"
                 />
-                <span>{{ percent(props.row.confidence) }}</span>
+                <span>{{ measurement(props.row.confidence, props.row.answerType) }}</span>
               </div>
             </q-td>
           </template>
           <template #body-cell-outcome="props">
             <q-td :props="props">
               <q-badge :color="outcomeColor(props.row.outcome)" :label="outcomeLabel(props.row.outcome)"/>
+              <div v-if="props.row.errorMessage" class="text-caption text-grey-7 jev-log__status-message">{{ props.row.errorMessage }}</div>
             </q-td>
           </template>
         </q-table>
@@ -234,10 +245,15 @@ const OBJECT_TYPES = {
 const REFERENCE = /\b(client|message|task|incident|service)=(\d+)/g
 
 const OUTCOMES = {
-  ACCEPTED: { label: 'Принято', color: 'positive' },
-  REJECTED: { label: 'Ниже порога', color: 'negative' },
+  ACCEPTED: { label: 'Уверенный ответ (метод)', color: 'positive' },
+  REJECTED: { label: 'Ниже порога метода', color: 'negative' },
   NONE: { label: 'Ни один вариант', color: 'grey-7' },
-  UNDECIDED: { label: 'Между порогами', color: 'warning' }
+  UNDECIDED: { label: 'Без окончательного решения', color: 'warning' },
+  ANSWERED: { label: 'Ответ получен', color: 'primary' },
+  FAILED: { label: 'Запрос не выполнен', color: 'negative' },
+  INVALID: { label: 'Некорректный ответ', color: 'negative' },
+  SKIPPED: { label: 'Пропущено', color: 'grey-7' },
+  PENDING: { label: 'Ожидается ответ', color: 'warning' }
 }
 
 export default {
@@ -257,7 +273,7 @@ export default {
       decisions: [],
       objectLabels: {},
       previews: {},
-      filter: { action: null, question: null, outcome: null },
+      filter: { action: null, question: null, outcome: null, ruleId: null, nodeId: null, label: null },
       pagination: { page: 1, rowsPerPage: 50, rowsNumber: 0 },
       periodOptions: [
         { label: 'Сутки', value: 1 },
@@ -266,26 +282,25 @@ export default {
       ],
       outcomeOptions: Object.entries(OUTCOMES).map(([value, item]) => ({ value, label: item.label })),
       statsColumns: [
-        { name: 'action', label: 'Автоматизация', field: 'action', align: 'left' },
+        { name: 'ruleName', label: 'Сценарий', field: 'ruleName', align: 'left' },
+        { name: 'nodeLabel', label: 'Шаг', field: 'nodeLabel', align: 'left' },
         { name: 'question', label: 'Вопрос', field: 'question', align: 'left' },
-        { name: 'total', label: 'Решений', field: 'total', align: 'right' },
-        { name: 'avgConfidence', label: 'Ср. уверенность', field: 'avgConfidence', align: 'right' },
-        { name: 'threshold', label: 'Порог', field: 'threshold', align: 'right' },
-        { name: 'accepted', label: 'Принято', field: 'accepted', align: 'right' },
-        { name: 'rejected', label: 'Ниже порога', field: 'rejected', align: 'right' },
-        { name: 'none', label: 'Ни один', field: 'none', align: 'right' },
-        { name: 'nearThreshold', label: 'У порога (±10%)', field: 'nearThreshold', align: 'right' }
+        { name: 'total', label: 'Вопросов', field: 'total', align: 'right' },
+        { name: 'avgConfidence', label: 'Ср. оценка Jev', field: 'avgConfidence', align: 'right' },
+        { name: 'answered', label: 'Ответ получен', field: 'answered', align: 'right' },
+        { name: 'failed', label: 'Ошибок', field: 'failed', align: 'right' },
+        { name: 'skipped', label: 'Пропущено', field: 'skipped', align: 'right' },
+        { name: 'pending', label: 'Ожидается', field: 'pending', align: 'right' }
       ],
       decisionColumns: [
-        { name: 'createdAt', label: 'Время', field: 'createdAt', align: 'left', format: value => this.formatDate(value) },
-        { name: 'ruleName', label: 'Правило', field: 'ruleName', align: 'left', format: value => value || '—' },
-        { name: 'action', label: 'Автоматизация', field: 'action', align: 'left', format: value => this.actionLabel(value) },
-        { name: 'context', label: 'Объект', field: 'context', align: 'left' },
-        { name: 'question', label: 'Вопрос', field: 'question', align: 'left', format: value => this.questionLabel(value) },
-        { name: 'choice', label: 'Выбор Jev', field: 'choice', align: 'left' },
-        { name: 'confidence', label: 'Уверенность', field: 'confidence', align: 'left' },
-        { name: 'threshold', label: 'Порог', field: 'threshold', align: 'right', format: value => value == null ? '—' : this.percent(value) },
-        { name: 'outcome', label: 'Итог', field: 'outcome', align: 'left' }
+        { name: 'createdAt', label: 'Время запроса', field: 'createdAt', align: 'left', format: value => this.formatDate(value) },
+        { name: 'ruleName', label: 'Сценарий', field: 'ruleName', align: 'left', format: value => value || '—' },
+        { name: 'step', label: 'Шаг / действие', field: 'nodeLabel', align: 'left' },
+        { name: 'context', label: 'Событие и объекты', field: 'context', align: 'left' },
+        { name: 'question', label: 'Вопрос', field: 'question', align: 'left', format: (value, row) => row.questionTitle || this.questionLabel(value) },
+        { name: 'choice', label: 'Ответ Jev', field: 'choice', align: 'left', format: value => value || '—' },
+        { name: 'confidence', label: 'Оценка Jev', field: 'confidence', align: 'left' },
+        { name: 'outcome', label: 'Статус / результат', field: 'outcome', align: 'left' }
       ]
     }
   },
@@ -302,8 +317,11 @@ export default {
   },
 
   watch: {
-    modelValue (value) {
-      if (value) this.reloadAll()
+    modelValue: {
+      immediate: true,
+      handler (value) {
+        if (value) this.reloadAll()
+      }
     }
   },
 
@@ -332,7 +350,9 @@ export default {
             days: this.days,
             action: this.filter.action || undefined,
             question: this.filter.question || undefined,
-            outcome: this.filter.outcome || undefined
+            outcome: this.filter.outcome || undefined,
+            ruleId: this.filter.ruleId || undefined,
+            nodeId: this.filter.nodeId || undefined
           }
         })
         this.decisions = data?.decisions || []
@@ -358,17 +378,23 @@ export default {
       }
       this.filter.action = row.action
       this.filter.question = row.question
+      this.filter.ruleId = row.ruleId
+      this.filter.nodeId = row.nodeId
+      this.filter.label = [row.ruleName, row.nodeLabel || this.actionLabel(row.action)].filter(Boolean).join(' · ')
       this.reloadDecisions(1)
     },
 
     clearFilter () {
       this.filter.action = null
       this.filter.question = null
+      this.filter.ruleId = null
+      this.filter.nodeId = null
+      this.filter.label = null
       this.reloadDecisions(1)
     },
 
     isActiveFilter (row) {
-      return this.filter.action === row.action && this.filter.question === row.question
+      return this.filter.action === row.action && this.filter.question === row.question && this.filter.ruleId === row.ruleId && this.filter.nodeId === row.nodeId
     },
 
     references (context) {
@@ -419,19 +445,13 @@ export default {
       return OUTCOMES[outcome]?.color || 'grey'
     },
 
-    confidenceColor (row) {
-      if (row.threshold == null) return 'primary'
-      return Number(row.confidence) >= Number(row.threshold) ? 'positive' : 'negative'
+    measurement (value, type) {
+      if (value == null) return '—'
+      return type === 'score' ? Number(value).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) : this.percent(value)
     },
 
     percent (value) {
       return value == null ? '—' : `${Math.round(Number(value) * 100)}%`
-    },
-
-    share (part, total) {
-      const count = Number(part) || 0
-      const all = Number(total) || 0
-      return all ? `${count} (${Math.round(count * 100 / all)}%)` : '0'
     },
 
     formatDate (value) {
@@ -505,6 +525,18 @@ export default {
 .jev-log__preview-label {
   width: 110px;
   flex: 0 0 110px;
+}
+
+.jev-log__question {
+  max-width: 360px;
+  min-width: 180px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.jev-log__status-message {
+  max-width: 300px;
+  white-space: normal;
 }
 
 .jev-log__bar {

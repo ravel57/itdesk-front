@@ -13,7 +13,7 @@
           <template v-else-if="state === 'invalid'">
             <div class="reset-title">Ссылка недействительна</div>
             <div class="reset-text">
-              {{ message || 'Ссылка устарела или уже использована. Запросите новую на странице входа: «Забыли пароль?».' }}
+              {{ message || 'Ссылка устарела или уже использована. Если это приглашение — обратитесь к администратору за новым; если это сброс пароля — запросите новую ссылку на странице входа.' }}
             </div>
             <q-btn class="full-width q-mt-md" color="primary" label="На страницу входа" to="/login"/>
           </template>
@@ -21,14 +21,21 @@
           <template v-else-if="state === 'done'">
             <div class="reset-title reset-title--success">
               <q-icon name="check" class="q-mr-xs"/>
-              Пароль изменён
+              {{ isInvite ? 'Добро пожаловать!' : 'Пароль изменён' }}
             </div>
-            <div class="reset-text">Войдите с новым паролем. Открытые сеансы с прежним паролем завершены.</div>
+            <div class="reset-text">
+              {{
+                isInvite
+                  ? 'Пароль задан. Войдите, чтобы начать работу.'
+                  : 'Войдите с новым паролем. Открытые сеансы с прежним паролем завершены.'
+              }}
+            </div>
             <q-btn class="full-width q-mt-md" color="primary" label="Войти" to="/login"/>
           </template>
 
           <q-form v-else class="reset-form" @submit.prevent="submit">
-            <div class="reset-title">Новый пароль</div>
+            <div class="reset-title">{{ isInvite ? 'Добро пожаловать в ULDESK' : 'Новый пароль' }}</div>
+            <div v-if="isInvite" class="reset-text q-mb-sm">Для вас создана учётная запись. Задайте пароль, чтобы войти.</div>
             <q-input
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
@@ -53,7 +60,13 @@
               :rules="[value => value === password || 'Пароли не совпадают']"
             />
             <div class="reset-hint">Не короче 8 символов</div>
-            <q-btn class="full-width q-mt-md" type="submit" color="primary" label="Сохранить пароль" :loading="saving"/>
+            <q-btn
+              class="full-width q-mt-md"
+              type="submit"
+              color="primary"
+              :label="isInvite ? 'Продолжить' : 'Сохранить пароль'"
+              :loading="saving"
+            />
           </q-form>
         </div>
       </q-page>
@@ -78,7 +91,8 @@ export default {
     password: '',
     passwordRepeat: '',
     showPassword: false,
-    saving: false
+    saving: false,
+    isInvite: false
   }),
 
   async mounted () {
@@ -96,6 +110,12 @@ export default {
     }
     try {
       const { data } = await axios.post('/api/v1/support/reset-password/verify', { token: this.token })
+      this.isInvite = data?.purpose === 'INVITE'
+      if (data?.valid && this.isInvite) {
+        await this.$router.replace({ path: '/welcome', query: { token: this.token } })
+        return
+      }
+      document.title = this.isInvite ? 'ULDESK : Регистрация' : 'ULDESK : Смена пароля'
       this.state = data?.valid ? 'form' : 'invalid'
     } catch (error) {
       this.state = 'invalid'

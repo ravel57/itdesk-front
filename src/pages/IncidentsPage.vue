@@ -5,6 +5,11 @@
         <div class="text-h5">Инциденты</div>
         <div class="text-caption text-grey-7">Массовые проблемы, связанные заявки и коммуникации</div>
       </div>
+      <div class="col-auto">
+        <q-btn flat round dense icon="help_outline" color="primary" @click="helpDialog = true">
+          <q-tooltip>Что такое инцидент и как с ним работать</q-tooltip>
+        </q-btn>
+      </div>
       <div class="col-auto" v-if="canEdit">
         <q-btn color="primary" icon="add" label="Создать инцидент" @click="openCreateDialog"/>
       </div>
@@ -101,31 +106,23 @@
           <q-toolbar-title>Новый инцидент</q-toolbar-title>
           <q-btn flat round dense icon="close" v-close-popup/>
         </q-toolbar>
-        <q-card-section class="q-gutter-md">
+        <q-card-section class="incident-form">
           <q-input v-model="form.title" outlined label="Название *"
                    :rules="[v => !!String(v || '').trim() || 'Обязательное поле']"/>
-          <div class="row q-col-gutter-md">
-            <div class="col-6">
-              <q-select v-model="form.severity" outlined :options="severityOptions" emit-value map-options
-                        label="Критичность"/>
-            </div>
-            <div class="col-6">
-              <q-select v-model="form.status" outlined :options="statusOptions" emit-value map-options label="Статус"/>
-            </div>
+          <div class="incident-form__pair">
+            <q-select v-model="form.severity" outlined :options="severityOptions" emit-value map-options
+                      label="Критичность"/>
+            <q-select v-model="form.status" outlined :options="statusOptions" emit-value map-options label="Статус"/>
           </div>
           <q-select v-model="form.serviceIds" outlined multiple clearable use-chips :options="serviceOptions" emit-value
                     map-options label="Затронутые сервисы"/>
           <q-input v-model="form.description" outlined type="textarea" autogrow label="Описание"/>
           <q-input v-model="form.impactSummary" outlined type="textarea" autogrow label="Влияние"/>
-          <div class="row q-col-gutter-md">
-            <div class="col-12 col-md-6">
-              <q-select v-model="form.leaderId" outlined clearable :options="userOptions" emit-value map-options
-                        label="Руководитель инцидента"/>
-            </div>
-            <div class="col-12 col-md-6">
-              <q-select v-model="form.supportLineId" outlined clearable :options="supportLineOptions" emit-value
-                        map-options label="Линия поддержки"/>
-            </div>
+          <div class="incident-form__pair">
+            <q-select v-model="form.leaderId" outlined clearable :options="userOptions" emit-value map-options
+                      label="Руководитель инцидента"/>
+            <q-select v-model="form.supportLineId" outlined clearable :options="supportLineOptions" emit-value
+                      map-options label="Линия поддержки"/>
           </div>
           <q-select v-model="form.organizationIds" outlined multiple clearable :options="organizationOptions" emit-value
                     map-options use-chips label="Затронутые организации" class="organization-select"
@@ -135,10 +132,43 @@
           <q-input v-model.number="form.updateIntervalMinutes" outlined type="number" min="5"
                    label="Интервал обязательных обновлений, минут"/>
         </q-card-section>
-        <q-card-actions align="right">
+        <q-card-actions align="right" class="incident-form__actions">
           <q-btn flat label="Отмена" v-close-popup/>
           <q-btn color="primary" label="Создать" :loading="saving" @click="createIncident"/>
         </q-card-actions>
+      </q-card>
+    </q-dialog>
+
+    <q-dialog v-model="helpDialog">
+      <q-card style="width: 640px; max-width: 96vw">
+        <q-toolbar>
+          <q-toolbar-title>Что такое инцидент</q-toolbar-title>
+          <q-btn flat round dense icon="close" v-close-popup/>
+        </q-toolbar>
+        <q-card-section class="incident-help">
+          <p>
+            Инцидент — это общий сбой или ухудшение работы сервиса, которое затрагивает сразу многих пользователей.
+            Заявка описывает обращение одного клиента, а инцидент собирает всё по одной проблеме в одном месте:
+            кто и что затронуто, что делается и когда будет следующее обновление.
+          </p>
+          <div class="incident-help__title">Как заполнять форму</div>
+          <ul>
+            <li><b>Название, критичность (P1–P4) и статус</b> — коротко о сути и серьёзности. Новый инцидент удобно
+              начинать со статуса «Черновик» или «Проверка», пока сбой не подтверждён.</li>
+            <li><b>Затронутые сервисы и организации</b> — по ним видно масштаб инцидента и кому нужно сообщать.</li>
+            <li><b>Описание и влияние</b> — что происходит технически и как это сказывается на клиентах.</li>
+            <li><b>Руководитель, линия поддержки, участники</b> — кто отвечает за инцидент и кто работает над ним.</li>
+            <li><b>Интервал обязательных обновлений</b> — как часто нужно публиковать новости по инциденту. Если
+              обновление просрочено, в списке инцидентов появится отметка «Просрочено на…».</li>
+          </ul>
+          <div class="incident-help__title">Что делать после создания</div>
+          <ul>
+            <li>Откройте инцидент из списка. На вкладке <b>«Хронология»</b> публикуются записи для нужной аудитории.</li>
+            <li>На вкладке <b>«Заявки»</b> привяжите обращения клиентов, которые относятся к этому сбою.</li>
+            <li>На вкладках <b>«Команда»</b> и <b>«Обзор»</b> меняются ответственные, статус и сроки, а после
+              устранения на вкладке <b>«Разбор»</b> фиксируются первопричина и итоги.</li>
+          </ul>
+        </q-card-section>
       </q-card>
     </q-dialog>
   </q-page>
@@ -148,6 +178,7 @@
 import axios from 'axios'
 import {useStore} from 'stores/store'
 import {onIncidentUpdated} from 'src/util/ws'
+import {isStaff} from 'src/util/access'
 
 export default {
   name: 'IncidentsPage',
@@ -158,6 +189,7 @@ export default {
     loading: false,
     saving: false,
     createDialog: false,
+    helpDialog: false,
     users: [],
     organizations: [],
     supportLines: [],
@@ -195,7 +227,8 @@ export default {
     },
 
     userOptions() {
-      return this.users.map(user => ({value: user.id, label: this.userName(user)}))
+      // Менеджеры организаций (OBSERVER) в ролях инцидента не выбираются
+      return this.users.filter(user => isStaff(user)).map(user => ({value: user.id, label: this.userName(user)}))
     },
 
     organizationOptions() {
@@ -372,5 +405,57 @@ export default {
 
 .incident-table :deep(tbody tr:hover) {
   background: rgba(92, 53, 249, 0.05);
+}
+
+.incident-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.incident-form__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.incident-form__actions {
+  padding: 8px 16px 16px;
+  gap: 4px;
+}
+
+.incident-help {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4a4a4f;
+}
+
+.incident-help p {
+  margin: 0 0 12px;
+}
+
+.incident-help ul {
+  margin: 6px 0 12px;
+  padding-left: 20px;
+}
+
+.incident-help li + li {
+  margin-top: 6px;
+}
+
+.incident-help__title {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8a90;
+}
+
+@media (max-width: 599px) {
+  .incident-form__pair {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

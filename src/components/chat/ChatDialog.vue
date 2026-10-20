@@ -28,14 +28,6 @@
           dense
           class="q-ml-auto"
         />
-        <q-btn
-          v-if="this.showHelperAction && !this.isShowHelper && !this.isMobile"
-          icon="support"
-          @click="this.showHelper"
-          flat
-          dense
-          class="q-ml-auto"
-        />
       </div>
     </q-card>
     <q-list
@@ -69,7 +61,7 @@
             <div
               v-else
               style="width: 20px;height: 20px;border-radius: 100%;display: flex;justify-content: center;align-items: center;color: white;font-size: 10px;margin-right: 8px"
-              :style="'background-color: ' + nameToPastelHex(`${this.client.lastname} ${this.client.firstname}`) + ';'"
+              :style="'background-color: ' + nameToPastelHex(getClientDisplayName(this.client)) + ';'"
             >
               {{ this.getAbbreviation(this.client) }}
             </div>
@@ -182,7 +174,7 @@
                 </div>
                 <div style="margin-left: 10px;display: flex; flex-direction: column;justify-content: center">
                   <div class="">От: {{
-                      message.user ? message.user.lastname + ' ' + message.user.firstname : this.client.lastname + ' ' + this.client.username
+                      message.user ? message.user.lastname + ' ' + message.user.firstname : getClientDisplayName(this.client)
                     }}
                   </div>
                   <div class="">
@@ -730,6 +722,23 @@
             </q-tooltip>
           </q-btn>
         </div>
+        <div
+          v-if="this.showHelperAction && !this.isMobile"
+        >
+          <q-btn
+            data-tour="chat-helper-toggle"
+            style="margin-bottom: 6px"
+            @click="this.showHelper"
+            dense
+            flat
+            icon="support"
+            :color="this.isShowHelper ? 'primary' : 'grey'"
+          >
+            <q-tooltip>
+              {{ this.isShowHelper ? 'Скрыть подсказки и базу знаний' : 'Подсказки и база знаний' }}
+            </q-tooltip>
+          </q-btn>
+        </div>
       </q-card>
     </div>
   </q-page>
@@ -817,7 +826,7 @@
         <div style="font-size: 14px; margin-bottom: 16px">Добавлено {{ this.attachedFiles.length }} файлов</div>
         <q-file
           v-model="this.attachedFiles"
-          label="Перетащите сюда файл"
+          label="Выберите файл"
           color="primary"
           outlined
           append
@@ -907,6 +916,7 @@ import {
   MESSAGE_FILE_MAX_SIZE_LABEL,
   getMessageFileSizeError
 } from 'src/util/messageFileUpload'
+import { getClientDisplayName, getClientAvatarAbbreviation } from 'src/util/clientName'
 
 export default {
 
@@ -927,6 +937,10 @@ export default {
     },
     currentUser: { type: Object },
     linkedMessageId: { type: Number },
+    highlightLinkedMessage: {
+      default: true,
+      type: Boolean
+    },
     tasks: { type: Array },
     taskWatchingNow: {
       default: () => [],
@@ -1090,9 +1104,7 @@ export default {
     },
 
     getAbbreviation (client) {
-      const lastname = client.lastname ? client.lastname[0].toUpperCase() : ''
-      const firstname = client.firstname ? client.firstname[0].toUpperCase() : ''
-      return `${lastname}${firstname}`
+      return getClientAvatarAbbreviation(client)
     },
 
     copyToClipboard (text) {
@@ -1625,7 +1637,7 @@ export default {
     },
 
     showHelper () {
-      this.$emit('showHelper')
+      this.$emit(this.isShowHelper ? 'hideHelper' : 'showHelper')
     },
 
     createNewTask (message) {
@@ -1816,9 +1828,7 @@ export default {
       if (this.getName(message) !== '') {
         return `${this.getName(message)} : ${message.text}`
       } else {
-        const lastname = this.client.lastname
-        const firstname = this.client.firstname
-        return `${lastname !== null ? lastname : ''} ${firstname !== null ? firstname : ''} : ${message.text}`
+        return `${getClientDisplayName(this.client)} : ${message.text}`
       }
     },
 
@@ -2570,6 +2580,31 @@ export default {
       this.showListPinedFiles = true
     },
 
+    // Вызывается родительским контейнером чата (его границы — реальная область окна чата)
+    // при drop файлов через drag-n-drop, т.к. корневые узлы этого компонента — фрагменты
+    // без общего оборачивающего блока на весь экран чата.
+    addDroppedFiles (files) {
+      if (!Array.isArray(files) || files.length === 0) {
+        return
+      }
+      const allowedFiles = files.filter(file => Number(file?.size || 0) <= MESSAGE_FILE_MAX_SIZE_BYTES)
+      const rejectedFiles = files.filter(file => Number(file?.size || 0) > MESSAGE_FILE_MAX_SIZE_BYTES)
+      if (rejectedFiles.length > 0) {
+        this.fileUploadError = getMessageFileSizeError(rejectedFiles)
+        this.$q.notify({
+          message: this.fileUploadError,
+          type: 'negative'
+        })
+      }
+      if (allowedFiles.length === 0) {
+        return
+      }
+      this.attachedFiles = [
+        ...this.attachedFiles,
+        ...allowedFiles
+      ]
+    },
+
     onFilesRejected (rejectedEntries) {
       const files = (Array.isArray(rejectedEntries) ? rejectedEntries : [])
         .map(entry => entry?.file)
@@ -2855,7 +2890,7 @@ export default {
       if (this.portalMode) {
         return 'Текст сообщения'
       }
-      return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile ? '' : this.mentionsEnabled ? '\nВведите @ для пинга' : '\nВведите shortcut и нажмите tab чтобы выполнить авто-ввод'}`
+      return `${this.isComment ? 'Текст комментария' : 'Текст сообщения'} ${this.isMobile ? '' : this.mentionsEnabled ? '\nВведите @ для пинга' : '\nВведите :shortcut и нажмите tab чтобы выполнить авто-ввод'}`
     },
 
     isMacOs () {
@@ -2924,7 +2959,7 @@ export default {
       if (this.getReplayed.user) {
         return this.getReplayed.user.lastname + ' ' + this.getReplayed.user.firstname
       } else {
-        return this.client.lastname + ' ' + this.client.firstname
+        return getClientDisplayName(this.client)
       }
     },
 
@@ -3015,7 +3050,7 @@ export default {
       // Переход к прикреплённому сообщению всегда начинает пользователь (кнопка «Привязано», поиск, уведомление),
       // поэтому сообщение подсвечиваем; linkedMessageId сбрасывается после подсветки
       this.$nextTick(() => {
-        this.goToMessage(this.linkedMessageId)
+        this.goToMessage(this.linkedMessageId, {highlight: this.highlightLinkedMessage})
       })
     },
 
@@ -3201,6 +3236,9 @@ export default {
   color: rgba(36, 36, 36, 1);
   margin-bottom: 4px;
   height: 44px;
+  /* Родитель .action-clouds — pointer-events: none (чтобы не мешать кликам по чату
+     в пустых местах оверлея), эта карточка — реально кликабельная, поэтому включаем обратно. */
+  pointer-events: auto;
 }
 
 .attach-file-format {

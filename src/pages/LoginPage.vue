@@ -122,19 +122,30 @@ export default {
 
 .backgroundImage {
   position: absolute;
-  bottom: -800px;
+  left: 0;
+  bottom: -20px;
+  width: 100%;
+  min-width: 1980px;
+  pointer-events: none;
+  transform: translateY(100%);
   animation-name: BackgroundAnimation;
   animation-duration: 1s;
   animation-fill-mode: forwards;
 }
 
+.backgroundImage svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 @keyframes BackgroundAnimation {
   from {
-    bottom: -800px;
+    transform: translateY(100%);
   }
 
   to {
-    bottom: -20px;
+    transform: translateY(0);
   }
 }
 

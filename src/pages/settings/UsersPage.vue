@@ -58,6 +58,12 @@
             <span v-else class="text-grey-6">—</span>
           </q-td>
         </template>
+        <template #body-cell-status="props">
+          <q-td :props="props">
+            <q-badge v-if="props.row.invitePending" color="warning" text-color="dark" label="Приглашён"/>
+            <span v-else class="text-grey-6">—</span>
+          </q-td>
+        </template>
         <template #body-cell-edit="props">
           <q-td>
             <q-btn
@@ -104,13 +110,9 @@
           :disable="!isNewUser"
           :rules="[requiredRule]"
         />
-        <q-input
-          v-if="isNewUser"
-          v-model="dialogPassword"
-          label="Пароль *"
-          type="password"
-          :rules="[requiredRule]"
-        />
+        <div v-if="isNewUser" class="text-caption text-grey-7 q-mb-sm">
+          На этот email придёт ссылка-приглашение, по которой пользователь сам задаст пароль.
+        </div>
         <q-select
           v-model="dialogRole"
           :options="staffRoleOptions"
@@ -133,6 +135,34 @@
           use-input
           @update:model-value="onDialogOrganizationChanged"
         />
+        <q-select
+          v-if="isNewUser && canJoinSupportLine"
+          v-model="dialogSupportLineId"
+          :options="supportLineOptions"
+          :loading="supportLinesLoading"
+          option-label="name"
+          option-value="id"
+          emit-value
+          map-options
+          clearable
+          label="Линия поддержки"
+          hint="Пользователь будет добавлен в участники выбранной линии"
+        />
+      </q-card-section>
+
+      <q-card-section v-if="!isNewUser && dialogInvitePending" class="q-pt-none">
+        <div class="row items-center no-wrap q-gutter-sm">
+          <q-icon name="mail" color="warning" size="sm"/>
+          <div class="col">Пользователь ещё не задал пароль по приглашению</div>
+          <q-btn
+            flat
+            no-caps
+            color="primary"
+            label="Отправить повторно"
+            :loading="resendingInvite"
+            @click="resendInvite"
+          />
+        </div>
       </q-card-section>
 
       <q-card-section v-if="!isNewUser && dialogMfaEnabled" class="q-pt-none">
@@ -257,6 +287,7 @@ export default {
         field: row => roleLabel(row.authorities?.[0]) || ''
       },
       {name: 'mfa', label: '2FA', align: 'left', field: 'mfaEnabled'},
+      {name: 'status', label: 'Статус', align: 'left', field: 'invitePending'},
       {name: 'edit', label: '', align: 'center', field: 'edit'}
     ],
 
@@ -264,16 +295,19 @@ export default {
 
     dialogVisible: false,
     dialogUsername: '',
-    dialogPassword: '',
     dialogFirstName: '',
     dialogLastName: '',
     dialogRole: '',
     dialogOrganization: [],
+    dialogSupportLineId: null,
+    supportLinesLoading: false,
     allOrganizationsOptionId: '__ALL_ORGANIZATIONS__',
 
     isNewUser: true,
     userId: null,
     dialogMfaEnabled: false,
+    dialogInvitePending: false,
+    resendingInvite: false,
 
     permissionsDialogVisible: false,
     permissionRoles: [],
@@ -317,6 +351,15 @@ export default {
       return OPERATOR_ROLE_NAMES.includes(this.dialogRole)
     },
 
+    canJoinSupportLine() {
+      return ['ADMIN', 'MANAGER', 'SENIOR_OPERATOR', 'OPERATOR']
+        .map(role => this.getRoleName(role)).includes(this.dialogRole)
+    },
+
+    supportLineOptions() {
+      return (this.store.supportLines || []).filter(line => line?.id && line.active !== false)
+    },
+
     showDialogOrganizations() {
       return this.isOperatorRole || this.dialogRole === OBSERVER_ROLE_NAME
     },
@@ -341,6 +384,13 @@ export default {
   },
 
   mounted() {
+    this.supportLinesLoading = true
+    axios.get('/api/v1/support-lines')
+      .then(response => {
+        this.store.supportLines = Array.isArray(response.data) ? response.data : []
+      })
+      .catch(error => this.notifyError(this.getErrorMessage(error)))
+      .finally(() => { this.supportLinesLoading = false })
     axios.get('/api/v1/users/manage')
       .then(response => {
         this.store.users = Array.isArray(response.data) ? response.data : []
@@ -369,9 +419,10 @@ export default {
       this.dialogUsername = ''
       this.dialogLastName = ''
       this.dialogFirstName = ''
-      this.dialogPassword = ''
       this.dialogRole = ''
       this.dialogOrganization = []
+      this.dialogSupportLineId = null
+      this.dialogInvitePending = false
       setTimeout(() => this.$refs.lastname?.focus(), 250)
     },
 
@@ -384,6 +435,7 @@ export default {
       this.dialogFirstName = row.firstname || ''
       this.dialogRole = this.getRoleName(row.authorities?.[0])
       this.dialogMfaEnabled = Boolean(row.mfaEnabled)
+      this.dialogInvitePending = Boolean(row.invitePending)
 
       const availableOrganizations = row.availableOrganizations || []
       // Менеджеру организации можно назначить несколько организаций, как и оператору
@@ -442,11 +494,11 @@ export default {
       const user = {
         id: this.isNewUser ? null : this.userId,
         username: this.isNewUser ? this.dialogUsername : null,
-        password: this.isNewUser ? this.dialogPassword : null,
         lastname: this.dialogLastName,
         firstname: this.dialogFirstName,
         authorities: this.dialogRole,
         availableOrganizationIds: this.getSelectedOrganizationIdsForSave(),
+        ...(this.isNewUser && this.canJoinSupportLine ? {supportLineId: this.dialogSupportLineId} : {}),
         clientId: null,
         createNewClientCard: false,
         clientOrganizationId: null
@@ -454,7 +506,6 @@ export default {
 
       const hasMissingRequiredField =
         (this.isNewUser && !user.username) ||
-        (this.isNewUser && !user.password) ||
         !user.lastname ||
         !user.firstname ||
         !user.authorities
@@ -473,9 +524,17 @@ export default {
         ? axios.post('/api/v1/user', user)
         : axios.patch('/api/v1/user', user)
 
+      const wasNewUser = this.isNewUser
+
       request
         .then(response => {
           const savedUser = response.data
+          if (wasNewUser && user.supportLineId) {
+            const line = this.store.supportLines.find(item => Number(item.id) === Number(user.supportLineId))
+            if (line && !(line.members || []).some(member => member.id === savedUser.id)) {
+              line.members = [...(line.members || []), savedUser]
+            }
+          }
           const index = this.store.users.findIndex(item => item.id === savedUser.id)
           if (index === -1) {
             this.store.users.push(savedUser)
@@ -483,8 +542,26 @@ export default {
             this.store.users.splice(index, 1, savedUser)
           }
           this.dialogClose()
+          if (wasNewUser) {
+            this.$q.notify({
+              message: `Приглашение отправлено на ${savedUser.username}`,
+              type: 'positive'
+            })
+          }
         })
         .catch(error => this.notifyError(this.getErrorMessage(error)))
+    },
+
+    resendInvite() {
+      this.resendingInvite = true
+      axios.post(`/api/v1/user/${this.userId}/resend-invite`)
+        .then(() => {
+          this.$q.notify({message: 'Приглашение отправлено повторно', type: 'positive'})
+        })
+        .catch(error => this.notifyError(this.getErrorMessage(error)))
+        .finally(() => {
+          this.resendingInvite = false
+        })
     },
 
     dialogDeleteUser() {

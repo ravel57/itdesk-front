@@ -9,102 +9,112 @@
       </div>
       <div class="settings-content-actions">
         <q-btn
+          flat
+          round
+          dense
+          icon="help_outline"
+          color="primary"
+          @click="this.showAutomationGuide = true"
+        >
+          <q-tooltip>Инструкция по автоматизациям</q-tooltip>
+        </q-btn>
+        <q-btn
+          outline
+          no-caps
+          color="primary"
+          icon="create_new_folder"
+          label="Создать папку"
+          @click="this.createFolder"
+        />
+        <q-btn
           unelevated
           no-caps
           color="primary"
           icon="add"
-          label="Добавить триггер"
+          label="Добавить автоматизацию"
           @click="this.newTrigger"
         />
       </div>
     </div>
+
+    <q-banner
+      v-if="this.isAutomationIntroVisible"
+      rounded
+      class="bg-blue-1 text-primary automation-intro-banner"
+    >
+      <template v-slot:avatar>
+        <q-icon name="bolt" color="primary"/>
+      </template>
+      <div class="text-weight-medium">Автоматизация — сценарий из связанных шагов</div>
+      <div class="text-caption text-grey-8">
+        Событие запускает граф, а стрелки определяют порядок шагов: получить данные, проверить условие,
+        выбрать ветку и выполнить нужные действия. Настройки и логику сценария можно менять в редакторе.
+      </div>
+      <template v-slot:action>
+        <q-btn
+          flat
+          no-caps
+          color="primary"
+          label="Подробная инструкция"
+          @click="this.showAutomationGuide = true"
+        />
+        <q-btn
+          flat
+          round
+          dense
+          icon="close"
+          @click="this.dismissAutomationIntro"
+        />
+      </template>
+    </q-banner>
+
     <q-list
       bordered
-      class="rounded-borders settings-row-list"
-      separator
+      class="rounded-borders settings-row-list automation-tree"
       style="margin-top: 8px"
     >
-      <q-item header class="text-bold">
-        Название
-      </q-item>
-      <draggable
-        :list="this.store.triggers"
-        item-key="id"
-        class="list-group"
-        ghost-class="ghost"
-        handle=".settings-drag-handle"
-        @start="dragging = true"
-        @end="dragging = false"
-      >
-        <template #item="{ element }">
-          <q-item
-            class="list-group-item"
-            :class="{ 'not-draggable': true }"
-          >
-            <q-item-section side class="settings-drag-handle cursor-grab">
-              <q-icon name="drag_indicator" color="grey-6"/>
-            </q-item-section>
-            <q-item-section top class="justify-center">
-              <q-item-label class="row items-center q-gutter-sm">
-                <span>{{ element.name }}</span>
-                <q-badge
-                  :color="element.automationRuleStatus === 'DISABLED' ? 'grey-6' : 'positive'"
-                  :label="element.automationRuleStatus === 'DISABLED' ? 'Выключено' : 'Активно'"
-                />
-                <q-badge
-                  v-if="element.stopProcessing"
-                  outline
-                  color="primary"
-                  label="Остановить после совпадения"
-                />
-              </q-item-label>
-              <q-item-label caption>
-                {{ this.store.triggerTypeLabels[element.triggerType] || element.triggerType }} · срабатываний: {{ Number(element.matchCount || 0).toLocaleString('ru-RU') }}
-                <span v-if="element.lastMatchedAt"> · последнее: {{ formatDateTime(element.lastMatchedAt) }}</span>
-              </q-item-label>
-            </q-item-section>
-            <q-item-section top side>
-              <div class="row items-center no-wrap">
-                <q-toggle
-                  :model-value="element.automationRuleStatus !== 'DISABLED'"
-                  :disable="this.togglingTriggerIds.includes(element.id)"
-                  color="primary"
-                  @update:model-value="toggleTrigger(element, $event)"
-                />
-                <q-btn
-                  color="primary"
-                  dense
-                  flat
-                  icon="edit"
-                  @click="editTrigger(element)"
-                />
-              </div>
-            </q-item-section>
-          </q-item>
-        </template>
-      </draggable>
+      <automation-tree-level
+        :nodes="this.tree"
+        :level="0"
+        :folder-by-id="this.folderById"
+        :trigger-by-id="this.triggerById"
+        :toggling-ids="this.togglingTriggerIds"
+        :trigger-type-label="this.triggerTypeLabel"
+        @drag-end="this.onTreeDragEnd"
+        @toggle-folder="this.toggleFolder"
+        @rename-folder="this.renameFolder"
+        @delete-folder="this.deleteFolder"
+        @toggle-trigger="(trigger, enabled) => this.toggleTrigger(trigger, enabled)"
+        @edit-trigger="this.editTrigger"
+      />
     </q-list>
   </div>
   <q-dialog
-    v-model="this.dialogVisible"
+    :model-value="this.dialogVisible"
+    @update:model-value="this.onEditorVisibilityChange"
     persistent
+    maximized
     backdrop-filter="blur(4px)"
   >
     <q-card class="dialog-width automation-dialog">
       <q-toolbar class="justify-between">
         <div class="text-h6" v-text="this.isNewTrigger ? 'Новый триггер' : 'Изменить триггер'"/>
-        <q-btn flat round dense icon="close" v-close-popup/>
+        <q-btn flat round dense icon="close" :disable="this.saving" aria-label="Закрыть редактор" @click="this.dialogClose"/>
       </q-toolbar>
       <q-card-section class="automation-editor-section">
         <q-input
           v-model="this.dialogTriggerName"
           label="Название *"
+          autogrow
+          type="textarea"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogTriggerName"
         />
         <q-input
           v-model="this.dialogTriggerDescription"
           label="Описание"
+          autogrow
+          type="textarea"
         />
 
         <div class="automation-rule-options row items-center q-col-gutter-lg">
@@ -138,7 +148,7 @@
         <!--        />-->
 
         <div v-if="this.editorMode === 'workflow'" class="automation-workflow-wrapper">
-          <automation-flow-editor
+          <automation-flow-editor :test-trace="testResult?.trace || []" ref="workflowEditor"
             v-model="this.workflow"
             :trigger-types="this.store.triggerTypeOptions"
             :triggers="this.store.triggers"
@@ -259,6 +269,8 @@
                     v-model="condition.value"
                     label="Значение *"
                     class="condition-value"
+                    autogrow
+                    type="textarea"
                   />
 
                   <q-btn
@@ -457,6 +469,9 @@
               </div>
             </div>
 
+            <q-expansion-item v-if="editorMode === 'workflow'" dense label="Задать данные события вместо заявки" class="q-mt-sm">
+              <q-input v-model="testEventPayload" outlined type="textarea" rows="6" label="Данные события (JSON)" hint="Например: { &quot;service&quot;: { &quot;id&quot;: 1 }, &quot;problem&quot;: { &quot;severity&quot;: 5, &quot;status&quot;: &quot;OPEN&quot; } }. Тест не изменяет данные и не вызывает ИИ."/>
+            </q-expansion-item>
             <q-banner
               v-if="this.testResult"
               rounded
@@ -495,9 +510,10 @@
                   :key="`${step.nodeId || 'step'}-${index}`"
                   class="automation-test-trace-step"
                 >
-                  <span class="text-weight-medium">{{ step.label || step.nodeType || step.nodeId }}</span>
+                  <q-btn flat dense no-caps :label="step.label || step.nodeType || step.nodeId" @click="focusTraceStep(step)"/>
                   <span> — {{ this.workflowTraceStatusLabel(step.status) }}</span>
                   <span v-if="step.detail">: {{ step.detail }}</span>
+                  <automation-trace-details :step="step"/>
                 </div>
               </div>
             </q-banner>
@@ -515,21 +531,43 @@
             v-model="this.dialogTriggerExpression"
             :variables="this.expressionVariables"
             label="Выражение условия *"
+            autogrow
+            type="textarea"
             :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           />
           <automation-expression-input
             v-model="this.dialogTriggerAction"
             :variables="this.expressionVariables"
             label="Действия ветки ДА *"
+            autogrow
+            type="textarea"
             :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           />
           <automation-expression-input
             v-model="this.dialogTriggerElseAction"
             :variables="this.expressionVariables"
             label="Действия ветки НЕТ (необязательно)"
+            autogrow
+            type="textarea"
           />
         </div>
       </q-card-section>
+      <q-expansion-item v-if="triggerId && !isNewTrigger" label="Журнал выполнения: решения и данные шагов" icon="history" class="q-mx-md" @show="loadGraphHistory">
+        <q-expansion-item v-if="graphBackups.length" dense label="Версия графа до переноса логики">
+          <div v-for="backup in graphBackups" :key="backup.migration_version" class="q-pa-sm">
+            <div class="text-caption">Сохранено {{ formatDateTime(backup.saved_at) }}</div>
+            <q-btn outline dense no-caps label="Открыть прежний граф в редакторе" @click="openGraphBackup(backup)"/>
+          </div>
+        </q-expansion-item>
+        <q-btn flat dense no-caps icon="refresh" label="Обновить" :loading="historyLoading" @click="loadGraphHistory"/>
+        <div v-if="!graphHistory.length" class="text-caption q-pa-sm">Пока нет записей новых графовых операций.</div>
+        <div v-for="row in graphHistory" :key="row.execution_id + row.created_at + row.step.nodeId" class="q-pa-sm">
+          <div class="text-caption">{{ formatDateTime(row.created_at) }} · {{ row.execution_id }}</div>
+          <q-btn flat dense no-caps :label="row.step.label" @click="focusTraceStep(row.step)"/>
+          <span>{{ workflowTraceStatusLabel(row.step.status) }}: {{ row.step.detail }}</span>
+          <automation-trace-details :step="row.step"/>
+        </div>
+      </q-expansion-item>
       <q-card-actions align="right" class="automation-dialog-actions">
         <q-btn
           v-if="!this.isNewTrigger"
@@ -538,12 +576,14 @@
           color="negative"
           icon="delete"
           label="Удалить"
+          :disable="this.saving"
           @click="this.dialogDeleteTrigger"
         />
         <q-btn
           color="white"
           label="Отмена"
           text-color="primary"
+          :disable="this.saving"
           @click="this.dialogClose"
         />
         <q-btn
@@ -554,16 +594,156 @@
       </q-card-actions>
     </q-card>
   </q-dialog>
+
+  <q-dialog v-model="this.showAutomationGuide">
+    <q-card class="automation-guide-dialog">
+      <q-toolbar class="justify-between">
+        <div class="text-h6">Инструкция по автоматизациям</div>
+        <q-btn flat round dense icon="close" v-close-popup/>
+      </q-toolbar>
+      <q-card-section class="automation-guide-section">
+        <q-list>
+          <q-expansion-item
+            default-opened
+            icon="bolt"
+            label="Как это работает"
+            header-class="text-weight-medium"
+          >
+            <div class="automation-guide-text">
+              Автоматизация — это граф сценария: блоки описывают отдельные шаги, а стрелки задают порядок их
+              выполнения. Когда происходит выбранное событие — например, создана заявка или поступило сообщение —
+              система начинает с блока «Событие» и проходит по связанным с ним шагам.
+            </div>
+            <div class="automation-guide-text q-mt-sm">
+              Шаги могут получать данные, сохранять результаты в переменные, обращаться к ИИ, проверять условия
+              и выполнять действия. Условие направляет выполнение в ветку «ДА» или «НЕТ», а операция — в ветку
+              успеха или ошибки. Сценарий может обрабатывать список, ждать события или продолжаться в фоне.
+              Блок «Завершение» заканчивает текущую ветку.
+            </div>
+            <div class="automation-guide-text q-mt-sm">
+              Например: поступило сообщение → загрузить статьи базы знаний → выбрать подходящую через Jev →
+              проверить уверенность → подготовить подсказку. Порог и действия задаются в самом графе,
+              а пройденные шаги и их результаты видны в журнале выполнения.
+            </div>
+          </q-expansion-item>
+
+          <q-expansion-item icon="tune" label="Как править графы" header-class="text-weight-medium">
+            <div class="automation-guide-text">
+              Начните с блока «Настройки сценария»: там находятся пороги, интервалы и ограничения.
+              Кнопки этапов над холстом помогут перейти к нужной части. Порядок выполнения задают стрелки,
+              а не расположение блоков или кнопок этапов. Каждый шаг отдельно получает данные,
+              оценивает их, проверяет условия или выполняет действие. Выберите нужный блок по названию в панели
+              «Узлы», задайте параметры и имя результата. Значения можно ввести, выбрать из справочника
+              или взять из данных предыдущего шага. Условия редактируются сравнениями и группами «все / хотя бы одно».
+            </div>
+          </q-expansion-item>
+
+          <q-expansion-item icon="data_object" label="Переменные: var., item и результаты шагов" header-class="text-weight-medium">
+            <div class="automation-guide-text">
+              В выражениях и шаблонах с двойными фигурными скобками данные доступны через корни <code>task</code> (заявка),
+              <code>client</code> (клиент), <code>message</code> (сообщение) и <code>var</code> (переменные сценария).
+              <code>var.</code> — не поле заявки, а отдельное хранилище: туда попадают имена результатов шагов
+              («Сохранить результат как»), значения из блока «Переменная» и служебные значения внутри циклов.
+            </div>
+            <div class="automation-guide-text q-mt-sm">
+              <b>var.item — не зарезервированное слово</b>, а имя текущего элемента списка. В узле «Для каждого
+              элемента» это имя задаёт поле «Текущий элемент» (по умолчанию — <code>item</code>, можно изменить).
+              А вот в операциях из каталога со списком — «Отобрать и упорядочить», «Получить поля списка», а также
+              в полях вариантов у «Решения ИИ» — элемент всегда называется именно <code>item</code>: это фиксированное
+              имя конкретной операции, его нельзя переименовать. Подсказки при наборе покажут <code>var.item</code> и
+              известные поля элемента (например <code>var.item.date</code>), если движок знает форму списка.
+            </div>
+          </q-expansion-item>
+          <q-expansion-item icon="fact_check" label="Как проверить результат изменений" header-class="text-weight-medium">
+            <div class="automation-guide-text">
+              Проверка не изменяет систему и не вызывает ИИ. Если она остановилась на анализе, нажмите на имя
+              шага и откройте «Тестовые данные»: выберите предполагаемый ответ и уверенность, затем повторите проверку.
+              Для чтения данных тоже можно задать тестовый результат — например список заявок или число клиентов.
+              В данных шага видны параметры, результат и переменные. Для события без заявки можно открыть
+              «Задать данные события вместо заявки» и указать данные для проверки.
+            </div>
+          </q-expansion-item>
+
+          <q-expansion-item
+            icon="add_circle_outline"
+            label="Как создать автоматизацию"
+            header-class="text-weight-medium"
+          >
+            <div class="automation-guide-text">
+              Нажмите «Добавить автоматизацию», задайте название и выберите событие, на которое должно реагировать
+              сценарий. Добавьте нужные блоки из панели «Узлы», выберите блок, чтобы настроить его справа,
+              и соедините выходы с входами следующих шагов. Начните с блока «Событие» и завершите ветки блоками
+              «Завершение». Например, выход «ДА» условия может вести к действию, а «НЕТ» — сразу к завершению.
+              Перед сохранением проверьте граф на тестовых данных.
+            </div>
+          </q-expansion-item>
+
+          <q-expansion-item
+            icon="account_tree"
+            label="Из чего состоит граф"
+            header-class="text-weight-medium"
+          >
+            <div class="automation-guide-text">
+              Блоки в панели «Узлы» сгруппированы по назначению. Выберите блок на холсте, чтобы настроить
+              его параметры и посмотреть доступные входы и выходы.
+              <div class="automation-guide-node-group"><b>Старт и структура</b> — событие, настройки сценария, вызов другого сценария и завершение ветки. «Пояснение на холсте» добавляет заметку для читателя графа и не выполняет действий.</div>
+              <div class="automation-guide-node-group"><b>Сообщения и уведомления</b> — отправить сообщение клиенту, добавить внутренний комментарий, установить необходимость ответа или уведомить сотрудника. Комментарий в переписке и пояснение на холсте — разные блоки.</div>
+              <div class="automation-guide-node-group"><b>Заявки</b> — создать заявку, изменить её поля, назначить наименее загруженного сотрудника, добавить или удалить тег. Переход на другую линию задаётся в «Изменить заявку»; уведомление при необходимости добавляется следующим шагом.</div>
+              <div class="automation-guide-node-group"><b>Условия и ветвление</b> — выбор ветки ДА/НЕТ, варианты значения, рабочее время, разделение и объединение веток.</div>
+              <div class="automation-guide-node-group"><b>Получить данные</b> — загрузить заявки, сообщения, сервисы, сотрудников и другие объекты для дальнейшей обработки.</div>
+              <div class="automation-guide-node-group"><b>Значения и списки</b> — подготовить значение, отобрать или объединить списки, получить их поля, ограничить текст, изменить счётчик или обработать каждый элемент.</div>
+              <div class="automation-guide-node-group"><b>Решения ИИ</b> — получить оценку Jev или сформулировать текст. Порог решения проверяется отдельным условием графа.</div>
+              <div class="automation-guide-node-group"><b>Инциденты и сигналы сбоев</b> — создать инцидент, привязать заявки, проверить восстановление и обработать сигналы массовых обращений.</div>
+              <div class="automation-guide-node-group"><b>Ожидание и согласование</b> — пауза по времени, ожидание события или изменения заявки и ручное решение сотрудника.</div>
+              <div class="automation-guide-node-group"><b>Защита от повторов</b> — ограничить частоту, найти похожую заявку, выполнить шаг один раз по ключу или последовательно обработать события с одним ключом.</div>
+              <div class="automation-guide-node-group"><b>Интеграции</b> — HTTP-запрос во внешнюю систему с сохранением ответа в переменную.</div>
+              <div class="automation-guide-node-group"><b>Дополнительно: скрипты</b> — «Скрипт команд» заменяет общее название «Действия». Здесь также доступны обработка ошибки и повтор скрипта. Для обычных задач используйте тематические блоки.</div>
+              <div class="automation-guide-node-group">В параметрах выбирайте обычное значение или «Скрипт».
+                Типы заявок, сервисы, приоритеты, линии и сотрудники доступны из справочников; скрипт берёт
+                значение из события или предыдущих шагов. Поиск над списком блоков помогает найти нужное действие.
+              </div>
+            </div>
+          </q-expansion-item>
+
+          <q-expansion-item
+            icon="history"
+            label="Где смотреть реальное выполнение"
+            header-class="text-weight-medium"
+          >
+            <div class="automation-guide-text">
+              Откройте сохранённый сценарий и разверните «Журнал выполнения: решения и данные шагов».
+              В нём видны выполненные шаги, выбранные ветки, входные данные, результаты и ошибки.
+              В «Журнале решений» Jev можно отдельно посмотреть ответы ИИ. Сам ответ ИИ ещё не означает,
+              что действие выполнено: это определяют следующие условия и шаги графа.
+            </div>
+          </q-expansion-item>
+
+          <q-expansion-item
+            icon="tune"
+            label="Порядок срабатывания и настройки"
+            header-class="text-weight-medium"
+          >
+            <div class="automation-guide-text">
+              Активные сценарии для одного события проверяются по порядку в списке. Перетаскивайте их за
+              значок слева, чтобы изменить порядок. Переключатель рядом с названием включает и выключает
+              сценарий без удаления. Опция «Не проверять следующие сценарии после выполнения ветки»
+              позволяет остановить дальнейшую обработку этого события другими сценариями.
+            </div>
+          </q-expansion-item>
+        </q-list>
+      </q-card-section>
+    </q-card>
+  </q-dialog>
 </template>
 
 <script>
-import draggable from 'vuedraggable'
+import AutomationTraceDetails from 'src/components/automation/AutomationTraceDetails.vue'
+import AutomationTreeLevel from 'src/components/automation/AutomationTreeLevel.vue'
 import axios from 'axios'
 import AutomationFlowEditor from 'components/automation/AutomationFlowEditor.vue'
 import AutomationExpressionInput from 'components/automation/AutomationExpressionInput.vue'
 import AutomationEventSelect from 'components/automation/AutomationEventSelect.vue'
 import {useStore} from 'stores/store'
-import {watch} from 'vue'
 import {
   createDefaultWorkflow,
   getWorkflowTriggerType,
@@ -575,7 +755,8 @@ export default {
   name: 'AutomatizationPage',
 
   components: {
-    draggable,
+    AutomationTraceDetails,
+    AutomationTreeLevel,
     AutomationFlowEditor,
     AutomationExpressionInput,
     AutomationEventSelect
@@ -584,6 +765,8 @@ export default {
   data: () => ({
     isNewTigger: true,
     dialogVisible: false,
+    savedEditorSnapshot: null,
+    discardConfirmation: null,
     dialogTriggerName: '',
     dialogTriggerDescription: '',
     dialogTriggerExpression: '',
@@ -606,13 +789,41 @@ export default {
     testTaskId: null,
     testLoading: false,
     testResult: null,
+    testEventPayload: '',
+    graphHistory: [],
+    graphBackups: [],
+    historyLoading: false,
     workflow: createDefaultWorkflow('TASK_CREATED'),
     workflowValidation: {errors: [], warnings: []},
     saving: false,
     togglingTriggerIds: [],
+    folders: [],
+    tree: [],
+    showAutomationGuide: false,
+    isAutomationIntroVisible: localStorage.getItem('automation-intro-dismissed') !== 'true',
   }),
 
   computed: {
+    hasUnsavedEditorChanges() {
+      return this.dialogVisible && this.savedEditorSnapshot !== null && this.editorSnapshot() !== this.savedEditorSnapshot
+    },
+
+    triggerById() {
+      return Object.fromEntries(this.store.triggers.map(trigger => [trigger.id, trigger]))
+    },
+
+    folderById() {
+      return Object.fromEntries(this.folders.map(folder => [folder.id, folder]))
+    },
+
+    // Ключ раскладки: меняется только когда правило/папка сменили место, а не при правке содержимого.
+    layoutKey() {
+      return JSON.stringify([
+        this.store.triggers.map(t => [t.id, t.folderId ?? null, t.displayOrder ?? 0]),
+        this.folders.map(f => [f.id, f.displayOrder ?? 0, f.parentId ?? null])
+      ])
+    },
+
     expressionVariables() {
       const variables = new Set()
       for (const node of this.workflow?.nodes || []) {
@@ -645,7 +856,9 @@ export default {
           kind: 'entity-nullable',
           source: 'organizations'
         },
-        {label: 'Канал обращения', value: 'client.sourceChannel', kind: 'text'}
+        {label: 'Канал обращения', value: 'client.sourceChannel', kind: 'text'},
+        {label: 'Источник сообщения события', value: 'message.fromSource', kind: 'text'},
+        {label: 'Источник последнего сообщения', value: 'client.lastMessage.fromSource', kind: 'text'}
       ]
     },
 
@@ -715,7 +928,226 @@ export default {
     }
   },
 
+  watch: {
+    hasUnsavedEditorChanges(dirty) {
+      if (dirty) {
+        window.addEventListener('beforeunload', this.onEditorBeforeUnload)
+      } else {
+        window.removeEventListener('beforeunload', this.onEditorBeforeUnload)
+      }
+    },
+
+    layoutKey: {
+      immediate: true,
+      handler() {
+        this.rebuildTree()
+      }
+    }
+  },
+
   methods: {
+    editorSnapshot() {
+      const definition = this.editorMode === 'workflow'
+        ? this.workflow
+        : {
+            triggerType: this.selectedTriggerType,
+            expression: this.editorMode === 'graph' ? this.graphExpression : this.dialogTriggerExpression,
+            action: this.editorMode === 'graph' ? this.graphAction : this.dialogTriggerAction,
+            elseAction: this.editorMode === 'graph' ? this.graphElseAction : this.dialogTriggerElseAction
+          }
+      // Object key order can change after normalization or undo without changing the graph.
+      return JSON.stringify({
+        name: this.dialogTriggerName || '',
+        description: this.dialogTriggerDescription || '',
+        enabled: this.dialogTriggerEnabled,
+        stopProcessing: this.dialogStopProcessing,
+        mode: this.editorMode,
+        definition
+      }, (_key, value) => value && typeof value === 'object' && !Array.isArray(value)
+        ? Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]]))
+        : value)
+    },
+
+    confirmDiscardChanges({deleting = false} = {}) {
+      if (!this.hasUnsavedEditorChanges) return Promise.resolve(true)
+      if (this.discardConfirmation) return this.discardConfirmation
+      this.discardConfirmation = new Promise(resolve => {
+        this.$q.dialog({
+          title: deleting ? 'Удалить сценарий?' : 'Несохранённые изменения',
+          message: deleting
+            ? 'В сценарии есть несохранённые изменения. Удалить сценарий вместе с ними?'
+            : 'Изменения сценария не сохранены. Закрыть редактор без сохранения?',
+          cancel: {label: 'Продолжить редактирование', flat: true, noCaps: true},
+          ok: {label: deleting ? 'Удалить сценарий' : 'Закрыть без сохранения', color: 'negative', noCaps: true},
+          persistent: true
+        }).onOk(() => resolve(true)).onCancel(() => resolve(false)).onDismiss(() => resolve(false))
+      }).finally(() => { this.discardConfirmation = null })
+      return this.discardConfirmation
+    },
+
+    onEditorBeforeUnload(event) {
+      if (!this.hasUnsavedEditorChanges) return
+      event.preventDefault()
+      event.returnValue = ''
+    },
+
+    onEditorVisibilityChange(visible) {
+      if (!visible) this.dialogClose()
+    },
+
+    closeEditor() {
+      this.dialogVisible = false
+      this.savedEditorSnapshot = null
+    },
+
+    triggerTypeLabel(trigger) {
+      return this.store.triggerTypeLabels[trigger.triggerType] || trigger.triggerType
+    },
+
+    // Дерево отображения строится из плоских данных бэкенда: в каждом контейнере папки и правила вперемешку по displayOrder.
+    rebuildTree() {
+      const byPosition = (a, b) => (a.position - b.position) || (a.sort - b.sort)
+      const folderIds = new Set(this.folders.map(folder => folder.id))
+      const containerOf = folder => (folder.parentId != null && folderIds.has(folder.parentId) ? folder.parentId : null)
+      const build = containerId => {
+        const nodes = []
+        this.folders.filter(folder => containerOf(folder) === containerId).forEach(folder => nodes.push({
+          key: `folder-${folder.id}`,
+          type: 'folder',
+          id: folder.id,
+          position: folder.displayOrder ?? 0,
+          sort: -1,
+          children: build(folder.id)
+        }))
+        this.store.triggers
+          .filter(trigger => (trigger.folderId != null && folderIds.has(trigger.folderId) ? trigger.folderId : null) === containerId)
+          .forEach(trigger => nodes.push({
+            key: `trigger-${trigger.id}`,
+            type: 'trigger',
+            id: trigger.id,
+            position: trigger.displayOrder ?? 0,
+            sort: trigger.orderNumber ?? 0
+          }))
+        return nodes.sort(byPosition)
+      }
+      this.tree = build(null)
+    },
+
+    async onTreeDragEnd() {
+      this.dragging = false
+      await this.saveLayout()
+    },
+
+    layoutItems(nodes = this.tree) {
+      return nodes.map(node => node.type === 'folder'
+        ? {type: 'FOLDER', id: node.id, items: this.layoutItems(node.children)}
+        : {type: 'TRIGGER', id: node.id})
+    },
+
+    applyLayoutResponse(data) {
+      if (!data) return
+      this.folders = data.folders || []
+      const placements = new Map((data.triggers || []).map(item => [item.id, item]))
+      this.store.triggers.forEach(trigger => {
+        const placement = placements.get(trigger.id)
+        if (placement) {
+          Object.assign(trigger, {
+            folderId: placement.folderId,
+            displayOrder: placement.displayOrder,
+            orderNumber: placement.orderNumber
+          })
+        }
+      })
+      // Порядок выполнения = порядок чтения дерева; держим массив в нём же.
+      this.store.triggers.sort((a, b) => (a.orderNumber ?? 0) - (b.orderNumber ?? 0))
+      this.rebuildTree()
+    },
+
+    async saveLayout() {
+      try {
+        const response = await axios.put('/api/v1/automation/layout', {items: this.layoutItems()})
+        this.applyLayoutResponse(response.data)
+      } catch (e) {
+        this.rebuildTree()
+        this.$q.notify({message: e.response?.data?.message || 'Не удалось сохранить расположение автоматизаций', type: 'negative'})
+      }
+    },
+
+    async loadFolders() {
+      try {
+        const response = await axios.get('/api/v1/automation/folders')
+        this.folders = Array.isArray(response.data) ? response.data : []
+      } catch (e) {
+        console.warn('Automation folders load failed', e)
+      }
+    },
+
+    folderNameDialog(title, model) {
+      return this.$q.dialog({
+        title,
+        prompt: {model, type: 'text', outlined: true, label: 'Название папки', isValid: value => value.trim().length > 0},
+        cancel: {label: 'Отмена', flat: true, noCaps: true},
+        ok: {label: 'Сохранить', noCaps: true},
+        persistent: true
+      })
+    },
+
+    createFolder() {
+      this.folderNameDialog('Новая папка', 'Новая папка').onOk(async name => {
+        try {
+          const response = await axios.post('/api/v1/automation/folders', {name})
+          this.folders.push(response.data)
+        } catch (e) {
+          this.$q.notify({message: e.response?.data?.message || 'Не удалось создать папку', type: 'negative'})
+        }
+      })
+    },
+
+    renameFolder(folderId) {
+      const folder = this.folderById[folderId]
+      if (!folder) return
+      this.folderNameDialog('Переименовать папку', folder.name).onOk(async name => {
+        try {
+          const response = await axios.patch(`/api/v1/automation/folders/${folderId}`, {name})
+          Object.assign(folder, response.data)
+        } catch (e) {
+          this.$q.notify({message: e.response?.data?.message || 'Не удалось переименовать папку', type: 'negative'})
+        }
+      })
+    },
+
+    async toggleFolder(folderId) {
+      const folder = this.folderById[folderId]
+      if (!folder) return
+      const collapsed = !folder.collapsed
+      folder.collapsed = collapsed
+      try {
+        await axios.patch(`/api/v1/automation/folders/${folderId}`, {collapsed})
+      } catch (e) {
+        folder.collapsed = !collapsed
+        this.$q.notify({message: 'Не удалось сохранить состояние папки', type: 'negative'})
+      }
+    },
+
+    deleteFolder(folderId) {
+      const folder = this.folderById[folderId]
+      if (!folder) return
+      this.$q.dialog({
+        title: 'Удалить папку?',
+        message: `Папка «${folder.name}» будет удалена, а автоматизации из неё останутся в списке на её месте.`,
+        cancel: {label: 'Отмена', flat: true, noCaps: true},
+        ok: {label: 'Удалить', color: 'negative', noCaps: true},
+        persistent: true
+      }).onOk(async () => {
+        try {
+          const response = await axios.delete(`/api/v1/automation/folders/${folderId}`)
+          this.applyLayoutResponse(response.data)
+        } catch (e) {
+          this.$q.notify({message: e.response?.data?.message || 'Не удалось удалить папку', type: 'negative'})
+        }
+      })
+    },
+
     nextGraphId() {
       const id = this.graphSequence
       this.graphSequence += 1
@@ -1142,6 +1574,9 @@ export default {
       this.dialogStopProcessing = Boolean(row.stopProcessing)
       this.testTaskId = null
       this.testResult = null
+      this.testEventPayload = ''
+      this.graphHistory = []
+      this.graphBackups = []
       const parsedWorkflow = parseWorkflowDefinition(row.workflowDefinition, row.triggerType)
       if (parsedWorkflow) {
         this.workflow = parsedWorkflow
@@ -1151,6 +1586,7 @@ export default {
         this.workflow = legacyRuleToWorkflow(row)
         this.editorMode = this.readGraph(row.expression, row.action, row.elseAction) ? 'graph' : 'script'
       }
+      this.savedEditorSnapshot = this.editorSnapshot()
     },
 
     newTrigger() {
@@ -1170,11 +1606,18 @@ export default {
       this.workflowValidation = {errors: [], warnings: []}
       this.editorMode = 'workflow'
       this.resetGraph()
+      this.savedEditorSnapshot = this.editorSnapshot()
       setTimeout(() => this.$refs.dialogTriggerName.focus(), 250)
     },
 
-    dialogClose() {
-      this.dialogVisible = false
+    async dialogClose() {
+      if (this.saving) return
+      if (await this.confirmDiscardChanges()) this.closeEditor()
+    },
+
+    dismissAutomationIntro() {
+      this.isAutomationIntroVisible = false
+      localStorage.setItem('automation-intro-dismissed', 'true')
     },
 
     async dialogSaveNewOrUpdateTrigger() {
@@ -1232,6 +1675,7 @@ export default {
         return
       }
 
+      const submittedEditorSnapshot = this.editorSnapshot()
       this.saving = true
       try {
         if (this.editorMode === 'workflow') {
@@ -1247,11 +1691,18 @@ export default {
 
         if (this.isNewTrigger) {
           this.store.triggers.push(response.data)
+          this.triggerId = response.data.id
+          this.isNewTrigger = false
         } else {
           const index = this.store.triggers.findIndex(item => item.id === this.triggerId)
           if (index >= 0) this.store.triggers.splice(index, 1, response.data)
         }
-        this.dialogClose()
+        this.savedEditorSnapshot = submittedEditorSnapshot
+        if (!this.hasUnsavedEditorChanges) {
+          this.closeEditor()
+        } else {
+          this.$q.notify({type: 'positive', message: 'Сценарий сохранён. Более поздние изменения ещё не сохранены.'})
+        }
       } catch (e) {
         this.$q.notify({
           message: e.response?.data?.message || e.message,
@@ -1287,8 +1738,14 @@ export default {
       }
     },
 
+    async loadGraphHistory() {
+      this.historyLoading = true
+      try { const [history, backups] = await Promise.all([axios.get('/api/v1/automation/history', {params: {triggerId: this.triggerId}}), axios.get('/api/v1/automation/backups', {params: {triggerId: this.triggerId}})]); this.graphHistory = history.data.map(row => ({...row, step: typeof row.step === 'string' ? JSON.parse(row.step) : row.step})); this.graphBackups = backups.data.map(row => ({...row, definition: typeof row.definition === 'string' ? JSON.parse(row.definition) : row.definition})) } catch (error) { this.$q.notify({type: 'negative', message: 'Не удалось загрузить журнал шагов'}) } finally { this.historyLoading = false }
+    },
+    openGraphBackup(backup) { const restored = parseWorkflowDefinition(backup.definition.workflow_definition); if (!restored) { this.$q.notify({type: 'negative', message: 'В этой версии нет графового определения'}); return } this.workflow = restored; this.editorMode = 'workflow'; this.$q.notify({type: 'info', message: 'Прежний граф открыт. Проверьте его и нажмите «Сохранить», чтобы применить.'}) },
+    focusTraceStep(step) { this.$refs.workflowEditor?.focusNode(step.nodeId) },
     runRoutingTest() {
-      if (!this.testTaskId) {
+      if (!this.testTaskId && !this.testEventPayload.trim()) {
         this.$q.notify({
           message: 'Укажите ID заявки',
           type: 'negative'
@@ -1328,6 +1785,9 @@ export default {
         }
       }
 
+      if (this.testEventPayload.trim() && this.editorMode === 'workflow') {
+        try { payload.eventPayload = JSON.parse(this.testEventPayload) } catch (error) { this.$q.notify({type: 'negative', message: 'Данные события должны быть корректным JSON'}); return }
+      }
       this.testLoading = true
       this.testResult = null
       axios.post('/api/v1/automation/test', payload)
@@ -1351,7 +1811,8 @@ export default {
     },
 
     workflowTestResultTitle(result) {
-      if (result?.executed) return 'Действия будут выполнены'
+      if (result?.trace?.some(step => step.status === 'NEEDS_INPUT')) return 'Проверка остановлена: задайте пример ответа анализа'
+      if (result?.executed) return 'Маршрут проверен; реальные изменения не выполнялись'
       if (result?.scheduled) return 'Маршрут остановится на ожидающем узле'
       if (result?.completed) return 'Маршрут завершится без выполнения действий'
       return 'Маршрут не дошёл до выполняемого действия'
@@ -1359,6 +1820,11 @@ export default {
 
     workflowTraceStatusLabel(status) {
       const labels = {
+        PREVIEW: 'проверка без изменений',
+        NEEDS_INPUT: 'нужен пример ответа анализа',
+        QUEUED: 'поставлено в очередь',
+        ITERATED: 'список обработан',
+        BREAK: 'цикл остановлен',
         PASSED: 'пройдено',
         ROUTED: 'выбрана ветка',
         TRUE: 'условие истинно',
@@ -1391,11 +1857,12 @@ export default {
       return date.toLocaleString('ru-RU')
     },
 
-    dialogDeleteTrigger() {
-      axios.delete(`/api/v1/trigger/${this.triggerId}`)
+    async dialogDeleteTrigger() {
+      if (this.saving || !await this.confirmDiscardChanges({deleting: true})) return
+      return axios.delete(`/api/v1/trigger/${this.triggerId}`)
         .then(() => {
           this.store.triggers = this.store.triggers.filter(trigger => trigger.id !== this.triggerId)
-          this.dialogClose()
+          this.closeEditor()
         })
         .catch(e =>
           this.$q.notify({
@@ -1434,35 +1901,43 @@ export default {
 
   mounted() {
     this.loadSupportLines()
+    this.loadFolders()
+  },
+
+  beforeUnmount() {
+    window.removeEventListener('beforeunload', this.onEditorBeforeUnload)
+  },
+
+  async beforeRouteLeave() {
+    if (this.saving) return false
+    const confirmed = await this.confirmDiscardChanges()
+    if (confirmed) this.closeEditor()
+    return confirmed
   },
 
   setup() {
+    // Порядок выполнения правил сервер пересчитывает сам при сохранении раскладки (PUT /automation/layout).
     const store = useStore()
-    watch(
-      () => store.triggers.map(trigger => trigger.id).join(','),
-      (currentOrder, previousOrder) => {
-        if (!previousOrder || currentOrder === previousOrder) return
-        axios.patch('/api/v1/triggers/resort', store.triggers)
-          .catch(error => console.warn('Trigger resort failed', error))
-      }
-    )
     return {store}
   }
 }
 </script>
 
 <style scoped>
-.list-group-item:hover {
-  background-color: #e3e3e3;
-}
-
 .automation-dialog {
-  width: 1540px;
-  max-width: 98vw;
+  width: 100vw;
+  max-width: 100vw;
+  height: 100vh;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .automation-editor-section {
   padding: 0 24px 30px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .automation-editor-section > .q-field + .q-field {
@@ -1712,11 +2187,37 @@ export default {
   padding: 12px 20px 16px;
 }
 
-@media (max-width: 900px) {
-  .automation-dialog {
-    width: 98vw;
-  }
+.automation-intro-banner {
+  margin-top: 8px;
+}
 
+.automation-guide-dialog {
+  width: 640px;
+  max-width: 92vw;
+}
+
+.automation-guide-section {
+  padding: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.automation-guide-text {
+  padding: 0 16px 16px;
+  color: #4a4a4f;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.automation-guide-node-group {
+  margin-top: 8px;
+}
+
+.automation-guide-node-group:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
   .automation-editor-section {
     padding-right: 16px;
     padding-left: 16px;

@@ -2,6 +2,19 @@
   <div class="flow-editor" tabindex="0" @keydown="onEditorKeydown">
     <div class="flow-toolbar">
       <div class="row items-center q-gutter-sm">
+        <q-btn
+          flat
+          round
+          dense
+          :color="paletteVisible ? 'primary' : undefined"
+          icon="view_sidebar"
+          @click="paletteVisible = !paletteVisible"
+        >
+          <q-tooltip>{{ paletteVisible ? 'Скрыть узлы' : 'Показать узлы' }}</q-tooltip>
+        </q-btn>
+
+        <q-separator vertical/>
+
         <q-btn-dropdown outline dense no-caps icon="auto_awesome" label="Шаблоны">
           <q-list style="min-width: 300px">
             <q-item clickable v-close-popup @click="applyTemplate('priority')">
@@ -51,6 +64,9 @@
         <q-btn flat round dense icon="fit_screen" @click="fitView">
           <q-tooltip>Показать весь граф</q-tooltip>
         </q-btn>
+        <q-btn flat round dense icon="search" aria-label="Поиск по графу" :color="graphSearchVisible ? 'primary' : undefined" @click="openGraphSearch">
+          <q-tooltip>Поиск по графу (Ctrl/Cmd + F)</q-tooltip>
+        </q-btn>
 
         <q-separator vertical/>
 
@@ -91,32 +107,34 @@
       </div>
     </div>
 
-    <div class="flow-main">
-      <aside class="flow-palette">
+    <div class="flow-main" :class="{ 'flow-main--no-palette': !paletteVisible, 'flow-main--no-inspector': inspectorPoppedOut }">
+      <aside v-if="paletteVisible" class="flow-palette">
         <div class="flow-side-title">Узлы</div>
-        <div class="flow-side-caption">Добавьте шаг и соедините выход с входом другого узла.</div>
+        <div class="flow-side-caption">Выберите, что должен сделать шаг, и соедините его со следующим.</div>
+        <q-input v-model="paletteSearch" dense outlined clearable placeholder="Найти блок" aria-label="Найти блок" class="q-mb-sm"/>
+        <div v-if="operationCatalogError" class="text-negative text-caption q-mb-sm">{{ operationCatalogError }} <q-btn flat dense no-caps label="Повторить" @click="loadOperationCatalog"/></div>
 
         <div
-          v-for="group in paletteGroups"
+          v-for="group in visiblePaletteGroups"
           :key="group.id"
           class="flow-palette-group"
         >
           <button
             type="button"
             class="flow-palette-group-title"
-            :aria-expanded="group.expanded"
-            @click="group.expanded = !group.expanded"
+            :aria-expanded="isPaletteGroupExpanded(group)"
+            @click="togglePaletteGroup(group)"
           >
             <q-icon :name="group.icon" :color="group.color" size="17px"/>
             <span class="flow-palette-group-title-label">{{ group.label }}</span>
-            <q-icon :name="group.expanded ? 'expand_less' : 'expand_more'" size="18px"/>
+            <q-icon :name="isPaletteGroupExpanded(group) ? 'expand_less' : 'expand_more'" size="18px"/>
           </button>
 
           <q-slide-transition>
-            <div v-show="group.expanded" class="flow-palette-group-items">
+            <div v-show="isPaletteGroupExpanded(group)" class="flow-palette-group-items">
               <q-btn
                 v-for="item in group.items"
-                :key="item.type"
+                :key="item.key"
                 outline
                 no-caps
                 align="left"
@@ -125,7 +143,7 @@
                 :color="item.color"
                 :label="item.label"
                 :disable="item.type === 'EVENT' && hasEventNode"
-                @click="addNode(item.type)"
+                @click="addNode(item)"
               />
             </div>
           </q-slide-transition>
@@ -140,12 +158,52 @@
       </aside>
 
       <section class="flow-workspace">
+        <div v-if="graphSearchVisible" class="flow-graph-search" @keydown.esc.stop.prevent="graphSearchVisible = false">
+          <div class="flow-graph-search-controls">
+            <q-select v-model="graphSearchCriterion" :options="graphSearchCriteria" emit-value map-options dense outlined label="Искать по" class="flow-graph-search-criterion"/>
+            <q-input ref="graphSearchInput" v-model="graphSearchQuery" clearable dense outlined class="flow-graph-search-query"
+                     :label="graphSearchCriterion === 'variable' ? 'Переменная' : 'Совпадение текста'"
+                     :placeholder="graphSearchCriterion === 'variable' ? 'Например: var.matched или matched' : 'Название, пояснение, текст или настройка блока'"
+                     @keydown.enter.stop.prevent="navigateGraphSearch($event.shiftKey ? -1 : 1)"/>
+            <span class="flow-graph-search-count" role="status">{{ graphSearchResults.length ? `${graphSearchIndex >= 0 ? graphSearchIndex + 1 : '—'} / ${graphSearchResults.length}` : graphSearchQuery?.trim() ? 'Ничего не найдено' : 'Введите запрос' }}</span>
+            <q-btn flat round dense icon="keyboard_arrow_up" aria-label="Предыдущее совпадение" :disable="!graphSearchResults.length" @click="navigateGraphSearch(-1)"/>
+            <q-btn flat round dense icon="keyboard_arrow_down" aria-label="Следующее совпадение" :disable="!graphSearchResults.length" @click="navigateGraphSearch(1)"/>
+            <q-btn flat round dense icon="close" aria-label="Закрыть поиск по графу" @click="graphSearchVisible = false"/>
+          </div>
+          <div v-if="graphSearchCriterion === 'variable'" class="text-caption text-grey-7 q-mt-xs">Объявления и обращения к переменной var, включая её поля. Имя учитывает регистр.</div>
+          <q-list v-if="graphSearchResults.length" dense class="flow-graph-search-results" aria-label="Результаты поиска по графу">
+            <q-item v-for="(result, index) in graphSearchResults" :key="`${result.kind}:${result.id}`" clickable
+                    :active="index === graphSearchIndex" active-class="bg-deep-purple-1 text-primary" @click="focusSearchResult(result)">
+              <q-item-section avatar><q-icon :name="result.kind === 'edge' ? 'arrow_right_alt' : 'crop_square'" size="18px"/></q-item-section>
+              <q-item-section>
+                <q-item-label>{{ result.label }}</q-item-label>
+                <q-item-label caption class="flow-graph-search-detail">{{ [result.section, result.detail].filter(Boolean).join(' · ') }}</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </div>
+        <draggable
+          v-if="graphSections.length"
+          v-model="orderedSections"
+          :item-key="section => section"
+          tag="div"
+          class="flow-section-navigation"
+          ghost-class="flow-section-ghost"
+          :animation="150"
+        >
+          <template #item="{ element: section }">
+            <q-btn flat dense no-caps class="flow-section-btn" @click="focusSection(section)">
+              <q-icon name="drag_indicator" size="14px" class="flow-section-drag-handle"/>
+              <span>{{ section }}</span>
+            </q-btn>
+          </template>
+        </draggable>
         <div
           ref="viewport"
           class="flow-viewport"
           :class="{ 'flow-viewport--connecting': pendingConnection }"
-          @mousedown.self="startPan"
-          @click.self="clearSelection"
+          @mousedown="onCanvasMouseDown"
+          @click="onCanvasClick"
         >
           <div class="flow-surface" :style="surfaceStyle">
             <div class="flow-zoom-layer" :style="zoomLayerStyle">
@@ -175,7 +233,7 @@
                     class="flow-edge-line"
                     :class="[
                       `flow-edge-line--${edge.handle}`,
-                      { 'flow-edge-line--selected': selectedEdgeId === edge.id }
+                      { 'flow-edge-line--selected': selectedEdgeId === edge.id, 'flow-edge-line--search-match': graphSearchEdgeIds.has(edge.id) }
                     ]"
                     :d="edge.path"
                     :marker-end="`url(#flow-arrow-${edge.marker})`"
@@ -196,7 +254,7 @@
                 class="flow-node"
                 :class="[
                   `flow-node--${node.type.toLowerCase()}`,
-                  { 'flow-node--selected': selectedNodeId === node.id }
+                  { 'flow-node--selected': selectedNodeId === node.id, 'flow-node--search-match': graphSearchNodeIds.has(node.id) }
                 ]"
                 :style="nodeStyle(node)"
                 @click.stop="selectNode(node.id)"
@@ -213,8 +271,8 @@
                 </button>
 
                 <div class="flow-node-header" @mousedown.stop.prevent="startNodeDrag($event, node)">
-                  <q-icon :name="nodeIcon(node.type)" :color="nodeColor(node.type)" size="20px"/>
-                  <div class="flow-node-title ellipsis">{{ node.label || nodeTypeLabel(node.type) }}</div>
+                  <q-icon :name="nodeIcon(node)" :color="nodeColor(node)" size="20px"/>
+                  <div class="flow-node-title ellipsis">{{ node.label || nodeTypeLabel(node) }}</div>
                   <q-btn flat round dense size="sm" icon="more_vert" @mousedown.stop @click.stop>
                     <q-menu>
                       <q-list dense style="min-width: 180px">
@@ -236,7 +294,7 @@
                 </div>
 
                 <div class="flow-node-body">
-                  <div class="flow-node-kind">{{ nodeTypeLabel(node.type) }}</div>
+                  <div class="flow-node-kind">{{ nodeTypeLabel(node) }}</div>
                   <div class="flow-node-summary">{{ nodeSummary(node) }}</div>
                 </div>
 
@@ -277,8 +335,26 @@
         </div>
       </section>
 
-      <aside class="flow-inspector">
-        <div class="flow-side-title">Настройка узла</div>
+      <teleport :to="inspectorTeleportTarget" :disabled="!inspectorPoppedOut">
+      <div
+        class="flow-inspector-slot"
+        :class="{ 'flow-inspector-slot--popped': inspectorPoppedOut }"
+        @click.self="inspectorPoppedOut = false"
+      >
+      <aside class="flow-inspector" :class="{ 'flow-inspector--popped': inspectorPoppedOut }">
+        <div class="flow-side-title row items-center justify-between no-wrap">
+          <span>Настройка узла</span>
+          <q-btn
+            flat
+            round
+            dense
+            size="sm"
+            :icon="inspectorPoppedOut ? 'close_fullscreen' : 'open_in_full'"
+            @click="inspectorPoppedOut = !inspectorPoppedOut"
+          >
+            <q-tooltip>{{ inspectorPoppedOut ? 'Свернуть в панель' : 'Открыть в отдельном окне' }}</q-tooltip>
+          </q-btn>
+        </div>
 
         <div v-if="!selectedNode" class="flow-inspector-empty">
           <q-icon name="touch_app" size="42px" color="grey-5"/>
@@ -290,11 +366,45 @@
             v-model="selectedNode.label"
             dense
             outlined
+            autogrow
+            type="textarea"
             label="Название узла"
             @change="commit"
           />
 
-          <template v-if="selectedNode.type === 'EVENT'">
+          <q-select
+            :key="selectedNode.id"
+            v-model="selectedNode.config.section"
+            :options="sectionOptions"
+            outlined
+            dense
+            clearable
+            use-input
+            fill-input
+            hide-selected
+            input-debounce="0"
+            label="Этап сценария"
+            class="q-mt-sm"
+            hint="Выберите этап или введите новый и нажмите Enter."
+            @filter="filterSections"
+            @new-value="createSection"
+            @update:model-value="commit"
+          >
+            <template #no-option>
+              <q-item>
+                <q-item-section class="text-grey">Введите название и нажмите Enter, чтобы создать этап.</q-item-section>
+              </q-item>
+            </template>
+          </q-select>
+          <q-input v-model="selectedNode.config.description" outlined dense autogrow type="textarea" label="Пояснение для пользователя" class="q-mt-sm" @change="commit"/>
+          <automation-operation-inspector
+            v-if="['OPERATION', 'PARAMETERS', 'FOR_EACH', 'LOOP_END', 'LOOP_BREAK', 'SUBFLOW'].includes(selectedNode.type)"
+            :test-context="testTrace.find(step => step.nodeId === selectedNode.id)" :entity-catalogs="{services,taskTypes,supportLines,priorities,statuses,users,tags}" :key="selectedNode.id" :triggers="triggers" :node="selectedNode" :nodes="localFlow.nodes" :catalog="operationCatalog" :error="operationCatalogError" :variables="expressionVariables" @update:label="selectedNode.label = $event" @update:config="selectedNode.config = $event" @change="commit"
+          />
+          <template v-else-if="selectedNode.type === 'CONDITION' && selectedNode.config.rule">
+            <automation-rule-editor :model-value="selectedNode.config.rule" :variables="expressionVariables" @update:model-value="selectedNode.config.rule = $event; commit()"/>
+          </template>
+          <template v-else-if="selectedNode.type === 'EVENT'">
             <automation-event-select
               v-model="selectedNode.config.triggerType"
               outlined
@@ -459,9 +569,10 @@
               suggestion-mode="ACTION"
               outlined
               dense
-              autogrow
               type="textarea"
+              rows="6"
               label="Сценарий действий *"
+              hint="Разделяйте команды новой строкой или ;. Подсказку можно вставить клавишей Tab."
               class="q-mt-sm"
               @change="commit"
             />
@@ -498,6 +609,8 @@
                   :variables="expressionVariables"
                   outlined
                   dense
+                  autogrow
+                  type="textarea"
                   :label="actionValueLabel(action)"
                   hint="В шаблонах {{ ... }} доступны поля, свойства и методы движка"
                   @change="onActionsChanged(selectedNode)"
@@ -629,6 +742,8 @@
               v-model="selectedNode.config.result"
               outlined
               dense
+              autogrow
+              type="textarea"
               label="Результат ветки"
               class="q-mt-md"
               @change="commit"
@@ -671,12 +786,18 @@
           </div>
         </div>
       </aside>
+      </div>
+      </teleport>
     </div>
   </div>
 </template>
 
 <script>
 import {nextTick} from 'vue'
+import axios from 'axios'
+import draggable from 'vuedraggable'
+import AutomationOperationInspector from './AutomationOperationInspector.vue'
+import AutomationRuleEditor from './AutomationRuleEditor.vue'
 import AutomationAdvancedNodeInspector from 'src/components/automation/AutomationAdvancedNodeInspector.vue'
 import AutomationExpressionInput from 'src/components/automation/AutomationExpressionInput.vue'
 import AutomationEventSelect from 'src/components/automation/AutomationEventSelect.vue'
@@ -689,7 +810,16 @@ import {
   normalizeWorkflow
 } from 'src/util/automationFlow'
 
+import { buildAutomationPalette, operationConfig } from 'src/util/automationNodeCatalog'
+import { analyzeAutomationVariables } from 'src/util/automationVariableTypes'
+import { searchAutomationGraph } from 'src/util/automationGraphSearch'
+
 const NODE_SIZES = {
+  OPERATION: {width: 350, height: 185},
+  PARAMETERS: {width: 350, height: 185},
+  FOR_EACH: {width: 330, height: 185},
+  LOOP_END: {width: 235, height: 120},
+  LOOP_BREAK: {width: 235, height: 120},
   EVENT: {width: 250, height: 145},
   CONDITION: {width: 310, height: 185},
   SWITCH: {width: 310, height: 185},
@@ -726,10 +856,11 @@ const ADVANCED_NODE_TYPES = [
 
 export default {
   name: 'AutomationFlowEditor',
-  components: {AutomationAdvancedNodeInspector, AutomationExpressionInput, AutomationEventSelect},
+  components: {AutomationAdvancedNodeInspector, AutomationExpressionInput, AutomationEventSelect, AutomationOperationInspector, AutomationRuleEditor, draggable},
 
   props: {
     modelValue: {type: Object, required: true},
+    testTrace: {type: Array, default: () => []},
     // [{ value, label, group }] — события с названиями из GET /api/v1/trigger-types/options
     triggerTypes: {type: Array, default: () => []},
     triggers: {type: Array, default: () => []},
@@ -747,109 +878,41 @@ export default {
 
   data() {
     return {
+      sectionSearch: '',
       localFlow: normalizeWorkflow(this.modelValue),
       selectedNodeId: null,
       selectedEdgeId: null,
       pendingConnection: null,
+      paletteVisible: true,
+      inspectorPoppedOut: false,
+      // Teleporting to 'body' would escape the host q-dialog's focus trap, which fights
+      // focus back inside the dialog and makes popped-out fields unclickable. Teleporting
+      // inside the dialog's own DOM keeps the trap happy.
+      inspectorTeleportTarget: 'body',
       zoom: 0.9,
+      // Canvas bounds can grow into negative graph coordinates without moving the nodes.
+      canvasLeft: 0,
+      canvasTop: 0,
       canvasWidth: 2200,
       canvasHeight: 1300,
       dragState: null,
+      dragFrame: null,
       panState: null,
+      panMoved: false,
+      graphSearchVisible: false,
+      graphSearchQuery: '',
+      graphSearchCriterion: 'text',
+      graphSearchCriteria: [
+        {label: 'Совпадение текста', value: 'text'},
+        {label: 'Переменная', value: 'variable'}
+      ],
       history: [],
       historyIndex: -1,
       syncingExternal: false,
-      paletteGroups: [
-        {
-          id: 'flow',
-          label: 'Старт и структура',
-          icon: 'account_tree',
-          color: 'indigo-7',
-          expanded: false,
-          items: [
-            {type: 'EVENT', label: 'Событие', icon: 'bolt', color: 'indigo-6'},
-            {type: 'SUBFLOW', label: 'Подпроцесс', icon: 'account_tree', color: 'indigo-7'},
-            {type: 'END', label: 'Завершение', icon: 'flag', color: 'indigo-8'}
-          ]
-        },
-        {
-          id: 'logic',
-          label: 'Условия и ветвление',
-          icon: 'schema',
-          color: 'orange-8',
-          expanded: false,
-          items: [
-            {type: 'CONDITION', label: 'Условие ДА/НЕТ', icon: 'call_split', color: 'orange-6'},
-            {type: 'SWITCH', label: 'Варианты значения', icon: 'alt_route', color: 'orange-7'},
-            {type: 'BUSINESS_HOURS', label: 'Рабочее время', icon: 'schedule', color: 'orange-8'},
-            {type: 'FORK', label: 'Разделить ветки', icon: 'fork_right', color: 'orange-9'},
-            {type: 'JOIN', label: 'Объединить ветки', icon: 'merge', color: 'deep-orange-8'}
-          ]
-        },
-        {
-          id: 'tasks',
-          label: 'Заявки и коммуникации',
-          icon: 'support_agent',
-          color: 'teal-7',
-          expanded: false,
-          items: [
-            {type: 'ACTION', label: 'Действия', icon: 'play_arrow', color: 'teal-5'},
-            {type: 'ESCALATE', label: 'Эскалация', icon: 'trending_up', color: 'teal-6'},
-            {type: 'CREATE_TASK', label: 'Создать заявку', icon: 'add_task', color: 'teal-7'},
-            {type: 'NOTIFY', label: 'Уведомление', icon: 'notifications', color: 'teal-8'}
-          ]
-        },
-        {
-          id: 'waiting',
-          label: 'Ожидание и участие человека',
-          icon: 'hourglass_top',
-          color: 'purple-7',
-          expanded: false,
-          items: [
-            {type: 'DELAY', label: 'Задержка', icon: 'hourglass_bottom', color: 'purple-5'},
-            {type: 'WAIT_UNTIL', label: 'Ждать до момента', icon: 'event', color: 'purple-6'},
-            {type: 'WAIT_EVENT', label: 'Ждать событие', icon: 'notifications_active', color: 'purple-7'},
-            {type: 'WAIT_TASK', label: 'Ждать заявку', icon: 'task_alt', color: 'purple-8'},
-            {type: 'APPROVAL', label: 'Ручное решение', icon: 'approval', color: 'purple-9'}
-          ]
-        },
-        {
-          id: 'data',
-          label: 'Данные и интеграции',
-          icon: 'data_object',
-          color: 'blue-grey-7',
-          expanded: false,
-          items: [
-            {type: 'HTTP_REQUEST', label: 'HTTP-запрос', icon: 'http', color: 'blue-grey-5'},
-            {type: 'SET_VARIABLE', label: 'Переменная', icon: 'data_object', color: 'blue-grey-6'},
-            {type: 'EXPRESSION', label: 'Вычисление', icon: 'calculate', color: 'blue-grey-7'},
-            {type: 'COUNTER', label: 'Счётчик', icon: 'exposure_plus_1', color: 'blue-grey-8'}
-          ]
-        },
-        {
-          id: 'reliability',
-          label: 'Ошибки и контроль',
-          icon: 'shield',
-          color: 'red-7',
-          expanded: false,
-          items: [
-            {type: 'ERROR_HANDLER', label: 'Обработка ошибки', icon: 'error_outline', color: 'red-5'},
-            {type: 'RETRY', label: 'Повтор', icon: 'replay', color: 'red-6'},
-            {type: 'THROTTLE', label: 'Ограничить частоту', icon: 'speed', color: 'red-7'},
-            {type: 'DEDUPLICATE', label: 'Найти дубликат', icon: 'content_copy', color: 'red-8'}
-          ]
-        },
-        {
-          id: 'documentation',
-          label: 'Документация',
-          icon: 'description',
-          color: 'grey-7',
-          expanded: false,
-          items: [
-            {type: 'NOTE', label: 'Комментарий', icon: 'sticky_note_2', color: 'grey-7'}
-          ]
-        }
-      ],
+      operationCatalog: [],
+      operationCatalogError: '',
+      paletteSearch: '',
+      expandedPaletteGroups: [], //'structure', 'messages', 'tasks'
       delayUnits: [
         {label: 'сек.', value: 'SECONDS'},
         {label: 'мин.', value: 'MINUTES'},
@@ -876,6 +939,8 @@ export default {
         },
         {label: 'Канал обращения', value: 'client.sourceChannel', kind: 'text'},
         {label: 'Текст сообщения', value: 'message.text', kind: 'text'},
+        {label: 'Источник сообщения события', value: 'message.fromSource', kind: 'text'},
+        {label: 'Источник последнего сообщения', value: 'client.lastMessage.fromSource', kind: 'text'},
         {label: 'Сейчас рабочее время', value: '__WORKING_HOURS__', kind: 'function-boolean'},
         {label: 'Сейчас выходной', value: '__WEEKEND__', kind: 'function-boolean'}
       ],
@@ -899,6 +964,51 @@ export default {
   },
 
   computed: {
+    graphSearchResults() {
+      return this.graphSearchVisible ? searchAutomationGraph({ ...this.localFlow, edges: this.renderedEdges }, this.graphSearchQuery, this.graphSearchCriterion, this.operationCatalog) : []
+    },
+    graphSearchIndex() {
+      return this.graphSearchResults.findIndex(result => result.kind === 'node' ? result.id === this.selectedNodeId : result.id === this.selectedEdgeId)
+    },
+    graphSearchNodeIds() {
+      return new Set(this.graphSearchResults.filter(result => result.kind === 'node').map(result => result.id))
+    },
+    graphSearchEdgeIds() {
+      return new Set(this.graphSearchResults.filter(result => result.kind === 'edge').map(result => result.id))
+    },
+    paletteGroups() {
+      return buildAutomationPalette(this.operationCatalog)
+    },
+
+    visiblePaletteGroups() {
+      const term = (this.paletteSearch || '').toLocaleLowerCase('ru').trim()
+      return this.paletteGroups.map(group => ({
+        ...group,
+        items: group.items.filter(item => !term || (group.label + ' ' + item.label).toLocaleLowerCase('ru').includes(term))
+      })).filter(group => group.items.length)
+    },
+
+    sectionOptions() {
+      const search = this.sectionSearch.trim().toLocaleLowerCase()
+      return this.graphSections.filter(section => section.toLocaleLowerCase().includes(search))
+    },
+    graphSections() {
+      // Default order is "first node to use this section" — not meaningful to a reader,
+      // so a manual drag order (localFlow.sectionOrder) overrides it; anything new or not
+      // yet dragged falls back to that natural first-appearance order, appended at the end.
+      const present = [...new Set(this.localFlow.nodes.map(n => n.config?.section).filter(Boolean))]
+      const presentSet = new Set(present)
+      const ordered = (this.localFlow.sectionOrder || []).filter(section => presentSet.has(section))
+      const orderedSet = new Set(ordered)
+      return [...ordered, ...present.filter(section => !orderedSet.has(section))]
+    },
+    orderedSections: {
+      get() { return this.graphSections },
+      set(sections) {
+        this.localFlow.sectionOrder = sections
+        this.commit()
+      }
+    },
     advancedNodeTypes() {
       return ADVANCED_NODE_TYPES
     },
@@ -908,17 +1018,7 @@ export default {
     },
 
     expressionVariables() {
-      const variables = new Set()
-      for (const node of this.localFlow.nodes || []) {
-        const config = node?.config || {}
-        if (['SET_VARIABLE', 'EXPRESSION', 'COUNTER'].includes(node?.type) && config.name) {
-          variables.add(String(config.name).replace(/^var\./, '').trim())
-        }
-        if (['HTTP_REQUEST', 'CREATE_TASK', 'DEDUPLICATE'].includes(node?.type) && config.resultVariable) {
-          variables.add(String(config.resultVariable).replace(/^var\./, '').trim())
-        }
-      }
-      return [...variables].filter(Boolean).sort((left, right) => left.localeCompare(right))
+      return analyzeAutomationVariables(this.localFlow, this.operationCatalog, this.selectedNodeId)
     },
 
     hasEventNode() {
@@ -1004,6 +1104,8 @@ export default {
           if (!this.hasEdge(node.id, handle)) errors.push(`У узла «${node.label}» не подключён выход «${this.edgeHandleLabel(node, handle) || handle}»`)
         })
 
+        if (type === 'OPERATION' && !config.operation) errors.push(`В узле «${node.label}» не выбрана операция`)
+        if (type === 'FOR_EACH' && (!config.itemsExpression || !config.endNodeId)) errors.push(`В цикле «${node.label}» выберите список и конец итерации`)
         if (type === 'END' && edges.some(edge => edge.source === node.id)) errors.push(`Из конечного узла «${node.label}» не должно быть связи`)
         if (type === 'CONDITION' && !config.expression) errors.push(`Не заполнено условие «${node.label}»`)
         if (type === 'SWITCH') {
@@ -1083,19 +1185,96 @@ export default {
 
   mounted() {
     this.resetHistory()
+    this.loadOperationCatalog()
     this.$refs.viewport?.addEventListener('wheel', this.onWheel, {passive: false})
     window.addEventListener('mousemove', this.onGlobalMouseMove)
     window.addEventListener('mouseup', this.onGlobalMouseUp)
     nextTick(() => this.fitView())
+    this.inspectorTeleportTarget = this.$el.closest('.q-dialog') || 'body'
   },
 
   beforeUnmount() {
+    cancelAnimationFrame(this.dragFrame)
     this.$refs.viewport?.removeEventListener('wheel', this.onWheel)
     window.removeEventListener('mousemove', this.onGlobalMouseMove)
     window.removeEventListener('mouseup', this.onGlobalMouseUp)
   },
 
   methods: {
+    openGraphSearch() {
+      this.graphSearchVisible = true
+      nextTick(() => this.$refs.graphSearchInput?.focus())
+    },
+    navigateGraphSearch(direction) {
+      const results = this.graphSearchResults
+      if (!results.length) return
+      const index = this.graphSearchIndex < 0 ? (direction > 0 ? 0 : results.length - 1)
+        : (this.graphSearchIndex + direction + results.length) % results.length
+      this.focusSearchResult(results[index])
+    },
+    focusSearchResult(result) {
+      if (result.kind === 'node') {
+        this.focusNode(result.id)
+        return
+      }
+      const edge = this.localFlow.edges.find(edge => edge.id === result.id)
+      const source = this.nodeMap.get(edge?.source)
+      const target = this.nodeMap.get(edge?.target)
+      const viewport = this.$refs.viewport
+      if (!source || !target || !viewport) return
+      this.selectEdge(edge.id)
+      const start = this.outputPoint(source, edge.sourceHandle || 'next')
+      const end = this.inputPoint(target)
+      viewport.scrollLeft = Math.max(0, ((start.x + end.x) / 2 - this.canvasLeft) * this.zoom - viewport.clientWidth / 2)
+      viewport.scrollTop = Math.max(0, ((start.y + end.y) / 2 - this.canvasTop) * this.zoom - viewport.clientHeight / 2)
+    },
+    onCanvasMouseDown(event) {
+      if (event.target.closest('.flow-node, .flow-edge-hit')) return
+      this.panMoved = false
+      this.startPan(event)
+    },
+    onCanvasClick(event) {
+      if (event.target.closest('.flow-node, .flow-edge-hit') || this.panMoved) return
+      this.clearSelection()
+    },
+    isPaletteGroupExpanded(group) {
+      return Boolean(this.paletteSearch) || this.expandedPaletteGroups.includes(group.id)
+    },
+    togglePaletteGroup(group) {
+      this.expandedPaletteGroups = this.expandedPaletteGroups.includes(group.id)
+        ? this.expandedPaletteGroups.filter(id => id !== group.id) : [...this.expandedPaletteGroups, group.id]
+    },
+
+    filterSections(value, update) {
+      update(() => { this.sectionSearch = value })
+    },
+    createSection(value, done) {
+      const section = value.trim()
+      if (section) {
+        done(section, 'add-unique')
+      } else {
+        done()
+      }
+    },
+    async loadOperationCatalog() {
+      try { const {data} = await axios.get('/api/v1/automation/operations'); this.operationCatalog = data; this.operationCatalogError = '' } catch (error) { this.operationCatalogError = 'Не удалось загрузить каталог операций. Проверьте соединение и обновите редактор.' }
+    },
+    focusNode(id) {
+      const node = this.localFlow.nodes.find(n => n.id === id)
+      if (!node || !this.$refs.viewport) return
+      this.selectNode(id)
+      this.$refs.viewport.scrollLeft = Math.max(0, (node.x - this.canvasLeft - 50) * this.zoom)
+      this.$refs.viewport.scrollTop = Math.max(0, (node.y - this.canvasTop - 50) * this.zoom)
+    },
+    focusSection(section) {
+      const nodes = this.localFlow.nodes.filter(n => n.config?.section === section)
+      if (!nodes.length) return
+      const viewport = this.$refs.viewport
+      if (!viewport) return
+      this.selectedNodeId = nodes[0].id
+      viewport.scrollLeft = Math.max(0, (Math.min(...nodes.map(n => n.x)) - this.canvasLeft - 40) * this.zoom)
+      viewport.scrollTop = Math.max(0, (Math.min(...nodes.map(n => n.y)) - this.canvasTop - 40) * this.zoom)
+    },
     nodeSize(node) {
       return NODE_SIZES[node?.type] || NODE_SIZES.NOTE
     },
@@ -1103,15 +1282,24 @@ export default {
     nodeStyle(node) {
       const size = this.nodeSize(node)
       return {
-        left: `${node.x}px`,
-        top: `${node.y}px`,
+        left: `${node.x - this.canvasLeft}px`,
+        top: `${node.y - this.canvasTop}px`,
         width: `${size.width}px`,
         height: `${size.height}px`
       }
     },
 
-    nodeIcon(type) {
+    nodeIcon(node) {
+      const type = typeof node === 'string' ? node : node.type
+      const operation = type === 'OPERATION' && this.operationCatalog.find(o => o.id === node.config?.operation)
+      if (operation) return operation.icon || 'widgets'
+
       return {
+        OPERATION: 'widgets',
+        PARAMETERS: 'tune',
+        FOR_EACH: 'repeat',
+        LOOP_END: 'keyboard_return',
+        LOOP_BREAK: 'stop_circle',
         EVENT: 'bolt', CONDITION: 'call_split', SWITCH: 'alt_route', ACTION: 'play_arrow',
         DELAY: 'hourglass_bottom', WAIT_UNTIL: 'event', WAIT_EVENT: 'notifications_active', WAIT_TASK: 'task_alt',
         APPROVAL: 'approval', SUBFLOW: 'account_tree', FORK: 'fork_right', JOIN: 'merge', HTTP_REQUEST: 'http',
@@ -1122,7 +1310,11 @@ export default {
       }[type] || 'crop_square'
     },
 
-    nodeColor(type) {
+    nodeColor(node) {
+      const type = typeof node === 'string' ? node : node.type
+      const operation = type === 'OPERATION' && this.operationCatalog.find(o => o.id === node.config?.operation)
+      if (operation) return this.paletteGroups.find(group => group.label === operation.group)?.color || 'blue-8'
+
       return {
         EVENT: 'indigo-6', SUBFLOW: 'indigo-7', END: 'indigo-8',
         CONDITION: 'orange-6', SWITCH: 'orange-7', BUSINESS_HOURS: 'orange-8', FORK: 'orange-9', JOIN: 'deep-orange-8',
@@ -1134,10 +1326,16 @@ export default {
       }[type] || 'grey'
     },
 
-    nodeTypeLabel(type) {
+    nodeTypeLabel(node) {
+      const type = typeof node === 'string' ? node : node.type
+      const operation = type === 'OPERATION' && this.operationCatalog.find(o => o.id === node.config?.operation)
+      if (operation) return operation.label
+
+      const labels = {OPERATION: 'Выберите шаг', PARAMETERS: 'Настройки сценария', FOR_EACH: 'Для каждого элемента', LOOP_END: 'Следующий элемент', LOOP_BREAK: 'Остановить цикл'}
+      if (labels[type]) return labels[type]
       return {
         EVENT: 'Стартовое событие', CONDITION: 'Проверка условия', SWITCH: 'Многовариантное ветвление',
-        ACTION: 'Последовательность действий', DELAY: 'Отложенное продолжение', WAIT_UNTIL: 'Ожидание момента',
+        ACTION: 'Скрипт команд', DELAY: 'Отложенное продолжение', WAIT_UNTIL: 'Ожидание момента',
         WAIT_EVENT: 'Ожидание события', WAIT_TASK: 'Ожидание связанной заявки', APPROVAL: 'Ручное решение',
         SUBFLOW: 'Вызов автоматизации', FORK: 'Разделение на ветки', JOIN: 'Объединение веток',
         HTTP_REQUEST: 'Внешний HTTP-запрос', SET_VARIABLE: 'Запись переменной', EXPRESSION: 'Вычисление значения',
@@ -1149,6 +1347,12 @@ export default {
     },
 
     nodeSummary(node) {
+      if (node.type === 'OPERATION') { const spec = this.operationCatalog.find(o => o.id === node.config.operation); return (spec?.label || 'Выберите действие') + (node.config.resultVariable ? ' → var.' + node.config.resultVariable : '') }
+      if (node.type === 'PARAMETERS') return (node.config.parameters || []).slice(0, 3).map(p => p.label + ': ' + (typeof p.value === 'object' ? JSON.stringify(p.value) : p.value)).join(' · ')
+      if (node.type === 'FOR_EACH') return 'Для каждого элемента: ' + (node.config.itemsExpression || 'Выберите список')
+      if (node.type === 'LOOP_END') return 'Завершить обработку текущего элемента'
+      if (node.type === 'LOOP_BREAK') return 'Перейти к выходу «Готово» у цикла'
+      if (node.type === 'CONDITION' && node.config.rule) return node.config.description || 'Условия редактируются в правой панели'
       const c = node.config || {}
       if (node.type === 'EVENT') return this.eventLabels[c.triggerType] || c.triggerType || 'Событие не выбрано'
       if (node.type === 'CONDITION') return c.expression || 'Условие не заполнено'
@@ -1184,22 +1388,26 @@ export default {
 
     inputPoint(node) {
       const size = this.nodeSize(node)
-      return {x: node.x, y: node.y + size.height / 2}
+      return {x: node.x - this.canvasLeft, y: node.y - this.canvasTop + size.height / 2}
     },
 
     outputPoint(node, handle) {
       const size = this.nodeSize(node)
       const port = this.outputPorts(node).find(item => item.handle === handle) || {yRatio: 0.5}
-      return {x: node.x + size.width, y: node.y + size.height * port.yRatio}
+      return {x: node.x - this.canvasLeft + size.width, y: node.y - this.canvasTop + size.height * port.yRatio}
     },
 
     inputPortStyle(node) {
       const size = this.nodeSize(node)
-      return {top: `${size.height / 2 - 7}px`}
+      // Absolute port positions start inside the node border; SVG points use its outer edge.
+      return {top: `calc(${size.height / 2}px - var(--flow-node-border-top))`}
     },
 
     outputPorts(node) {
       const c = node.config || {}
+      if (['OPERATION'].includes(node.type)) return this.distributePorts([{handle: 'success', label: 'Готово', tooltip: 'Шаг выполнен'}, {handle: 'error', label: 'Ошибка', tooltip: 'Обработать ошибку'}])
+      if (node.type === 'FOR_EACH') return this.distributePorts([{handle: 'body', label: 'ЭЛЕМЕНТ', tooltip: 'Обработать каждый элемент'}, {handle: 'next', label: 'ГОТОВО', tooltip: 'Продолжить после списка'}])
+      if (['LOOP_END', 'LOOP_BREAK'].includes(node.type)) return []
       if (node.type === 'END' || node.type === 'JOIN') return node.type === 'JOIN' ? [{
         handle: 'next',
         label: '',
@@ -1263,7 +1471,7 @@ export default {
     },
 
     requiredOutputHandles(node) {
-      if (node.type === 'END') return []
+      if (['END', 'LOOP_END', 'LOOP_BREAK'].includes(node.type)) return []
       if (node.type === 'FORK') return this.outputPorts(node).map(port => port.handle)
       return this.outputPorts(node).map(port => port.handle)
     },
@@ -1282,7 +1490,7 @@ export default {
 
     outputPortStyle(node, port) {
       const size = this.nodeSize(node)
-      return {top: `${size.height * port.yRatio - 7}px`}
+      return {top: `calc(${size.height * port.yRatio}px - var(--flow-node-border-top))`}
     },
 
     outputLabelStyle(node, port) {
@@ -1290,12 +1498,17 @@ export default {
       return {top: `${size.height * port.yRatio - 10}px`}
     },
 
-    addNode(type) {
+    addNode(item) {
+      const type = typeof item === 'string' ? item : item.type
+      const operation = item.operation && this.operationCatalog.find(o => o.id === item.operation)
       const viewport = this.$refs.viewport
-      const x = viewport ? (viewport.scrollLeft + viewport.clientWidth / 2) / this.zoom - 130 : 400
-      const y = viewport ? (viewport.scrollTop + viewport.clientHeight / 2) / this.zoom - 80 : 250
-      const config = this.defaultConfig(type)
-      const node = createNode(type, Math.max(20, x), Math.max(20, y), config)
+      const x = viewport ? (viewport.scrollLeft + viewport.clientWidth / 2) / this.zoom + this.canvasLeft - 130 : 400
+      const y = viewport ? (viewport.scrollTop + viewport.clientHeight / 2) / this.zoom + this.canvasTop - 80 : 250
+      const config = operation ? operationConfig(operation) : this.defaultConfig(type)
+      const node = createNode(type, x, y, config)
+      if (operation) node.label = operation.label
+      else if (item.label) node.label = item.label
+      if (type === 'ACTION') node.config.manualScript = true
       this.localFlow.nodes.push(node)
       if (type === 'EVENT') this.localFlow.entryNodeId = node.id
       this.selectedNodeId = node.id
@@ -1304,8 +1517,12 @@ export default {
     },
 
     defaultConfig(type) {
+      if (type === 'OPERATION') return {operation: '', arguments: {}, resultVariable: '', background: false}
+      if (type === 'PARAMETERS') return {resultVariable: 'settings', parameters: []}
+      if (type === 'FOR_EACH') return {itemsExpression: '', itemVariable: 'item', indexVariable: 'index', maxItems: 100, endNodeId: null, collectExpression: '', resultVariable: ''}
+      if (['LOOP_END', 'LOOP_BREAK'].includes(type)) return {}
       if (type === 'EVENT') return {triggerType: this.triggerTypes[0]?.value || 'TASK_CREATED'}
-      if (type === 'CONDITION') return {expression: 'true', groups: [], manualExpression: false}
+      if (type === 'CONDITION') return {expression: 'true', rule: {left: '=true', operator: 'true'}, groups: [], manualExpression: false}
       if (type === 'SWITCH') return {
         valueExpression: 'task.priority.id',
         cases: [
@@ -1329,7 +1546,7 @@ export default {
       if (type === 'APPROVAL') return {
         title: 'Требуется решение', message: '', approverUserId: null, timeoutAmount: 24, timeoutUnit: 'HOURS'
       }
-      if (type === 'SUBFLOW') return {triggerId: null, mode: 'INLINE'}
+      if (type === 'SUBFLOW') return {triggerId: null, mode: 'INLINE', localVariables: true, inputs: {}, outputs: {}}
       if (type === 'FORK') return {
         joinNodeId: null,
         branches: [
@@ -1491,7 +1708,7 @@ export default {
       nextPath.add(nodeId)
       const asyncTypes = ['DELAY', 'WAIT_UNTIL', 'WAIT_EVENT', 'WAIT_TASK', 'APPROVAL', 'RETRY']
       if (asyncTypes.includes(node.type) || (node.type === 'SUBFLOW' && node.config?.mode === 'ASYNC')) {
-        return {reachesJoin: false, asyncNode: node.label || this.nodeTypeLabel(node.type)}
+        return {reachesJoin: false, asyncNode: node.label || this.nodeTypeLabel(node)}
       }
       if (node.type === 'END') return {reachesJoin: false, asyncNode: null}
       const outgoing = this.localFlow.edges.filter(edge => edge.source === nodeId)
@@ -1507,16 +1724,23 @@ export default {
     },
 
     startNodeDrag(event, node) {
+      if (event.button !== 0) return
+      const viewport = this.$refs.viewport
       this.dragState = {
         nodeId: node.id,
         startMouseX: event.clientX,
         startMouseY: event.clientY,
+        mouseX: event.clientX,
+        mouseY: event.clientY,
+        startScrollLeft: viewport.scrollLeft,
+        startScrollTop: viewport.scrollTop,
         startX: node.x,
         startY: node.y,
         before: JSON.stringify(this.localFlow)
       }
       this.selectedNodeId = node.id
       this.selectedEdgeId = null
+      this.dragFrame = requestAnimationFrame(this.scrollWhileDragging)
     },
 
     startPan(event) {
@@ -1534,13 +1758,12 @@ export default {
 
     onGlobalMouseMove(event) {
       if (this.dragState) {
-        const node = this.nodeMap.get(this.dragState.nodeId)
-        if (!node) return
-        node.x = Math.max(10, this.dragState.startX + (event.clientX - this.dragState.startMouseX) / this.zoom)
-        node.y = Math.max(10, this.dragState.startY + (event.clientY - this.dragState.startMouseY) / this.zoom)
-        this.expandCanvasForNode(node)
+        this.dragState.mouseX = event.clientX
+        this.dragState.mouseY = event.clientY
+        this.updateDraggedNode()
       }
       if (this.panState) {
+        if (Math.abs(event.clientX - this.panState.startMouseX) + Math.abs(event.clientY - this.panState.startMouseY) > 3) this.panMoved = true
         const viewport = this.$refs.viewport
         if (!viewport) return
         viewport.scrollLeft = this.panState.startScrollLeft - (event.clientX - this.panState.startMouseX)
@@ -1548,7 +1771,38 @@ export default {
       }
     },
 
+    updateDraggedNode() {
+      const drag = this.dragState
+      const viewport = this.$refs.viewport
+      if (!drag || !viewport) return
+      const node = this.nodeMap.get(drag.nodeId)
+      if (!node) return
+      node.x = drag.startX + (drag.mouseX - drag.startMouseX + viewport.scrollLeft - drag.startScrollLeft) / this.zoom
+      node.y = drag.startY + (drag.mouseY - drag.startMouseY + viewport.scrollTop - drag.startScrollTop) / this.zoom
+      this.expandCanvasForNode(node)
+    },
+
+    scrollWhileDragging(time) {
+      const drag = this.dragState
+      const viewport = this.$refs.viewport
+      if (!drag || !viewport) return
+      const rect = viewport.getBoundingClientRect()
+      const edgeSpeed = (position, start, end) => {
+        if (position < start + 60) return -Math.min(1, (start + 60 - position) / 60)
+        if (position > end - 60) return Math.min(1, (position - end + 60) / 60)
+        return 0
+      }
+      const elapsed = Math.min(32, drag.lastFrameTime ? time - drag.lastFrameTime : 16)
+      drag.lastFrameTime = time
+      viewport.scrollLeft += edgeSpeed(drag.mouseX, rect.left, rect.right) * elapsed * 0.7
+      viewport.scrollTop += edgeSpeed(drag.mouseY, rect.top, rect.bottom) * elapsed * 0.7
+      this.updateDraggedNode()
+      this.dragFrame = requestAnimationFrame(this.scrollWhileDragging)
+    },
+
     onGlobalMouseUp() {
+      cancelAnimationFrame(this.dragFrame)
+      this.dragFrame = null
       if (this.dragState) {
         const changed = this.dragState.before !== JSON.stringify(this.localFlow)
         this.dragState = null
@@ -1559,8 +1813,26 @@ export default {
 
     expandCanvasForNode(node) {
       const size = this.nodeSize(node)
-      this.canvasWidth = Math.max(this.canvasWidth, Math.ceil(node.x + size.width + 500))
-      this.canvasHeight = Math.max(this.canvasHeight, Math.ceil(node.y + size.height + 400))
+      const shiftX = node.x < this.canvasLeft + 100 ? Math.ceil((this.canvasLeft + 500 - node.x) / 500) * 500 : 0
+      const shiftY = node.y < this.canvasTop + 100 ? Math.ceil((this.canvasTop + 400 - node.y) / 400) * 400 : 0
+      this.canvasLeft -= shiftX
+      this.canvasTop -= shiftY
+      this.canvasWidth = Math.max(this.canvasWidth + shiftX, Math.ceil(node.x - this.canvasLeft + size.width + 500))
+      this.canvasHeight = Math.max(this.canvasHeight + shiftY, Math.ceil(node.y - this.canvasTop + size.height + 400))
+      if (!shiftX && !shiftY) return
+      const viewport = this.$refs.viewport
+      const drag = this.dragState
+      const offsetX = shiftX * this.zoom
+      const offsetY = shiftY * this.zoom
+      nextTick(() => {
+        if (!viewport) return
+        viewport.scrollLeft += offsetX
+        viewport.scrollTop += offsetY
+        if (drag && this.dragState === drag) {
+          drag.startScrollLeft += offsetX
+          drag.startScrollTop += offsetY
+        }
+      })
     },
 
     onWheel(event) {
@@ -1570,7 +1842,15 @@ export default {
     },
 
     changeZoom(delta) {
+      const viewport = this.$refs.viewport
+      const centerX = viewport ? (viewport.scrollLeft + viewport.clientWidth / 2) / this.zoom : 0
+      const centerY = viewport ? (viewport.scrollTop + viewport.clientHeight / 2) / this.zoom : 0
       this.zoom = Math.min(1.6, Math.max(0.5, Math.round((this.zoom + delta) * 10) / 10))
+      nextTick(() => {
+        if (!viewport) return
+        viewport.scrollLeft = centerX * this.zoom - viewport.clientWidth / 2
+        viewport.scrollTop = centerY * this.zoom - viewport.clientHeight / 2
+      })
     },
 
     fitView() {
@@ -1582,14 +1862,14 @@ export default {
         acc.maxX = Math.max(acc.maxX, node.x + size.width)
         acc.maxY = Math.max(acc.maxY, node.y + size.height)
         return acc
-      }, {minX: Infinity, minY: Infinity, maxX: 0, maxY: 0})
+      }, {minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity})
       const viewport = this.$refs.viewport
       const graphWidth = bounds.maxX - bounds.minX + 140
       const graphHeight = bounds.maxY - bounds.minY + 140
       this.zoom = Math.min(1.2, Math.max(0.5, Math.min(viewport.clientWidth / graphWidth, viewport.clientHeight / graphHeight)))
       nextTick(() => {
-        viewport.scrollLeft = Math.max(0, (bounds.minX - 70) * this.zoom)
-        viewport.scrollTop = Math.max(0, (bounds.minY - 70) * this.zoom)
+        viewport.scrollLeft = Math.max(0, (bounds.minX - this.canvasLeft - 70) * this.zoom)
+        viewport.scrollTop = Math.max(0, (bounds.minY - this.canvasTop - 70) * this.zoom)
       })
     },
 
@@ -1976,95 +2256,61 @@ export default {
       nextTick(() => this.fitView())
     },
 
+    configureOperation(node, id, args, label) {
+      const spec = this.operationCatalog.find(operation => operation.id === id)
+      node.type = 'OPERATION'
+      node.label = label || spec?.label || 'Шаг сценария'
+      node.config = spec ? operationConfig(spec) : {operation: id, arguments: {}, resultVariable: '', background: false}
+      node.config.arguments = {...node.config.arguments, ...args}
+      return node
+    },
+
     priorityTemplate() {
       const flow = createDefaultWorkflow('TASK_CREATED')
       const condition = flow.nodes.find(node => node.type === 'CONDITION')
       condition.label = 'Критичный приоритет?'
-      const criticalPriority = this.priorities.find(priority =>
-        String(priority?.name || '').toLowerCase().includes('крит')
-      ) || this.priorities[0]
-      condition.config.groups = [{
-        id: nextFlowId('group'),
-        conditions: [{
-          id: nextFlowId('condition-item'),
-          field: 'task.priority.id',
-          operator: 'equals',
-          value: criticalPriority?.id || null
-        }]
-      }]
-      this.syncConditionExpression(condition)
-      const action = flow.nodes.find(node => node.type === 'ACTION')
-      action.label = 'Маршрутизировать в экспертную линию'
-      action.config.actions = [{
-        id: nextFlowId('action-item'),
-        type: 'ASSIGN_LEAST_LOADED',
-        value: this.supportLines[0]?.id || null
-      }]
-      this.syncActionScript(action)
+      const critical = this.priorities.find(priority => String(priority.name).toLowerCase().includes('крит')) || this.priorities[0]
+      condition.config.rule = {left: '=task.priority.id', operator: '=', right: critical?.id || null}
+      condition.config.expression = 'task.priority.id = ' + (critical?.id || 'null')
+      this.configureOperation(flow.nodes.find(node => node.type === 'OPERATION'), 'task.assignLeastLoaded',
+        {taskId: '=task.id', lineId: this.supportLines[0]?.id || null}, 'Назначить сотрудника экспертной линии')
       return flow
     },
 
     slaTemplate() {
       const event = createNode('EVENT', 70, 240, {triggerType: 'SLA_WARNING'})
-      const action = createNode('ACTION', 390, 110, {
-        actions: [{id: nextFlowId('action-item'), type: 'ADD_TAG', value: this.tags[0]?.name || null}],
-        actionScript: '', manualScript: false, continueOnError: false
+      const tag = this.configureOperation(createNode('OPERATION', 390, 110), 'task.addTag',
+        {taskId: '=task.id', tag: this.tags[0]?.name || 'Контроль SLA'})
+      const delay = createNode('DELAY', 800, 110, {amount: 15, unit: 'MINUTES'})
+      const condition = createNode('CONDITION', 1160, 180, {
+        rule: {left: '=task.completed', operator: '=', right: false}, expression: 'task.completed = false'
       })
-      this.syncActionScript(action)
-      const delay = createNode('DELAY', 760, 110, {amount: 15, unit: 'MINUTES'})
-      const condition = createNode('CONDITION', 1080, 180, {
-        groups: [{
-          id: nextFlowId('group'),
-          conditions: [{id: nextFlowId('condition-item'), field: 'task.completed', operator: 'equals', value: false}]
-        }],
-        expression: '', manualExpression: false
-      })
-      this.syncConditionExpression(condition)
-      const escalate = createNode('ACTION', 1460, 70, {
-        actions: [{
-          id: nextFlowId('action-item'),
-          type: 'ASSIGN_LEAST_LOADED',
-          value: this.supportLines[0]?.id || null
-        }],
-        actionScript: '', manualScript: false, continueOnError: false
-      })
-      this.syncActionScript(escalate)
-      const end = createNode('END', 1810, 230, {result: 'Контроль SLA завершён'})
-      return {
-        version: 1,
-        entryNodeId: event.id,
-        nodes: [event, action, delay, condition, escalate, end],
-        edges: [
-          createEdge(event.id, action.id, 'next'),
-          createEdge(action.id, delay.id, 'next'),
-          createEdge(delay.id, condition.id, 'next'),
-          createEdge(condition.id, escalate.id, 'true'),
-          createEdge(condition.id, end.id, 'false'),
-          createEdge(escalate.id, end.id, 'next')
-        ]
-      }
+      condition.label = 'Заявка ещё открыта?'
+      const assign = this.configureOperation(createNode('OPERATION', 1570, 70), 'task.assignLeastLoaded',
+        {taskId: '=task.id', lineId: this.supportLines[0]?.id || null})
+      const end = createNode('END', 2000, 230, {result: 'Контроль SLA завершён'})
+      return {version: 3, entryNodeId: event.id, nodes: [event, tag, delay, condition, assign, end], edges: [
+        createEdge(event.id, tag.id, 'next'), createEdge(tag.id, delay.id, 'success'), createEdge(tag.id, end.id, 'error'),
+        createEdge(delay.id, condition.id, 'next'), createEdge(condition.id, assign.id, 'true'), createEdge(condition.id, end.id, 'false'),
+        createEdge(assign.id, end.id, 'success'), createEdge(assign.id, end.id, 'error')
+      ]}
     },
 
     reopenTemplate() {
       const flow = createDefaultWorkflow('TASK_REOPENED')
       const condition = flow.nodes.find(node => node.type === 'CONDITION')
       condition.label = 'Есть исполнитель?'
-      condition.config.groups = [{
-        id: nextFlowId('group'),
-        conditions: [{
-          id: nextFlowId('condition-item'),
-          field: 'task.executor.id',
-          operator: 'not_equals',
-          value: '__NULL__'
-        }]
-      }]
-      this.syncConditionExpression(condition)
-      const action = flow.nodes.find(node => node.type === 'ACTION')
-      action.config.actions = [
-        {id: nextFlowId('action-item'), type: 'CLEAR_ASSIGNEE', value: null},
-        {id: nextFlowId('action-item'), type: 'ASSIGN_LEAST_LOADED', value: this.supportLines[0]?.id || null}
-      ]
-      this.syncActionScript(action)
+      condition.config.rule = {left: '=task.executor.id', operator: 'notNull'}
+      condition.config.expression = 'task.executor.id.notNull()'
+      const clear = this.configureOperation(flow.nodes.find(node => node.type === 'OPERATION'), 'task.update',
+        {taskId: '=task.id', fields: {clearAssignee: true}}, 'Снять прежнего исполнителя')
+      const assign = this.configureOperation(createNode('OPERATION', 1220, 90), 'task.assignLeastLoaded',
+        {taskId: '=task.id', lineId: this.supportLines[0]?.id || null})
+      const end = flow.nodes.find(node => node.type === 'END')
+      end.x = 1640
+      flow.nodes.push(assign)
+      flow.edges.find(edge => edge.source === clear.id && edge.sourceHandle === 'success').target = assign.id
+      flow.edges.push(createEdge(assign.id, end.id, 'success'), createEdge(assign.id, end.id, 'error'))
       return flow
     },
 
@@ -2092,11 +2338,13 @@ export default {
 
     commit(recordHistory = true) {
       this.localFlow = normalizeWorkflow(this.localFlow)
+      this.localFlow.nodes.forEach(this.expandCanvasForNode)
       if (recordHistory) this.pushHistory()
       this.$emit('update:modelValue', deepClone(this.localFlow))
     },
 
     resetHistory() {
+      this.localFlow.nodes.forEach(this.expandCanvasForNode)
       this.history = [JSON.stringify(this.localFlow)]
       this.historyIndex = 0
     },
@@ -2114,6 +2362,7 @@ export default {
       if (!this.canUndo) return
       this.historyIndex -= 1
       this.localFlow = JSON.parse(this.history[this.historyIndex])
+      this.localFlow.nodes.forEach(this.expandCanvasForNode)
       this.$emit('update:modelValue', deepClone(this.localFlow))
     },
 
@@ -2121,10 +2370,17 @@ export default {
       if (!this.canRedo) return
       this.historyIndex += 1
       this.localFlow = JSON.parse(this.history[this.historyIndex])
+      this.localFlow.nodes.forEach(this.expandCanvasForNode)
       this.$emit('update:modelValue', deepClone(this.localFlow))
     },
 
     onEditorKeydown(event) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+        event.preventDefault()
+        this.openGraphSearch()
+        return
+      }
+      if (event.target.closest('.flow-graph-search')) return
       if (event.key === 'Escape') {
         this.pendingConnection = null
         return
@@ -2177,8 +2433,48 @@ export default {
 .flow-main {
   display: grid;
   grid-template-columns: 245px minmax(500px, 1fr) 360px;
+  grid-template-rows: minmax(0, 1fr);
   height: calc(100vh - 250px);
   min-height: 620px;
+}
+
+.flow-main--no-palette {
+  grid-template-columns: minmax(500px, 1fr) 360px;
+}
+
+.flow-main--no-inspector {
+  grid-template-columns: 245px minmax(500px, 1fr);
+}
+
+.flow-main--no-palette.flow-main--no-inspector {
+  grid-template-columns: minmax(500px, 1fr);
+}
+
+.flow-inspector-slot {
+  display: contents;
+}
+
+.flow-inspector-slot--popped {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 18, 25, 0.45);
+  /* Matches Quasar's own dialog/menu z-index tier so popups opened from inside
+     (q-select menus, tooltips) stack above this by DOM order, not a higher value. */
+  z-index: 6000;
+  /* The host q-dialog wrapper has pointer-events:none (it delegates to its own
+     backdrop/card); re-enable it here since we're now teleported inside that wrapper. */
+  pointer-events: auto;
+}
+
+.flow-inspector--popped {
+  width: min(640px, 92vw);
+  max-height: 86vh;
+  border-left: none;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
 
 .flow-palette,
@@ -2253,7 +2549,7 @@ export default {
 .flow-palette-btn {
   margin-bottom: 7px;
   min-height: 40px;
-  padding: 0 10px;
+  padding: 8px 10px;
   font-size: 13px;
 }
 
@@ -2265,7 +2561,6 @@ export default {
   width: 100%;
   flex-wrap: nowrap;
   justify-content: flex-start;
-  white-space: nowrap;
 }
 
 .flow-palette-btn :deep(.q-icon) {
@@ -2273,8 +2568,12 @@ export default {
 }
 
 .flow-palette-btn :deep(.block) {
+  flex: 1 1 auto;
   min-width: 0;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+  line-height: 1.4;
 }
 
 .flow-help-step {
@@ -2298,15 +2597,80 @@ export default {
   font-weight: 700;
 }
 
+.flow-section-navigation { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px; border-bottom: 1px solid #dfe2e8; background: #fff; max-height: 110px; overflow: auto; }
+
+.flow-section-btn {
+  cursor: grab;
+}
+
+.flow-section-drag-handle {
+  margin-right: 4px;
+  opacity: 0.45;
+}
+
+.flow-section-ghost {
+  opacity: 0.4;
+}
+
+.flow-node--operation { border-top-color: #1976d2; }
+.flow-node--parameters { border-top-color: #455a64; }
+.flow-node--for_each, .flow-node--loop_end, .flow-node--loop_break { border-top-color: #00897b; }
+
 .flow-workspace {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: #eef0f5;
 }
 
+.flow-graph-search {
+  padding: 8px 10px;
+  border-bottom: 1px solid #dfe2e8;
+  background: #fff;
+}
+
+.flow-graph-search-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.flow-graph-search-criterion {
+  width: 185px;
+}
+
+.flow-graph-search-query {
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+
+.flow-graph-search-count {
+  color: #676d78;
+  font-size: 12px;
+}
+
+.flow-graph-search-results {
+  max-height: 145px;
+  overflow: auto;
+  margin-top: 6px;
+}
+
+.flow-graph-search-detail {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.flow-node--search-match {
+  outline: 3px solid #f4b740;
+  outline-offset: 3px;
+}
+
 .flow-viewport {
   flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;
   overflow: auto;
   position: relative;
   background-color: #f7f8fb;
@@ -2324,6 +2688,7 @@ export default {
 
 .flow-surface {
   position: relative;
+  overflow: hidden;
 }
 
 .flow-zoom-layer {
@@ -2367,6 +2732,11 @@ export default {
   filter: drop-shadow(0 0 3px rgba(82, 52, 255, .45));
 }
 
+.flow-edge-line--search-match {
+  stroke: #c58a12;
+  stroke-width: 4;
+}
+
 .flow-edge-label {
   fill: #616776;
   font-size: 11px;
@@ -2380,10 +2750,12 @@ export default {
 }
 
 .flow-node {
+  --flow-node-border-top: 4px;
+  box-sizing: border-box;
   position: absolute;
   z-index: 2;
   border: 1px solid #cfd3dc;
-  border-top: 4px solid #8c94a3;
+  border-top: var(--flow-node-border-top) solid #8c94a3;
   border-radius: 9px;
   background: #ffffff;
   box-shadow: 0 5px 16px rgba(32, 37, 48, .09);
@@ -2531,6 +2903,7 @@ export default {
 }
 
 .flow-port {
+  box-sizing: border-box;
   position: absolute;
   width: 14px;
   height: 14px;
@@ -2544,11 +2917,13 @@ export default {
 }
 
 .flow-port--input {
-  left: -7px;
+  left: -1px;
+  transform: translate(-50%, -50%);
 }
 
 .flow-port--output {
-  right: -7px;
+  right: -1px;
+  transform: translate(50%, -50%);
 }
 
 .flow-port--true {
@@ -2657,6 +3032,7 @@ export default {
 @media (max-width: 900px) {
   .flow-main {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     height: auto;
   }
 

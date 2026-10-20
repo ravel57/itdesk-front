@@ -38,179 +38,165 @@
       </div>
     </div>
     <table @click="this.$emit('onTaskClicked', this.task)">
-      <tr v-if="task.description.length !== 0" data-tour="tasks-task-description">
-        <th class="small-text text-grey row-label" v-text="'Описание: '"/>
-        <th
-          :class="descriptionClass"
-          v-text="task.description"
-        />
-      </tr>
-      <tr data-tour="tasks-task-type">
-        <th class="small-text text-grey row-label" :class="fieldHighlightClass('type')" v-text="'Тип: '"/>
-        <th
-          :class="typeClass"
-          v-text="getTaskTypeName(task)"
-        />
-      </tr>
-      <tr v-if="task.service" data-tour="tasks-task-service">
-        <th class="small-text text-grey row-label" :class="fieldHighlightClass('service')" v-text="'Сервис: '"/>
-        <th :class="serviceClass" v-text="getServiceLabel(task.service)"/>
-      </tr>
-      <tr
-        v-if="getChecklistTotalCount(task) > 0"
-        data-tour="tasks-task-checklist"
-      >
-        <th class="small-text text-grey row-label" v-text="'Чек-лист: '"/>
-        <th :class="checklistClass">
-          <div class="task-card-checklist-progress-row">
-      <span>
-        {{ getChecklistCompletedCount(task) }} / {{ getChecklistTotalCount(task) }}
-      </span>
-            <q-linear-progress
-              rounded
-              :value="getChecklistProgress(task)"
-              color="primary"
-              track-color="grey-3"
-              class="task-card-checklist-progress"
-              size="8px"
-              :animation-speed="0"
-            />
-          </div>
-        </th>
-      </tr>
-      <tr v-if="task.tags.map(tag => tag.name).length !== 0" data-tour="tasks-task-tags">
-        <th class="small-text text-grey row-label" :class="fieldHighlightClass('tag')" v-text="'Теги: '"/>
-        <th
-          :class="tagsClass"
-          v-text="task.tags.map(tag => tag.name).join(', ')"
-        />
-      </tr>
-      <tr v-if="task.supportLine" data-tour="tasks-task-support-line">
-        <th class="small-text text-grey row-label" :class="fieldHighlightClass('supportLine', 'supportLineLevel')" v-text="'Линия: '"/>
-        <th :class="supportLineClass" v-text="task.supportLine.name"/>
-      </tr>
-      <tr data-tour="tasks-task-priority">
-        <th
-          class="small-text text-grey row-label"
-          :class="fieldHighlightClass('priority')"
-          v-text="'Приоритет: '"
-        />
-        <th
-          :class="priorityClass"
-          v-text="task.priority.name"
-        />
-      </tr>
-      <tr v-if="task.executor" data-tour="tasks-task-executor">
-        <th class="small-text text-grey row-label" :class="fieldHighlightClass('executor')" v-text="'Исполнитель: '"/>
-        <th
-          :class="executorClass"
-          v-text="getName(task.executor)"
-        />
-      </tr>
-      <tr data-tour="tasks-task-created">
-        <th
-          class="small-text text-grey row-label"
-          :class="fieldHighlightClass('createdAt', 'creating')"
-          v-text="'Создана: '"
-        />
-        <th
-          :class="createdAtClass"
-          v-text="this.getStamp(task.createdAt)"
-        />
-      </tr>
-      <!--      <tr v-if="!task.completed">-->
-      <!--        <th-->
-      <!--          class="small-text text-grey"-->
-      <!--          :style="this.selectedSorting.slug === 'status' ? 'color: black;font-weight: 600;': 'color:gray'"-->
-      <!--          v-text="'Статус: '"-->
-      <!--        />-->
-      <!--        <th-->
-      <!--          class="text-body2"-->
-      <!--          :style="this.selectedSorting.slug === 'status' ? 'font-weight: 600;': ''"-->
-      <!--          v-text="task.status.name"/>-->
-      <!--      </tr>-->
-<!--      <tr v-if="task.firstResponseDeadline && !task.firstResponseAt && !task.completed" data-tour="tasks-task-first-response">
-        <th class="small-text text-grey row-label" v-text="'Первый ответ до:'" />
-        <th
-          :class="isFirstResponseOverdue(task) ? 'text-negative text-weight-bold' : 'text-body2'"
-          v-text="getStamp(task.firstResponseDeadline)"
-        />
-      </tr>-->
-      <tr v-if="task.deadline" data-tour="tasks-task-deadline">
-        <th
-          class="small-text text-grey row-label"
-          :class="fieldHighlightClass('deadline')"
-          v-text="'Дедлайн: '"
-        />
-        <th
-          :class="deadlineClass"
-          :style="deadlineStyle"
-          v-text="this.getStamp(task.deadline)"
-        />
-      </tr>
-      <tr v-if="isCloseReasonVisible(task)" data-tour="tasks-task-close-reason">
-        <th class="small-text text-grey row-label" v-text="'Причина закрытия: '"/>
-        <th
-          :class="closeReasonClass"
-          :title="getCloseReason(task)"
-          v-text="getShortCloseReason(task)"
-        />
-      </tr>
-      <tr v-if="isSlaVisible(task)" data-tour="tasks-task-sla">
-        <th
-          class="small-text text-grey"
-          :class="fieldHighlightClass('sla')"
-          style="color:#9e9e9e"
-          v-text="'SLA осталось:'"
-        />
-        <th class="text-body2"
+      <template v-for="field in this.visibleCardFields" :key="field.key">
+        <tr v-if="field.key === 'description' && task.description.length !== 0" data-tour="tasks-task-description">
+          <th class="small-text text-grey row-label" v-text="'Описание: '"/>
+          <th
+            :class="descriptionClass"
+            v-text="task.description"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'type'" data-tour="tasks-task-type">
+          <th class="small-text text-grey row-label" :class="fieldHighlightClass('type')" v-text="'Тип: '"/>
+          <th
+            :class="typeClass"
+            v-text="getTaskTypeName(task)"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'service' && task.service" data-tour="tasks-task-service">
+          <th class="small-text text-grey row-label" :class="fieldHighlightClass('service')" v-text="'Сервис: '"/>
+          <th :class="serviceClass" v-text="getServiceLabel(task.service)"/>
+        </tr>
+        <tr
+          v-else-if="field.key === 'checklist' && getChecklistTotalCount(task) > 0"
+          data-tour="tasks-task-checklist"
+        >
+          <th class="small-text text-grey row-label" v-text="'Чек-лист: '"/>
+          <th :class="checklistClass">
+            <div class="task-card-checklist-progress-row">
+              <span>
+                {{ getChecklistCompletedCount(task) }} / {{ getChecklistTotalCount(task) }}
+              </span>
+              <q-linear-progress
+                rounded
+                :value="getChecklistProgress(task)"
+                color="primary"
+                track-color="grey-3"
+                class="task-card-checklist-progress"
+                size="8px"
+                :animation-speed="0"
+              />
+            </div>
+          </th>
+        </tr>
+        <tr v-else-if="field.key === 'tags' && task.tags.map(tag => tag.name).length !== 0" data-tour="tasks-task-tags">
+          <th class="small-text text-grey row-label" :class="fieldHighlightClass('tag')" v-text="'Теги: '"/>
+          <th
+            :class="tagsClass"
+            v-text="task.tags.map(tag => tag.name).join(', ')"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'supportLine' && task.supportLine" data-tour="tasks-task-support-line">
+          <th class="small-text text-grey row-label" :class="fieldHighlightClass('supportLine', 'supportLineLevel')" v-text="'Линия: '"/>
+          <th :class="supportLineClass" v-text="task.supportLine.name"/>
+        </tr>
+        <tr v-else-if="field.key === 'priority'" data-tour="tasks-task-priority">
+          <th
+            class="small-text text-grey row-label"
+            :class="fieldHighlightClass('priority')"
+            v-text="'Приоритет: '"
+          />
+          <th
+            :class="priorityClass"
+            v-text="task.priority.name"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'executor' && task.executor" data-tour="tasks-task-executor">
+          <th class="small-text text-grey row-label" :class="fieldHighlightClass('executor')" v-text="'Исполнитель: '"/>
+          <th
+            :class="executorClass"
+            v-text="getName(task.executor)"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'createdAt'" data-tour="tasks-task-created">
+          <th
+            class="small-text text-grey row-label"
+            :class="fieldHighlightClass('createdAt', 'creating')"
+            v-text="'Создана: '"
+          />
+          <th
+            :class="createdAtClass"
+            v-text="this.getStamp(task.createdAt)"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'deadline' && task.deadline" data-tour="tasks-task-deadline">
+          <th
+            class="small-text text-grey row-label"
+            :class="fieldHighlightClass('deadline')"
+            v-text="'Дедлайн: '"
+          />
+          <th
+            :class="deadlineClass"
+            :style="deadlineStyle"
+            v-text="this.getStamp(task.deadline)"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'closeReason' && isCloseReasonVisible(task)" data-tour="tasks-task-close-reason">
+          <th class="small-text text-grey row-label" v-text="'Причина закрытия: '"/>
+          <th
+            :class="closeReasonClass"
+            :title="getCloseReason(task)"
+            v-text="getShortCloseReason(task)"
+          />
+        </tr>
+        <tr v-else-if="field.key === 'sla' && isSlaVisible(task)" data-tour="tasks-task-sla">
+          <th
+            class="small-text text-grey"
             :class="fieldHighlightClass('sla')"
-            style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
-          {{ this.getSlaTime(task) }}
-          <div
-            class="sla-pill"
-            :class="{ 'sla-pill--expired': isSlaExpired(task) }"
+            style="color:#9e9e9e"
           >
-            <q-linear-progress
-              stripe
-              rounded
-              :value="this.getSlaPercent(task)"
-              reverse
-              :color="isSlaExpired(task) ? 'negative' : getSlaColor(task)"
-              :track-color="isSlaExpired(task) ? 'negative-2' : 'grey-3'"
-              class="sla-bar"
-              size="12px"
-              :animation-speed="0"
-            />
-          </div>
-          <div v-if="this.$route.path.includes('chat')">
-            <q-btn
-              v-if="slaInfo && !slaInfo.paused"
-              dense
-              flat
-              color="grey"
-              :loading="slaActionLoading"
-              :disable="slaActionLoading"
-              @click.stop="pauseSla()"
-              icon="pause_circle"
-            />
-            <q-btn
-              v-if="slaInfo && slaInfo.paused"
-              dense
-              flat
-              color="grey"
-              :loading="slaActionLoading"
-              :disable="slaActionLoading"
-              @click.stop="resumeSla()"
-              icon="play_circle"
-            />
-          </div>
-        </th>
-      </tr>
-      <tr data-tour="tasks-task-last-activity">
-        <th class="small-text text-grey row-label" :class="fieldHighlightClass('lastActivity')" v-text="'Последнее действие: '"/>
-        <th :class="lastActivityClass" v-text="getLastTaskHistoryTime(task)"/>
-      </tr>
+            SLA осталось:
+            <q-tooltip>Регламентное время на решение заявки по договору с клиентом. После истечения заявка считается просроченной.</q-tooltip>
+          </th>
+          <th class="text-body2"
+              :class="fieldHighlightClass('sla')"
+              style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
+            {{ this.getSlaTime(task) }}
+            <div
+              class="sla-pill"
+              :class="{ 'sla-pill--expired': isSlaExpired(task) }"
+            >
+              <q-linear-progress
+                stripe
+                rounded
+                :value="this.getSlaPercent(task)"
+                reverse
+                :color="isSlaExpired(task) ? 'negative' : getSlaColor(task)"
+                :track-color="isSlaExpired(task) ? 'negative-2' : 'grey-3'"
+                class="sla-bar"
+                size="12px"
+                :animation-speed="0"
+              />
+            </div>
+            <div v-if="this.$route.path.includes('chat')">
+              <q-btn
+                v-if="slaInfo && !slaInfo.paused"
+                dense
+                flat
+                color="grey"
+                :loading="slaActionLoading"
+                :disable="slaActionLoading"
+                @click.stop="pauseSla()"
+                icon="pause_circle"
+              />
+              <q-btn
+                v-if="slaInfo && slaInfo.paused"
+                dense
+                flat
+                color="grey"
+                :loading="slaActionLoading"
+                :disable="slaActionLoading"
+                @click.stop="resumeSla()"
+                icon="play_circle"
+              />
+            </div>
+          </th>
+        </tr>
+        <tr v-else-if="field.key === 'lastActivity'" data-tour="tasks-task-last-activity">
+          <th class="small-text text-grey row-label" :class="fieldHighlightClass('lastActivity')" v-text="'Последнее действие: '"/>
+          <th :class="lastActivityClass" v-text="getLastTaskHistoryTime(task)"/>
+        </tr>
+      </template>
     </table>
     <slot name="taskControl"></slot>
   </div>
@@ -221,6 +207,8 @@ import moment from 'moment/moment'
 import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import axios from 'axios'
+import { taskCardConfig } from 'src/util/taskCardConfig'
+import { useSlaInfo } from 'src/composables/useSlaInfo'
 
 export default {
   name: 'TaskCard',
@@ -498,7 +486,7 @@ export default {
       return Boolean(task?.completed) && this.getCloseReason(task).length > 0
     },
 
-    async loadSlaInfo () {
+    async loadSlaInfo (force = false) {
       if (this.task?.__onboardingDemo) {
         this.applySlaInfo(this.task.__onboardingSlaInfo || {
           deadline: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
@@ -514,21 +502,21 @@ export default {
         return
       }
       try {
-        const response = await axios.get(`/api/v1/task/${this.task.id}/sla/info`)
-        this.applySlaInfo(response.data)
+        const info = await this.slaScope.load(this.task.id, { force })
+        this.applySlaInfo(info)
       } catch (e) {
         this.slaInfo = null
         this.slaIsPause = false
       }
     },
 
-    scheduleReloadSlaInfo () {
+    scheduleReloadSlaInfo (force = false) {
       if (this.slaReloadTimer) {
         clearTimeout(this.slaReloadTimer)
       }
       this.slaReloadTimer = setTimeout(() => {
         this.nowTs = Date.now()
-        this.loadSlaInfo()
+        this.loadSlaInfo(force)
       }, 150)
     },
 
@@ -607,6 +595,7 @@ export default {
           { params: reason ? { reason } : {} }
         )
         this.applySlaInfo(data)
+        this.slaScope.set(this.task.id, data)
         this.nowTs = Date.now()
       } finally {
         this.slaActionLoading = false
@@ -619,6 +608,7 @@ export default {
       try {
         const { data } = await axios.post(`/api/v1/task/${this.task.id}/sla/resume`)
         this.applySlaInfo(data)
+        this.slaScope.set(this.task.id, data)
         this.nowTs = Date.now()
       } catch (e) {
         this.$q.notify({
@@ -688,6 +678,10 @@ export default {
   },
 
   computed: {
+    visibleCardFields () {
+      return taskCardConfig.value.filter(field => field.enabled)
+    },
+
     taskStatusClass () {
       if (this.task.completed) {
         return 'status-completed'
@@ -813,6 +807,9 @@ export default {
   },
 
   beforeUnmount () {
+    if (this.slaTimer) {
+      clearInterval(this.slaTimer)
+    }
     if (this.slaReloadTimer) {
       clearTimeout(this.slaReloadTimer)
     }
@@ -825,14 +822,15 @@ export default {
 
     'task.priority.id' (newVal, oldVal) {
       if (newVal !== oldVal) {
-        this.scheduleReloadSlaInfo()
+        this.scheduleReloadSlaInfo(true)
       }
     }
   },
 
   setup () {
     const store = useStore()
-    return { store }
+    const slaScope = useSlaInfo()
+    return { store, slaScope }
   }
 
 }

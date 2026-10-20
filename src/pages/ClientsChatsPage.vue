@@ -77,9 +77,23 @@
                 >
                   <div
                     class="client-avatar"
-                    :style="'background-color: ' + this.nameToPastelHex(`${client.lastname} ${client.firstname}`)"
+                    :style="'background-color: ' + this.nameToPastelHex(this.getClientName(client))"
                   >
                     {{ this.getAbbreviation(client) }}
+                    <div
+                      v-if="hasCriticalTasks(client) || isHavePing(client)"
+                      class="client-attention-badge"
+                    >
+                      <q-icon name="priority_high" color="white" size="18px"/>
+                      <q-tooltip
+                        anchor="center left"
+                        self="center right"
+                        :offset="[10, 10]"
+                      >
+                        <div v-if="hasCriticalTasks(client)">Критическая заявка</div>
+                        <div v-if="isHavePing(client)">Есть упоминание (@)</div>
+                      </q-tooltip>
+                    </div>
                   </div>
                 </q-item-section>
                 <q-item-section class="client-info-section">
@@ -87,47 +101,17 @@
                     class="client-name-row"
                     :data-tour="isFirstClient(client) ? 'client-name' : null"
                   >
-                    <img
-                      v-if="client.messageFrom === 'TELEGRAM'"
-                      src="/telegram.png"
-                      alt="tg"
-                      class="client-channel-icon"
-                    >
-                    <img
-                      v-else-if="client.messageFrom === 'WHATSAPP'"
-                      src="/whatsapp.png"
-                      alt="wa"
-                      class="client-channel-icon"
-                    >
-                    <img
-                      v-else-if="client.messageFrom === 'EMAIL'"
-                      src="/email.png"
-                      alt="email"
-                      class="client-channel-icon"
-                    >
                     <span class="client-name-text">
-                      {{ client.lastname }} {{ client.firstname }}
+                      {{ this.getClientName(client) }}
                     </span>
-                    <div
-                      v-if="getOpenTasksCount(client) > 0"
-                      class="client-open-tasks-counter"
-                      :data-tour="isFirstClient(client) ? 'client-tasks-count' : null"
+                    <span
+                      v-if="this.getOrganization(client)"
+                      class="client-organization-inline"
+                      :title="this.getOrganization(client)"
+                      :data-tour="isFirstClient(client) ? 'client-organization' : null"
                     >
-                      <q-icon
-                        name="description"
-                        class="client-open-tasks-counter__icon"
-                      />
-                      <span class="client-open-tasks-counter__value">
-                        {{ getOpenTasksCount(client) }}
-                      </span>
-                      <q-tooltip
-                        anchor="top middle"
-                        self="bottom middle"
-                        :offset="[10, 10]"
-                      >
-                        Открытые заявки
-                      </q-tooltip>
-                    </div>
+                      | {{ this.getOrganization(client) }}
+                    </span>
                     <div class="row items-center no-wrap">
                       <div
                         v-if="isSlaVisible(client)"
@@ -168,54 +152,26 @@
                     />
                   </q-item-label>
                   <q-item-label
-                    caption
-                    class="organization-name-ellipsis"
-                    :title="this.getOrganization(client)"
-                    :data-tour="isFirstClient(client) ? 'client-organization' : null"
-                  >
-                    {{ this.getOrganization(client) }}
-                  </q-item-label>
-                  <q-item-label
                     class="shorten-text"
                     caption
                     :data-tour="isFirstClient(client) ? 'client-last-message' : null"
                     :class="!this.isObserver && client.lastMessage?.deleted ? 'strikethrough' : ''"
                   >
-                    {{ this.getTimeLastMessage(client) }}
-                    <q-icon
-                      v-if="this.getLastMessageIcon(client)"
-                      :name="this.getLastMessageIcon(client)"
-                      size="16px"
-                      class="q-mr-xs"
-                    />
-                    {{ this.getLastMessage(client) }}
+                    {{ this.getTimeLastMessage(client) }}: {{ this.getLastMessage(client) }}
                   </q-item-label>
                 </q-item-section>
                 <div
-                  v-if="client.unreadMessagesCount || hasAnswerRequiredUnansweredMessages(client) || hasCriticalTasks(client) || isHavePing(client)"
+                  v-if="client.unreadMessagesCount || hasAnswerRequiredUnansweredMessages(client)"
                   class="client-row-alerts"
                   :data-tour="isFirstClient(client) ? 'client-alerts' : null"
                 >
                   <q-separator vertical class="client-row-alerts__separator"/>
 
                   <div class="client-row-alerts__content">
-                    <q-icon
-                      v-if="hasCriticalTasks(client)"
-                      name="priority_high"
-                      class="text-red client-critical-icon"
-                    >
-                      <q-tooltip
-                        anchor="center left"
-                        self="center right"
-                        :offset="[10, 10]"
-                      >
-                        Критическая заявка
-                      </q-tooltip>
-                    </q-icon>
-
                     <span
                       v-if="hasAnswerRequiredUnansweredMessages(client)"
                       class="unanswered-timer"
+                      :title="getAnswerRequiredTimerTitle()"
                     >
                       {{ getAnswerRequiredTimerText(client) }}
                     </span>
@@ -223,12 +179,6 @@
                     <circle-counter
                       v-if="client.unreadMessagesCount"
                       :counter="client.unreadMessagesCount"
-                    />
-
-                    <circle-counter
-                      v-if="isHavePing(client)"
-                      :image="'/at.svg'"
-                      class="client-ping-counter"
                     />
                   </div>
                 </div>
@@ -314,9 +264,12 @@ import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import moment from 'moment'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
-import axios from 'axios'
 import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
 import NotificationBell from 'components/notifications/NotificationBell.vue'
+import { getClientDisplayName, getClientAvatarAbbreviation } from 'src/util/clientName'
+import { wantsOnboarding, getOnboardingStatus, setOnboardingStatus } from 'src/util/onboarding'
+import { useSlaInfo } from 'src/composables/useSlaInfo'
+import { getAnswerWaitingMs, getWorkdayMinutes } from 'src/util/answerWaiting'
 
 export default {
   name: 'DialogsPage',
@@ -359,6 +312,7 @@ export default {
     ],
     nowTs: Date.now(),
     slaTimer: null,
+    answerWaitingSettingsTimer: null,
     // taskId -> SlaInfoDto
     slaInfoByTaskId: {},
     // taskId -> boolean (чтобы не спамить запросами)
@@ -543,20 +497,8 @@ export default {
       {
         selector: '[data-tour="client-name"]',
         placement: 'right',
-        title: 'Канал и имя клиента',
-        text: 'Иконка показывает источник обращения, рядом отображается имя клиента.'
-      },
-      {
-        selector: '[data-tour="client-organization"]',
-        placement: 'right',
-        title: 'Организация клиента',
-        text: 'Под именем отображается организация, к которой привязан клиент. Это помогает быстро понять контекст обращения и договорные условия.'
-      },
-      {
-        selector: '[data-tour="client-tasks-count"]',
-        placement: 'right',
-        title: 'Активные заявки',
-        text: 'Число рядом с иконкой заявки показывает, сколько открытых задач связано с этим клиентом.'
+        title: 'Имя и организация',
+        text: 'Имя клиента и, через «|», организация, к которой он привязан. Красный значок «!» на аватаре — критичная заявка или упоминание, наведите для подробностей.'
       },
       {
         selector: '[data-tour="client-sla"]',
@@ -567,8 +509,8 @@ export default {
       {
         selector: '[data-tour="client-alerts"]',
         placement: 'left',
-        title: 'Индикаторы внимания',
-        text: 'Здесь отображаются критичность, время ожидания ответа, непрочитанные сообщения и пинги.'
+        title: 'Время ответа и непрочитанные',
+        text: 'Здесь видно сколько времени клиент ждёт ответа, и сколько сообщений ещё не прочитано.'
       },
       {
         selector: '[data-tour="client-last-message"]',
@@ -654,7 +596,7 @@ export default {
     },
 
     startOnboarding (force = false) {
-      if (!force && localStorage.getItem(this.onboardingStorageKey) === 'skipped') {
+      if (!force && (getOnboardingStatus(this.onboardingStorageKey) === 'skipped' || !wantsOnboarding())) {
         return
       }
       this.isOnboardingVisible = true
@@ -663,7 +605,7 @@ export default {
     },
 
     skipOnboarding () {
-      localStorage.setItem(this.onboardingStorageKey, 'skipped')
+      setOnboardingStatus(this.onboardingStorageKey, 'skipped')
       this.isOnboardingVisible = false
       this.onboardingHighlightStyle = null
     },
@@ -830,13 +772,6 @@ export default {
         return (client.tasks || []).filter(task => !task.completed)
       }
       return []
-    },
-
-    getOpenTasksCount (client) {
-      if (this.isOnboardingDemoClient(client)) {
-        return this.getActualTasks(client).length
-      }
-      return Number(client?.openTasksCount || 0)
     },
 
     getClientSlaPreviewTask (client) {
@@ -1087,24 +1022,33 @@ export default {
       }
     },
 
+    loadAnswerWaitingSettings () {
+      this.store.fetchAnswerWaitingSettings().catch(() => {})
+    },
+
     hasAnswerRequiredUnansweredMessages (client) {
       return !!this.getLastAnswerRequiredUnansweredMessageDate(client)
     },
 
     getAnswerRequiredTimerText (client) {
-      const date = this.getLastAnswerRequiredUnansweredMessageDate(client)
-      if (!date) {
+      const waitMs = this.getAnswerRequiredWait(client)
+      if (waitMs === null) {
         return ''
       }
-      const startMs = new Date(date).getTime()
-      if (!Number.isFinite(startMs)) {
-        return ''
-      }
-      const diffMs = Math.max(0, this.nowTs - startMs)
-      const totalMinutes = Math.floor(diffMs / 60000)
-      const days = Math.floor(totalMinutes / 1440)
+      const totalMinutes = Math.floor(waitMs / 60000)
       const hours = Math.floor((totalMinutes % 1440) / 60)
       const minutes = totalMinutes % 60
+      if (this.store.answerWaitingSettings.workingTimeUsed) {
+        // Рабочее время: «день» — это рабочий день компании, а не 24 часа
+        const workdayMinutes = getWorkdayMinutes(this.store.answerWaitingSettings)
+        const workingDays = Math.floor(totalMinutes / workdayMinutes)
+        const restMinutes = totalMinutes % workdayMinutes
+        if (workingDays > 0) {
+          return `${workingDays}д ${Math.floor(restMinutes / 60)}ч`
+        }
+        return restMinutes >= 60 ? `${Math.floor(restMinutes / 60)}ч ${restMinutes % 60}м` : `${restMinutes}м`
+      }
+      const days = Math.floor(totalMinutes / 1440)
       if (days > 0) {
         return `${days}д ${hours}ч`
       }
@@ -1112,6 +1056,12 @@ export default {
         return `${hours}ч ${minutes}м`
       }
       return `${minutes}м`
+    },
+
+    getAnswerRequiredTimerTitle () {
+      return this.store.answerWaitingSettings.workingTimeUsed
+        ? 'Ожидает ответа (считается только рабочее время, день — рабочий день)'
+        : 'Ожидает ответа'
     },
 
     getClientMessages (client) {
@@ -1213,16 +1163,22 @@ export default {
       return lastMarkedMessage.date
     },
 
-    getAnswerRequiredWaitMs (client) {
+    // Миллисекунды ожидания ответа (календарные или рабочие — по настройке); null, если ответа не ждут
+    getAnswerRequiredWait (client) {
       const date = this.getLastAnswerRequiredUnansweredMessageDate(client)
       if (!date) {
-        return 0
+        return null
       }
       const startMs = new Date(date).getTime()
       if (!Number.isFinite(startMs)) {
-        return 0
+        return null
       }
-      return Math.max(0, this.nowTs - startMs)
+      return getAnswerWaitingMs(startMs, this.nowTs, this.store.answerWaitingSettings)
+    },
+
+    getAnswerRequiredStartMs (client) {
+      const startMs = new Date(this.getLastAnswerRequiredUnansweredMessageDate(client)).getTime()
+      return Number.isFinite(startMs) ? startMs : 0
     },
 
     getLastMessageDateMs (client) {
@@ -1241,15 +1197,22 @@ export default {
     },
 
     sortByAnswerWait (a, b) {
-      const waitA = this.getAnswerRequiredWaitMs(a)
-      const waitB = this.getAnswerRequiredWaitMs(b)
-      const hasRequiredA = waitA > 0
-      const hasRequiredB = waitB > 0
+      const waitA = this.getAnswerRequiredWait(a)
+      const waitB = this.getAnswerRequiredWait(b)
+      const hasRequiredA = waitA !== null
+      const hasRequiredB = waitB !== null
       if (hasRequiredA !== hasRequiredB) {
         return hasRequiredB ? 1 : -1
       }
-      if (waitA !== waitB) {
+      if (hasRequiredA && waitA !== waitB) {
         return waitB - waitA
+      }
+      if (hasRequiredA) {
+        // Одинаковое ожидание (например, 0 вне рабочего времени): раньше написавший — выше
+        const startDiff = this.getAnswerRequiredStartMs(a) - this.getAnswerRequiredStartMs(b)
+        if (startDiff !== 0) {
+          return startDiff
+        }
       }
       return this.sortByLastMessage(a, b)
     },
@@ -1370,9 +1333,11 @@ export default {
     },
 
     getAbbreviation (client) {
-      const lastname = client.lastname ? client.lastname[0].toUpperCase() : ''
-      const firstname = client.firstname ? client.firstname[0].toUpperCase() : ''
-      return `${lastname}${firstname}`
+      return getClientAvatarAbbreviation(client)
+    },
+
+    getClientName (client) {
+      return getClientDisplayName(client)
     },
 
     isHavePing (client) {
@@ -1399,8 +1364,7 @@ export default {
 
       this.slaInfoLoading[taskId] = true
       try {
-        const { data } = await axios.get(`/api/v1/task/${taskId}/sla/info`)
-        this.slaInfoByTaskId[taskId] = data
+        this.slaInfoByTaskId[taskId] = await this.slaScope.load(taskId)
       } catch (e) {
         // игнор
       } finally {
@@ -1536,14 +1500,6 @@ export default {
       return messages[0] || null
     },
 
-    getLastMessageIcon (client) {
-      const message = this.getLastMessageObject(client)
-      if (!message || message.isSent === undefined || message.isSent === null) {
-        return ''
-      }
-      return message.isSent === true ? 'output' : 'input'
-    },
-
     isSlaVisible (client) {
       const task = this.getClientSlaPreviewTask(client)
       if (!task || task.completed) {
@@ -1554,7 +1510,8 @@ export default {
         return false
       }
       const leftMs = this.getSlaLeftMsApprox(task)
-      return leftMs !== null
+      // Показываем, только когда прошла половина времени SLA (или он уже просрочен)
+      return leftMs !== null && leftMs / totalMs <= 0.5
     },
   },
 
@@ -1588,7 +1545,9 @@ export default {
           const lastname = client.lastname || ''
           const organization = client.organization?.name || ''
           const sourceChannel = client.sourceChannel || ''
-          return `${firstname} ${lastname} ${organization} ${sourceChannel}`
+          const phoneNumber = client.phoneNumber || ''
+          const email = client.email || ''
+          return `${firstname} ${lastname} ${organization} ${sourceChannel} ${phoneNumber} ${email}`
             .toLowerCase()
             .includes(query)
         })
@@ -1649,6 +1608,9 @@ export default {
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)
+    // Настройка «Учитывать рабочее время в «Ожидает ответа»» подхватывается без перезагрузки страницы
+    this.loadAnswerWaitingSettings()
+    this.answerWaitingSettingsTimer = setInterval(this.loadAnswerWaitingSettings, 60000)
 
     window.addEventListener('resize', this.updateOnboardingPosition)
     window.addEventListener('scroll', this.updateOnboardingPosition, true)
@@ -1657,14 +1619,17 @@ export default {
 
   beforeUnmount () {
     clearInterval(this.slaTimer)
+    clearInterval(this.answerWaitingSettingsTimer)
     window.removeEventListener('resize', this.updateOnboardingPosition)
     window.removeEventListener('scroll', this.updateOnboardingPosition, true)
   },
 
   setup () {
     const store = useStore()
+    const slaScope = useSlaInfo()
     return {
-      store
+      store,
+      slaScope
     }
   }
 }
@@ -1745,10 +1710,6 @@ export default {
   max-width: 400px;
 }
 
-.client-critical-icon {
-  font-size: 20px;
-}
-
 .unanswered-timer {
   font-size: 12px;
   line-height: 1;
@@ -1757,8 +1718,19 @@ export default {
   font-weight: 600;
 }
 
-.client-ping-counter {
-  margin-right: 0;
+.client-attention-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: var(--q-negative);
+  border: 2px solid #fff;
+  cursor: default;
 }
 
 .onboarding-overlay {
@@ -1809,38 +1781,6 @@ export default {
   opacity: 0.6;
 }
 
-.client-open-tasks-counter {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-width: 34px;
-  height: 20px;
-  padding: 0 7px;
-  margin-left: 8px;
-  color: #fff;
-  background: var(--q-primary);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .16);
-}
-
-.client-open-tasks-counter__icon {
-  color: inherit;
-  font-size: 14px;
-  width: 14px;
-  height: 14px;
-  line-height: 14px;
-}
-
-.client-open-tasks-counter__value {
-  color: inherit;
-  font-size: 12px;
-  line-height: 1;
-}
-
 .client-row-link {
   text-decoration: none;
   display: flex;
@@ -1851,11 +1791,13 @@ export default {
 }
 
 .client-avatar-section {
+  padding-top: 6px;
   padding-right: 8px;
   flex: 0 0 auto;
 }
 
 .client-avatar {
+  position: relative;
   width: 50px;
   height: 50px;
   border-radius: 100%;
@@ -1881,10 +1823,14 @@ export default {
   white-space: nowrap;
 }
 
-.client-channel-icon {
-  width: 16px;
-  flex: 0 0 auto;
-  filter: invert(29%) sepia(65%) saturate(7267%) hue-rotate(249deg) brightness(95%) contrast(106%);
+.client-organization-inline {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  color: #9aa0ab;
+  font-weight: 400;
 }
 
 .client-row-main {
@@ -1949,35 +1895,10 @@ export default {
     line-height: 1.15;
   }
 
-  .client-channel-icon {
-    width: 15px;
-    margin-right: 0;
-  }
-
   .client-name-text {
     flex: 1 1 auto;
     max-width: 100%;
     font-size: 14px;
-  }
-
-  .client-open-tasks-counter {
-    height: 18px;
-    min-width: 30px;
-    padding: 0 6px;
-    margin-left: 0;
-    gap: 3px;
-    font-size: 11px;
-  }
-
-  .client-open-tasks-counter__icon {
-    font-size: 13px;
-    width: 13px;
-    height: 13px;
-    line-height: 13px;
-  }
-
-  .client-open-tasks-counter__value {
-    font-size: 11px;
   }
 
   .sla-pill {

@@ -85,6 +85,7 @@
                 >
                   <div class="link-container">
                     <q-icon class="link" color="white" name="open_in_new"/>
+                    <q-tooltip>Открыть чат с клиентом по этой заявке</q-tooltip>
                   </div>
                 </div>
               </a>

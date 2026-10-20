@@ -7,30 +7,35 @@
         </div>
 
         <q-list class="settings-menu-list settings-mobile-list">
-          <q-item
-            v-for="item in visibleMenuItems"
-            :key="item.link"
-            clickable
-            v-ripple
-            :active="isCurrentMenuItem(item)"
-            active-class="settings-menu-item--active"
-            class="settings-menu-item"
-            @click="openMobileSection(item)"
-          >
-            <q-item-section avatar class="settings-menu-icon-section">
-              <div class="settings-menu-icon-box">
-                <q-icon :name="item.icon" size="20px"/>
-              </div>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label class="settings-menu-item-title">
-                {{ item.title }}
-              </q-item-label>
-            </q-item-section>
-            <q-item-section side class="settings-menu-chevron-section">
-              <q-icon name="chevron_right" class="settings-menu-chevron"/>
-            </q-item-section>
-          </q-item>
+          <template v-for="group in groupedVisibleMenuItems" :key="group.key">
+            <q-item-label header class="settings-menu-group-label">
+              {{ group.label }}
+            </q-item-label>
+            <q-item
+              v-for="item in group.items"
+              :key="item.link"
+              clickable
+              v-ripple
+              :active="isCurrentMenuItem(item)"
+              active-class="settings-menu-item--active"
+              class="settings-menu-item"
+              @click="openMobileSection(item)"
+            >
+              <q-item-section avatar class="settings-menu-icon-section">
+                <div class="settings-menu-icon-box">
+                  <q-icon :name="item.icon" size="20px"/>
+                </div>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="settings-menu-item-title">
+                  {{ item.title }}
+                </q-item-label>
+              </q-item-section>
+              <q-item-section side class="settings-menu-chevron-section">
+                <q-icon name="chevron_right" class="settings-menu-chevron"/>
+              </q-item-section>
+            </q-item>
+          </template>
         </q-list>
       </div>
 
@@ -63,31 +68,36 @@
 
         <div class="settings-desktop-menu-scroll">
           <q-list class="settings-menu-list settings-desktop-list">
-            <q-item
-              v-for="item in visibleMenuItems"
-              :key="item.link"
-              clickable
-              v-ripple
-              tag="router-link"
-              :to="item.link"
-              :active="isCurrentMenuItem(item)"
-              active-class="settings-menu-item--active"
-              class="settings-menu-item"
-            >
-              <q-item-section avatar class="settings-menu-icon-section">
-                <div class="settings-menu-icon-box">
-                  <q-icon :name="item.icon" size="20px"/>
-                </div>
-              </q-item-section>
-              <q-item-section>
-                <q-item-label class="settings-menu-item-title">
-                  {{ item.title }}
-                </q-item-label>
-              </q-item-section>
-              <q-item-section side class="settings-menu-chevron-section">
-                <q-icon name="chevron_right" class="settings-menu-chevron"/>
-              </q-item-section>
-            </q-item>
+            <template v-for="group in groupedVisibleMenuItems" :key="group.key">
+              <q-item-label header class="settings-menu-group-label">
+                {{ group.label }}
+              </q-item-label>
+              <q-item
+                v-for="item in group.items"
+                :key="item.link"
+                clickable
+                v-ripple
+                tag="router-link"
+                :to="item.link"
+                :active="isCurrentMenuItem(item)"
+                active-class="settings-menu-item--active"
+                class="settings-menu-item"
+              >
+                <q-item-section avatar class="settings-menu-icon-section">
+                  <div class="settings-menu-icon-box">
+                    <q-icon :name="item.icon" size="20px"/>
+                  </div>
+                </q-item-section>
+                <q-item-section>
+                  <q-item-label class="settings-menu-item-title">
+                    {{ item.title }}
+                  </q-item-label>
+                </q-item-section>
+                <q-item-section side class="settings-menu-chevron-section">
+                  <q-icon name="chevron_right" class="settings-menu-chevron"/>
+                </q-item-section>
+              </q-item>
+            </template>
           </q-list>
         </div>
       </div>
@@ -108,69 +118,95 @@ export default {
 
   data: () => ({
     mobileMenuOpen: false,
+    groupOrder: ['profile', 'workflow', 'access', 'channels', 'automation', 'system'],
+    groupLabels: {
+      profile: 'Мой профиль',
+      workflow: 'Рабочий процесс',
+      access: 'Пользователи и доступ',
+      channels: 'Каналы и интеграции',
+      automation: 'Автоматизация',
+      system: 'Система'
+    },
     menuItems: [
       {
         title: 'Профиль',
         link: '/settings/profile',
         slug: 'profile',
         icon: 'person',
-        permission: null
+        permission: null,
+        group: 'profile'
+      },
+      {
+        title: 'Карточка заявки',
+        link: '/settings/task-card',
+        slug: 'task-card',
+        icon: 'view_agenda',
+        permission: null,
+        group: 'profile'
       },
       {
         title: 'Общее',
         link: '/settings/general',
         slug: 'general',
         icon: 'tune',
-        permission: 'SETTINGS_MANAGE'
+        permission: 'SETTINGS_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Пользователи',
         link: '/settings/users',
         slug: 'users',
         icon: 'group',
-        permission: 'USER_MANAGE'
+        permission: 'USER_MANAGE',
+        group: 'access'
       },
       {
         title: 'Клиенты',
         link: '/settings/clients',
         slug: 'clients',
         icon: 'contacts',
-        permission: 'USER_MANAGE'
+        permission: 'USER_MANAGE',
+        group: 'access'
       },
       {
         title: 'Организации',
         link: '/settings/organizations',
         slug: 'organizations',
         icon: 'business',
-        permission: 'ORGANIZATION_MANAGE'
+        permission: 'ORGANIZATION_MANAGE',
+        group: 'access'
       },
       {
         title: 'Теги',
         link: '/settings/tags',
         slug: 'tags',
         icon: 'label',
-        permission: 'REFERENCE_MANAGE'
+        permission: 'REFERENCE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Приоритеты',
         link: '/settings/priorities',
         slug: 'priorities',
         icon: 'flag',
-        permission: 'REFERENCE_MANAGE'
+        permission: 'REFERENCE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Статусы',
         link: '/settings/statuses',
         slug: 'statuses',
         icon: 'check_circle',
-        permission: 'REFERENCE_MANAGE'
+        permission: 'REFERENCE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Шаблоны',
         link: '/settings/templates',
         slug: 'templates',
         icon: 'description',
-        permission: 'REFERENCE_MANAGE'
+        permission: 'REFERENCE_MANAGE',
+        group: 'workflow'
       },
       // { title: 'Макросы',
       // link: '/settings/macros', s
@@ -181,63 +217,72 @@ export default {
         link: '/settings/sla',
         slug: 'sla',
         icon: 'timer',
-        permission: 'SLA_MANAGE'
+        permission: 'SLA_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Типы заявок и чек-листы',
         link: '/settings/task-types',
         slug: 'playlist_add_check',
         icon: 'playlist_add_check',
-        permission: 'REFERENCE_MANAGE'
+        permission: 'REFERENCE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Линии поддержки',
         link: '/settings/support-lines',
         slug: 'account_tree',
         icon: 'account_tree',
-        permission: 'REFERENCE_MANAGE'
+        permission: 'REFERENCE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Причины выездов',
         link: '/settings/visit-reasons',
         slug: 'visit-reasons',
         icon: 'directions_car',
-        permission: 'REFERENCE_MANAGE'
+        permission: 'REFERENCE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Сервисы и мониторинг',
         link: '/settings/services',
         slug: 'dns',
         icon: 'dns',
-        permission: 'SERVICE_MANAGE'
+        permission: 'SERVICE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Шаблоны обновлений инцидентов',
         link: '/settings/incident-templates',
         slug: 'incident-templates',
         icon: 'campaign',
-        permission: 'INCIDENT_TEMPLATE_MANAGE'
+        permission: 'INCIDENT_TEMPLATE_MANAGE',
+        group: 'workflow'
       },
       {
         title: 'Telegram',
         link: '/settings/telegram',
         slug: 'telegram',
         icon: 'send',
-        permission: 'CHANNEL_MANAGE'
+        permission: 'CHANNEL_MANAGE',
+        group: 'channels'
       },
       {
         title: 'WhatsApp',
         link: '/settings/whatsapp',
         slug: 'whatsapp',
         icon: 'chat',
-        permission: 'CHANNEL_MANAGE'
+        permission: 'CHANNEL_MANAGE',
+        group: 'channels'
       },
       {
         title: 'Электронная почта',
         link: '/settings/email',
         slug: 'email',
         icon: 'email',
-        permission: 'CHANNEL_MANAGE'
+        permission: 'CHANNEL_MANAGE',
+        group: 'channels'
       },
       // {
       //   title: 'ИИ-агент',
@@ -251,49 +296,56 @@ export default {
         link: '/settings/jev',
         slug: 'jev',
         icon: 'psychology',
-        roles: ['ADMIN']
+        roles: ['ADMIN'],
+        group: 'channels'
       },
       {
         title: 'Автоматизации',
         link: '/settings/automatization',
         slug: 'automatization',
         icon: 'autorenew',
-        permission: 'AUTOMATION_MANAGE'
+        permission: 'AUTOMATION_MANAGE',
+        group: 'automation'
       },
       {
         title: 'Плагины',
         link: '/settings/plugins',
         slug: 'plugins',
         icon: 'extension',
-        permission: 'PLUGIN_MANAGE'
+        permission: 'PLUGIN_MANAGE',
+        group: 'channels'
       },
       {
         title: 'JWT API',
         link: '/settings/jwt',
         slug: 'jwt',
         icon: 'key',
-        permission: 'JWT_MANAGE'
+        permission: 'JWT_MANAGE',
+        group: 'channels'
       },
       {
         title: 'Журнал безопасности',
         link: '/settings/security-audit',
         slug: 'security-audit',
         icon: 'policy',
-        permission: 'SECURITY_AUDIT_VIEW'
+        permission: 'SECURITY_AUDIT_VIEW',
+        group: 'access'
       },
       {
         title: 'Лицензия',
         link: '/settings/license',
         slug: 'license',
         icon: 'vpn_key',
-        permission: 'SETTINGS_MANAGE'
+        permission: 'SETTINGS_MANAGE',
+        group: 'system'
       },
       {
         title: 'Экспорт',
         link: '/settings/export',
         slug: 'export',
         icon: 'file_download',
-        permission: 'TASK_EXPORT'
+        permission: 'TASK_EXPORT',
+        group: 'system'
       }
     ]
   }),
@@ -305,6 +357,20 @@ export default {
 
     visibleMenuItems() {
       return this.menuItems.filter(item => this.canShowMenuItem(item))
+    },
+
+    groupedVisibleMenuItems() {
+      const itemsByGroup = {}
+      this.visibleMenuItems.forEach(item => {
+        const key = item.group || 'system'
+        if (!itemsByGroup[key]) {
+          itemsByGroup[key] = []
+        }
+        itemsByGroup[key].push(item)
+      })
+      return this.groupOrder
+        .filter(key => itemsByGroup[key]?.length)
+        .map(key => ({key, label: this.groupLabels[key], items: itemsByGroup[key]}))
     },
 
     currentMenuItem() {
@@ -504,6 +570,20 @@ export default {
   font-size: 15px;
   font-weight: 500;
   line-height: 1.3;
+}
+
+.settings-menu-group-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #a3a9b3;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 14px 12px 6px;
+  min-height: auto;
+}
+
+.settings-menu-group-label:first-child {
+  padding-top: 4px;
 }
 
 .settings-menu-chevron-section {

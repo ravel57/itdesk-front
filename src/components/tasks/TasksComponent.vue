@@ -38,6 +38,7 @@
         <tr>
           <q-th
             v-if="!this.isObserverUser"
+            class="text-left"
             :style="{
               position: 'sticky',
               top: '0',
@@ -216,6 +217,19 @@ import CardTasksView from 'components/tasks/CardTasksView.vue'
 import TaskDialog from 'components/chat/TaskDialog.vue'
 import moment from 'moment/moment'
 import { useStore } from 'stores/store'
+import { wantsOnboarding, getOnboardingStatus, setOnboardingStatus } from 'src/util/onboarding'
+
+// Место значения в справочнике из настроек (порядок, заданный перетаскиванием); неизвестные — в конец
+function dictionaryRank (list, value) {
+  const entity = value && typeof value === 'object' ? value : {name: value}
+  const index = (Array.isArray(list) ? list : []).findIndex(item => {
+    if (entity.id !== undefined && entity.id !== null) {
+      return item.id === entity.id
+    }
+    return item.name === entity.name
+  })
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index
+}
 
 export default {
 
@@ -321,24 +335,24 @@ export default {
     },
     tasksOnboardingSteps: [
       {
-        target: 'tasks-page-search',
-        title: 'Поиск по заявкам',
-        text: 'Поиск помогает быстро найти заявку по данным, которые уже видны в списке, не меняя текущую группировку.'
-      },
-      {
         target: 'tasks-page-filter',
-        title: 'Фильтры',
-        text: 'Фильтры сужают очередь по статусу, приоритету, исполнителю, организации, срокам и другим условиям.'
+        title: 'Фильтр',
+        text: 'Открывает панель с условиями фильтрации заявок по статусу, приоритету, исполнителю и другим признакам.'
       },
       {
         target: 'tasks-page-view-mode',
-        title: 'Карточки или таблица',
-        text: 'Переключатель меняет представление заявок: карточки удобны для визуальной очереди, таблица — для плотного просмотра большого списка.'
+        title: 'Режим отображения',
+        text: 'Переключает список заявок между видом карточек и таблицей.'
       },
       {
         target: 'tasks-page-completed',
         title: 'Закрытые заявки',
-        text: 'Этим переключателем можно включить в текущий экран закрытые и замороженные заявки.'
+        text: 'Показывает или скрывает уже закрытые заявки в списке.'
+      },
+      {
+        target: 'tasks-page-tune',
+        title: 'Вид, сортировка и действия',
+        text: 'Открывает меню группировки и сортировки заявок, настройки таблицы, а также массовые действия с выделенными заявками.'
       },
       {
         target: 'tasks-board-column',
@@ -346,105 +360,10 @@ export default {
         text: 'Заявки могут группироваться по статусу, приоритету, исполнителю или другому выбранному признаку. Заголовок колонки показывает текущую группу.'
       },
       {
-        target: 'tasks-group-select',
-        title: 'Выбор всей группы',
-        text: 'Чекбокс в заголовке выбирает все заявки внутри колонки. Это удобно для массового изменения статуса, исполнителя, дедлайна или тегов.'
-      },
-      {
         target: 'tasks-task-card',
         title: 'Карточка заявки',
-        text: 'Карточка собирает основные параметры заявки в одном месте. Дальше обучение отдельно покажет каждое значимое поле.'
+        text: 'Каждое поле подписано и говорит само за себя. Наведите курсор на название поля (например, SLA) или на значок в углу — появится подсказка с деталями, включая переход в чат клиента.'
       },
-      {
-        target: 'tasks-task-select',
-        title: 'Выбор заявки',
-        text: 'Отмечайте отдельные заявки чекбоксом, чтобы применить к ним массовое действие, не открывая каждую заявку вручную.'
-      },
-      {
-        target: 'tasks-task-title',
-        title: 'Название и номер',
-        text: 'Номер помогает быстро сослаться на заявку, а короткое название должно отражать проблему пользователя или суть работы.'
-      },
-      {
-        target: 'tasks-task-status',
-        title: 'Статус заявки',
-        text: 'Статус показывает текущий этап обработки: новая, в работе, заморожена или закрыта. По нему удобно строить очереди.'
-      },
-      {
-        target: 'tasks-task-description',
-        title: 'Описание',
-        text: 'Описание хранит подробный контекст: что произошло, что уже проверили и какой результат ожидается.'
-      },
-      {
-        target: 'tasks-task-type',
-        title: 'Тип заявки',
-        text: 'Тип определяет категорию процесса — например, инцидент или сервисный запрос — и может задавать стандартный чек-лист.'
-      },
-      {
-        target: 'tasks-task-service',
-        title: 'Сервис',
-        text: 'Сервис показывает, к какой услуге или системе относится заявка. Это помогает маршрутизации и отчетности.'
-      },
-      {
-        target: 'tasks-task-checklist',
-        title: 'Чек-лист',
-        text: 'Прогресс чек-листа показывает, сколько обязательных пунктов уже выполнено по заявке.'
-      },
-      {
-        target: 'tasks-task-tags',
-        title: 'Теги',
-        text: 'Теги дают дополнительную классификацию и помогают быстро фильтровать заявки по продукту, теме или признаку обращения.'
-      },
-      {
-        target: 'tasks-task-support-line',
-        title: 'Линия поддержки',
-        text: 'Линия поддержки показывает текущую очередь ответственности, в которой обрабатывается заявка.'
-      },
-      {
-        target: 'tasks-task-priority',
-        title: 'Приоритет',
-        text: 'Приоритет помогает понять срочность. Критичные и высокие заявки стоит обрабатывать раньше обычных.'
-      },
-      {
-        target: 'tasks-task-executor',
-        title: 'Исполнитель',
-        text: 'Здесь указан сотрудник, который сейчас отвечает за решение заявки.'
-      },
-      {
-        target: 'tasks-task-created',
-        title: 'Дата создания',
-        text: 'Дата создания помогает оценить возраст заявки и отличить новые обращения от давно ожидающих.'
-      },
-      {
-        target: 'tasks-task-first-response',
-        title: 'Срок первого ответа',
-        text: 'Поле показывает, до какого времени клиенту нужно дать первый ответ. Просрочка выделяется отдельно.'
-      },
-      {
-        target: 'tasks-task-deadline',
-        title: 'Дедлайн',
-        text: 'Дедлайн показывает крайний срок решения. Просроченные даты подсвечиваются и должны быстро попадать в поле зрения оператора.'
-      },
-      {
-        target: 'tasks-task-sla',
-        title: 'SLA',
-        text: 'SLA показывает, сколько времени осталось по регламенту. Прогресс-бар помогает быстро увидеть риск нарушения срока.'
-      },
-      {
-        target: 'tasks-task-last-activity',
-        title: 'Последнее действие',
-        text: 'Здесь видно время последнего изменения заявки. Поле помогает замечать задачи, которые давно не обновлялись.'
-      },
-      {
-        target: 'tasks-task-close-reason',
-        title: 'Причина закрытия',
-        text: 'У закрытой заявки отображается итоговая причина. Она помогает понять результат работы без открытия полной истории.',
-      },
-      {
-        target: 'tasks-chat-link',
-        title: 'Переход в чат клиента',
-        text: 'Эта кнопка открывает чат клиента, связанного с заявкой. Так оператор быстро переходит от задачи к переписке.'
-      }
     ],
     tableColumns: [
       {
@@ -512,7 +431,11 @@ export default {
         label: 'Приоритет',
         align: 'left',
         field: row => row.priority.name,
-        sortable: true
+        sortable: true,
+        sort: (a, b, rowA, rowB) => {
+          const priorities = useStore().priorities
+          return dictionaryRank(priorities, rowA.priority) - dictionaryRank(priorities, rowB.priority)
+        }
       },
       {
         name: 'createdAt',
@@ -540,7 +463,23 @@ export default {
         field: row => typeof row.status === 'string'
           ? row.status
           : row.status?.name || '',
-        sortable: true
+        sortable: true,
+        sort: (a, b, rowA, rowB) => {
+          const statuses = useStore().statuses
+          return dictionaryRank(statuses, rowA.status) - dictionaryRank(statuses, rowB.status)
+        }
+      },
+      {
+        name: 'supportLine',
+        label: 'Линия поддержки',
+        align: 'left',
+        field: row => row.supportLine || 'Без линии',
+        sortable: true,
+        // В строке таблицы линия — это её название; порядок берём из списка линий в настройках
+        sort: (a, b, rowA, rowB) => {
+          const lines = useStore().supportLines
+          return dictionaryRank(lines, rowA.supportLine) - dictionaryRank(lines, rowB.supportLine)
+        }
       },
       {
         name: 'deadline',
@@ -644,7 +583,7 @@ export default {
 
     finishTasksOnboarding () {
       this.tasksOnboardingActive = false
-      localStorage.setItem(this.tasksOnboardingKey, 'done')
+      setOnboardingStatus(this.tasksOnboardingKey, 'done')
       this.tasksOnboardingTooltipStyle = {}
       this.tasksOnboardingSpotlightStyle = {}
       this.tasksOnboardingVisibleSteps = []
@@ -820,7 +759,7 @@ export default {
     window.addEventListener('resize', this.tasksOnboardingRefreshHandler)
     window.addEventListener('scroll', this.tasksOnboardingRefreshHandler, true)
 
-    if (!this.isObserverUser && !localStorage.getItem(this.tasksOnboardingKey)) {
+    if (!this.isObserverUser && !getOnboardingStatus(this.tasksOnboardingKey) && wantsOnboarding()) {
       this.$nextTick(() => {
         setTimeout(() => this.startTasksOnboarding(), 350)
       })

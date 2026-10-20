@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { api } from 'boot/axios'
 import { useStore } from 'stores/store'
+import { hydrateTaskCardConfig } from 'src/util/taskCardConfig'
+import { hydrateOnboardingProgress } from 'src/util/onboarding'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -26,6 +28,8 @@ export const useAuthStore = defineStore('auth', {
 
         const mainStore = useStore()
         mainStore.currentUser = response.data
+        hydrateTaskCardConfig(response.data.taskCardFieldsConfig)
+        hydrateOnboardingProgress(response.data.onboardingProgress)
 
         await Promise.all([mainStore.loadCurrentSession(), mainStore.loadPermissions()])
 

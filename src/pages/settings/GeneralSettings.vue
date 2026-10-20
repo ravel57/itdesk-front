@@ -90,6 +90,24 @@
             <q-checkbox v-model="form.saturdayEnabled" label="Сб" :disable="!form.workingTimeEnabled"/>
             <q-checkbox v-model="form.sundayEnabled" label="Вс" :disable="!form.workingTimeEnabled"/>
           </div>
+
+          <q-separator class="q-my-md"/>
+
+          <div class="settings-block__header">
+            <div>
+              <div class="text-subtitle2">Учитывать рабочее время в «Ожидает ответа»</div>
+              <div class="text-caption text-grey-7">
+                Время, которое клиент ждёт ответа, считается только в рабочее время: ночью и в выходные таймер не идёт,
+                а сообщение вне рабочего времени ждёт ответа с начала ближайшего рабочего дня. Влияет на таймер и сортировку
+                «По времени ожидания» в списке чатов и на уведомления «Чат без ответа». Работает при включённом рабочем времени.
+              </div>
+            </div>
+            <q-toggle
+              v-model="form.answerWaitingWorkingTimeEnabled"
+              :disable="!form.workingTimeEnabled"
+              label="Учитывать"
+            />
+          </div>
         </q-card-section>
       </q-card>
 
@@ -294,7 +312,8 @@ export default {
         fridayEnabled: true,
         saturdayEnabled: false,
         sundayEnabled: false,
-        supportLineAccessMode: 'HYBRID'
+        supportLineAccessMode: 'HYBRID',
+        answerWaitingWorkingTimeEnabled: false
       }
     },
 

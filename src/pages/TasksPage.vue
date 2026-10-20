@@ -3,22 +3,43 @@
     padding
     style="display: flex; flex-direction: column; height: 100vh; min-height: 0; padding-bottom: 0; overflow: hidden"
   >
-    <q-banner
-      v-if="this.isMyLinesScope"
-      dense
-      rounded
-      class="bg-blue-1 text-primary q-mb-sm"
+    <div
+      v-if="!this.isOneLineHeader"
+      style="display: flex; align-items: center;"
+      class="q-mb-sm"
+      :style="this.isMobile ? 'width: 100%; justify-content: center;' : ''"
     >
-      <template v-slot:avatar>
-        <q-icon name="support_agent" color="primary"/>
-      </template>
-      <div class="text-weight-medium">Заявки моих линий</div>
-      <div class="text-caption text-grey-8">
-        Показаны заявки линий, где вы являетесь ответственным, участником или наблюдателем.
-      </div>
-    </q-banner>
+      <q-btn-toggle
+        :model-value="this.tasksScope"
+        @update:model-value="this.setTasksScope"
+        toggle-color="primary"
+        color="white"
+        text-color="grey-8"
+        unelevated
+        dense
+        no-caps
+        :options="this.tasksScopeOptions"
+        :style="this.isMobile ? 'width: 100%' : ''"
+      />
+    </div>
     <div id="task-control-container" style="display: flex;flex-direction: column;">
       <div :style="this.isMobile ? 'display: flex; flex-direction: column;' : 'display: flex'">
+        <div
+          v-if="this.isOneLineHeader"
+          style="display: flex; align-items: center; flex: 0 0 auto; padding-right: 8px"
+        >
+          <q-btn-toggle
+            :model-value="this.tasksScope"
+            @update:model-value="this.setTasksScope"
+            toggle-color="primary"
+            color="white"
+            text-color="grey-8"
+            unelevated
+            dense
+            no-caps
+            :options="this.tasksScopeOptions"
+          />
+        </div>
         <div style="display: flex; width: 100%;">
           <q-input
             outlined
@@ -35,46 +56,6 @@
           style="display: flex; height: 40px;"
           :style="this.isMobile ? 'margin-top: 8px;flex-wrap: wrap;justify-content: center;height: auto;' : ''"
         >
-          <q-btn-dropdown
-            v-if="!this.isShowTableMode"
-            color="primary"
-            dense
-            :label="this.selectedGroupType.label"
-            style="align-content: center;padding-left: 8px;"
-            :style="this.isMobile ? 'width: 100%' : ''"
-          >
-            <template v-slot:label>
-              <q-tooltip>
-                Группировка
-              </q-tooltip>
-            </template>
-            <q-list>
-              <q-item
-                v-for="grouper in this.getFilterType"
-                :key="grouper.slug"
-                clickable
-                v-close-popup
-                :active="this.selectedGroupType.slug === grouper.slug"
-                active-class="text-primary"
-                @click="this.selectedGroupType = grouper"
-              >
-                <q-item-section>
-                  <q-item-label>{{ grouper.label }}</q-item-label>
-                </q-item-section>
-
-                <q-item-section
-                  v-if="this.selectedGroupType.slug === grouper.slug"
-                  side
-                >
-                  <q-icon
-                    name="check"
-                    color="primary"
-                    size="18px"
-                  />
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-btn-dropdown>
           <div
             style="display: flex; flex-direction: row;flex-wrap: nowrap; margin-left: 8px;"
             :style=" this.isMobile && this.isShowTableMode ? 'justify-content: center; width: 100%;' : ''"
@@ -90,134 +71,156 @@
                 {{ this.isFilterSelected ? "Деактивировать фильтр" : "Активировать фильтр" }}
               </q-tooltip>
             </q-btn>
-            <div class="task-toolbar-action-slot">
-              <template v-if="!this.isShowTableMode">
-                <q-btn
-                  icon="sort"
-                  flat
-                  :color="this.selectedSorting.label ? 'primary' : 'dark'"
-                >
-                  <q-tooltip>
-                    <div v-if="this.selectedSorting.label">
-                      Сортировка: {{ this.selectedSorting.label }}
-                    </div>
-                    <div v-else>
-                      Сортировка
-                    </div>
-                  </q-tooltip>
 
-                  <q-menu
-                    anchor="bottom middle"
-                    self="top middle"
-                    v-model="this.sortMenuOpened"
-                    content-class="menu-content"
-                  >
-                    <q-list>
-                      <q-item
-                        v-for="sorting in this.sortingTypes"
-                        :key="sorting.slug"
-                        clickable
-                        v-close-popup
-                        :active="this.selectedSorting.slug === sorting.slug"
-                        active-class="text-primary"
-                        @click="this.setSortVariable(sorting)"
-                      >
-                        <q-item-section>
-                          {{ sorting.label }}
-                        </q-item-section>
-
-                        <q-item-section
-                          v-if="this.selectedSorting.slug === sorting.slug"
-                          side
-                        >
-                          <q-icon
-                            name="check"
-                            color="primary"
-                            size="18px"
-                          />
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-btn>
-
-                <q-btn
-                  v-if="this.selectedSorting.label"
-                  @click="this.changeSortingAsc"
-                  flat
-                  class="text-primary"
-                  style="width: 20px"
-                  :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
-                >
-                  <q-tooltip>
-                    {{ this.ascendingSort ? 'По возрастанию' : 'По убыванию' }}
-                  </q-tooltip>
-                </q-btn>
-              </template>
-
-              <q-btn
-                v-else
-                icon="settings"
-                flat
-                class="text-grey-7"
-                @click="this.isShowTableSettings = true"
+            <div style="display: flex; flex-direction: row; position: relative">
+              <q-toggle
+                data-tour="tasks-page-view-mode"
+                v-model="this.isShowTableMode"
+                color="grey"
+                left-label
+                checked-icon="list"
+                unchecked-icon="dashboard"
+                size="50px"
+                keep-color
               >
                 <q-tooltip>
-                  Настройки таблицы
+                  Режим отображения: {{ this.isShowTableMode ? "Таблица" : "Карточки" }}
                 </q-tooltip>
-              </q-btn>
-            </div>
+              </q-toggle>
+              <q-toggle
+                data-tour="tasks-page-completed"
+                v-model="this.isShowCompletedTasks"
+                color="primary"
+                left-label
+                icon="add_task"
+                size="50px"
+              >
+                <q-tooltip>
+                  Закрытые заявки: {{ this.isShowCompletedTasks ? "Показаны" : "Скрыты" }}
+                </q-tooltip>
+              </q-toggle>
 
-            <q-toggle
-              data-tour="tasks-page-view-mode"
-              v-model="this.isShowTableMode"
-              color="grey"
-              left-label
-              checked-icon="list"
-              unchecked-icon="dashboard"
-              size="50px"
-              keep-color
-            >
-              <q-tooltip>
-                Режим отображения: {{ this.isShowTableMode ? "Таблица" : "Карточки" }}
-              </q-tooltip>
-            </q-toggle>
-            <q-toggle
-              data-tour="tasks-page-completed"
-              v-model="this.isShowCompletedTasks"
-              color="primary"
-              left-label
-              icon="add_task"
-              size="50px"
-            >
-              <q-tooltip>
-                Закрытые заявки: {{ this.isShowCompletedTasks ? "Показаны" : "Скрыты" }}
-              </q-tooltip>
-            </q-toggle>
-            <q-btn
-              v-if="!this.isObserverUser"
-              icon="undo"
-              flat
-              class="text-grey-7"
-              :disable="!this.canUndoBulkAction || this.isBulkHistoryProcessing"
-              @click="this.undoBulkAction"
-            >
-              <q-tooltip>
-                {{ this.bulkUndoTooltip }}
-              </q-tooltip>
+              <q-btn
+                data-tour="tasks-page-tune"
+                icon="tune"
+                flat
+                class="text-grey-7"
+              >
+                <q-tooltip>
+                  Вид, сортировка и действия
+                </q-tooltip>
+                <q-menu
+                anchor="bottom right"
+                self="top right"
+              >
+                <q-list style="min-width: 240px">
+                  <template v-if="!this.isShowTableMode">
+                    <q-item-label header>Группировка</q-item-label>
+                    <q-item
+                      v-for="grouper in this.getFilterType"
+                      :key="grouper.slug"
+                      clickable
+                      v-close-popup
+                      :active="this.selectedGroupType.slug === grouper.slug"
+                      active-class="text-primary"
+                      @click="this.selectedGroupType = grouper"
+                    >
+                      <q-item-section>
+                        <q-item-label>{{ grouper.label }}</q-item-label>
+                      </q-item-section>
+                      <q-item-section
+                        v-if="this.selectedGroupType.slug === grouper.slug"
+                        side
+                      >
+                        <q-icon
+                          name="check"
+                          color="primary"
+                          size="18px"
+                        />
+                      </q-item-section>
+                    </q-item>
+
+                    <q-separator/>
+                    <q-item-label header>Сортировка</q-item-label>
+                    <q-item
+                      v-for="sorting in this.sortingTypes"
+                      :key="sorting.slug"
+                      clickable
+                      v-close-popup
+                      :active="this.selectedSorting.slug === sorting.slug"
+                      active-class="text-primary"
+                      @click="this.setSortVariable(sorting)"
+                    >
+                      <q-item-section>
+                        {{ sorting.label }}
+                      </q-item-section>
+                      <q-item-section
+                        v-if="this.selectedSorting.slug === sorting.slug"
+                        side
+                      >
+                        <q-icon
+                          name="check"
+                          color="primary"
+                          size="18px"
+                        />
+                      </q-item-section>
+                    </q-item>
+                    <q-item
+                      v-if="this.selectedSorting.label"
+                      clickable
+                      v-close-popup
+                      @click="this.changeSortingAsc"
+                    >
+                      <q-item-section avatar>
+                        <q-icon :name="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"/>
+                      </q-item-section>
+                      <q-item-section>
+                        {{ this.ascendingSort ? 'По возрастанию' : 'По убыванию' }}
+                      </q-item-section>
+                    </q-item>
+                    <q-separator/>
+                  </template>
+                  <q-item
+                    v-else
+                    clickable
+                    v-close-popup
+                    @click="this.isShowTableSettings = true"
+                  >
+                    <q-item-section avatar>
+                      <q-icon name="settings"/>
+                    </q-item-section>
+                    <q-item-section>Настройки таблицы</q-item-section>
+                  </q-item>
+
+                  <template v-if="!this.isObserverUser">
+                    <q-separator/>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      :disable="!this.canUndoBulkAction || this.isBulkHistoryProcessing"
+                      @click="this.undoBulkAction"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="undo"/>
+                      </q-item-section>
+                      <q-item-section>{{ this.bulkUndoTooltip }}</q-item-section>
+                    </q-item>
+                    <q-item
+                      clickable
+                      v-close-popup
+                      :disable="!this.canRedoBulkAction || this.isBulkHistoryProcessing"
+                      @click="this.redoBulkAction"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="redo"/>
+                      </q-item-section>
+                      <q-item-section>{{ this.bulkRedoTooltip }}</q-item-section>
+                    </q-item>
+                  </template>
+                </q-list>
+              </q-menu>
             </q-btn>
-            <q-btn
-              v-if="!this.isObserverUser"
-              icon="redo"
-              flat
-              class="text-grey-7"
-              :disable="!this.canRedoBulkAction || this.isBulkHistoryProcessing"
-              @click="this.redoBulkAction"
-            >
-              <q-tooltip>
-                {{ this.bulkRedoTooltip }}
-              </q-tooltip>
-            </q-btn>
+            </div>
           </div>
           <q-dialog
             v-model="dialogSaveFilterVisible"
@@ -811,44 +814,63 @@
         </q-toolbar>
       </q-card-section>
       <q-card-section class="row items-center">
-        <draggable
-          :list="this.activeColumns"
-          item-key="id"
-          class="list-group"
-          ghost-class="ghost"
+        <q-list
+          bordered
+          class="rounded-borders settings-row-list"
           style="width: 100%"
-          @start="dragging = true"
-          @end="dragging = false"
+          separator
         >
-          <template #item="{ element }">
-            <q-item
-              class="list-group-item"
-              :class="{ 'not-draggable': true }"
-              style="cursor: grab;"
-            >
-              <q-item-section
-                top
-                style="justify-content: center"
+          <draggable
+            :list="this.activeColumns"
+            item-key="id"
+            class="list-group"
+            ghost-class="ghost"
+            handle=".settings-drag-handle"
+            style="width: 100%"
+            @start="dragging = true"
+            @end="dragging = false; this.onTableColumnsEdited()"
+          >
+            <template #item="{ element }">
+              <q-item
+                class="list-group-item"
+                :class="{ 'not-draggable': true }"
               >
-                {{ element.label }}
-              </q-item-section>
-              <q-item-section
-                top
-                side
-              >
-                <div class="">
-                  <input class="radio-select" type="checkbox" :checked="element.active"
-                         @click.stop="element.active = !element.active">
-                  <q-tooltip>
-                    {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
-                  </q-tooltip>
-                </div>
-              </q-item-section>
-            </q-item>
-          </template>
-        </draggable>
+                <q-item-section side class="settings-drag-handle cursor-grab">
+                  <q-icon name="drag_indicator" color="grey-6"/>
+                </q-item-section>
+                <q-item-section>
+                  {{ element.label }}
+                </q-item-section>
+                <q-item-section side>
+                  <q-checkbox
+                    v-model="element.active"
+                    dense
+                    color="primary"
+                    @update:model-value="this.onTableColumnsEdited"
+                  >
+                    <q-tooltip>
+                      {{ element.active ? 'Скрыть колонку' : 'Отобразить колонку' }}
+                    </q-tooltip>
+                  </q-checkbox>
+                </q-item-section>
+              </q-item>
+            </template>
+          </draggable>
+        </q-list>
       </q-card-section>
       <q-card-actions align="right">
+        <q-btn
+          v-if="this.tableColumnsCustomized"
+          flat
+          no-caps
+          color="primary"
+          icon="restart_alt"
+          label="Как в карточках"
+          @click="this.resetTableColumnsToCardConfig"
+        >
+          <q-tooltip>Вернуть столбцы, соответствующие настройкам карточек заявок</q-tooltip>
+        </q-btn>
+        <q-space/>
         <q-btn label="Применить" color="primary" v-close-popup/>
       </q-card-actions>
     </q-card>
@@ -918,6 +940,15 @@ import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
 import moment from 'moment/moment'
 import draggable from 'vuedraggable'
 import {onTaskUpdated} from 'src/util/ws'
+import { useSlaInfo } from 'src/composables/useSlaInfo'
+import { taskCardConfig } from 'src/util/taskCardConfig'
+import {
+  TABLE_CUSTOMIZED_KEY,
+  TABLE_SETTINGS_KEY,
+  defaultTableColumns,
+  resolveTableColumns,
+  tableColumnsFromCardConfig
+} from 'src/util/taskTableColumns'
 
 export default {
 
@@ -948,22 +979,8 @@ export default {
       {label: 'OLA', slug: 'ola'},
       {label: 'По статусу', slug: 'status'}
     ],
-    activeColumns: [
-      {name: 'id', label: 'ID', active: true},
-      {name: 'name', label: 'Название', active: true},
-      {name: 'type', label: 'Тип', active: true},
-      {name: 'service', label: 'Сервис', active: true},
-      {name: 'checklist', label: 'Чек-лист', active: true},
-      {name: 'tags', label: 'Теги', active: true},
-      {name: 'priority', label: 'Приоритет', active: true},
-      {name: 'createdAt', label: 'Создана', active: true},
-      {name: 'status', label: 'Статус', active: true},
-      {name: 'deadline', label: 'Дедлайн', active: true},
-      {name: 'supportLine', label: 'Линия поддержки', active: true},
-      {name: 'executor', label: 'Исполнитель', active: true},
-      {name: 'sla', label: 'SLA', active: true},
-      {name: 'ola', label: 'OLA', active: true},
-    ],
+    activeColumns: defaultTableColumns(),
+    tableColumnsCustomized: false,
     filterChain: [],
     addNewFilterSelectorText: '',
     selectedOptions: [],
@@ -1007,7 +1024,6 @@ export default {
     maxBulkActionHistorySize: 20,
 
     selectedSorting: [],
-    sortMenuOpened: [],
     filteredOptions: {},
     filterJoinOperator: 'AND',
     filterJoinOptions: [
@@ -1038,6 +1054,22 @@ export default {
   }),
 
   methods: {
+    setTasksScope(scope) {
+      const normalizedScope = ['my', 'my-lines'].includes(scope) ? scope : 'all'
+      const query = {...this.$route.query}
+      if (normalizedScope === 'all') {
+        delete query.scope
+      } else {
+        query.scope = normalizedScope
+      }
+      try {
+        localStorage.setItem('tasksScope', normalizedScope)
+      } catch (e) {
+        // localStorage недоступен — выбор действует только до перезагрузки
+      }
+      this.$router.replace({path: '/tasks', query})
+    },
+
     ensureSelectedGroupTypeAvailable() {
       const availableGroupTypes = this.getFilterType || []
       if (availableGroupTypes.some(type => type.slug === this.selectedGroupType?.slug)) {
@@ -1075,6 +1107,17 @@ export default {
       }
       if (this.isMyLinesScope) {
         request.scope = 'MY_SUPPORT_LINES'
+      }
+      if (this.isMyTasksScope) {
+        request.requiredFilterChain = [
+          ...request.requiredFilterChain,
+          {
+            label: 'Исполнитель',
+            slug: 'executor',
+            selectedOptions: [this.currentExecutorLabel],
+            isBeforeDeadline: false
+          }
+        ]
       }
       return request
     },
@@ -2946,10 +2989,10 @@ export default {
         [task.id]: true
       }
       try {
-        const response = await axios.get(`/api/v1/task/${task.id}/sla/info`)
+        const info = await this.slaScope.load(task.id)
         this.slaInfoByTaskId = {
           ...this.slaInfoByTaskId,
-          [task.id]: response.data
+          [task.id]: info
         }
       } catch (e) {
         this.slaInfoByTaskId = {
@@ -3376,36 +3419,25 @@ export default {
       return `${this.getChecklistCompletedCount(task)} / ${total}`
     },
 
-    mergeActiveColumns(savedColumns) {
-      const defaultColumns = [
-        {name: 'id', label: 'ID', active: true},
-        {name: 'name', label: 'Название', active: true},
-        {name: 'type', label: 'Тип', active: true},
-        {name: 'service', label: 'Сервис', active: true},
-        {name: 'checklist', label: 'Чек-лист', active: true},
-        {name: 'tags', label: 'Теги', active: true},
-        {name: 'priority', label: 'Приоритет', active: true},
-        {name: 'createdAt', label: 'Создана', active: true},
-        {name: 'status', label: 'Статус', active: true},
-        {name: 'deadline', label: 'Дедлайн', active: true},
-        {name: 'supportLine', label: 'Линия поддержки', active: true},
-        {name: 'executor', label: 'Исполнитель', active: true},
-        {name: 'sla', label: 'SLA', active: true},
-        {name: 'ola', label: 'OLA', active: true},
-      ]
-
-      if (!Array.isArray(savedColumns)) {
-        return defaultColumns
+    onTableColumnsEdited() {
+      this.tableColumnsCustomized = true
+      try {
+        localStorage.setItem(TABLE_CUSTOMIZED_KEY, 'true')
+        localStorage.setItem(TABLE_SETTINGS_KEY, JSON.stringify(this.activeColumns))
+      } catch {
+        // localStorage недоступен — настройка действует до перезагрузки страницы
       }
+    },
 
-      const savedByName = new Map(savedColumns.map(column => [column.name, column]))
-
-      return defaultColumns.map(defaultColumn => ({
-        ...defaultColumn,
-        active: savedByName.has(defaultColumn.name)
-          ? savedByName.get(defaultColumn.name).active
-          : defaultColumn.active
-      }))
+    resetTableColumnsToCardConfig() {
+      this.tableColumnsCustomized = false
+      try {
+        localStorage.removeItem(TABLE_CUSTOMIZED_KEY)
+        localStorage.removeItem(TABLE_SETTINGS_KEY)
+      } catch {
+        // localStorage недоступен — ничего не сохраняем
+      }
+      this.activeColumns = tableColumnsFromCardConfig(taskCardConfig.value)
     },
 
     isValidFilterJoinOperator(value) {
@@ -3451,7 +3483,7 @@ export default {
         }
 
         case 'client': {
-          return filter.selectedOptions.includes(`${task.client.lastname} ${task.client.firstname}`)
+          return filter.selectedOptions.includes(task.client ? `${task.client.lastname} ${task.client.firstname}` : 'Без клиента')
         }
 
         case 'type': {
@@ -3598,6 +3630,10 @@ export default {
   },
 
   computed: {
+    cardFieldsConfig() {
+      return taskCardConfig.value
+    },
+
     taskPageIsEnd() {
       if (this.isShowTableMode) {
         return Boolean(this.store.taskPage?.isEnd)
@@ -3654,6 +3690,9 @@ export default {
 
     getFilteredTasks() {
       const tasks = Array.isArray(this.store.getTaskPageTasks) ? this.store.getTaskPageTasks : []
+      if (this.isMyTasksScope) {
+        return tasks.filter(task => this.isCurrentUserExecutor(task))
+      }
       if (!this.isMyLinesScope) {
         return tasks
       }
@@ -3721,7 +3760,7 @@ export default {
         }
         case 'client': {
           source = this.clients
-          options = Object.groupBy(tasks, ({client}) => `${client.lastname} ${client.firstname}`)
+          options = Object.groupBy(tasks, ({client}) => client ? `${client.lastname} ${client.firstname}` : 'Без клиента')
           break
         }
       }
@@ -3881,6 +3920,28 @@ export default {
 
     isMyLinesScope() {
       return String(this.$route.query.scope || '').toLowerCase() === 'my-lines'
+    },
+
+    isMyTasksScope() {
+      return String(this.$route.query.scope || '').toLowerCase() === 'my'
+    },
+
+    tasksScopeOptions() {
+      return [
+        {label: 'Мои заявки', value: 'my'},
+        {label: 'Заявки моих линий', value: 'my-lines'},
+        {label: 'Все заявки', value: 'all'}
+      ]
+    },
+
+    // На широком экране переключатель пунктов стоит в одной строке с поиском и кнопками
+    isOneLineHeader() {
+      return !this.isMobile && this.$q.screen.width >= 1280
+    },
+
+    tasksScope() {
+      if (this.isMyTasksScope) return 'my'
+      return this.isMyLinesScope ? 'my-lines' : 'all'
     },
 
     currentUserLineIds() {
@@ -4160,10 +4221,12 @@ export default {
       }
     },
 
-    activeColumns: {
+    cardFieldsConfig: {
       deep: true,
-      handler() {
-        localStorage.setItem('taskTableSettings', JSON.stringify(this.activeColumns))
+      handler(cardConfig) {
+        if (!this.tableColumnsCustomized) {
+          this.activeColumns = tableColumnsFromCardConfig(cardConfig)
+        }
       }
     },
 
@@ -4233,11 +4296,9 @@ export default {
     this.restoreSortingSettings()
     this.isShowCompletedTasks = localStorage.getItem('isShowCompletedTasks') !== 'false'
     this.isShowTableMode = localStorage.getItem('isShowListMode') !== 'false'
-    if (localStorage.getItem('taskTableSettings')) {
-      this.activeColumns = this.mergeActiveColumns(JSON.parse(localStorage.getItem('taskTableSettings')))
-    } else {
-      this.activeColumns = this.mergeActiveColumns(this.activeColumns)
-    }
+    const resolvedTableColumns = resolveTableColumns(localStorage, taskCardConfig.value)
+    this.activeColumns = resolvedTableColumns.columns
+    this.tableColumnsCustomized = resolvedTableColumns.customized
     const savedGroupType = localStorage.getItem('GroupType')
     if (savedGroupType) {
       try {
@@ -4260,7 +4321,8 @@ export default {
   setup() {
     const store = useStore()
     const router = useRoute()
-    return {store, router}
+    const slaScope = useSlaInfo()
+    return {store, router, slaScope}
   },
 
   beforeUnmount() {
@@ -4375,15 +4437,6 @@ export default {
   to {
     bottom: -150px;
   }
-}
-
-.task-toolbar-action-slot {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  width: 72px;
-  min-width: 72px;
-  margin-right: 8px;
 }
 
 .tasks-page-content {

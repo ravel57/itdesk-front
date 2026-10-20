@@ -826,6 +826,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import moment from 'moment'
 import OrganizationVisitDialog from 'components/organization/OrganizationVisitDialog.vue'
+import { useSlaInfo } from 'src/composables/useSlaInfo'
 
 export default {
   name: 'OrganizationsPage',
@@ -1892,10 +1893,10 @@ export default {
       }
 
       try {
-        const response = await axios.get(`/api/v1/task/${taskId}/sla/info`)
+        const info = await this.slaScope.load(taskId)
         this.slaInfoByTaskId = {
           ...this.slaInfoByTaskId,
-          [taskId]: response.data || {}
+          [taskId]: info || {}
         }
 
         const failed = { ...this.slaInfoLoadFailedByTaskId }
@@ -2547,7 +2548,8 @@ export default {
   setup () {
     const store = useStore()
     const route = useRoute()
-    return { store, route }
+    const slaScope = useSlaInfo()
+    return { store, route, slaScope }
   }
 }
 </script>

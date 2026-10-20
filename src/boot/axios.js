@@ -2,6 +2,7 @@ import {boot} from 'quasar/wrappers'
 import axios from 'axios'
 import {appConfig} from 'src/config/appConfig'
 import {isPublicPage} from 'src/router/publicPages'
+import {loginUrl} from 'src/util/loginRedirect'
 
 function normalizeApiBaseUrl(value) {
   if (!value) {
@@ -121,7 +122,12 @@ function handleUnauthorized(error) {
 
     // На публичных страницах (вход, смена пароля по ссылке) 401 — ожидаемый ответ, уводить некуда
     if (!isPublicPage()) {
-      window.location.replace('/login')
+      // Бэкенд может передать причину завершения сеанса (смена пароля, вход с другого
+      // устройства и т.п.) в теле 401-ответа — тогда на логине покажем её вместо общей фразы.
+      const reason = error.response.data?.reason
+      const target = window.location.pathname + window.location.search + window.location.hash
+      const path = error.response.data?.mfaRequired ? '/login/mfa' : '/session-expired'
+      window.location.replace(loginUrl(target, path, reason ? {reason} : {}))
     }
   }
 
