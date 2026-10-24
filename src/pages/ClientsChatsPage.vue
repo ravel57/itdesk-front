@@ -1060,8 +1060,8 @@ export default {
 
     getAnswerRequiredTimerTitle () {
       return this.store.answerWaitingSettings.workingTimeUsed
-        ? 'Ожидает ответа (считается только рабочее время, день — рабочий день)'
-        : 'Ожидает ответа'
+        ? 'Требует ответа (считается только рабочее время, день — рабочий день)'
+        : 'Требует ответа'
     },
 
     getClientMessages (client) {
@@ -1608,7 +1608,7 @@ export default {
     this.slaTimer = setInterval(() => {
       this.nowTs = Date.now()
     }, 1000)
-    // Настройка «Учитывать рабочее время в «Ожидает ответа»» подхватывается без перезагрузки страницы
+    // Настройка «Учитывать рабочее время в «Требует ответа»» подхватывается без перезагрузки страницы
     this.loadAnswerWaitingSettings()
     this.answerWaitingSettingsTimer = setInterval(this.loadAnswerWaitingSettings, 60000)
 

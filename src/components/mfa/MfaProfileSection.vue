@@ -17,7 +17,6 @@
       <q-btn
         v-if="!status.enabled"
         unelevated
-        no-caps
         color="primary"
         label="Включить"
         @click="enrollDialog = true"
@@ -25,7 +24,6 @@
       <q-btn
         v-else-if="!status.required"
         flat
-        no-caps
         color="negative"
         label="Отключить"
         @click="disableDialog = true"

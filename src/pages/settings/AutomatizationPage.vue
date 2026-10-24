@@ -20,7 +20,6 @@
         </q-btn>
         <q-btn
           outline
-          no-caps
           color="primary"
           icon="create_new_folder"
           label="Создать папку"
@@ -28,7 +27,6 @@
         />
         <q-btn
           unelevated
-          no-caps
           color="primary"
           icon="add"
           label="Добавить автоматизацию"
@@ -53,7 +51,6 @@
       <template v-slot:action>
         <q-btn
           flat
-          no-caps
           color="primary"
           label="Подробная инструкция"
           @click="this.showAutomationGuide = true"
@@ -102,35 +99,45 @@
         <q-btn flat round dense icon="close" :disable="this.saving" aria-label="Закрыть редактор" @click="this.dialogClose"/>
       </q-toolbar>
       <q-card-section class="automation-editor-section">
-        <q-input
-          v-model="this.dialogTriggerName"
-          label="Название *"
-          autogrow
-          type="textarea"
-          :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-          ref="dialogTriggerName"
-        />
-        <q-input
-          v-model="this.dialogTriggerDescription"
-          label="Описание"
-          autogrow
-          type="textarea"
-        />
-
-        <div class="automation-rule-options row items-center q-col-gutter-lg">
+        <div class="automation-editor-header row items-center q-col-gutter-sm">
+          <div class="col-12 col-md-4">
+            <q-input
+              v-model="this.dialogTriggerName"
+              label="Название *"
+              dense
+              outlined
+              hide-bottom-space
+              :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
+              ref="dialogTriggerName"
+            />
+          </div>
+          <div class="col-12 col-md">
+            <q-input
+              v-model="this.dialogTriggerDescription"
+              label="Описание"
+              dense
+              outlined
+              hide-bottom-space
+              clearable
+            />
+          </div>
           <div class="col-auto">
             <q-toggle
               v-model="this.dialogTriggerEnabled"
+              dense
               color="primary"
-              label="Сценарий активен"
+              label="Активен"
             />
           </div>
           <div class="col-auto">
             <q-toggle
               v-model="this.dialogStopProcessing"
+              dense
               color="primary"
-              label="Не проверять следующие сценарии после выполнения ветки"
-            />
+              label="Не проверять следующие сценарии"
+            >
+              <q-tooltip>Не проверять следующие сценарии после выполнения ветки</q-tooltip>
+            </q-toggle>
           </div>
         </div>
 
@@ -199,7 +206,6 @@
                 v-if="this.graphConditionGroups.length === 0"
                 flat
                 dense
-                no-caps
                 color="primary"
                 icon="add"
                 label="Добавить"
@@ -286,7 +292,6 @@
                 <q-btn
                   flat
                   dense
-                  no-caps
                   color="primary"
                   icon="add"
                   label="Условие И"
@@ -299,7 +304,6 @@
               v-if="this.graphConditionGroups.length > 0"
               outline
               dense
-              no-caps
               color="primary"
               icon="call_split"
               label="Добавить группу ИЛИ"
@@ -320,7 +324,6 @@
                 <q-btn
                   flat
                   dense
-                  no-caps
                   color="primary"
                   icon="add"
                   label="Добавить действие"
@@ -423,7 +426,6 @@
                 <q-btn
                   flat
                   dense
-                  no-caps
                   color="primary"
                   icon="add"
                   label="Добавить действие"
@@ -510,7 +512,7 @@
                   :key="`${step.nodeId || 'step'}-${index}`"
                   class="automation-test-trace-step"
                 >
-                  <q-btn flat dense no-caps :label="step.label || step.nodeType || step.nodeId" @click="focusTraceStep(step)"/>
+                  <q-btn flat dense :label="step.label || step.nodeType || step.nodeId" @click="focusTraceStep(step)"/>
                   <span> — {{ this.workflowTraceStatusLabel(step.status) }}</span>
                   <span v-if="step.detail">: {{ step.detail }}</span>
                   <automation-trace-details :step="step"/>
@@ -551,28 +553,36 @@
             type="textarea"
           />
         </div>
-      </q-card-section>
-      <q-expansion-item v-if="triggerId && !isNewTrigger" label="Журнал выполнения: решения и данные шагов" icon="history" class="q-mx-md" @show="loadGraphHistory">
+      <q-expansion-item
+        v-if="triggerId && !isNewTrigger && workflowPublishesHints"
+        label="Оценки подсказок оператору"
+        icon="thumbs_up_down"
+        class="automation-editor-extra"
+        @show="hintStatsOpened = true"
+      >
+        <operator-hint-stats v-if="hintStatsOpened" :rule-id="triggerId"/>
+      </q-expansion-item>
+      <q-expansion-item v-if="triggerId && !isNewTrigger" label="Журнал выполнения: решения и данные шагов" icon="history" class="automation-editor-extra" @show="loadGraphHistory">
         <q-expansion-item v-if="graphBackups.length" dense label="Версия графа до переноса логики">
           <div v-for="backup in graphBackups" :key="backup.migration_version" class="q-pa-sm">
             <div class="text-caption">Сохранено {{ formatDateTime(backup.saved_at) }}</div>
-            <q-btn outline dense no-caps label="Открыть прежний граф в редакторе" @click="openGraphBackup(backup)"/>
+            <q-btn outline dense label="Открыть прежний граф в редакторе" @click="openGraphBackup(backup)"/>
           </div>
         </q-expansion-item>
-        <q-btn flat dense no-caps icon="refresh" label="Обновить" :loading="historyLoading" @click="loadGraphHistory"/>
+        <q-btn flat dense icon="refresh" label="Обновить" :loading="historyLoading" @click="loadGraphHistory"/>
         <div v-if="!graphHistory.length" class="text-caption q-pa-sm">Пока нет записей новых графовых операций.</div>
         <div v-for="row in graphHistory" :key="row.execution_id + row.created_at + row.step.nodeId" class="q-pa-sm">
           <div class="text-caption">{{ formatDateTime(row.created_at) }} · {{ row.execution_id }}</div>
-          <q-btn flat dense no-caps :label="row.step.label" @click="focusTraceStep(row.step)"/>
+          <q-btn flat dense :label="row.step.label" @click="focusTraceStep(row.step)"/>
           <span>{{ workflowTraceStatusLabel(row.step.status) }}: {{ row.step.detail }}</span>
           <automation-trace-details :step="row.step"/>
         </div>
       </q-expansion-item>
+      </q-card-section>
       <q-card-actions align="right" class="automation-dialog-actions">
         <q-btn
           v-if="!this.isNewTrigger"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"
@@ -738,6 +748,7 @@
 
 <script>
 import AutomationTraceDetails from 'src/components/automation/AutomationTraceDetails.vue'
+import OperatorHintStats from 'src/components/jev/OperatorHintStats.vue'
 import AutomationTreeLevel from 'src/components/automation/AutomationTreeLevel.vue'
 import axios from 'axios'
 import AutomationFlowEditor from 'components/automation/AutomationFlowEditor.vue'
@@ -755,6 +766,7 @@ export default {
   name: 'AutomatizationPage',
 
   components: {
+    OperatorHintStats,
     AutomationTraceDetails,
     AutomationTreeLevel,
     AutomationFlowEditor,
@@ -791,6 +803,7 @@ export default {
     testResult: null,
     testEventPayload: '',
     graphHistory: [],
+    hintStatsOpened: false,
     graphBackups: [],
     historyLoading: false,
     workflow: createDefaultWorkflow('TASK_CREATED'),
@@ -804,6 +817,18 @@ export default {
   }),
 
   computed: {
+    // В графе есть шаг «Опубликовать подсказку оператору» — показываем оценки подсказок этого правила
+    workflowPublishesHints() {
+      return this.editorMode === 'workflow' &&
+        (this.workflow?.nodes || []).some(node => node?.config?.operation === 'hint.publish')
+    },
+
+    // Правило из ссылки ?ruleId=… (например, из статистики подсказок) открывается, когда список правил загружен
+    routeRuleId() {
+      const id = Number(this.$route?.query?.ruleId)
+      return Number.isFinite(id) && id > 0 && this.store.triggers.some(trigger => trigger.id === id) ? id : null
+    },
+
     hasUnsavedEditorChanges() {
       return this.dialogVisible && this.savedEditorSnapshot !== null && this.editorSnapshot() !== this.savedEditorSnapshot
     },
@@ -929,6 +954,22 @@ export default {
   },
 
   watch: {
+    routeRuleId: {
+      immediate: true,
+      handler(id) {
+        if (!id) {
+          return
+        }
+        const rule = this.store.triggers.find(trigger => trigger.id === id)
+        const query = {...this.$route.query}
+        delete query.ruleId
+        this.$router.replace({path: this.$route.path, query}).catch(() => undefined)
+        if (rule && !this.dialogVisible) {
+          this.editTrigger(rule)
+        }
+      }
+    },
+
     hasUnsavedEditorChanges(dirty) {
       if (dirty) {
         window.addEventListener('beforeunload', this.onEditorBeforeUnload)
@@ -1577,6 +1618,7 @@ export default {
       this.testEventPayload = ''
       this.graphHistory = []
       this.graphBackups = []
+      this.hintStatsOpened = false
       const parsedWorkflow = parseWorkflowDefinition(row.workflowDefinition, row.triggerType)
       if (parsedWorkflow) {
         this.workflow = parsedWorkflow
@@ -1944,6 +1986,18 @@ export default {
   margin-top: 8px;
 }
 
+/* Шапка редактора в одну строку: название, описание и переключатели занимают минимум высоты */
+.automation-editor-header {
+  padding: 4px 0 8px;
+}
+
+/* Журнал и оценки подсказок лежат в прокручиваемой области под графом, а не закреплены внизу окна */
+.automation-editor-extra {
+  margin-top: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
 .automation-mode-toggle {
   margin-top: 20px;
   margin-bottom: 28px;
@@ -2097,7 +2151,7 @@ export default {
 }
 
 .automation-workflow-wrapper {
-  min-height: 560px;
+  min-height: 490px;
   margin-top: 4px;
 }
 
@@ -2132,11 +2186,6 @@ export default {
 
 .automation-preview > div + div {
   margin-top: 6px;
-}
-
-.automation-rule-options {
-  margin-top: 18px;
-  padding: 12px 0 4px;
 }
 
 .automation-test-panel {

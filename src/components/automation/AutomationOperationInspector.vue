@@ -4,7 +4,7 @@
       <q-banner v-if="error" class="bg-red-1 text-negative">{{ error }}</q-banner>
       <div v-if="operation" class="row items-center justify-between q-mb-sm">
         <div class="text-subtitle2"><q-icon :name="operation.icon || 'widgets'" class="q-mr-xs"/>{{ operation.label }}</div>
-        <q-btn flat dense no-caps label="Заменить шаг" @click="choosingOperation = !choosingOperation"/>
+        <q-btn flat dense label="Заменить шаг" @click="choosingOperation = !choosingOperation"/>
       </div>
       <template v-if="!operation || choosingOperation">
       <q-select outlined dense clearable label="Что должен делать шаг"
@@ -39,7 +39,9 @@
       <q-banner v-if="operation" rounded class="bg-grey-2 q-mt-sm"><b>Что вернёт шаг:</b> {{ operation.result }}
       </q-banner>
       <q-toggle v-model="draft.config.background" label="Выполнить в фоне и продолжить с результатом" class="q-mt-sm"
-                @update:model-value="changed"/>
+                :disable="draft.config.operation === 'ai.generate'" @update:model-value="changed">
+        <q-tooltip v-if="draft.config.operation === 'ai.generate'">Генерация текста через ИИ всегда выполняется в фоне</q-tooltip>
+      </q-toggle>
       <q-expansion-item dense label="Повторить шаг при ошибке" header-class="automation-field-header" class="q-mt-sm">
         <q-input v-model.number="draft.config.maxAttempts" type="number" min="1" max="5" outlined dense
                  label="Максимум попыток" @change="changed"/>
@@ -64,10 +66,10 @@
                    :label="draft.config.arguments?.kind === 'noul' ? 'Вероятность ответа ДА' : 'Уверенность выбранного ответа'"
                    :model-value="draft.config.testResult?.probability ?? 0.9" class="q-mt-sm"
                    @update:model-value="setTestProbability(Number($event))" @change="changed"/>
-          <q-btn flat dense no-caps label="Проверить недоступность Jev"
+          <q-btn flat dense label="Проверить недоступность Jev"
                  @click="draft.config.testResult = {available:false,status:'UNAVAILABLE'}; changed()"/>
         </template>
-        <q-btn v-if="draft.config.operation === 'ai.generate'" flat dense no-caps label="Подставить пример текста"
+        <q-btn v-if="draft.config.operation === 'ai.generate'" flat dense label="Подставить пример текста"
                @click="draft.config.testResult = {text:'Пример подготовленной подсказки'}; changed()"/>
         <automation-value-editor :model-value="draft.config.testResult" :variables="variables"
                                  @update:model-value="draft.config.testResult = $event" @change="changed"/>
@@ -87,12 +89,12 @@
           <q-input v-model="parameter.name" outlined dense label="Имя"
                    :prefix="'var.' + (draft.config.resultVariable || 'settings') + '.'" @change="changed" autogrow type="textarea"/>
           <q-input v-model="parameter.help" outlined dense autogrow type="textarea" label="Подсказка" @change="changed"/>
-          <q-btn flat dense no-caps color="negative" label="Удалить настройку"
+          <q-btn flat dense color="negative" label="Удалить настройку"
                  @click="draft.config.parameters.splice(index, 1); changed()"/>
         </q-expansion-item>
         </div>
       </template>
-      <q-btn outline no-caps dense icon="add" label="Добавить настройку" class="q-mt-md" @click="addParameter"/>
+      <q-btn outline dense icon="add" label="Добавить настройку" class="q-mt-md" @click="addParameter"/>
     </template>
     <template v-else-if="draft.type === 'FOR_EACH'">
       <q-banner class="bg-blue-1 text-blue-10">Выход «Обработать элемент» выполняется для каждого элемента списка до
@@ -149,7 +151,8 @@
 function draftNode (node) {
   const draft = JSON.parse(JSON.stringify(node))
   if (draft.type === 'OPERATION') {
-    draft.config.background ??= false
+    // Генерация текста через ИИ всегда в фоне: сервер приводит граф к этому и при сохранении
+    draft.config.background = draft.config.operation === 'ai.generate' ? true : (draft.config.background ?? false)
     draft.config.maxAttempts ??= 1
     draft.config.retryDelaySeconds ??= 2
   }
@@ -158,6 +161,7 @@ function draftNode (node) {
 
 import { operationConfig } from 'src/util/automationNodeCatalog'
 import { inferExpressionType } from 'src/util/automationVariableTypes'
+import { serviceOrganizationsLabel } from 'src/util/serviceOrganizations'
 import AutomationValueEditor from './AutomationValueEditor.vue'
 import AutomationExpressionInput from './AutomationExpressionInput.vue'
 
@@ -353,7 +357,9 @@ export default {
         status: 'statuses'
       })[key] || key
       return (this.entityCatalogs[name] || []).filter(item => item.active !== false && item.enabled !== false).map(item => ({
-        label: item.name || item.type || item.username,
+        label: name === 'services'
+          ? [item.name, serviceOrganizationsLabel(item, this.entityCatalogs.services)].filter(Boolean).join(' — ')
+          : item.name || item.type || item.username,
         value: ['statuses', 'tags'].includes(name) ? item.name : item.id
       }))
     },

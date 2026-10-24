@@ -11,7 +11,6 @@
       <div class="settings-content-actions">
         <q-btn
           unelevated
-          no-caps
           icon="upgrade"
           color="primary"
           label="Экспорт"
@@ -246,6 +245,7 @@
 
 <script>
 import axios from 'axios'
+import {serviceLabelWithOrganizations} from 'src/util/serviceOrganizations'
 
 const DEFAULT_FILTERS = () => ({
   createdFrom: null,
@@ -312,7 +312,7 @@ export default {
     serviceOptions() {
       return this.services
         .filter(item => item.active !== false)
-        .map(item => ({label: [item.code, item.name].filter(Boolean).join(' · '), value: item.id}))
+        .map(item => ({label: serviceLabelWithOrganizations(item, this.services), value: item.id}))
     },
 
     tagOptions() {

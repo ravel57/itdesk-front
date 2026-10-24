@@ -11,7 +11,6 @@
       <div class="settings-content-actions">
         <q-btn
           unelevated
-          no-caps
           color="primary"
           icon="refresh"
           label="Перезагрузить плагины"
@@ -278,7 +277,6 @@
                     v-if="permission.approved"
                     dense
                     outline
-                    no-caps
                     color="negative"
                     label="Отозвать"
                     :loading="isPermissionBusy(permission.permission)"
@@ -289,7 +287,6 @@
                     v-else
                     dense
                     unelevated
-                    no-caps
                     color="positive"
                     label="Одобрить"
                     :loading="isPermissionBusy(permission.permission)"
@@ -384,7 +381,6 @@
                   <div class="plugin-secret-actions">
                     <q-btn
                       unelevated
-                      no-caps
                       color="primary"
                       icon="save"
                       :label="secret.configured ? 'Заменить' : 'Сохранить'"
@@ -395,7 +391,6 @@
                     <q-btn
                       v-if="secret.configured"
                       outline
-                      no-caps
                       color="negative"
                       icon="delete_outline"
                       label="Удалить значение"

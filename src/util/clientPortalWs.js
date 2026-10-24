@@ -6,6 +6,7 @@ import {getStompCsrfHeaders} from 'boot/axios'
 const RECONNECT_DELAY_MS = 3000
 const MESSAGE_DESTINATION = '/user/queue/client-portal-messages'
 const MESSAGE_DELETED_DESTINATION = '/user/queue/client-portal-message-deleted'
+const SETTINGS_DESTINATION = '/user/queue/client-portal-settings'
 
 let stompClient = null
 let reconnectTimer = null
@@ -17,6 +18,7 @@ export function connectClientPortalSocket(options = {}) {
   callbacks = {
     onMessage: options.onMessage,
     onMessageDeleted: options.onMessageDeleted,
+    onNotificationSettings: options.onNotificationSettings,
     onConnected: options.onConnected,
     onDisconnected: options.onDisconnected,
     onError: options.onError
@@ -118,6 +120,10 @@ function handleConnected(client) {
     if (messageId !== null && typeof callbacks.onMessageDeleted === 'function') {
       callbacks.onMessageDeleted(messageId)
     }
+  })
+  client.subscribe(SETTINGS_DESTINATION, frame => {
+    const settings = parseMessage(frame?.body)
+    if (typeof settings?.notificationsEnabled === 'boolean') callbacks.onNotificationSettings?.(settings)
   })
 
   if (typeof callbacks.onConnected === 'function') {

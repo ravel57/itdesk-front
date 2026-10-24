@@ -69,7 +69,6 @@
             v-if="unreadCount > 0"
             flat
             dense
-            no-caps
             color="primary"
             label="Прочитать все"
             :loading="markingAll"
@@ -157,7 +156,6 @@
           <q-card-actions align="center">
             <q-btn
               flat
-              no-caps
               color="primary"
               label="Показать ещё"
               @click="loadMore"
@@ -446,11 +444,15 @@ export default {
 }
 
 .notification-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 17px;
   height: 17px;
   padding: 0 4px;
   font-size: 10px;
-  line-height: 17px;
+  line-height: 1;
+  text-align: center;
 }
 
 .notification-badge--drawer {

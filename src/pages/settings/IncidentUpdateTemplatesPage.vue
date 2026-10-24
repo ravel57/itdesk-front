@@ -11,7 +11,6 @@
       <div class="settings-content-actions">
         <q-btn
           unelevated
-          no-caps
           color="primary"
           icon="add"
           label="Добавить шаблон"
@@ -108,8 +107,8 @@
         <q-separator/>
 
         <q-card-actions align="right">
-          <q-btn flat no-caps color="primary" label="Отмена" v-close-popup/>
-          <q-btn unelevated no-caps color="primary" label="Сохранить" :loading="saving" @click="saveTemplate"/>
+          <q-btn flat color="primary" label="Отмена" v-close-popup/>
+          <q-btn unelevated color="primary" label="Сохранить" :loading="saving" @click="saveTemplate"/>
         </q-card-actions>
       </q-card>
     </q-dialog>

@@ -1,6 +1,13 @@
 <template>
   <q-page class="client-portal-page">
-    <div class="client-portal-chat-shell">
+    <div class="client-portal-chat-shell"
+         @dragenter.prevent="onChatDragEnter" @dragover.prevent
+         @dragleave.prevent="onChatDragLeave" @drop.prevent="onChatFilesDropped">
+      <div v-if="isDraggingFilesOverChat" class="client-portal-drop-overlay">
+        <q-icon name="attach_file" size="36px" color="primary"/>
+        <strong>Отпустите файлы, чтобы прикрепить к сообщению</strong>
+        <span>Можно перетащить файлы в любое место чата</span>
+      </div>
       <div v-if="initialLoading" class="client-portal-state">
         <q-spinner color="primary" size="42px"/>
         <div class="text-grey-7 q-mt-md">Загружаем переписку…</div>
@@ -75,6 +82,7 @@
         </div>
 
         <chat-dialog
+          ref="chatDialogRef"
           :messages="messages"
           :input-field="inputField"
           :templates="[]"
@@ -121,6 +129,7 @@ import axios from 'axios'
 import { getUploadProgress } from 'src/util/messageFileUpload'
 import ChatDialog from 'components/chat/ChatDialog.vue'
 import {useStore} from 'stores/store'
+import { createPortalMessageNotifier } from 'src/util/portalNotifications'
 import {
   connectClientPortalSocket,
   disconnectClientPortalSocket
@@ -129,7 +138,10 @@ import {
 export default {
   name: 'ClientPortalPage',
   components: {ChatDialog},
-  emits: ['profile-loaded'],
+  props: {
+    notificationsEnabled: {type: Boolean, default: false}
+  },
+  emits: ['profile-loaded', 'notification-settings-changed'],
 
   data: () => ({
     profile: null,
@@ -144,6 +156,9 @@ export default {
     uploadProgress: null,
     loadError: '',
     socketConnected: false,
+    chatDragCounter: 0,
+    isDraggingFilesOverChat: false,
+    messageNotifier: null,
     historyLoaded: false,
     activeIncidents: [],
     incidentsLoading: false,
@@ -203,12 +218,18 @@ export default {
   },
 
   async mounted() {
+    this.messageNotifier = createPortalMessageNotifier({
+      enabled: () => this.notificationsEnabled,
+      userId: () => this.profile?.userId,
+      onClick: () => this.$router.push('/portal')
+    })
     document.title = 'ULDESK : Клиентский портал'
     await this.initialize()
     this.incidentsRefreshTimer = window.setInterval(() => this.loadActiveIncidents(false), 30000)
   },
 
   beforeUnmount() {
+    this.messageNotifier?.close()
     disconnectClientPortalSocket()
     if (this.incidentsRefreshTimer) {
       window.clearInterval(this.incidentsRefreshTimer)
@@ -216,7 +237,30 @@ export default {
     }
   },
 
+  watch: {
+    notificationsEnabled(enabled) {
+      if (!enabled) this.messageNotifier?.close()
+    }
+  },
+
   methods: {
+    onChatDragEnter(event) {
+      if (this.initialLoading || this.loadError || this.isSending || !Array.from(event.dataTransfer?.types || []).includes('Files')) return
+      this.chatDragCounter++
+      this.isDraggingFilesOverChat = true
+    },
+
+    onChatDragLeave() {
+      this.chatDragCounter = Math.max(0, this.chatDragCounter - 1)
+      if (!this.chatDragCounter) this.isDraggingFilesOverChat = false
+    },
+
+    onChatFilesDropped(event) {
+      this.chatDragCounter = 0
+      this.isDraggingFilesOverChat = false
+      if (this.initialLoading || this.loadError || this.isSending) return
+      this.$refs.chatDialogRef?.addDroppedFiles(Array.from(event.dataTransfer?.files || []))
+    },
     async initialize() {
       this.initialLoading = true
       this.loadError = ''
@@ -249,8 +293,10 @@ export default {
           }
 
           const socketMessages = Array.isArray(payload) ? payload : [payload]
+          this.messageNotifier?.notify(socketMessages, this.messages)
           this.mergeMessages(socketMessages)
         },
+        onNotificationSettings: settings => this.$emit('notification-settings-changed', settings),
         onMessageDeleted: messageId => {
           if (!this.historyLoaded || messageId === null || messageId === undefined) {
             return
@@ -259,6 +305,7 @@ export default {
         },
         onConnected: () => {
           this.socketConnected = true
+          this.loadProfile().catch(error => console.debug('Не удалось обновить профиль портала', error))
         },
         onDisconnected: () => {
           this.socketConnected = false
@@ -662,6 +709,29 @@ export default {
   background: white;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
   border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.client-portal-drop-overlay {
+  position: absolute;
+  inset: 8px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 2px dashed var(--q-primary);
+  border-radius: 16px;
+  background: rgba(92, 53, 249, .08);
+  color: var(--q-primary);
+  text-align: center;
+  pointer-events: none;
+}
+
+.client-portal-drop-overlay span {
+  color: #6a6a70;
+  font-size: 12px;
 }
 
 .client-portal-incidents {

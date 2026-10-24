@@ -9,20 +9,18 @@
       </div>
       <div class="settings-content-actions">
         <q-btn
-          unelevated
-          no-caps
-          color="primary"
-          icon="add"
-          label="Добавить WhatsApp"
-          @click="this.dialogNewAccountShow"
-        />
-        <q-btn
           flat
-          no-caps
           color="primary"
           icon="info"
           label="Инструкция"
           @click="this.isShowInstruction = true"
+        />
+        <q-btn
+          unelevated
+          color="primary"
+          icon="add"
+          label="Добавить WhatsApp"
+          @click="this.dialogNewAccountShow"
         />
       </div>
     </div>
@@ -100,7 +98,6 @@
         <q-btn
           v-if="!this.isNewWhatsappAccount"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"

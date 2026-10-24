@@ -23,7 +23,6 @@
             :text-color="periodPreset === option.value ? 'white' : 'dark'"
             unelevated
             dense
-            no-caps
             class="period-toggle-btn"
             @click="selectPeriod(option.value)"
           />
@@ -98,7 +97,6 @@
               icon="filter_alt_off"
               dense
               flat
-              no-caps
               :disable="activeFilterCount === 0"
               @click="resetAnalyticsFilters"
             />

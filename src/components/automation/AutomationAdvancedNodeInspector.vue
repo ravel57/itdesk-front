@@ -8,7 +8,7 @@
         <q-input v-model="item.value" outlined dense label="Значение" @change="changed" autogrow type="textarea"/>
         <q-btn flat round dense icon="close" color="negative" @click="remove('cases', index)"/>
       </div>
-      <q-btn outline dense no-caps icon="add" label="Добавить вариант" class="q-mt-md" @click="addSwitchCase"/>
+      <q-btn outline dense icon="add" label="Добавить вариант" class="q-mt-md" @click="addSwitchCase"/>
       <q-banner rounded class="bg-blue-1 text-blue-9 q-mt-md">Для каждого значения появится отдельный выход. Выход
         «Иначе» обязателен.
       </q-banner>
@@ -87,7 +87,7 @@
         <q-btn flat round dense icon="close" color="negative" :disable="node.config.branches.length <= 2"
                @click="remove('branches', index)"/>
       </div>
-      <q-btn outline dense no-caps icon="add" label="Добавить ветку" class="q-mt-md" @click="addForkBranch"/>
+      <q-btn outline dense icon="add" label="Добавить ветку" class="q-mt-md" @click="addForkBranch"/>
       <q-banner rounded class="bg-orange-1 text-orange-10 q-mt-md">Ветки выполняются независимо до выбранного JOIN.
         Ожидания внутри FORK не допускаются.
       </q-banner>
@@ -200,6 +200,7 @@
 
 <script>
 import {nextFlowId} from 'src/util/automationFlow'
+import {serviceLabelWithOrganizations} from 'src/util/serviceOrganizations'
 import AutomationValueEditor from './AutomationValueEditor.vue'
 import AutomationEventSelect from 'src/components/automation/AutomationEventSelect.vue'
 
@@ -305,7 +306,7 @@ export default {
     serviceOptions() {
       return (this.services || []).filter(item => item?.id && item.active !== false).map(item => ({
         value: item.id,
-        label: [item.code, item.name].filter(Boolean).join(' · ') || `Сервис ${item.id}`
+        label: serviceLabelWithOrganizations(item, this.services) || `Сервис ${item.id}`
       }))
     },
     priorityNameOptions() {

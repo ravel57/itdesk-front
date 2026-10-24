@@ -1,7 +1,8 @@
 <template>
   <q-page class="settings-page" :style-fn="pageStyleFn">
-    <div v-if="isMobile" class="settings-mobile-layout">
-      <div v-if="mobileMenuOpen" class="settings-mobile-menu">
+    <!-- Один общий router-view: при смене ширины окна страница раздела не пересоздаётся и не теряет состояние. -->
+    <div :class="isMobile ? 'settings-mobile-layout' : 'settings-desktop-layout row'">
+      <div v-if="isMobile && mobileMenuOpen" class="settings-mobile-menu">
         <div class="settings-mobile-title">
           Настройки
         </div>
@@ -23,7 +24,12 @@
             >
               <q-item-section avatar class="settings-menu-icon-section">
                 <div class="settings-menu-icon-box">
-                  <q-icon :name="item.icon" size="20px"/>
+                  <span
+                    v-if="item.brandImage"
+                    class="settings-menu-brand-icon"
+                    :style="{ '--brand-icon': `url(${item.brandImage})` }"
+                  />
+                  <q-icon v-else :name="item.icon" size="24px"/>
                 </div>
               </q-item-section>
               <q-item-section>
@@ -39,29 +45,7 @@
         </q-list>
       </div>
 
-      <div v-else class="settings-mobile-content">
-        <div class="settings-mobile-header">
-          <q-btn
-            flat
-            round
-            dense
-            icon="arrow_back"
-            class="settings-mobile-back"
-            @click="showMobileMenu"
-          />
-          <div class="settings-mobile-header-title">
-            {{ currentSectionTitle }}
-          </div>
-        </div>
-
-        <div class="settings-mobile-view">
-          <router-view/>
-        </div>
-      </div>
-    </div>
-
-    <div v-else class="settings-desktop-layout row">
-      <div class="settings-desktop-menu">
+      <div v-if="!isMobile" class="settings-desktop-menu">
         <div class="settings-desktop-title">
           Настройки
         </div>
@@ -85,7 +69,12 @@
               >
                 <q-item-section avatar class="settings-menu-icon-section">
                   <div class="settings-menu-icon-box">
-                    <q-icon :name="item.icon" size="20px"/>
+                    <span
+                    v-if="item.brandImage"
+                    class="settings-menu-brand-icon"
+                    :style="{ '--brand-icon': `url(${item.brandImage})` }"
+                  />
+                  <q-icon v-else :name="item.icon" size="24px"/>
                   </div>
                 </q-item-section>
                 <q-item-section>
@@ -101,8 +90,25 @@
           </q-list>
         </div>
       </div>
-      <div class="settings-desktop-content col">
-        <div class="settings-desktop-content-scroll">
+      <div
+        v-show="!isMobile || !mobileMenuOpen"
+        :class="isMobile ? 'settings-mobile-content' : 'settings-desktop-content col'"
+      >
+        <div v-if="isMobile" class="settings-mobile-header">
+          <q-btn
+            flat
+            round
+            dense
+            icon="arrow_back"
+            class="settings-mobile-back"
+            @click="showMobileMenu"
+          />
+          <div class="settings-mobile-header-title">
+            {{ currentSectionTitle }}
+          </div>
+        </div>
+
+        <div :class="isMobile ? 'settings-mobile-view' : 'settings-desktop-content-scroll'">
           <router-view/>
         </div>
       </div>
@@ -213,7 +219,7 @@ export default {
       // lug: 'macros'
       // },
       {
-        title: 'SLA',
+        title: 'SLA и OLA',
         link: '/settings/sla',
         slug: 'sla',
         icon: 'timer',
@@ -265,6 +271,7 @@ export default {
         link: '/settings/telegram',
         slug: 'telegram',
         icon: 'send',
+        brandImage: '/telegram.png',
         permission: 'CHANNEL_MANAGE',
         group: 'channels'
       },
@@ -273,6 +280,7 @@ export default {
         link: '/settings/whatsapp',
         slug: 'whatsapp',
         icon: 'chat',
+        brandImage: '/whatsapp.png',
         permission: 'CHANNEL_MANAGE',
         group: 'channels'
       },
@@ -303,7 +311,7 @@ export default {
         title: 'Автоматизации',
         link: '/settings/automatization',
         slug: 'automatization',
-        icon: 'autorenew',
+        icon: 'sym_o_flowchart',
         permission: 'AUTOMATION_MANAGE',
         group: 'automation'
       },
@@ -485,7 +493,7 @@ export default {
   width: 304px;
   min-width: 280px;
   min-height: 0;
-  padding: 16px 12px 0;
+  padding: 16px 0 0;
   overflow: hidden;
   background: #ffffff;
 }
@@ -509,7 +517,7 @@ export default {
 }
 
 .settings-desktop-title {
-  padding: 8px 12px 14px;
+  padding: 8px 16px 14px;
 }
 
 .settings-desktop-content {
@@ -533,43 +541,38 @@ export default {
 .settings-menu-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
+/* Пункты — как в левом меню приложения: без скруглений и подложек, чёрные текст и иконки */
 .settings-menu-item {
-  min-height: 52px;
-  padding: 6px 10px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  color: #3c4350;
-  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+  min-height: 48px;
+  padding: 8px 16px;
+  border-radius: 0;
+  color: #000000;
+  transition: background-color 0.16s ease, color 0.16s ease;
 }
 
 .settings-menu-item:hover {
-  background: #f6f7fb;
+  background: #e8e8e8;
 }
 
 .settings-menu-icon-section {
-  min-width: 44px;
-  padding-right: 8px;
+  min-width: 40px;
+  padding-right: 16px;
 }
 
 .settings-menu-icon-box {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  color: #697180;
-  background: #f1f3f7;
-  transition: background-color 0.16s ease, color 0.16s ease;
+  color: inherit;
 }
 
 .settings-menu-item-title {
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.3;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 .settings-menu-group-label {
@@ -578,7 +581,7 @@ export default {
   color: #a3a9b3;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 14px 12px 6px;
+  padding: 14px 16px 6px;
   min-height: auto;
 }
 
@@ -597,22 +600,25 @@ export default {
 }
 
 .settings-menu-item--active {
-  color: #5138dc;
-  border-color: rgba(81, 56, 220, 0.12);
-  background: rgba(81, 56, 220, 0.08);
+  color: #5a35f0;
 }
 
+/* При наведении активный пункт подсвечивается фиолетовым, как активный пункт левого меню */
 .settings-menu-item--active:hover {
-  background: rgba(81, 56, 220, 0.11);
+  background: rgba(92, 53, 249, 0.1);
+}
+
+.settings-menu-brand-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  -webkit-mask: var(--brand-icon) center / contain no-repeat;
+  mask: var(--brand-icon) center / contain no-repeat;
 }
 
 .settings-menu-item--active .settings-menu-icon-box {
-  color: #ffffff;
-  background: #5a35f0;
-}
-
-.settings-menu-item--active .settings-menu-item-title {
-  font-weight: 700;
+  color: #5a35f0;
 }
 
 .settings-menu-item--active .settings-menu-chevron {
@@ -644,7 +650,7 @@ export default {
 .settings-mobile-list {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 10px 12px 24px;
+  padding: 10px 0 24px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -716,10 +722,6 @@ export default {
 @media (max-width: 1023px) {
   .settings-menu-item {
     min-height: 56px;
-  }
-
-  .settings-menu-item-title {
-    font-size: 16px;
   }
 }
 </style>

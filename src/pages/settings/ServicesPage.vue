@@ -9,10 +9,10 @@
       </div>
       <div class="settings-content-actions">
         <q-btn flat round color="primary" icon="refresh" :loading="loading" @click="loadAll"/>
-        <q-btn v-if="tab === 'services'" unelevated no-caps color="primary" icon="add" label="Сервис" @click="openService()"/>
-        <q-btn v-if="tab === 'zabbix'" unelevated no-caps color="primary" icon="add" label="Интеграция" @click="openZabbix()"/>
-        <q-btn v-if="tab === 'assignments'" unelevated no-caps color="primary" icon="add" label="Подключение" @click="openAssignment()"/>
-        <q-btn v-if="tab === 'criticalities'" unelevated no-caps color="primary" icon="add" label="Критичность" @click="openCriticality()"/>
+        <q-btn v-if="tab === 'services'" unelevated color="primary" icon="add" label="Сервис" @click="openService()"/>
+        <q-btn v-if="tab === 'zabbix'" unelevated color="primary" icon="add" label="Интеграция" @click="openZabbix()"/>
+        <q-btn v-if="tab === 'assignments'" unelevated color="primary" icon="add" label="Подключение" @click="openAssignment()"/>
+        <q-btn v-if="tab === 'criticalities'" unelevated color="primary" icon="add" label="Критичность" @click="openCriticality()"/>
       </div>
     </div>
 
@@ -32,7 +32,7 @@
         >
           <template #top-left>
             <q-input v-model="serviceFilter" dense outlined clearable debounce="250"
-                     placeholder="Поиск по коду или названию">
+                     placeholder="Поиск по коду, названию или организации">
               <template #prepend>
                 <q-icon name="search"/>
               </template>
@@ -42,6 +42,19 @@
             <q-td :props="props">
               <div class="text-weight-medium">{{ props.row.code }} · {{ props.row.name }}</div>
               <div class="text-caption text-grey-7 ellipsis" style="max-width: 420px">{{ props.row.description }}</div>
+            </q-td>
+          </template>
+          <template #body-cell-organizations="props">
+            <q-td :props="props">
+              <template v-if="serviceOrganizationNames(props.row).length">
+                <q-chip v-for="name in serviceOrganizationNames(props.row).slice(0, 3)" :key="name" dense square
+                        class="service-organization-chip" :label="name"/>
+                <q-chip v-if="serviceOrganizationNames(props.row).length > 3" dense square outline
+                        :label="`+${serviceOrganizationNames(props.row).length - 3}`">
+                  <q-tooltip>{{ serviceOrganizationNames(props.row).slice(3).join(', ') }}</q-tooltip>
+                </q-chip>
+              </template>
+              <span v-else class="text-grey-7">Все организации</span>
             </q-td>
           </template>
           <template #body-cell-criticality="props">
@@ -262,6 +275,14 @@
                 </div>
               </div>
               <q-input v-model="serviceForm.description" outlined type="textarea" autogrow label="Описание"/>
+              <div v-if="serviceForm.id" class="service-dialog__organizations">
+                <div class="text-caption text-grey-7">Организации (подключения на вкладке «Организации и договоры»)</div>
+                <template v-if="serviceOrganizationNames(serviceForm).length">
+                  <q-chip v-for="name in serviceOrganizationNames(serviceForm)" :key="name" dense square
+                          class="service-organization-chip" :label="name"/>
+                </template>
+                <span v-else class="text-grey-7">Не подключён ни к одной организации — доступен всем</span>
+              </div>
               <div class="row q-col-gutter-md">
                 <div class="col-12 col-sm-6">
                   <q-select v-model="serviceForm.criticalityId" outlined clearable emit-value map-options
@@ -329,7 +350,7 @@
                     Первое подходящее правило по порядку задаёт приоритет новой заявки.
                   </div>
                 </div>
-                <q-btn flat no-caps color="primary" icon="add" label="Добавить правило" @click="addPriorityRule"/>
+                <q-btn flat color="primary" icon="add" label="Добавить правило" @click="addPriorityRule"/>
               </div>
               <div v-if="!serviceForm.priorityRules.length" class="service-dialog__empty">
                 Правила не добавлены
@@ -383,7 +404,7 @@
                     Сколько времени заявка может находиться на каждой линии поддержки.
                   </div>
                 </div>
-                <q-btn flat no-caps color="primary" icon="add" label="Добавить этап" @click="addOlaStage"/>
+                <q-btn flat color="primary" icon="add" label="Добавить этап" @click="addOlaStage"/>
               </div>
               <div v-if="!serviceForm.olaStages.length" class="service-dialog__empty">
                 Этапы OLA не добавлены
@@ -476,7 +497,6 @@
           <q-btn
             v-if="serviceForm.id"
             unelevated
-            no-caps
             color="negative"
             icon="delete"
             label="Удалить"
@@ -552,8 +572,8 @@
         <q-separator/>
 
         <q-card-actions align="right">
-          <q-btn flat no-caps color="primary" label="Отмена" v-close-popup/>
-          <q-btn unelevated no-caps color="primary" label="Сохранить" :loading="saving" @click="saveCriticality"/>
+          <q-btn flat color="primary" label="Отмена" v-close-popup/>
+          <q-btn unelevated color="primary" label="Сохранить" :loading="saving" @click="saveCriticality"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -566,6 +586,7 @@ import {useStore} from 'stores/store'
 import draggable from 'vuedraggable'
 import ZabbixIntegrationDialog from 'components/monitoring/ZabbixIntegrationDialog.vue'
 import ZabbixWebhookLogDialog from 'components/monitoring/ZabbixWebhookLogDialog.vue'
+import {serviceLabelWithOrganizations, serviceOrganizationNames} from 'src/util/serviceOrganizations'
 
 const emptyService = () => ({
   id: null,
@@ -648,6 +669,7 @@ export default {
       criticalityForm: emptyCriticality(),
       serviceColumns: [
         {name: 'name', label: 'Сервис', field: row => `${row.code} ${row.name}`, align: 'left', sortable: true},
+        {name: 'organizations', label: 'Организации', field: row => serviceOrganizationNames(row).join(', '), align: 'left'},
         {
           name: 'criticality',
           label: 'Критичность',
@@ -728,7 +750,7 @@ export default {
 
     dependencyOptions() {
       return this.services.filter(x => x.id !== this.serviceForm.id).map(x => ({
-        label: `${x.code} · ${x.name}`,
+        label: serviceLabelWithOrganizations(x, this.services),
         value: x.id
       }))
     },
@@ -742,7 +764,7 @@ export default {
     },
 
     serviceOptions() {
-      return this.services.map(x => ({label: `${x.code} · ${x.name}`, value: x.id}))
+      return this.services.map(x => ({label: serviceLabelWithOrganizations(x, this.services), value: x.id}))
     }
   },
 
@@ -756,6 +778,10 @@ export default {
   },
 
   methods: {
+    serviceOrganizationNames(service) {
+      return serviceOrganizationNames(service, this.services)
+    },
+
     required: value => Boolean(value && String(value).trim()) || 'Обязательное поле',
     notifyError(error) {
       this.$q.notify({
@@ -1082,6 +1108,21 @@ export default {
 </script>
 
 <style scoped>
+.service-organization-chip {
+  max-width: 220px;
+}
+
+.service-dialog__organizations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 4px;
+}
+
+.service-dialog__organizations > .text-caption {
+  flex: 0 0 100%;
+}
+
 .services-page {
   width: 100%;
 }

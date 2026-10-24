@@ -17,7 +17,6 @@
         text-color="grey-8"
         unelevated
         dense
-        no-caps
         :options="this.tasksScopeOptions"
         :style="this.isMobile ? 'width: 100%' : ''"
       />
@@ -36,7 +35,6 @@
             text-color="grey-8"
             unelevated
             dense
-            no-caps
             :options="this.tasksScopeOptions"
           />
         </div>
@@ -773,7 +771,6 @@
         />
         <q-btn
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"
@@ -862,7 +859,6 @@
         <q-btn
           v-if="this.tableColumnsCustomized"
           flat
-          no-caps
           color="primary"
           icon="restart_alt"
           label="Как в карточках"

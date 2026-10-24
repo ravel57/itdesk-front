@@ -252,7 +252,6 @@
         <q-btn
           flat
           dense
-          no-caps
           label="Назад"
           :disable="chatOnboardingStepIndex === 0"
           @click="prevChatOnboardingStep"
@@ -260,7 +259,6 @@
         <q-btn
           color="primary"
           dense
-          no-caps
           :label="isLastChatOnboardingStep ? 'Готово' : 'Далее'"
           @click="nextChatOnboardingStep"
         />
@@ -2441,7 +2439,10 @@ export default {
     },
 
     activeKnowledgeBase() {
-      return this.isChatOnboardingActive ? this.chatOnboardingDemoKnowledgeBase : this.store.knowledgeBase
+      // Черновики статей видят только редакторы на странице базы знаний, в подсказках чата их нет
+      return this.isChatOnboardingActive
+        ? this.chatOnboardingDemoKnowledgeBase
+        : (this.store.knowledgeBase || []).filter(article => article.status !== 'DRAFT')
     },
 
     activeTags() {

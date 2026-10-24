@@ -158,7 +158,6 @@
         <q-btn
           v-if="this.canDeleteClient"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить клиента"
@@ -200,7 +199,6 @@
         />
         <q-btn
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"

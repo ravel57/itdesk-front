@@ -9,20 +9,18 @@
       </div>
       <div class="settings-content-actions">
         <q-btn
-          unelevated
-          no-caps
-          color="primary"
-          icon="add"
-          label="Добавить бота"
-          @click="this.dialogNewBotShow"
-        />
-        <q-btn
           flat
-          no-caps
           color="primary"
           icon="info"
           label="Инструкция"
           @click="this.isShowInstruction = true"
+        />
+        <q-btn
+          unelevated
+          color="primary"
+          icon="add"
+          label="Добавить бота"
+          @click="this.dialogNewBotShow"
         />
       </div>
     </div>
@@ -95,7 +93,6 @@
         <q-btn
           v-if="!this.isNewTelegramBot"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"

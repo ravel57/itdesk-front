@@ -153,7 +153,6 @@
                     v-if="!this.isObserverReadOnly"
                     flat
                     dense
-                    no-caps
                     color="primary"
                     label="Применить"
                     @click="this.openApplyTypeChecklistDialog"
@@ -181,7 +180,6 @@
                     v-if="!this.isNewTask && !this.dialogTaskComplete && $can('TASK_EDIT')"
                     dense
                     outline
-                    no-caps
                     label="Закрыть заявку"
                     color="white"
                     text-color="primary"
@@ -192,7 +190,6 @@
                     v-if="this.dialogTaskComplete && $can('TASK_EDIT')"
                     dense
                     outline
-                    no-caps
                     label="Вернуть в работу"
                     color="white"
                     text-color="primary"
@@ -744,7 +741,6 @@
       <q-card-actions align="right">
         <q-btn
           flat
-          no-caps
           color="grey-7"
           label="Оставить текущий"
           v-close-popup
@@ -752,7 +748,6 @@
 
         <q-btn
           outline
-          no-caps
           color="primary"
           label="Добавить недостающие"
           @click="this.applySelectedTypeChecklist('append')"
@@ -761,7 +756,6 @@
 
         <q-btn
           unelevated
-          no-caps
           color="primary"
           label="Заменить"
           @click="this.applySelectedTypeChecklist('replace')"

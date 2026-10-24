@@ -26,7 +26,7 @@
       <automation-value-editor v-if="!['true','null','notNull','empty','notEmpty'].includes(modelValue.operator)"
                                label="С чем сравнить" :model-value="modelValue.right" :variables="variables"
                                @update:model-value="patch('right', $event)"/>
-      <q-btn flat dense no-caps icon="add" label="Добавить ещё условие"
+      <q-btn flat dense icon="add" label="Добавить ещё условие"
              @click="$emit('update:modelValue', {all:[modelValue, {left:'=',operator:'=',right:null}]})"/>
     </template>
   </div>

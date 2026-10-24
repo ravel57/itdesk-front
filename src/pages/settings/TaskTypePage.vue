@@ -10,7 +10,6 @@
       <div class="settings-content-actions">
         <q-btn
           unelevated
-          no-caps
           color="primary"
           icon="add"
           label="Добавить тип заявки"
@@ -249,7 +248,6 @@
           <q-btn
             v-if="editingTaskType.id"
             unelevated
-            no-caps
             color="negative"
             icon="delete"
             label="Удалить"
@@ -260,7 +258,6 @@
 
           <q-btn
             flat
-            no-caps
             color="primary"
             label="Отмена"
             v-close-popup
@@ -268,7 +265,6 @@
 
           <q-btn
             unelevated
-            no-caps
             color="primary"
             label="Сохранить"
             @click="saveTaskType"
@@ -295,7 +291,6 @@
         <q-card-actions align="right">
           <q-btn
             flat
-            no-caps
             color="primary"
             label="Отмена"
             v-close-popup
@@ -303,7 +298,6 @@
 
           <q-btn
             unelevated
-            no-caps
             color="negative"
             icon="delete"
             label="Удалить"

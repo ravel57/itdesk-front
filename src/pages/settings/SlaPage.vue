@@ -146,7 +146,6 @@
           color="primary"
           icon="settings"
           label="Настройки линий"
-          no-caps
           @click="$router.push('/settings/support-lines')"
         />
       </div>

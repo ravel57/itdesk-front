@@ -50,8 +50,8 @@
         <code v-for="recoveryCode in recoveryCodes" :key="recoveryCode">{{ recoveryCode }}</code>
       </div>
       <div class="row q-gutter-sm">
-        <q-btn flat no-caps color="primary" icon="content_copy" label="Скопировать" @click="copyCodes"/>
-        <q-btn flat no-caps color="primary" icon="download" label="Скачать" @click="downloadCodes"/>
+        <q-btn flat color="primary" icon="content_copy" label="Скопировать" @click="copyCodes"/>
+        <q-btn flat color="primary" icon="download" label="Скачать" @click="downloadCodes"/>
       </div>
       <q-btn
         class="full-width q-mt-md"

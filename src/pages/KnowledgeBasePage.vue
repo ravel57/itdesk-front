@@ -43,6 +43,39 @@
       </div>
     </div>
 
+    <q-tabs
+      v-if="showDraftTabs"
+      v-model="knowledgeView"
+      dense
+      inline-label
+      no-caps
+      align="left"
+      active-color="primary"
+      indicator-color="primary"
+      class="knowledge-tabs text-grey-8"
+    >
+      <q-tab name="published" label="Статьи"/>
+      <q-tab name="drafts">
+        <div class="row no-wrap items-center">
+          Черновики
+          <q-badge v-if="drafts.length" color="orange-8" rounded class="q-ml-xs">{{ drafts.length }}</q-badge>
+        </div>
+      </q-tab>
+    </q-tabs>
+
+    <q-banner
+      v-if="knowledgeView === 'drafts'"
+      dense
+      rounded
+      class="knowledge-drafts-hint bg-orange-1 text-grey-9"
+    >
+      <template #avatar>
+        <q-icon name="auto_awesome" color="orange-8"/>
+      </template>
+      Черновики готовит автоматизация «Черновик статьи из закрытой заявки (Jev)» по переписке закрытых заявок.
+      Их видят только редакторы базы знаний: операторы, Jev и поиск получат статью после публикации.
+    </q-banner>
+
     <div class="table-container">
       <q-list
         bordered
@@ -64,11 +97,12 @@
         </q-item>
 
         <draggable
-          :list="this.knowledgeItemsForDisplay"
+          :model-value="this.knowledgeItemsForDisplay"
           item-key="id"
           class="list-group"
           ghost-class="ghost"
-          :disabled="this.isKnowledgeSearchActive || !canManageKnowledge"
+          :disabled="this.isKnowledgeSearchActive || !canManageKnowledge || knowledgeView === 'drafts'"
+          @update:model-value="onKnowledgeReorder"
           @start="dragging = true"
           @end="dragging = false"
         >
@@ -85,9 +119,14 @@
               >
                 <div class="text-weight-medium">
                   {{ element.title }}
+                  <q-badge v-if="isDraft(element)" color="orange-8" class="q-ml-xs">Черновик</q-badge>
                 </div>
                 <div class="text-caption text-grey-7">
                   Статья #{{ element.id }}
+                  <template v-if="element.sourceTaskId">
+                    · из заявки
+                    <router-link :to="taskLink(element)" class="knowledge-task-link" @click.stop>№{{ element.sourceTaskId }}</router-link>
+                  </template>
                 </div>
               </q-item-section>
 
@@ -124,17 +163,31 @@
                 top
                 side
               >
-                <q-btn
-                  v-if="canManageKnowledge"
-                  color="primary"
-                  dense
-                  flat
-                  round
-                  icon="edit"
-                  @click.stop="this.editRow(element)"
-                >
-                  <q-tooltip>Редактировать</q-tooltip>
-                </q-btn>
+                <div class="row no-wrap items-center">
+                  <q-btn
+                    v-if="canManageKnowledge && isDraft(element)"
+                    color="positive"
+                    dense
+                    flat
+                    round
+                    icon="publish"
+                    :loading="publishingId === element.id"
+                    @click.stop="publishKnowledge(element)"
+                  >
+                    <q-tooltip>Опубликовать</q-tooltip>
+                  </q-btn>
+                  <q-btn
+                    v-if="canManageKnowledge"
+                    color="primary"
+                    dense
+                    flat
+                    round
+                    icon="edit"
+                    @click.stop="this.editRow(element)"
+                  >
+                    <q-tooltip>Редактировать</q-tooltip>
+                  </q-btn>
+                </div>
               </q-item-section>
             </q-item>
           </template>
@@ -142,7 +195,7 @@
 
         <q-item v-if="this.knowledgeItemsForDisplay.length === 0">
           <q-item-section class="text-grey-7 text-center q-pa-md">
-            Ничего не найдено
+            {{ knowledgeView === 'drafts' && !isKnowledgeSearchActive ? 'Черновиков нет' : 'Ничего не найдено' }}
           </q-item-section>
         </q-item>
       </q-list>
@@ -192,6 +245,30 @@
       <q-separator />
 
       <q-card-section v-if="this.selectedKnowledge" class="knowledge-view-body">
+        <q-banner
+          v-if="isDraft(this.selectedKnowledge)"
+          dense
+          rounded
+          class="bg-orange-1 text-grey-9 q-mb-md"
+        >
+          <template #avatar>
+            <q-icon name="edit_note" color="orange-8"/>
+          </template>
+          Черновик<template v-if="this.selectedKnowledge.sourceTaskId">, сформирован ИИ по закрытой заявке
+            <router-link :to="taskLink(this.selectedKnowledge)" class="knowledge-task-link">№{{ this.selectedKnowledge.sourceTaskId }}</router-link></template>.
+          Проверьте текст: его видят только редакторы базы знаний, пока статья не опубликована.
+          <template v-if="canManageKnowledge" #action>
+            <q-btn
+              unelevated
+              color="positive"
+              icon="publish"
+              label="Опубликовать"
+              :loading="publishingId === this.selectedKnowledge.id"
+              @click="publishKnowledge(this.selectedKnowledge)"
+            />
+          </template>
+        </q-banner>
+
         <div
           v-if="this.getKnowledgeTags(this.selectedKnowledge).length"
           class="row q-gutter-xs q-mb-md"
@@ -302,7 +379,6 @@
         <q-btn
           v-if="!this.isNewKnowledge"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"
@@ -360,6 +436,10 @@ export default {
     pendingKnowledgeId: null,
     knowledgeLoading: false,
     knowledgeViewOpening: false,
+
+    // Статьи или черновики, сформированные из закрытых заявок
+    knowledgeView: 'published',
+    publishingId: null,
   }),
 
   computed: {
@@ -376,14 +456,27 @@ export default {
       return this.normalizeKnowledgeSearch(this.knowledgeSearch).length > 0
     },
 
+    drafts () {
+      return (this.store.knowledgeBase || []).filter(knowledge => this.isDraft(knowledge))
+    },
+
+    publishedKnowledge () {
+      return (this.store.knowledgeBase || []).filter(knowledge => !this.isDraft(knowledge))
+    },
+
+    showDraftTabs () {
+      return this.canManageKnowledge && (this.drafts.length > 0 || this.knowledgeView === 'drafts')
+    },
+
     knowledgeItemsForDisplay () {
+      const items = this.knowledgeView === 'drafts' ? this.drafts : this.publishedKnowledge
       if (!this.isKnowledgeSearchActive) {
-        return this.store.knowledgeBase || []
+        return items
       }
 
       const search = this.normalizeKnowledgeSearch(this.knowledgeSearch)
 
-      return (this.store.knowledgeBase || []).filter(knowledge => {
+      return items.filter(knowledge => {
         return this.getKnowledgeSearchText(knowledge).includes(search)
       })
     },
@@ -575,6 +668,47 @@ export default {
         path: this.$route.path,
         query
       }).catch(() => undefined)
+    },
+
+    isDraft (knowledge) {
+      return knowledge?.status === 'DRAFT'
+    },
+
+    taskLink (knowledge) {
+      return { path: '/tasks', query: { task: knowledge.sourceTaskId } }
+    },
+
+    // Порядок меняется только среди опубликованных статей, черновики остаются в конце
+    onKnowledgeReorder (items) {
+      if (this.knowledgeView === 'drafts' || this.isKnowledgeSearchActive) {
+        return
+      }
+      this.store.knowledgeBase = [...items, ...this.drafts]
+    },
+
+    publishKnowledge (knowledge) {
+      if (!knowledge?.id || this.publishingId) {
+        return
+      }
+      this.publishingId = knowledge.id
+      axios.post(`/api/v1/knowledge-base/${knowledge.id}/publish`)
+        .then(({ data }) => {
+          const index = this.store.knowledgeBase.findIndex(item => item.id === data.id)
+          if (index >= 0) {
+            this.store.knowledgeBase.splice(index, 1, data)
+          }
+          if (this.knowledgeView === 'drafts' && this.drafts.length === 0) {
+            this.knowledgeView = 'published'
+          }
+          this.$q.notify({ type: 'positive', message: `Статья «${data.title}» опубликована` })
+        })
+        .catch(e => this.$q.notify({
+          type: 'negative',
+          message: e?.response?.data || e.message
+        }))
+        .finally(() => {
+          this.publishingId = null
+        })
     },
 
     getKnowledgeById (knowledgeId) {
@@ -788,6 +922,23 @@ export default {
 
 .knowledge-search {
   max-width: 520px;
+}
+
+.knowledge-tabs {
+  margin-top: 4px;
+}
+
+.knowledge-drafts-hint {
+  margin-top: 8px;
+}
+
+.knowledge-task-link {
+  color: var(--q-primary);
+  text-decoration: none;
+}
+
+.knowledge-task-link:hover {
+  text-decoration: underline;
 }
 
 .knowledge-list {

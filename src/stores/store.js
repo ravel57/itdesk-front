@@ -128,7 +128,7 @@ export const useStore = defineStore('store', {
       answerWaitingWorkingTimeEnabled: false,
     },
 
-    // Как считать «Ожидает ответа» (календарное/рабочее время). Доступно всем, кто видит чаты — в отличие от generalSettings
+    // Как считать «Требует ответа» (календарное/рабочее время). Доступно всем, кто видит чаты — в отличие от generalSettings
     answerWaitingSettings: normalizeAnswerWaitingSettings(),
   }),
 
@@ -847,7 +847,7 @@ export const useStore = defineStore('store', {
               ?? this.generalSettings.supportLineAccessMode
               ?? 'HYBRID'
           }
-          // Рабочий календарь или флаг «Ожидает ответа» могли измениться — список чатов подхватывает без перезагрузки
+          // Рабочий календарь или флаг «Требует ответа» могли измениться — список чатов подхватывает без перезагрузки
           this.fetchAnswerWaitingSettings().catch(() => {})
           return this.generalSettings
         })

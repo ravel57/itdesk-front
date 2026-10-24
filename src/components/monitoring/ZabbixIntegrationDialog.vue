@@ -86,7 +86,7 @@
               <div class="text-weight-medium q-mb-xs">Токен показывается один раз — сохраните его</div>
               <div class="row items-center no-wrap q-gutter-sm">
                 <code class="zabbix-dialog__token col">{{ issuedToken }}</code>
-                <q-btn flat dense no-caps icon="content_copy" label="Скопировать" @click="copy(issuedToken)"/>
+                <q-btn flat dense icon="content_copy" label="Скопировать" @click="copy(issuedToken)"/>
               </div>
               <div class="text-caption q-mt-xs">
                 Скачайте тип оповещений сейчас — токен уже будет подставлен в параметры.
@@ -99,9 +99,9 @@
             </div>
 
             <div class="row q-gutter-sm">
-              <q-btn unelevated no-caps color="primary" icon="key" :loading="issuing"
+              <q-btn unelevated color="primary" icon="key" :loading="issuing"
                      :label="current.hasWebhookToken ? 'Перевыпустить токен' : 'Выпустить токен'" @click="issueToken"/>
-              <q-btn outline no-caps color="primary" icon="download" label="Тип оповещений для Zabbix"
+              <q-btn outline color="primary" icon="download" label="Тип оповещений для Zabbix"
                      :disable="!current.eventsUrl" :loading="downloading" @click="downloadMediaType">
                 <q-tooltip>YAML для импорта: Оповещения → Способы оповещений → Импорт</q-tooltip>
               </q-btn>

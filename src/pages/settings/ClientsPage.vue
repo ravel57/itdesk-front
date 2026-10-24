@@ -10,7 +10,6 @@
       <div class="settings-content-actions">
         <q-btn
           outline
-          no-caps
           color="primary"
           icon="upload_file"
           label="Импорт из CSV"
@@ -18,7 +17,6 @@
         />
         <q-btn
           unelevated
-          no-caps
           color="primary"
           icon="add"
           label="Добавить клиента"
@@ -42,7 +40,6 @@
               <q-btn
                 flat
                 dense
-                no-caps
                 color="primary"
                 icon="download"
                 label="Скачать шаблон CSV"
@@ -53,7 +50,6 @@
               <q-btn
                 flat
                 dense
-                no-caps
                 color="primary"
                 icon="content_copy"
                 label="Скопировать PowerShell"
@@ -240,7 +236,6 @@
         <q-btn
           v-if="!isNewClient"
           outline
-          no-caps
           color="primary"
           icon="key"
           label="Сменить пароль"
@@ -249,7 +244,6 @@
         <q-btn
           v-if="!isNewClient"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить клиента"
@@ -309,7 +303,6 @@
         <q-btn
           flat
           dense
-          no-caps
           color="primary"
           icon="casino"
           label="Сгенерировать надежный пароль"
@@ -317,10 +310,9 @@
         />
       </q-card-section>
       <q-card-actions align="right">
-        <q-btn flat no-caps color="primary" label="Отмена" @click="closePasswordDialog"/>
+        <q-btn flat color="primary" label="Отмена" @click="closePasswordDialog"/>
         <q-btn
           unelevated
-          no-caps
           color="primary"
           label="Сменить пароль"
           :loading="passwordSaving"
@@ -372,7 +364,6 @@
           <div class="row q-gutter-sm q-mt-md justify-center">
             <q-btn
               flat
-              no-caps
               color="primary"
               icon="download"
               label="Шаблон CSV"
@@ -380,7 +371,6 @@
             />
             <q-btn
               unelevated
-              no-caps
               color="primary"
               icon="preview"
               label="Открыть предпросмотр"
@@ -408,9 +398,9 @@
             </div>
             <q-space/>
             <div class="col-12 col-md-auto row q-gutter-sm">
-              <q-btn flat dense no-caps color="primary" label="Выбрать валидные" @click="selectValidImportRows"/>
-              <q-btn flat dense no-caps color="grey-7" label="Снять выбор" @click="clearImportSelection"/>
-              <q-btn flat dense no-caps color="primary" icon="refresh" label="Другой файл" @click="resetImportToFile"/>
+              <q-btn flat dense color="primary" label="Выбрать валидные" @click="selectValidImportRows"/>
+              <q-btn flat dense color="grey-7" label="Снять выбор" @click="clearImportSelection"/>
+              <q-btn flat dense color="primary" icon="refresh" label="Другой файл" @click="resetImportToFile"/>
             </div>
           </div>
 
@@ -431,7 +421,6 @@
                 <div class="col-12 col-md-auto">
                   <q-btn
                     outline
-                    no-caps
                     color="primary"
                     label="Добавить @домен"
                     :disable="!bulkDomain || selectedImportRowsCount === 0"
@@ -455,7 +444,6 @@
                 <div class="col-12 col-md-auto">
                   <q-btn
                     outline
-                    no-caps
                     color="primary"
                     label="Назначить"
                     :disable="!bulkOrganizationId || selectedImportRowsCount === 0"
@@ -570,10 +558,9 @@
             Выбрано: {{ selectedImportRowsCount }}. Пароли будут сгенерированы сервером только для новых учетных записей.
           </div>
           <q-space/>
-          <q-btn flat no-caps color="primary" label="Отмена" @click="closeImportDialog"/>
+          <q-btn flat color="primary" label="Отмена" @click="closeImportDialog"/>
           <q-btn
             unelevated
-            no-caps
             color="primary"
             icon="person_add"
             label="Импортировать выбранных"
@@ -604,7 +591,6 @@
               <template #action>
                 <q-btn
                   unelevated
-                  no-caps
                   color="amber-9"
                   text-color="white"
                   icon="download"
@@ -649,7 +635,7 @@
         </q-card-section>
         <q-separator/>
         <q-card-actions align="right" class="q-pa-md">
-          <q-btn unelevated no-caps color="primary" label="Готово" @click="closeImportDialog"/>
+          <q-btn unelevated color="primary" label="Готово" @click="closeImportDialog"/>
         </q-card-actions>
       </template>
     </q-card>

@@ -59,7 +59,7 @@
       :flat="schema.props.flat === true"
       :round="schema.props.round === true"
       :outline="schema.props.outline === true"
-      :no-caps="schema.props.noCaps !== false"
+      :no-caps="schema.props.noCaps === true"
       :color="schema.props.color || 'primary'"
       :icon="schema.props.icon"
       :label="schema.props.round ? undefined : schema.props.label"

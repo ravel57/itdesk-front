@@ -33,7 +33,6 @@
             v-if="this.pingedTasks.length > 0"
             flat
             dense
-            no-caps
             color="primary"
             icon="alternate_email"
             :loading="this.taskPingsLoading"

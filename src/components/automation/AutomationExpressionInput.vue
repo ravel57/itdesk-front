@@ -13,6 +13,16 @@
       @change="onChange"
     />
 
+    <!-- Подсветка синтаксиса: раскрашенная копия текста поверх прозрачного текста поля. На ввод не влияет. -->
+    <teleport v-if="overlayTarget" :to="overlayTarget">
+      <div class="automation-highlight" :style="overlayStyle" aria-hidden="true">
+        <div class="automation-highlight__text" :style="overlayTextStyle">
+          <span v-for="(segment, index) in highlightedSegments" :key="index" :class="segment.cls">{{ segment.text }}</span>
+          <span>&#8203;</span>
+        </div>
+      </div>
+    </teleport>
+
     <!-- Подсказка параметров вызова, как в IDE: текущий аргумент жирным, неподходящие перегрузки бледнее -->
     <q-tooltip
       v-model="signatureVisible"
@@ -112,6 +122,7 @@
 <script>
 import axios from 'axios'
 import { nextTick } from 'vue'
+import { highlightSegments } from 'src/util/automationHighlight'
 
 export default {
   name: 'AutomationExpressionInput',
@@ -152,7 +163,11 @@ export default {
       requestTimer: null,
       requestSequence: 0,
       focused: false,
-      cache: new Map()
+      cache: new Map(),
+      overlayTarget: null,
+      overlayStyle: {},
+      overlayTextStyle: {},
+      resizeObserver: null
     }
   },
 
@@ -195,6 +210,10 @@ export default {
       })
     },
 
+    highlightedSegments () {
+      return highlightSegments(this.modelValue, this.suggestionMode)
+    },
+
     variableTypes () {
       return Object.fromEntries(this.variables.filter(value => value && typeof value === 'object' && value.name)
         .map(({ name, ...schema }) => [name.replace(/^var\./, ''), schema]))
@@ -220,15 +239,72 @@ export default {
     suggestionMode () {
       this.cache.clear()
       if (this.focused) this.scheduleSuggestions(0)
+    },
+    modelValue () {
+      nextTick(() => this.syncOverlay())
     }
   },
 
+  mounted () {
+    this.attachOverlay()
+  },
+
   beforeUnmount () {
+    this.resizeObserver?.disconnect()
+    this.nativeInput()?.removeEventListener('scroll', this.syncOverlayScroll)
     if (this.requestTimer) clearTimeout(this.requestTimer)
     this.requestSequence += 1
   },
 
   methods: {
+    // Слой подсветки кладём внутрь контейнера q-field рядом с нативным полем и копируем его шрифт и отступы,
+    // чтобы цветной текст точно ложился на настоящий.
+    attachOverlay () {
+      const input = this.nativeInput()
+      const container = input?.parentElement
+      if (!input || !container) return
+      if (getComputedStyle(container).position === 'static') container.style.position = 'relative'
+      this.overlayTarget = container
+      input.addEventListener('scroll', this.syncOverlayScroll)
+      if (typeof ResizeObserver !== 'undefined') {
+        this.resizeObserver = new ResizeObserver(() => this.syncOverlay())
+        this.resizeObserver.observe(input)
+      }
+      nextTick(() => this.syncOverlay())
+    },
+
+    syncOverlay () {
+      const input = this.nativeInput()
+      if (!input) return
+      const style = getComputedStyle(input)
+      const multiline = input.tagName === 'TEXTAREA'
+      this.overlayStyle = {
+        top: `${input.offsetTop}px`,
+        left: `${input.offsetLeft}px`,
+        width: `${input.clientWidth}px`,
+        height: `${input.clientHeight}px`
+      }
+      this.overlayTextStyle = {
+        font: style.font,
+        letterSpacing: style.letterSpacing,
+        lineHeight: style.lineHeight,
+        padding: style.padding,
+        boxSizing: 'border-box',
+        whiteSpace: multiline ? 'pre-wrap' : 'pre',
+        overflowWrap: multiline ? 'break-word' : 'normal',
+        width: multiline ? '100%' : 'max-content',
+        minWidth: '100%'
+      }
+      this.syncOverlayScroll()
+    },
+
+    syncOverlayScroll () {
+      const input = this.nativeInput()
+      const text = this.$el?.querySelector?.('.automation-highlight__text')
+      if (!input || !text) return
+      text.style.transform = `translate(${-input.scrollLeft}px, ${-input.scrollTop}px)`
+    },
+
     nativeInput () {
       return this.$refs.input?.$el?.querySelector('textarea, input') || null
     },
@@ -573,6 +649,12 @@ export default {
   position: relative;
   width: 100%;
 }
+
+/* Свой текст поля делаем прозрачным — его рисует слой подсветки; каретка остаётся видимой. */
+.automation-expression-input :deep(.q-field__native) {
+  color: transparent !important;
+  caret-color: var(--aeh-caret);
+}
 </style>
 
 <style>
@@ -624,5 +706,63 @@ export default {
 .automation-expression-label {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-weight: 600;
+}
+</style>
+
+<style>
+:root {
+  --aeh-caret: #1d1d1d;
+  --aeh-variable: #1565c0;
+  --aeh-getter: #00838f;
+  --aeh-method: #7b1fa2;
+  --aeh-operator: #d84315;
+  --aeh-literal: #ef6c00;
+  --aeh-string: #2e7d32;
+  --aeh-number: #0277bd;
+  --aeh-punct: #757575;
+  --aeh-brace: #c2185b;
+  --aeh-brace-bg: rgba(194, 24, 91, 0.1);
+  --aeh-text: #1d1d1d;
+}
+
+.body--dark {
+  --aeh-caret: #f1f1f1;
+  --aeh-variable: #82b1ff;
+  --aeh-getter: #4dd0e1;
+  --aeh-method: #ce93d8;
+  --aeh-operator: #ff8a65;
+  --aeh-literal: #ffb74d;
+  --aeh-string: #81c784;
+  --aeh-number: #4fc3f7;
+  --aeh-punct: #9e9e9e;
+  --aeh-brace: #f48fb1;
+  --aeh-brace-bg: rgba(244, 143, 177, 0.16);
+  --aeh-text: #f1f1f1;
+}
+
+.automation-highlight {
+  position: absolute;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--aeh-text);
+}
+
+.automation-highlight__text {
+  user-select: none;
+}
+
+.automation-highlight .aeh-variable { color: var(--aeh-variable); }
+.automation-highlight .aeh-getter { color: var(--aeh-getter); }
+.automation-highlight .aeh-method { color: var(--aeh-method); }
+.automation-highlight .aeh-operator { color: var(--aeh-operator); font-weight: 600; }
+.automation-highlight .aeh-literal { color: var(--aeh-literal); }
+.automation-highlight .aeh-string { color: var(--aeh-string); }
+.automation-highlight .aeh-number { color: var(--aeh-number); }
+.automation-highlight .aeh-punct { color: var(--aeh-punct); }
+.automation-highlight .aeh-brace {
+  color: var(--aeh-brace);
+  font-weight: 700;
+  background: var(--aeh-brace-bg);
+  border-radius: 3px;
 }
 </style>

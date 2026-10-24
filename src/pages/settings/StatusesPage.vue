@@ -10,7 +10,6 @@
       <div class="settings-content-actions">
         <q-btn
           unelevated
-          no-caps
           color="primary"
           icon="add"
           label="Добавить статус"
@@ -107,7 +106,6 @@
         <q-btn
           v-if="!this.isNewStatus"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"

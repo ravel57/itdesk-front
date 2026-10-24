@@ -15,7 +15,7 @@
 
         <q-separator vertical/>
 
-        <q-btn-dropdown outline dense no-caps icon="auto_awesome" label="Шаблоны">
+        <q-btn-dropdown outline dense icon="auto_awesome" label="Шаблоны">
           <q-list style="min-width: 300px">
             <q-item clickable v-close-popup @click="applyTemplate('priority')">
               <q-item-section avatar>
@@ -98,7 +98,6 @@
           v-if="pendingConnection"
           outline
           dense
-          no-caps
           color="primary"
           icon="link_off"
           label="Отменить связь"
@@ -112,7 +111,7 @@
         <div class="flow-side-title">Узлы</div>
         <div class="flow-side-caption">Выберите, что должен сделать шаг, и соедините его со следующим.</div>
         <q-input v-model="paletteSearch" dense outlined clearable placeholder="Найти блок" aria-label="Найти блок" class="q-mb-sm"/>
-        <div v-if="operationCatalogError" class="text-negative text-caption q-mb-sm">{{ operationCatalogError }} <q-btn flat dense no-caps label="Повторить" @click="loadOperationCatalog"/></div>
+        <div v-if="operationCatalogError" class="text-negative text-caption q-mb-sm">{{ operationCatalogError }} <q-btn flat dense label="Повторить" @click="loadOperationCatalog"/></div>
 
         <div
           v-for="group in visiblePaletteGroups"
@@ -136,7 +135,6 @@
                 v-for="item in group.items"
                 :key="item.key"
                 outline
-                no-caps
                 align="left"
                 class="flow-palette-btn full-width"
                 :icon="item.icon"
@@ -192,7 +190,7 @@
           :animation="150"
         >
           <template #item="{ element: section }">
-            <q-btn flat dense no-caps class="flow-section-btn" @click="focusSection(section)">
+            <q-btn flat dense class="flow-section-btn" @click="focusSection(section)">
               <q-icon name="drag_indicator" size="14px" class="flow-section-drag-handle"/>
               <span>{{ section }}</span>
             </q-btn>
@@ -503,7 +501,6 @@
                     <div class="row justify-end">
                       <q-btn
                         unelevated
-                        no-caps
                         color="negative"
                         icon="delete"
                         dense
@@ -517,7 +514,6 @@
                   <q-btn
                     flat
                     dense
-                    no-caps
                     icon="add"
                     color="primary"
                     label="Добавить условие И"
@@ -530,7 +526,6 @@
                 <q-btn
                   outline
                   dense
-                  no-caps
                   icon="add"
                   color="primary"
                   :label="conditionGroups(selectedNode).length ? 'Группа ИЛИ' : 'Добавить условие'"
@@ -635,7 +630,6 @@
                   </div>
                   <q-btn
                     unelevated
-                    no-caps
                     color="negative"
                     icon="delete"
                     dense
@@ -649,7 +643,6 @@
               <q-btn
                 outline
                 dense
-                no-caps
                 icon="add"
                 color="primary"
                 label="Добавить действие"
@@ -757,11 +750,10 @@
           <q-separator class="q-my-lg"/>
 
           <div class="row justify-between">
-            <q-btn outline dense no-caps icon="content_copy" label="Дублировать"
+            <q-btn outline dense icon="content_copy" label="Дублировать"
                    :disable="selectedNode.type === 'EVENT'" @click="duplicateNode(selectedNode)"/>
             <q-btn
               unelevated
-              no-caps
               color="negative"
               icon="delete"
               dense
@@ -794,6 +786,7 @@
 
 <script>
 import {nextTick} from 'vue'
+import {serviceLabelWithOrganizations} from 'src/util/serviceOrganizations'
 import axios from 'axios'
 import draggable from 'vuedraggable'
 import AutomationOperationInspector from './AutomationOperationInspector.vue'
@@ -912,7 +905,7 @@ export default {
       operationCatalog: [],
       operationCatalogError: '',
       paletteSearch: '',
-      expandedPaletteGroups: [], //'structure', 'messages', 'tasks'
+      expandedPaletteGroups: [], // 'structure', 'messages', 'tasks'
       delayUnits: [
         {label: 'сек.', value: 'SECONDS'},
         {label: 'мин.', value: 'MINUTES'},
@@ -1300,13 +1293,32 @@ export default {
         FOR_EACH: 'repeat',
         LOOP_END: 'keyboard_return',
         LOOP_BREAK: 'stop_circle',
-        EVENT: 'bolt', CONDITION: 'call_split', SWITCH: 'alt_route', ACTION: 'play_arrow',
-        DELAY: 'hourglass_bottom', WAIT_UNTIL: 'event', WAIT_EVENT: 'notifications_active', WAIT_TASK: 'task_alt',
-        APPROVAL: 'approval', SUBFLOW: 'account_tree', FORK: 'fork_right', JOIN: 'merge', HTTP_REQUEST: 'http',
-        SET_VARIABLE: 'data_object', EXPRESSION: 'calculate', COUNTER: 'exposure_plus_1',
-        ERROR_HANDLER: 'error_outline', RETRY: 'replay', ESCALATE: 'trending_up', CREATE_TASK: 'add_task',
-        NOTIFY: 'notifications', BUSINESS_HOURS: 'schedule', THROTTLE: 'speed', DEDUPLICATE: 'content_copy',
-        NOTE: 'sticky_note_2', END: 'flag'
+        EVENT: 'bolt',
+        CONDITION: 'call_split',
+        SWITCH: 'alt_route',
+        ACTION: 'play_arrow',
+        DELAY: 'hourglass_bottom',
+        WAIT_UNTIL: 'event',
+        WAIT_EVENT: 'notifications_active',
+        WAIT_TASK: 'task_alt',
+        APPROVAL: 'approval',
+        SUBFLOW: 'account_tree',
+        FORK: 'fork_right',
+        JOIN: 'merge',
+        HTTP_REQUEST: 'http',
+        SET_VARIABLE: 'data_object',
+        EXPRESSION: 'calculate',
+        COUNTER: 'exposure_plus_1',
+        ERROR_HANDLER: 'error_outline',
+        RETRY: 'replay',
+        ESCALATE: 'trending_up',
+        CREATE_TASK: 'add_task',
+        NOTIFY: 'notifications',
+        BUSINESS_HOURS: 'schedule',
+        THROTTLE: 'speed',
+        DEDUPLICATE: 'content_copy',
+        NOTE: 'sticky_note_2',
+        END: 'flag'
       }[type] || 'crop_square'
     },
 
@@ -1316,12 +1328,31 @@ export default {
       if (operation) return this.paletteGroups.find(group => group.label === operation.group)?.color || 'blue-8'
 
       return {
-        EVENT: 'indigo-6', SUBFLOW: 'indigo-7', END: 'indigo-8',
-        CONDITION: 'orange-6', SWITCH: 'orange-7', BUSINESS_HOURS: 'orange-8', FORK: 'orange-9', JOIN: 'deep-orange-8',
-        ACTION: 'teal-5', ESCALATE: 'teal-6', CREATE_TASK: 'teal-7', NOTIFY: 'teal-8',
-        DELAY: 'purple-5', WAIT_UNTIL: 'purple-6', WAIT_EVENT: 'purple-7', WAIT_TASK: 'purple-8', APPROVAL: 'purple-9',
-        HTTP_REQUEST: 'blue-grey-5', SET_VARIABLE: 'blue-grey-6', EXPRESSION: 'blue-grey-7', COUNTER: 'blue-grey-8',
-        ERROR_HANDLER: 'red-5', RETRY: 'red-6', THROTTLE: 'red-7', DEDUPLICATE: 'red-8',
+        EVENT: 'indigo-6',
+        SUBFLOW: 'indigo-7',
+        END: 'indigo-8',
+        CONDITION: 'orange-6',
+        SWITCH: 'orange-7',
+        BUSINESS_HOURS: 'orange-8',
+        FORK: 'orange-9',
+        JOIN: 'deep-orange-8',
+        ACTION: 'teal-5',
+        ESCALATE: 'teal-6',
+        CREATE_TASK: 'teal-7',
+        NOTIFY: 'teal-8',
+        DELAY: 'purple-5',
+        WAIT_UNTIL: 'purple-6',
+        WAIT_EVENT: 'purple-7',
+        WAIT_TASK: 'purple-8',
+        APPROVAL: 'purple-9',
+        HTTP_REQUEST: 'blue-grey-5',
+        SET_VARIABLE: 'blue-grey-6',
+        EXPRESSION: 'blue-grey-7',
+        COUNTER: 'blue-grey-8',
+        ERROR_HANDLER: 'red-5',
+        RETRY: 'red-6',
+        THROTTLE: 'red-7',
+        DEDUPLICATE: 'red-8',
         NOTE: 'grey-7'
       }[type] || 'grey'
     },
@@ -1334,15 +1365,32 @@ export default {
       const labels = {OPERATION: 'Выберите шаг', PARAMETERS: 'Настройки сценария', FOR_EACH: 'Для каждого элемента', LOOP_END: 'Следующий элемент', LOOP_BREAK: 'Остановить цикл'}
       if (labels[type]) return labels[type]
       return {
-        EVENT: 'Стартовое событие', CONDITION: 'Проверка условия', SWITCH: 'Многовариантное ветвление',
-        ACTION: 'Скрипт команд', DELAY: 'Отложенное продолжение', WAIT_UNTIL: 'Ожидание момента',
-        WAIT_EVENT: 'Ожидание события', WAIT_TASK: 'Ожидание связанной заявки', APPROVAL: 'Ручное решение',
-        SUBFLOW: 'Вызов автоматизации', FORK: 'Разделение на ветки', JOIN: 'Объединение веток',
-        HTTP_REQUEST: 'Внешний HTTP-запрос', SET_VARIABLE: 'Запись переменной', EXPRESSION: 'Вычисление значения',
-        COUNTER: 'Изменение счётчика', ERROR_HANDLER: 'Действие с веткой ошибки', RETRY: 'Повтор с backoff',
-        ESCALATE: 'Эскалация заявки', CREATE_TASK: 'Создание связанной заявки', NOTIFY: 'Отправка уведомления',
-        BUSINESS_HOURS: 'Разветвление по рабочему времени', THROTTLE: 'Ограничение частоты',
-        DEDUPLICATE: 'Поиск похожей заявки', NOTE: 'Комментарий', END: 'Конец ветки'
+        EVENT: 'Стартовое событие',
+        CONDITION: 'Проверка условия',
+        SWITCH: 'Многовариантное ветвление',
+        ACTION: 'Скрипт команд',
+        DELAY: 'Отложенное продолжение',
+        WAIT_UNTIL: 'Ожидание момента',
+        WAIT_EVENT: 'Ожидание события',
+        WAIT_TASK: 'Ожидание связанной заявки',
+        APPROVAL: 'Ручное решение',
+        SUBFLOW: 'Вызов автоматизации',
+        FORK: 'Разделение на ветки',
+        JOIN: 'Объединение веток',
+        HTTP_REQUEST: 'Внешний HTTP-запрос',
+        SET_VARIABLE: 'Запись переменной',
+        EXPRESSION: 'Вычисление значения',
+        COUNTER: 'Изменение счётчика',
+        ERROR_HANDLER: 'Действие с веткой ошибки',
+        RETRY: 'Повтор с backoff',
+        ESCALATE: 'Эскалация заявки',
+        CREATE_TASK: 'Создание связанной заявки',
+        NOTIFY: 'Отправка уведомления',
+        BUSINESS_HOURS: 'Разветвление по рабочему времени',
+        THROTTLE: 'Ограничение частоты',
+        DEDUPLICATE: 'Поиск похожей заявки',
+        NOTE: 'Комментарий',
+        END: 'Конец ветки'
       }[type] || type
     },
 
@@ -1408,16 +1456,20 @@ export default {
       if (['OPERATION'].includes(node.type)) return this.distributePorts([{handle: 'success', label: 'Готово', tooltip: 'Шаг выполнен'}, {handle: 'error', label: 'Ошибка', tooltip: 'Обработать ошибку'}])
       if (node.type === 'FOR_EACH') return this.distributePorts([{handle: 'body', label: 'ЭЛЕМЕНТ', tooltip: 'Обработать каждый элемент'}, {handle: 'next', label: 'ГОТОВО', tooltip: 'Продолжить после списка'}])
       if (['LOOP_END', 'LOOP_BREAK'].includes(node.type)) return []
-      if (node.type === 'END' || node.type === 'JOIN') return node.type === 'JOIN' ? [{
-        handle: 'next',
-        label: '',
-        tooltip: 'Продолжить после объединения',
-        yRatio: 0.5
-      }] : []
-      if (node.type === 'CONDITION') return this.distributePorts([
-        {handle: 'true', label: 'ДА', tooltip: 'Условие выполнено'},
-        {handle: 'false', label: 'НЕТ', tooltip: 'Условие не выполнено'}
-      ])
+      if (node.type === 'END' || node.type === 'JOIN') {
+        return node.type === 'JOIN' ? [{
+          handle: 'next',
+          label: '',
+          tooltip: 'Продолжить после объединения',
+          yRatio: 0.5
+        }] : []
+      }
+      if (node.type === 'CONDITION') {
+        return this.distributePorts([
+          {handle: 'true', label: 'ДА', tooltip: 'Условие выполнено'},
+          {handle: 'false', label: 'НЕТ', tooltip: 'Условие не выполнено'}
+        ])
+      }
       if (node.type === 'SWITCH') {
         const ports = (c.cases || []).map(item => ({
           handle: `case:${item.id}`,
@@ -1427,41 +1479,57 @@ export default {
         ports.push({handle: 'default', label: 'ИНАЧЕ', tooltip: 'Ни один вариант не совпал'})
         return this.distributePorts(ports)
       }
-      if (node.type === 'WAIT_EVENT' || node.type === 'WAIT_TASK') return this.distributePorts([
-        {handle: 'event', label: 'СОБЫТИЕ', tooltip: 'Ожидаемое событие произошло'},
-        {handle: 'timeout', label: 'ТАЙМАУТ', tooltip: 'Истёк срок ожидания'}
-      ])
-      if (node.type === 'APPROVAL') return this.distributePorts([
-        {handle: 'approved', label: 'ОДОБРЕНО', tooltip: 'Решение одобрено'},
-        {handle: 'rejected', label: 'ОТКЛОНЕНО', tooltip: 'Решение отклонено'},
-        {handle: 'timeout', label: 'ТАЙМАУТ', tooltip: 'Решение не принято вовремя'}
-      ])
-      if (node.type === 'BUSINESS_HOURS') return this.distributePorts([
-        {handle: 'working', label: 'РАБОТА', tooltip: 'Сейчас рабочее время'},
-        {handle: 'after_hours', label: 'НЕРАБОЧЕЕ', tooltip: 'Рабочий день, но вне часов'},
-        {handle: 'weekend', label: 'ВЫХОДНОЙ', tooltip: 'Сейчас выходной день'}
-      ])
-      if (node.type === 'ERROR_HANDLER' || node.type === 'HTTP_REQUEST' || node.type === 'SUBFLOW' || node.type === 'CREATE_TASK' || node.type === 'ESCALATE' || node.type === 'NOTIFY') return this.distributePorts([
-        {handle: 'success', label: 'УСПЕХ', tooltip: 'Шаг выполнен'},
-        {handle: 'error', label: 'ОШИБКА', tooltip: 'Во время шага произошла ошибка'}
-      ])
-      if (node.type === 'RETRY') return this.distributePorts([
-        {handle: 'success', label: 'УСПЕХ', tooltip: 'Действие выполнено'},
-        {handle: 'failed', label: 'НЕ УДАЛОСЬ', tooltip: 'Попытки исчерпаны'}
-      ])
-      if (node.type === 'THROTTLE') return this.distributePorts([
-        {handle: 'allowed', label: 'РАЗРЕШЕНО', tooltip: 'Ограничение не превышено'},
-        {handle: 'blocked', label: 'БЛОК', tooltip: 'Слишком частый запуск'}
-      ])
-      if (node.type === 'DEDUPLICATE') return this.distributePorts([
-        {handle: 'duplicate', label: 'ДУБЛЬ', tooltip: 'Похожая заявка найдена'},
-        {handle: 'unique', label: 'НОВАЯ', tooltip: 'Дубликат не найден'}
-      ])
-      if (node.type === 'FORK') return this.distributePorts((c.branches || []).map(branch => ({
-        handle: `branch:${branch.id}`,
-        label: branch.label || 'Ветка',
-        tooltip: branch.label || 'Параллельная ветка'
-      })))
+      if (node.type === 'WAIT_EVENT' || node.type === 'WAIT_TASK') {
+        return this.distributePorts([
+          {handle: 'event', label: 'СОБЫТИЕ', tooltip: 'Ожидаемое событие произошло'},
+          {handle: 'timeout', label: 'ТАЙМАУТ', tooltip: 'Истёк срок ожидания'}
+        ])
+      }
+      if (node.type === 'APPROVAL') {
+        return this.distributePorts([
+          {handle: 'approved', label: 'ОДОБРЕНО', tooltip: 'Решение одобрено'},
+          {handle: 'rejected', label: 'ОТКЛОНЕНО', tooltip: 'Решение отклонено'},
+          {handle: 'timeout', label: 'ТАЙМАУТ', tooltip: 'Решение не принято вовремя'}
+        ])
+      }
+      if (node.type === 'BUSINESS_HOURS') {
+        return this.distributePorts([
+          {handle: 'working', label: 'РАБОТА', tooltip: 'Сейчас рабочее время'},
+          {handle: 'after_hours', label: 'НЕРАБОЧЕЕ', tooltip: 'Рабочий день, но вне часов'},
+          {handle: 'weekend', label: 'ВЫХОДНОЙ', tooltip: 'Сейчас выходной день'}
+        ])
+      }
+      if (node.type === 'ERROR_HANDLER' || node.type === 'HTTP_REQUEST' || node.type === 'SUBFLOW' || node.type === 'CREATE_TASK' || node.type === 'ESCALATE' || node.type === 'NOTIFY') {
+        return this.distributePorts([
+          {handle: 'success', label: 'УСПЕХ', tooltip: 'Шаг выполнен'},
+          {handle: 'error', label: 'ОШИБКА', tooltip: 'Во время шага произошла ошибка'}
+        ])
+      }
+      if (node.type === 'RETRY') {
+        return this.distributePorts([
+          {handle: 'success', label: 'УСПЕХ', tooltip: 'Действие выполнено'},
+          {handle: 'failed', label: 'НЕ УДАЛОСЬ', tooltip: 'Попытки исчерпаны'}
+        ])
+      }
+      if (node.type === 'THROTTLE') {
+        return this.distributePorts([
+          {handle: 'allowed', label: 'РАЗРЕШЕНО', tooltip: 'Ограничение не превышено'},
+          {handle: 'blocked', label: 'БЛОК', tooltip: 'Слишком частый запуск'}
+        ])
+      }
+      if (node.type === 'DEDUPLICATE') {
+        return this.distributePorts([
+          {handle: 'duplicate', label: 'ДУБЛЬ', tooltip: 'Похожая заявка найдена'},
+          {handle: 'unique', label: 'НОВАЯ', tooltip: 'Дубликат не найден'}
+        ])
+      }
+      if (node.type === 'FORK') {
+        return this.distributePorts((c.branches || []).map(branch => ({
+          handle: `branch:${branch.id}`,
+          label: branch.label || 'Ветка',
+          tooltip: branch.label || 'Параллельная ветка'
+        })))
+      }
       return [{handle: 'next', label: '', tooltip: 'Следующий шаг', yRatio: 0.5}]
     },
 
@@ -1523,73 +1591,93 @@ export default {
       if (['LOOP_END', 'LOOP_BREAK'].includes(type)) return {}
       if (type === 'EVENT') return {triggerType: this.triggerTypes[0]?.value || 'TASK_CREATED'}
       if (type === 'CONDITION') return {expression: 'true', rule: {left: '=true', operator: 'true'}, groups: [], manualExpression: false}
-      if (type === 'SWITCH') return {
-        valueExpression: 'task.priority.id',
-        cases: [
-          {id: nextFlowId('case'), label: 'Вариант 1', value: ''},
-          {id: nextFlowId('case'), label: 'Вариант 2', value: ''}
-        ]
+      if (type === 'SWITCH') {
+        return {
+          valueExpression: 'task.priority.id',
+          cases: [
+            {id: nextFlowId('case'), label: 'Вариант 1', value: ''},
+            {id: nextFlowId('case'), label: 'Вариант 2', value: ''}
+          ]
+        }
       }
       if (type === 'ACTION') return {actionScript: '', actions: [], manualScript: false, continueOnError: false}
       if (type === 'DELAY') return {amount: 15, unit: 'MINUTES'}
       if (type === 'WAIT_UNTIL') return {mode: 'DURATION', amount: 15, unit: 'MINUTES', minutesBefore: 30, dateTime: ''}
-      if (type === 'WAIT_EVENT') return {
-        eventType: 'MESSAGE_INCOMING', scope: 'TASK', filterExpression: '', timeoutAmount: 24, timeoutUnit: 'HOURS'
+      if (type === 'WAIT_EVENT') {
+        return {
+          eventType: 'MESSAGE_INCOMING', scope: 'TASK', filterExpression: '', timeoutAmount: 24, timeoutUnit: 'HOURS'
+        }
       }
-      if (type === 'WAIT_TASK') return {
-        eventType: 'TASK_CLOSED',
-        taskIdExpression: 'task.id',
-        filterExpression: '',
-        timeoutAmount: 7,
-        timeoutUnit: 'DAYS'
+      if (type === 'WAIT_TASK') {
+        return {
+          eventType: 'TASK_CLOSED',
+          taskIdExpression: 'task.id',
+          filterExpression: '',
+          timeoutAmount: 7,
+          timeoutUnit: 'DAYS'
+        }
       }
-      if (type === 'APPROVAL') return {
-        title: 'Требуется решение', message: '', approverUserId: null, timeoutAmount: 24, timeoutUnit: 'HOURS'
+      if (type === 'APPROVAL') {
+        return {
+          title: 'Требуется решение', message: '', approverUserId: null, timeoutAmount: 24, timeoutUnit: 'HOURS'
+        }
       }
       if (type === 'SUBFLOW') return {triggerId: null, mode: 'INLINE', localVariables: true, inputs: {}, outputs: {}}
-      if (type === 'FORK') return {
-        joinNodeId: null,
-        branches: [
-          {id: nextFlowId('branch'), label: 'Ветка 1'},
-          {id: nextFlowId('branch'), label: 'Ветка 2'}
-        ]
+      if (type === 'FORK') {
+        return {
+          joinNodeId: null,
+          branches: [
+            {id: nextFlowId('branch'), label: 'Ветка 1'},
+            {id: nextFlowId('branch'), label: 'Ветка 2'}
+          ]
+        }
       }
       if (type === 'JOIN') return {description: 'Дождаться завершения веток'}
-      if (type === 'HTTP_REQUEST') return {
-        method: 'GET', url: '', headersText: '{}', body: '', timeoutSeconds: 15, resultVariable: 'httpResponse'
+      if (type === 'HTTP_REQUEST') {
+        return {
+          method: 'GET', url: '', headersText: '{}', body: '', timeoutSeconds: 15, resultVariable: 'httpResponse'
+        }
       }
       if (type === 'SET_VARIABLE') return {name: 'value', expression: ''}
       if (type === 'EXPRESSION') return {name: 'result', expression: '0'}
       if (type === 'COUNTER') return {name: 'counter', operation: 'ADD', amountExpression: '1'}
       if (type === 'ERROR_HANDLER') return {actionScript: ''}
-      if (type === 'RETRY') return {
-        actionScript: '',
-        maxAttempts: 3,
-        delayAmount: 5,
-        delayUnit: 'MINUTES',
-        multiplier: 2
+      if (type === 'RETRY') {
+        return {
+          actionScript: '',
+          maxAttempts: 3,
+          delayAmount: 5,
+          delayUnit: 'MINUTES',
+          multiplier: 2
+        }
       }
-      if (type === 'ESCALATE') return {
-        supportLineId: this.supportLines[0]?.id || null,
-        priorityName: null,
-        clearAssignee: true,
-        notifyUserId: null,
-        reason: ''
+      if (type === 'ESCALATE') {
+        return {
+          supportLineId: this.supportLines[0]?.id || null,
+          priorityName: null,
+          clearAssignee: true,
+          notifyUserId: null,
+          reason: ''
+        }
       }
-      if (type === 'CREATE_TASK') return {
-        title: 'Связанная заявка',
-        description: '',
-        typeId: null,
-        serviceId: null,
-        priorityName: null,
-        supportLineId: null,
-        resultVariable: 'createdTaskId'
+      if (type === 'CREATE_TASK') {
+        return {
+          title: 'Связанная заявка',
+          description: '',
+          typeId: null,
+          serviceId: null,
+          priorityName: null,
+          supportLineId: null,
+          resultVariable: 'createdTaskId'
+        }
       }
       if (type === 'NOTIFY') return {channel: 'CLIENT', userId: null, text: ''}
       if (type === 'BUSINESS_HOURS') return {}
       if (type === 'THROTTLE') return {scope: 'TASK', customKey: '', amount: 30, unit: 'MINUTES'}
-      if (type === 'DEDUPLICATE') return {
-        windowMinutes: 120, typeId: null, titleMode: 'CURRENT', title: '', resultVariable: 'duplicateTaskId'
+      if (type === 'DEDUPLICATE') {
+        return {
+          windowMinutes: 120, typeId: null, titleMode: 'CURRENT', title: '', resultVariable: 'duplicateTaskId'
+        }
       }
       if (type === 'NOTE') return {text: ''}
       if (type === 'END') return {result: 'Сценарий завершён'}
@@ -1974,19 +2062,23 @@ export default {
 
     conditionOperatorOptions(condition) {
       const kind = this.conditionMeta(condition.field).kind
-      if (kind === 'tag') return [
-        {label: 'содержит', value: 'has_tag'},
-        {label: 'не содержит', value: 'no_tag'}
-      ]
-      if (kind === 'text') return [
-        {label: 'содержит', value: 'contains'},
-        {label: 'не содержит', value: 'not_contains'},
-        {label: 'равно', value: 'equals'},
-        {label: 'не равно', value: 'not_equals'},
-        {label: 'начинается с', value: 'starts_with'},
-        {label: 'заканчивается на', value: 'ends_with'},
-        {label: 'регулярное выражение', value: 'matches'}
-      ]
+      if (kind === 'tag') {
+        return [
+          {label: 'содержит', value: 'has_tag'},
+          {label: 'не содержит', value: 'no_tag'}
+        ]
+      }
+      if (kind === 'text') {
+        return [
+          {label: 'содержит', value: 'contains'},
+          {label: 'не содержит', value: 'not_contains'},
+          {label: 'равно', value: 'equals'},
+          {label: 'не равно', value: 'not_equals'},
+          {label: 'начинается с', value: 'starts_with'},
+          {label: 'заканчивается на', value: 'ends_with'},
+          {label: 'регулярное выражение', value: 'matches'}
+        ]
+      }
       return [
         {label: 'равно', value: 'equals'},
         {label: 'не равно', value: 'not_equals'}
@@ -1997,17 +2089,19 @@ export default {
       const meta = this.conditionMeta(condition.field)
       let options = []
       if (meta.source === 'taskTypes') options = this.toOptions(this.taskTypes, item => item.type || item.name)
-      if (meta.source === 'services') options = this.toOptions(this.services, item => [item.code, item.name].filter(Boolean).join(' · '))
+      if (meta.source === 'services') options = this.toOptions(this.services, item => serviceLabelWithOrganizations(item, this.services))
       if (meta.source === 'priorities') options = this.toOptions(this.priorities, item => item.name)
       if (meta.source === 'statuses') options = this.toOptions(this.statuses, item => item.name)
       if (meta.source === 'supportLines') options = this.toOptions(this.supportLines, item => item.name)
       if (meta.source === 'users') options = this.userOptions()
       if (meta.source === 'organizations') options = this.toOptions(this.organizations, item => item.name)
       if (meta.source === 'tags') options = this.toOptions(this.tags, item => item.name, item => item.name)
-      if (meta.kind === 'boolean' || meta.kind === 'function-boolean') return [
-        {label: 'Да', value: true},
-        {label: 'Нет', value: false}
-      ]
+      if (meta.kind === 'boolean' || meta.kind === 'function-boolean') {
+        return [
+          {label: 'Да', value: true},
+          {label: 'Нет', value: false}
+        ]
+      }
       if (meta.kind === 'nullable-entity') return [{label: 'Не назначено', value: '__NULL__'}, ...options]
       return options
     },
@@ -2260,7 +2354,7 @@ export default {
       const spec = this.operationCatalog.find(operation => operation.id === id)
       node.type = 'OPERATION'
       node.label = label || spec?.label || 'Шаг сценария'
-      node.config = spec ? operationConfig(spec) : {operation: id, arguments: {}, resultVariable: '', background: false}
+      node.config = spec ? operationConfig(spec) : {operation: id, arguments: {}, resultVariable: '', background: id === 'ai.generate'}
       node.config.arguments = {...node.config.arguments, ...args}
       return node
     },
@@ -2289,11 +2383,16 @@ export default {
       const assign = this.configureOperation(createNode('OPERATION', 1570, 70), 'task.assignLeastLoaded',
         {taskId: '=task.id', lineId: this.supportLines[0]?.id || null})
       const end = createNode('END', 2000, 230, {result: 'Контроль SLA завершён'})
-      return {version: 3, entryNodeId: event.id, nodes: [event, tag, delay, condition, assign, end], edges: [
-        createEdge(event.id, tag.id, 'next'), createEdge(tag.id, delay.id, 'success'), createEdge(tag.id, end.id, 'error'),
-        createEdge(delay.id, condition.id, 'next'), createEdge(condition.id, assign.id, 'true'), createEdge(condition.id, end.id, 'false'),
-        createEdge(assign.id, end.id, 'success'), createEdge(assign.id, end.id, 'error')
-      ]}
+      return {
+        version: 3,
+        entryNodeId: event.id,
+        nodes: [event, tag, delay, condition, assign, end],
+        edges: [
+          createEdge(event.id, tag.id, 'next'), createEdge(tag.id, delay.id, 'success'), createEdge(tag.id, end.id, 'error'),
+          createEdge(delay.id, condition.id, 'next'), createEdge(condition.id, assign.id, 'true'), createEdge(condition.id, end.id, 'false'),
+          createEdge(assign.id, end.id, 'success'), createEdge(assign.id, end.id, 'error')
+        ]
+      }
     },
 
     reopenTemplate() {
@@ -2404,7 +2503,7 @@ export default {
 
 <style scoped>
 .flow-editor {
-  min-height: 650px;
+  min-height: 490px;
   border: 1px solid #d9dce3;
   border-radius: 10px;
   overflow: hidden;
@@ -2434,8 +2533,8 @@ export default {
   display: grid;
   grid-template-columns: 245px minmax(500px, 1fr) 360px;
   grid-template-rows: minmax(0, 1fr);
-  height: calc(100vh - 250px);
-  min-height: 620px;
+  height: calc(100vh - 235px);
+  min-height: 440px;
 }
 
 .flow-main--no-palette {
@@ -2766,9 +2865,16 @@ export default {
   box-shadow: 0 8px 22px rgba(32, 37, 48, .14);
 }
 
-.flow-node--selected {
+.flow-node.flow-node--selected {
+  z-index: 3;
   border-color: var(--q-primary);
-  box-shadow: 0 0 0 2px rgba(93, 61, 255, .16), 0 9px 24px rgba(32, 37, 48, .16);
+  outline: 3px solid var(--q-primary);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 9px rgba(93, 61, 255, .16), 0 12px 30px rgba(32, 37, 48, .22);
+}
+
+.flow-node--selected .flow-node-header {
+  background: #eee9ff;
 }
 
 .flow-node--event {

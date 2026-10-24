@@ -11,7 +11,6 @@
         <q-btn
           v-if="activeTab === 'lines'"
           unelevated
-          no-caps
           color="primary"
           icon="add"
           label="Добавить линию"
@@ -183,9 +182,9 @@
               </q-card-section>
 
               <q-card-actions align="right">
-                <q-btn flat label="Очистить" no-caps @click="resetRoutingForm"/>
-                <q-btn flat color="primary" icon="content_copy" label="Копировать" no-caps @click="copyRoutingPreview"/>
-                <q-btn color="primary" icon="save" label="Сохранить черновик" no-caps @click="saveRoutingDraft"/>
+                <q-btn flat label="Очистить" @click="resetRoutingForm"/>
+                <q-btn flat color="primary" icon="content_copy" label="Копировать" @click="copyRoutingPreview"/>
+                <q-btn color="primary" icon="save" label="Сохранить черновик" @click="saveRoutingDraft"/>
               </q-card-actions>
             </q-card>
           </div>
@@ -204,7 +203,6 @@
                   color="primary"
                   icon="account_tree"
                   label="Открыть автоматизации"
-                  no-caps
                   @click="openAutomations"
                 />
               </q-card-section>
@@ -427,7 +425,6 @@
         <q-btn
           v-if="!isNew"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"

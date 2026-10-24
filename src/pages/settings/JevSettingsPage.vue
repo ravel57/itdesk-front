@@ -12,7 +12,6 @@
       <div class="settings-content-actions">
         <q-btn
           outline
-          no-caps
           color="primary"
           icon="query_stats"
           label="Журнал решений"
@@ -25,6 +24,8 @@
 
     <jev-decision-log v-model="decisionLogOpen"/>
 
+    <operator-hint-stats v-if="$can('AUTOMATION_MANAGE')" class="q-mb-md"/>
+
     <q-card flat bordered class="settings-card">
       <q-card-section class="settings-block">
         <div class="text-subtitle1">Настройка автоматизаций</div>
@@ -35,7 +36,6 @@
         </div>
         <q-btn
           flat
-          no-caps
           color="primary"
           icon="account_tree"
           label="Открыть автоматизации"
@@ -49,11 +49,12 @@
 
 <script>
 import JevDecisionLog from 'components/jev/JevDecisionLog.vue'
+import OperatorHintStats from 'components/jev/OperatorHintStats.vue'
 
 export default {
   name: 'JevSettingsPage',
 
-  components: { JevDecisionLog },
+  components: { JevDecisionLog, OperatorHintStats },
 
   data () {
     return {

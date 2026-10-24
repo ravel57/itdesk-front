@@ -10,7 +10,6 @@
       <div class="settings-content-actions">
         <q-btn
           unelevated
-          no-caps
           color="primary"
           icon="add"
           label="Добавить шаблон"
@@ -104,7 +103,6 @@
         <q-btn
           v-if="!this.isNewTemplate"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"

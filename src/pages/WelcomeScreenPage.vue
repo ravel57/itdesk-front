@@ -48,7 +48,7 @@
           <div class="welcome-step__description">
             {{ inviteMessage || 'Ссылка устарела или уже использована. Обратитесь к администратору за новым приглашением.' }}
           </div>
-          <q-btn color="primary" unelevated no-caps label="На страницу входа" to="/login"/>
+          <q-btn color="primary" unelevated label="На страницу входа" to="/login"/>
         </div>
       </template>
 
@@ -117,7 +117,6 @@
           v-if="notificationPermission !== 'granted'"
           color="primary"
           unelevated
-          no-caps
           label="Разрешить уведомления"
           @click="requestNotifications"
         />
@@ -147,11 +146,11 @@
         <div class="welcome-step__description">
           Выберите, какие поля показывать в карточке заявки, и перетащите их в удобном порядке.
         </div>
-        <task-card-configurator/>
+        <task-card-configurator compact/>
         <q-banner
           rounded
           dense
-          class="welcome-settings-hint bg-blue-1 text-primary q-mt-md"
+          class="welcome-settings-hint bg-blue-1 text-primary q-mt-sm"
         >
           <template v-slot:avatar>
             <q-icon name="info" color="primary"/>
@@ -171,7 +170,6 @@
             :outline="onboardingWanted !== true"
             :unelevated="onboardingWanted === true"
             :color="onboardingWanted === true ? 'primary' : 'grey-6'"
-            no-caps
             label="Нужен онбординг"
             icon="school"
             @click="onboardingWanted = true"
@@ -180,7 +178,6 @@
             :outline="onboardingWanted !== false"
             :unelevated="onboardingWanted === false"
             :color="onboardingWanted === false ? 'primary' : 'grey-6'"
-            no-caps
             label="Не нужен онбординг"
             icon="block"
             @click="onboardingWanted = false"
@@ -195,7 +192,6 @@
           <q-btn
             color="primary"
             unelevated
-            no-caps
             label="Далее"
             :loading="inviteSubmitting"
             @click="submitInvitePassword"
@@ -205,7 +201,6 @@
           <q-btn
             color="primary"
             unelevated
-            no-caps
             :label="isLastStep ? 'Готово' : 'Далее'"
             @click="isLastStep ? finish() : nextStep()"
           />
@@ -641,6 +636,10 @@ export default {
   font-size: 13px;
   color: #6a6a70;
   margin-top: 2px;
+}
+
+.welcome-step--wide .welcome-step__description {
+  margin-bottom: 12px;
 }
 
 .welcome-onboarding-choice {

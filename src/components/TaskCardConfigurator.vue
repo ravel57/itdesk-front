@@ -4,9 +4,10 @@
       <q-list
         bordered
         class="rounded-borders settings-row-list"
+        :class="{ 'task-card-configurator--compact': this.compact }"
         separator
       >
-        <q-item header class="text-bold">
+        <q-item v-if="!this.compact" header class="text-bold">
           Поля карточки
         </q-item>
         <draggable
@@ -30,6 +31,7 @@
               <q-item-section side>
                 <q-toggle
                   v-model="element.enabled"
+                  :dense="this.compact"
                   color="primary"
                   @update:model-value="this.persist"
                 />
@@ -45,7 +47,6 @@
         <q-btn
           flat
           dense
-          no-caps
           color="primary"
           icon="restart_alt"
           label="Сбросить"
@@ -94,6 +95,14 @@ export default {
 
   components: { draggable },
 
+  props: {
+    // Плотный вид без шапки списка — для экранов, где важно уместить всё без прокрутки
+    compact: {
+      type: Boolean,
+      default: false
+    }
+  },
+
   data: () => ({
     items: []
   }),
@@ -132,6 +141,11 @@ export default {
 <style scoped>
 .list-group-item:hover {
   background-color: #f3f3f5;
+}
+
+.task-card-configurator--compact .list-group-item {
+  min-height: 32px;
+  padding: 0 16px;
 }
 
 .task-card-preview {

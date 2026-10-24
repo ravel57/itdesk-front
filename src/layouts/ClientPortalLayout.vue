@@ -21,8 +21,21 @@
         </div>
         <q-btn flat round icon="settings" aria-label="Настройки">
           <q-tooltip>Настройки</q-tooltip>
-          <q-menu anchor="bottom right" self="top right">
-            <q-list style="min-width: 200px">
+          <q-menu anchor="bottom right" self="top right" @before-show="refreshNotificationPermission">
+            <q-list style="min-width: 260px; max-width: 340px">
+              <q-item>
+                <q-item-section>
+                  <q-toggle :model-value="notificationsEnabled" label="Уведомления об ответах поддержки"
+                            :disable="!profile || notificationsSaving" @update:model-value="setNotifications"/>
+                  <q-item-label caption class="q-px-sm">О новых сообщениях, когда вкладка портала неактивна.</q-item-label>
+                  <q-item-label v-if="notificationPermission === 'denied'" caption class="q-px-sm text-warning">Уведомления заблокированы браузером. Разрешите их в настройках сайта.</q-item-label>
+                  <q-item-label v-else-if="notificationPermission === 'unsupported'" caption class="q-px-sm">Этот браузер не поддерживает уведомления. Для них требуется HTTPS или localhost.</q-item-label>
+                  <q-btn v-else-if="notificationsEnabled && notificationPermission !== 'granted'" flat dense color="primary"
+                         label="Разрешить в этом браузере" :loading="notificationsSaving" @click="setNotifications(true)"/>
+                  <q-spinner v-if="notificationsSaving" color="primary" size="18px" class="q-ml-sm q-mt-xs"/>
+                </q-item-section>
+              </q-item>
+              <q-separator/>
               <q-item clickable v-close-popup @click="openPasswordDialog">
                 <q-item-section avatar>
                   <q-icon name="password" color="primary"/>
@@ -40,7 +53,8 @@
     </q-header>
 
     <q-page-container>
-      <router-view @profile-loaded="profile = $event" />
+      <router-view :notifications-enabled="notificationsEnabled" @profile-loaded="profile = $event"
+                   @notification-settings-changed="applyNotificationSettings"/>
     </q-page-container>
 
     <q-dialog v-model="passwordDialogOpen" persistent>
@@ -115,6 +129,7 @@
 <script>
 import axios from 'axios'
 import LogoComponent from 'components/Logo.vue'
+import { useSystemNotifications } from 'src/composables/useSystemNotifications'
 
 export default {
   name: 'ClientPortalLayout',
@@ -127,10 +142,15 @@ export default {
     newPasswordConfirm: '',
     showNewPassword: false,
     showPasswordConfirm: false,
-    passwordSaving: false
+    passwordSaving: false,
+    notificationsSaving: false,
+    notificationPermission: useSystemNotifications().permission()
   }),
 
   computed: {
+    notificationsEnabled () {
+      return this.profile?.notificationsEnabled === true
+    },
     displayName () {
       const name = `${this.profile?.firstname || ''} ${this.profile?.lastname || ''}`.trim()
       return name || this.profile?.clientName || 'Клиент'
@@ -145,6 +165,43 @@ export default {
   },
 
   methods: {
+    refreshNotificationPermission () {
+      this.notificationPermission = useSystemNotifications().permission()
+    },
+
+    applyNotificationSettings (settings) {
+      if (this.profile && typeof settings?.notificationsEnabled === 'boolean') {
+        this.profile = { ...this.profile, notificationsEnabled: settings.notificationsEnabled }
+      }
+    },
+
+    async setNotifications (enabled) {
+      if (this.notificationsSaving || !this.profile) return
+      this.notificationsSaving = true
+      const previous = this.notificationsEnabled
+      try {
+        if (enabled) {
+          this.notificationPermission = await useSystemNotifications().requestPermission()
+          if (this.notificationPermission !== 'granted') {
+            this.$q.notify({
+              type: 'info',
+              message: this.notificationPermission === 'denied'
+                ? 'Разрешите уведомления в настройках браузера для этого сайта'
+                : 'Браузер не разрешил показ уведомлений'
+            })
+            return
+          }
+        }
+        this.applyNotificationSettings({ notificationsEnabled: enabled })
+        const { data } = await axios.put('/api/v1/portal/notifications', { notificationsEnabled: enabled })
+        this.applyNotificationSettings(data)
+      } catch (error) {
+        this.applyNotificationSettings({ notificationsEnabled: previous })
+        this.$q.notify({ type: 'negative', message: 'Не удалось сохранить настройку уведомлений' })
+      } finally {
+        this.notificationsSaving = false
+      }
+    },
     requiredPasswordRule (value) {
       return Boolean(String(value || '').length) || 'Обязательное поле'
     },

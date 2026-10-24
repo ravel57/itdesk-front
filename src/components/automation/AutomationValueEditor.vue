@@ -40,7 +40,7 @@
                                  :entity-options="fieldOptions.find(f => f.value === key)?.options || []"
                                  @update:model-value="replace(key, $event)" @change="$emit('change')"/>
       </div>
-      <q-btn flat dense no-caps icon="add" :label="kind === 'object' ? 'Добавить поле' : 'Добавить элемент'"
+      <q-btn flat dense icon="add" :label="kind === 'object' ? 'Добавить поле' : 'Добавить элемент'"
              @click="add"/>
     </q-expansion-item>
   </div>

@@ -11,7 +11,6 @@
       <div class="settings-content-actions">
         <q-btn
           flat
-          no-caps
           icon="description"
           label="Swagger"
           href="/swagger-ui.html"
@@ -89,7 +88,6 @@
 
           <q-btn
             unelevated
-            no-caps
             color="primary"
             icon="key"
             label="Сгенерировать JWT"
@@ -116,7 +114,6 @@
         <div class="col-auto row q-gutter-sm">
           <q-btn
             outline
-            no-caps
             color="primary"
             icon="content_copy"
             label="Копировать"
@@ -125,7 +122,6 @@
           <q-btn
             v-if="tokenId"
             outline
-            no-caps
             color="negative"
             icon="block"
             label="Отозвать"
@@ -167,7 +163,6 @@
           </q-btn>
           <q-btn
             outline
-            no-caps
             color="negative"
             icon="block"
             label="Отозвать все активные"
@@ -240,7 +235,6 @@
               v-if="props.row.active"
               flat
               dense
-              no-caps
               color="negative"
               icon="block"
               label="Отозвать"
@@ -267,7 +261,6 @@
           </q-btn>
           <q-btn
             outline
-            no-caps
             color="primary"
             icon="autorenew"
             label="Ротировать ключ"

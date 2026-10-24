@@ -34,7 +34,7 @@
                     emit-value map-options @update:model-value="loadIncidents"/>
         </div>
         <div class="col-12 col-md-3">
-          <q-select v-model="filters.serviceIds" dense outlined multiple clearable use-chips :options="serviceOptions"
+          <q-select v-model="filters.serviceIds" dense outlined multiple clearable use-chips :options="filteredOptions('serviceOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'serviceOptions')"
                     label="Сервисы" emit-value map-options @update:model-value="loadIncidents"/>
         </div>
         <div class="col-6 col-md-auto">
@@ -53,7 +53,10 @@
       :rows="incidents"
       :columns="columns"
       :loading="loading"
-      :pagination="pagination"
+      v-model:pagination="pagination"
+      :rows-per-page-options="[10, 20, 30, 50, 100]"
+      rows-per-page-label="Строк на странице"
+      :pagination-label="paginationLabel"
       @request="onRequest"
       @row-click="openIncident"
       class="incident-table"
@@ -101,40 +104,153 @@
     </q-table>
 
     <q-dialog v-model="createDialog" persistent>
-      <q-card style="width: 760px; max-width: 96vw">
+      <q-card class="incident-wizard">
         <q-toolbar>
           <q-toolbar-title>Новый инцидент</q-toolbar-title>
           <q-btn flat round dense icon="close" v-close-popup/>
         </q-toolbar>
-        <q-card-section class="incident-form">
-          <q-input v-model="form.title" outlined label="Название *"
-                   :rules="[v => !!String(v || '').trim() || 'Обязательное поле']"/>
-          <div class="incident-form__pair">
-            <q-select v-model="form.severity" outlined :options="severityOptions" emit-value map-options
-                      label="Критичность"/>
-            <q-select v-model="form.status" outlined :options="statusOptions" emit-value map-options label="Статус"/>
-          </div>
-          <q-select v-model="form.serviceIds" outlined multiple clearable use-chips :options="serviceOptions" emit-value
-                    map-options label="Затронутые сервисы"/>
-          <q-input v-model="form.description" outlined type="textarea" autogrow label="Описание"/>
-          <q-input v-model="form.impactSummary" outlined type="textarea" autogrow label="Влияние"/>
-          <div class="incident-form__pair">
-            <q-select v-model="form.leaderId" outlined clearable :options="userOptions" emit-value map-options
-                      label="Руководитель инцидента"/>
-            <q-select v-model="form.supportLineId" outlined clearable :options="supportLineOptions" emit-value
-                      map-options label="Линия поддержки"/>
-          </div>
-          <q-select v-model="form.organizationIds" outlined multiple clearable :options="organizationOptions" emit-value
-                    map-options use-chips label="Затронутые организации" class="organization-select"
-                    popup-content-class="organization-select-popup"/>
-          <q-select v-model="form.participantIds" outlined multiple clearable :options="userOptions" emit-value
-                    map-options use-chips label="Участники"/>
-          <q-input v-model.number="form.updateIntervalMinutes" outlined type="number" min="5"
-                   label="Интервал обязательных обновлений, минут"/>
-        </q-card-section>
-        <q-card-actions align="right" class="incident-form__actions">
-          <q-btn flat label="Отмена" v-close-popup/>
-          <q-btn color="primary" label="Создать" :loading="saving" @click="createIncident"/>
+
+        <q-stepper v-model="wizardStep" flat animated alternative-labels :contracted="$q.screen.lt.sm"
+                   active-color="primary" done-color="primary" class="incident-wizard__stepper">
+          <q-step :name="1" title="Суть" icon="edit" :done="wizardStep > 1">
+            <div class="incident-wizard__hint">
+              Коротко опишите, что случилось. Название увидят все, кто будет работать с инцидентом, поэтому
+              пишите так, чтобы суть была понятна с первого взгляда.
+            </div>
+            <div class="incident-wizard__fields">
+              <q-input v-model="form.title" outlined autofocus label="Название *"
+                       hint="Например: «Не работает почта у всех пользователей»"
+                       :error="titleError" error-message="Укажите название инцидента"
+                       @update:model-value="titleError = false"/>
+              <q-input v-model="form.description" outlined type="textarea" autogrow
+                       label="Описание" hint="Что происходит технически. Можно заполнить позже"/>
+              <q-input v-model="form.publicDescription" outlined type="textarea" autogrow
+                       label="Публичное описание"
+                       hint="Текст для клиентов: без технических подробностей. Можно заполнить позже"/>
+            </div>
+          </q-step>
+
+          <q-step :name="2" title="Серьёзность" icon="priority_high" :done="wizardStep > 2">
+            <div class="incident-wizard__hint">
+              Критичность задаёт приоритет работ, статус показывает, на каком этапе инцидент. Если сбой ещё не
+              подтверждён, оставьте статус «Черновик» — его можно сменить позже.
+            </div>
+            <div class="incident-wizard__fields">
+              <div class="incident-form__pair">
+                <q-select v-model="form.severity" outlined :options="severityOptions" emit-value map-options
+                          label="Критичность" :hint="severityHint"/>
+                <q-select v-model="form.status" outlined :options="statusOptions" emit-value map-options
+                          label="Статус"/>
+              </div>
+              <q-select v-model="form.serviceIds" outlined multiple clearable use-chips :options="filteredOptions('serviceOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'serviceOptions')"
+                        emit-value map-options label="Затронутые сервисы"
+                        hint="Какие сервисы не работают или работают с перебоями"/>
+            </div>
+          </q-step>
+
+          <q-step :name="3" title="Масштаб" icon="groups" :done="wizardStep > 3">
+            <div class="incident-wizard__hint">
+              Опишите, как инцидент сказывается на клиентах, и отметьте организации, которых он касается.
+              По ним видно масштаб проблемы и кому нужно сообщать об обновлениях.
+            </div>
+            <div class="incident-wizard__fields">
+              <q-input v-model="form.impactSummary" outlined type="textarea" autogrow label="Влияние"
+                       hint="Например: «Клиенты не могут отправлять и получать письма»"/>
+              <q-input v-model="form.workaround" outlined type="textarea" autogrow label="Обходное решение"
+                       hint="Если проблему можно временно обойти — опишите как, чтобы поддержка подсказывала это клиентам"/>
+              <q-select v-model="form.organizationIds" outlined multiple clearable :options="filteredOptions('organizationOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'organizationOptions')"
+                        emit-value map-options use-chips label="Затронутые организации"
+                        class="organization-select" popup-content-class="organization-select-popup"/>
+            </div>
+          </q-step>
+
+          <q-step :name="4" title="Время" icon="schedule" :done="wizardStep > 4">
+            <div class="incident-wizard__hint">
+              Укажите, когда сбой начался на самом деле и когда его заметили. По этим датам считаются метрики
+              инцидента (например, время обнаружения). Если точное время неизвестно — оставьте поля пустыми
+              и заполните позже.
+            </div>
+            <div class="incident-wizard__fields">
+              <div class="incident-form__pair incident-wizard__dates">
+                <div class="incident-wizard__date">
+                  <div class="incident-wizard__date-title">Фактическое начало</div>
+                  <q-btn-toggle v-model="dateModes.actualStartedAt" unelevated dense
+                                toggle-color="primary" color="grey-3" text-color="grey-8" class="incident-wizard__toggle"
+                                :options="dateModeOptions"/>
+                  <q-input v-if="dateModes.actualStartedAt === 'custom'" v-model="form.actualStartedAt" outlined
+                           stack-label type="datetime-local" label="Когда сбой действительно начался"/>
+                  <div v-else class="incident-wizard__date-note">{{ dateModeNote(dateModes.actualStartedAt, 'начался') }}</div>
+                </div>
+                <div class="incident-wizard__date">
+                  <div class="incident-wizard__date-title">Обнаружен</div>
+                  <q-btn-toggle v-model="dateModes.detectedAt" unelevated dense
+                                toggle-color="primary" color="grey-3" text-color="grey-8" class="incident-wizard__toggle"
+                                :options="dateModeOptions"/>
+                  <q-input v-if="dateModes.detectedAt === 'custom'" v-model="form.detectedAt" outlined
+                           stack-label type="datetime-local" label="Когда о сбое узнали"
+                           :error="detectedError" error-message="Не может быть раньше фактического начала"
+                           @update:model-value="detectedError = false"/>
+                  <div v-else class="incident-wizard__date-note">{{ dateModeNote(dateModes.detectedAt, 'о сбое узнали') }}</div>
+                </div>
+              </div>
+            </div>
+          </q-step>
+
+          <q-step :name="5" title="Команда" icon="support_agent" :done="wizardStep > 5">
+            <div class="incident-wizard__hint">
+              Руководитель отвечает за инцидент целиком. Технический ответственный занимается диагностикой и
+              устранением, ответственный за коммуникации публикует обновления для клиентов. Линия поддержки и
+              участники — остальные, кто будет работать над инцидентом. Всё это можно изменить в карточке.
+            </div>
+            <div class="incident-wizard__fields">
+              <div class="incident-form__pair">
+                <q-select v-model="form.leaderId" outlined clearable :options="filteredOptions('userOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value map-options
+                          label="Руководитель инцидента"/>
+                <q-select v-model="form.supportLineId" outlined clearable :options="supportLineOptions" emit-value
+                          map-options label="Линия поддержки"/>
+              </div>
+              <div class="incident-form__pair">
+                <q-select v-model="form.technicalOwnerId" outlined clearable :options="filteredOptions('userOptions')"
+                          use-input input-debounce="0"
+                          @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value map-options
+                          label="Технический ответственный" hint="Отвечает за диагностику и устранение"/>
+                <q-select v-model="form.communicationOwnerId" outlined clearable
+                          :options="filteredOptions('userOptions')" use-input input-debounce="0"
+                          @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value map-options
+                          label="Ответственный за коммуникации" hint="Публикует обновления для клиентов"/>
+              </div>
+              <q-select v-model="form.participantIds" outlined multiple clearable :options="filteredOptions('userOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value
+                        map-options use-chips label="Участники"/>
+            </div>
+          </q-step>
+
+          <q-step :name="6" title="Проверка" icon="fact_check">
+            <div class="incident-wizard__hint">
+              Задайте, как часто нужно публиковать обновления по инциденту: если срок пройдёт, в списке появится
+              отметка о просрочке. Проверьте данные и создайте инцидент — остальное можно дополнить в его карточке.
+            </div>
+            <div class="incident-wizard__fields">
+              <q-input v-model.number="form.updateIntervalMinutes" outlined type="number" min="5"
+                       label="Интервал обязательных обновлений, минут" hint="Не меньше 5 минут"/>
+              <q-list bordered separator class="rounded-borders incident-wizard__summary">
+                <q-item v-for="row in summaryRows" :key="row.label">
+                  <q-item-section class="incident-wizard__summary-label">{{ row.label }}</q-item-section>
+                  <q-item-section class="text-weight-medium">{{ row.value }}</q-item-section>
+                </q-item>
+              </q-list>
+            </div>
+          </q-step>
+        </q-stepper>
+
+        <q-card-actions class="incident-wizard__actions">
+          <div class="text-caption text-grey-7">Шаг {{ wizardStep }} из {{ wizardStepsCount }}</div>
+          <q-space/>
+          <q-btn v-if="wizardStep === 1" flat label="Отмена" v-close-popup/>
+          <q-btn v-else flat icon="arrow_back" label="Назад" @click="prevWizardStep"/>
+          <q-btn v-if="wizardStep < wizardStepsCount" color="primary" icon-right="arrow_forward"
+                 label="Далее" @click="nextWizardStep"/>
+          <q-btn v-else color="primary" icon="check" label="Создать инцидент" :loading="saving"
+                 @click="createIncident"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -179,6 +295,7 @@ import axios from 'axios'
 import {useStore} from 'stores/store'
 import {onIncidentUpdated} from 'src/util/ws'
 import {isStaff} from 'src/util/access'
+import {serviceOrganizationsLabel} from 'src/util/serviceOrganizations'
 
 export default {
   name: 'IncidentsPage',
@@ -189,7 +306,13 @@ export default {
     loading: false,
     saving: false,
     createDialog: false,
+    wizardStep: 1,
+    wizardStepsCount: 6,
+    titleError: false,
+    detectedError: false,
+    dateModes: {actualStartedAt: 'none', detectedAt: 'none'},
     helpDialog: false,
+    optionFilters: {},
     users: [],
     organizations: [],
     supportLines: [],
@@ -242,6 +365,39 @@ export default {
       }))
     },
 
+    dateModeOptions() {
+      return [
+        {label: 'Не указывать', value: 'none'},
+        {label: 'Только что', value: 'now'},
+        {label: 'Указать время', value: 'custom'}
+      ]
+    },
+
+    severityHint() {
+      return {
+        P1: 'P1 — критично: ключевой сервис недоступен для большинства',
+        P2: 'P2 — серьёзно: заметная деградация или недоступна часть функций',
+        P3: 'P3 — средне: проблема затрагивает часть пользователей',
+        P4: 'P4 — низкая: незначительные неудобства'
+      }[this.form.severity] || ''
+    },
+
+    summaryRows() {
+      const optionLabel = (options, value) => options.find(option => option.value === value)?.label
+      const dash = '—'
+      return [
+        {label: 'Название', value: this.form.title || dash},
+        {
+          label: 'Критичность и статус',
+          value: `${this.form.severity || dash} · ${optionLabel(this.statusOptions, this.form.status) || dash}`
+        },
+        {label: 'Сервисов затронуто', value: (this.form.serviceIds || []).length},
+        {label: 'Организаций затронуто', value: (this.form.organizationIds || []).length},
+        {label: 'Руководитель', value: optionLabel(this.userOptions, this.form.leaderId) || dash},
+        {label: 'Участников', value: (this.form.participantIds || []).length}
+      ]
+    },
+
     supportLineOptions() {
       return this.supportLines.filter(line => line.active !== false).map(line => ({value: line.id, label: line.name}))
     }
@@ -265,10 +421,29 @@ export default {
   },
 
   methods: {
+    // Поиск по выпадающим спискам: вводим часть названия — список сужается
+    filterOptions(value, update, name) {
+      update(() => {
+        this.optionFilters = {...this.optionFilters, [name]: String(value || '').toLowerCase().trim()}
+      })
+    },
+
+    filteredOptions(name) {
+      const options = this[name] || []
+      const needle = this.optionFilters[name]
+      return needle ? options.filter(option => String(option.label).toLowerCase().includes(needle)) : options
+    },
+
     resetForm() {
       this.form = {
         title: '',
         description: '',
+        publicDescription: '',
+        workaround: '',
+        actualStartedAt: '',
+        detectedAt: '',
+        technicalOwnerId: null,
+        communicationOwnerId: null,
         impactSummary: '',
         serviceIds: [],
         severity: 'P3',
@@ -307,6 +482,12 @@ export default {
       }
     },
 
+    paginationLabel(firstRowIndex, endRowIndex, totalRowsNumber) {
+      return totalRowsNumber > 0
+        ? `${firstRowIndex}–${endRowIndex} из ${totalRowsNumber}`
+        : 'Нет записей'
+    },
+
     onRequest({pagination}) {
       this.pagination.page = pagination.page
       this.pagination.rowsPerPage = pagination.rowsPerPage
@@ -331,14 +512,71 @@ export default {
 
     openCreateDialog() {
       this.resetForm();
+      this.wizardStep = 1
+      this.titleError = false
+      this.detectedError = false
+      this.dateModes = {actualStartedAt: 'none', detectedAt: 'none'}
       this.createDialog = true
     },
 
+    nextWizardStep() {
+      if (this.wizardStep === 1 && !String(this.form.title || '').trim()) {
+        this.titleError = true
+        return
+      }
+      if (this.wizardStep === 4 && this.isDetectedBeforeStarted()) {
+        this.detectedError = true
+        return
+      }
+      this.wizardStep = Math.min(this.wizardStep + 1, this.wizardStepsCount)
+    },
+
+    dateModeNote(mode, what) {
+      if (mode === 'now') return `Время создания инцидента: считаем, что ${what} прямо сейчас`
+      return 'Можно заполнить позже в карточке инцидента'
+    },
+
+    // Дата по выбранному режиму: «сейчас» берётся в момент вызова, «не указывать» — пусто
+    resolveDate(key) {
+      const mode = this.dateModes[key]
+      if (mode === 'now') return new Date().toISOString()
+      if (mode === 'custom') return this.fromLocalInput(this.form[key])
+      return null
+    },
+
+    isDetectedBeforeStarted() {
+      const started = this.resolveDate('actualStartedAt')
+      const detected = this.resolveDate('detectedAt')
+      return Boolean(started && detected && new Date(detected) < new Date(started))
+    },
+
+    // Поле datetime-local отдаёт локальное время без часового пояса — на сервер отправляем ISO
+    fromLocalInput(value) {
+      return value ? new Date(value).toISOString() : null
+    },
+
+    prevWizardStep() {
+      this.wizardStep = Math.max(this.wizardStep - 1, 1)
+    },
+
     async createIncident() {
-      if (!String(this.form.title || '').trim()) return
+      if (!String(this.form.title || '').trim()) {
+        this.wizardStep = 1
+        this.titleError = true
+        return
+      }
+      if (!(Number(this.form.updateIntervalMinutes) >= 5)) {
+        this.$q.notify({type: 'negative', message: 'Интервал обновлений — не меньше 5 минут'})
+        return
+      }
       this.saving = true
       try {
-        const response = await axios.post('/api/v1/incident', this.form)
+        const payload = {
+          ...this.form,
+          actualStartedAt: this.resolveDate('actualStartedAt'),
+          detectedAt: this.resolveDate('detectedAt')
+        }
+        const response = await axios.post('/api/v1/incident', payload)
         this.createDialog = false
         this.goToIncident(response.data?.id)
       } catch (error) {
@@ -351,7 +589,9 @@ export default {
     serviceLabel(service) {
       const code = String(service?.code || '').trim()
       const name = String(service?.name || '').trim()
-      return code && name ? `${code} · ${name}` : (name || code || `Сервис #${service?.id}`)
+      const base = code && name ? `${code} · ${name}` : (name || code || `Сервис #${service?.id}`)
+      const organizations = serviceOrganizationsLabel(service, this.services)
+      return organizations ? `${base} — ${organizations}` : base
     },
 
     userName(user) {
@@ -407,22 +647,75 @@ export default {
   background: rgba(92, 53, 249, 0.05);
 }
 
-.incident-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-top: 8px;
-}
-
 .incident-form__pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-.incident-form__actions {
+.incident-wizard {
+  width: 760px;
+  max-width: 96vw;
+}
+
+.incident-wizard__stepper {
+  box-shadow: none;
+}
+
+.incident-wizard__hint {
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f4f1ff;
+  color: #4a4a4f;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.incident-wizard__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.incident-wizard__dates {
+  align-items: start;
+}
+
+.incident-wizard__date {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.incident-wizard__date-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a4a4f;
+}
+
+.incident-wizard__toggle {
+  align-self: flex-start;
+}
+
+.incident-wizard__date-note {
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px dashed #d0d0d5;
+  border-radius: 4px;
+  color: #8a8a90;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.incident-wizard__summary-label {
+  max-width: 220px;
+  color: #737b89;
+}
+
+.incident-wizard__actions {
   padding: 8px 16px 16px;
-  gap: 4px;
+  gap: 8px;
 }
 
 .incident-help {

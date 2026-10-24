@@ -9,20 +9,18 @@
       </div>
       <div class="settings-content-actions">
         <q-btn
-          unelevated
-          no-caps
-          color="primary"
-          icon="add"
-          label="Добавить пользователя"
-          @click="dialogNewUser"
-        />
-        <q-btn
           flat
-          no-caps
           color="primary"
           icon="admin_panel_settings"
           label="Права ролей"
           @click="openPermissionsDialog"
+        />
+        <q-btn
+          unelevated
+          color="primary"
+          icon="add"
+          label="Добавить пользователя"
+          @click="dialogNewUser"
         />
       </div>
     </div>
@@ -156,7 +154,6 @@
           <div class="col">Пользователь ещё не задал пароль по приглашению</div>
           <q-btn
             flat
-            no-caps
             color="primary"
             label="Отправить повторно"
             :loading="resendingInvite"
@@ -171,7 +168,6 @@
           <div class="col">Двухфакторная аутентификация включена</div>
           <q-btn
             flat
-            no-caps
             color="negative"
             label="Сбросить 2FA"
             @click="resetUserMfa"
@@ -186,7 +182,6 @@
         <q-btn
           v-if="staffUsers.length > 1 && !isNewUser"
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить пользователя"

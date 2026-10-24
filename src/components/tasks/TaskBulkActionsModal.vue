@@ -237,6 +237,7 @@
 import {useStore} from 'stores/store'
 import axios from 'axios'
 import moment from 'moment'
+import {serviceLabelWithOrganizations} from 'src/util/serviceOrganizations'
 
 export default {
 
@@ -1124,7 +1125,7 @@ export default {
         .filter(service => service?.id != null && service.active !== false)
         .map(service => ({
           value: service.id,
-          label: [service.code, service.name].filter(Boolean).join(' · ') || `Сервис ${service.id}`
+          label: serviceLabelWithOrganizations(service, this.store.services)
         }))
         .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
     },

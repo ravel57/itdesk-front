@@ -227,6 +227,11 @@
                   v-html="this.findLinks(message.text)"
                   style="max-width: 400px;"
                 />
+                <operator-hint-feedback
+                  v-if="canRateHints && message.operatorHintId"
+                  :hint="operatorHints[message.operatorHintId] || { id: message.operatorHintId, helpful: null }"
+                  @rated="onHintRated"
+                />
               </div>
             </q-chat-message>
 
@@ -242,7 +247,6 @@
               <q-btn
                 dense
                 flat
-                no-caps
                 size="12px"
                 icon="priority_high"
                 label="Требует ответа"
@@ -253,7 +257,6 @@
               <q-btn
                 dense
                 flat
-                no-caps
                 size="12px"
                 icon="done"
                 label="Не требует ответа"
@@ -494,7 +497,6 @@
           v-if="this.scrollToBottomKey || this.pendingNewMessagesCount > 0 || this.hasTrimmedNewerMessages"
           class="shadow-1 chat-go-latest-btn"
           icon="keyboard_double_arrow_down"
-          no-caps
           dense
           :label="this.getGoToLatestButtonLabel()"
           :style="this.replyMessageId !== null ? 'bottom: 210%;' : 'bottom: 100%;'"
@@ -765,7 +767,6 @@
         />
         <q-btn
           unelevated
-          no-caps
           color="negative"
           icon="delete"
           label="Удалить"
@@ -866,7 +867,6 @@
           <q-btn
             dense
             flat
-            no-caps
             icon="sort"
             :label="fileSortDirection === 'desc' ? 'Сначала новые' : 'Сначала старые'"
             @click="toggleFileSortDirection"
@@ -917,10 +917,13 @@ import {
   getMessageFileSizeError
 } from 'src/util/messageFileUpload'
 import { getClientDisplayName, getClientAvatarAbbreviation } from 'src/util/clientName'
+import OperatorHintFeedback from 'components/chat/OperatorHintFeedback.vue'
 
 export default {
 
   name: 'ChatDialog',
+
+  components: { OperatorHintFeedback },
 
   props: {
     messages: { type: Array },
@@ -1009,6 +1012,9 @@ export default {
   },
 
   data: () => ({
+    // Оценки подсказок Jev по id подсказки; комментарий с подсказкой помечен operatorHintId
+    operatorHints: {},
+    operatorHintsTimer: null,
     textareaHeight: 46,
     isComment: false,
     text: '',
@@ -1084,6 +1090,25 @@ export default {
   },
 
   methods: {
+    loadOperatorHints () {
+      const clientId = this.client?.id
+      if (!this.canRateHints || !clientId) {
+        return
+      }
+      axios.get('/api/v1/operator-hints', { params: { clientId } })
+        .then(({ data }) => {
+          if (Number(this.client?.id) !== Number(clientId)) {
+            return
+          }
+          this.operatorHints = Object.fromEntries((data || []).map(hint => [hint.id, hint]))
+        })
+        .catch(() => undefined)
+    },
+
+    onHintRated (hint) {
+      this.operatorHints = { ...this.operatorHints, [hint.id]: hint }
+    },
+
     nameToPastelHex (name) {
       let hash = 0
       for (let i = 0; i < name.length; i++) {
@@ -2814,6 +2839,18 @@ export default {
   },
 
   computed: {
+    canRateHints () {
+      return !this.portalMode && this.$can('CHAT_REPLY')
+    },
+
+    // Подсказки в ленте: оценки подгружаются, когда в чате есть подсказка, которой ещё нет в списке
+    operatorHintIds () {
+      return (this.messages || [])
+        .map(message => message?.operatorHintId)
+        .filter(Boolean)
+        .join(',')
+    },
+
     isObserverUser () {
       if (this.readOnly) {
         return true
@@ -3033,10 +3070,24 @@ export default {
       }
     },
 
+    operatorHintIds: {
+      immediate: true,
+      handler (ids) {
+        if (!this.canRateHints || !ids) {
+          return
+        }
+        if (ids.split(',').some(id => !this.operatorHints[id])) {
+          clearTimeout(this.operatorHintsTimer)
+          this.operatorHintsTimer = setTimeout(() => this.loadOperatorHints(), 500)
+        }
+      }
+    },
+
     'client.id' (newId, oldId) {
       if (!newId || Number(newId) === Number(oldId)) {
         return
       }
+      this.operatorHints = {}
       // Другой клиент в том же компоненте: следующий список сообщений считаем первой загрузкой
       this.lastKnownLastMessageId = null
       this.lastKnownMessagesLength = 0
@@ -3187,6 +3238,7 @@ export default {
   },
 
   beforeUnmount () {
+    clearTimeout(this.operatorHintsTimer)
     this.stopStickToBottom()
     this.contentResizeObserver?.disconnect()
     const scrollZone = this.getScrollZone()

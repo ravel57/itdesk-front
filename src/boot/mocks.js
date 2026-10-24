@@ -52,7 +52,7 @@ export default boot(() => {
 
     roles: ['ADMIN', 'OPERATOR', 'OBSERVER'],
 
-    // Общие настройки (Настройки → Общее); по умолчанию «Ожидает ответа» считается календарно
+    // Общие настройки (Настройки → Общее); по умолчанию «Требует ответа» считается календарно
     generalSettings: {
       timezone: 'Europe/Moscow',
       workingTimeEnabled: true,
@@ -93,9 +93,15 @@ export default boot(() => {
     ],
 
     services: [
-      {id: 1, name: 'Печать и сканирование'},
-      {id: 2, name: 'Сеть и интернет'},
-      {id: 3, name: 'Почта'}
+      {id: 1, code: 'PRINT', name: 'Печать и сканирование', active: true, assignments: [
+        {id: 1, organization: {id: 1, name: 'ООО Ромашка'}, active: true},
+        {id: 2, organization: {id: 2, name: 'ИП Иванов'}, active: true},
+        {id: 5, organization: {id: 3, name: 'АО Вектор'}, active: true}
+      ]},
+      {id: 2, code: 'NET', name: 'Сеть и интернет', active: true, assignments: [
+        {id: 3, organization: {id: 1, name: 'ООО Ромашка'}, active: true}
+      ]},
+      {id: 3, code: 'MAIL', name: 'Почта', active: true, assignments: []}
     ],
 
     // Задачи для /api/v1/tasks-page (отдельно от db.tasks — там упрощённая форма для чат-эндпоинтов)
@@ -426,7 +432,7 @@ export default boot(() => {
 
     // Счётчики в левом меню: «Заявки» (неоткрытые назначенные) и «Инциденты»
     mock.onGet(withPrefix('\\/tasks\\/unopened-assigned-count')).reply(() => ok({count: 4}))
-    mock.onPost(withPrefix('\\/incidents-page')).reply(() => ok({totalElements: 12, incidents: []}))
+    mock.onPost(withPrefix('\\/incidents-page')).reply(() => ok({totalElements: 4, incidents: [1, 2, 3, 4].map(n => ({id: n, incidentNumber: 'INC-00000' + n, title: 'Демо-инцидент ' + n, severity: 'P2', status: 'DECLARED'}))}))
 
     // PATCH /client/{clientId}/client — редактирование карточки клиента
     mock.onPatch(withPrefix('\\/client\\/(\\d+)\\/client')).reply((config) => {
@@ -515,7 +521,7 @@ export default boot(() => {
     // GET /user/current
     mock.onGet(withPrefix('\\/user\\/current')).reply(() => ok(clone(db.me)))
 
-    // GET/PATCH /settings/general — общие настройки; GET /settings/answer-waiting — как считать «Ожидает ответа»
+    // GET/PATCH /settings/general — общие настройки; GET /settings/answer-waiting — как считать «Требует ответа»
     mock.onGet(withPrefix('\\/settings\\/general')).reply(() => ok(clone(db.generalSettings)))
     mock.onPatch(withPrefix('\\/settings\\/general')).reply((config) => {
       db.generalSettings = {...db.generalSettings, ...JSON.parse(config.data || '{}')}
@@ -581,6 +587,9 @@ export default boot(() => {
     mock.onGet(withPrefix('\\/support-lines')).reply(() => ok(clone(db.supportLines)))
     mock.onGet(withPrefix('\\/task-types')).reply(() => ok(clone(db.taskTypes)))
     mock.onGet(withPrefix('\\/services')).reply(() => ok(clone(db.services)))
+    mock.onGet(withPrefix('\\/organization-service-assignments')).reply(() => ok([]))
+    mock.onGet(withPrefix('\\/zabbix-integrations')).reply(() => ok([]))
+    mock.onGet(withPrefix('\\/service-criticalities')).reply(() => ok([]))
 
     // GET /triggers, /trigger-types/options — автоматизации (несколько демо-правил, чтобы проверять папки)
     if (!db.automationTriggers) {

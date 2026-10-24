@@ -143,7 +143,7 @@
                           </div>
                         </q-card-section>
                         <q-card-actions v-if="preview(ref).data.link" align="right">
-                          <q-btn flat dense no-caps color="primary" icon-right="open_in_new" label="Открыть"
+                          <q-btn flat dense color="primary" icon-right="open_in_new" label="Открыть"
                                  @click="openObject(preview(ref).data.link)"/>
                         </q-card-actions>
                       </template>
@@ -457,7 +457,14 @@ export default {
     formatDate (value) {
       if (!value) return ''
       const date = new Date(value)
-      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('ru-RU')
+      if (Number.isNaN(date.getTime())) return String(value)
+      // Сегодня и вчера — словом вместо числа, остальное — полная дата со временем
+      const dayStart = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+      const daysAgo = Math.round((dayStart(new Date()) - dayStart(date)) / 86400000)
+      const label = daysAgo === 0 ? 'Сегодня' : daysAgo === 1 ? 'Вчера' : null
+      return label
+        ? `${label}, ${date.toLocaleTimeString('ru-RU')}`
+        : date.toLocaleString('ru-RU')
     },
 
     notifyError (error) {

@@ -58,7 +58,7 @@
                             label="Статус" :readonly="!canEdit"/>
                 </div>
                 <div class="col-12 col-md-6">
-                  <q-select v-model="form.serviceIds" outlined multiple use-chips clearable :options="serviceOptions"
+                  <q-select v-model="form.serviceIds" outlined multiple use-chips clearable :options="filteredOptions('serviceOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'serviceOptions')"
                             emit-value map-options label="Затронутые сервисы" :readonly="!canEdit"/>
                 </div>
                 <div class="col-12 col-md-6">
@@ -79,7 +79,7 @@
                 </div>
                 <div class="col-12 col-md-6">
                   <q-select v-model="form.organizationIds" outlined multiple use-chips clearable
-                            :options="organizationOptions" emit-value map-options label="Затронутые организации"
+                            :options="filteredOptions('organizationOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'organizationOptions')" emit-value map-options label="Затронутые организации"
                             class="organization-select" popup-content-class="organization-select-popup"
                             :readonly="!canEdit"/>
                 </div>
@@ -114,11 +114,11 @@
             <q-card flat bordered class="q-mb-md">
               <q-card-section>
                 <div class="text-subtitle1 q-mb-sm">Ответственные</div>
-                <q-select v-model="form.leaderId" outlined clearable :options="userOptions" emit-value map-options
+                <q-select v-model="form.leaderId" outlined clearable :options="filteredOptions('userOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value map-options
                           label="Руководитель" :readonly="!canEdit" class="q-mb-sm"/>
-                <q-select v-model="form.technicalOwnerId" outlined clearable :options="userOptions" emit-value
+                <q-select v-model="form.technicalOwnerId" outlined clearable :options="filteredOptions('userOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value
                           map-options label="Технический ответственный" :readonly="!canEdit" class="q-mb-sm"/>
-                <q-select v-model="form.communicationOwnerId" outlined clearable :options="userOptions" emit-value
+                <q-select v-model="form.communicationOwnerId" outlined clearable :options="filteredOptions('userOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value
                           map-options label="Ответственный за коммуникации" :readonly="!canEdit"/>
               </q-card-section>
             </q-card>
@@ -275,11 +275,11 @@
         <q-card flat bordered>
           <q-card-section class="row q-col-gutter-md">
             <div class="col-12 col-md-6">
-              <q-select v-model="form.participantIds" outlined multiple use-chips :options="userOptions" emit-value
+              <q-select v-model="form.participantIds" outlined multiple use-chips :options="filteredOptions('userOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value
                         map-options label="Участники" :readonly="!canEdit"/>
             </div>
             <div class="col-12 col-md-6">
-              <q-select v-model="form.observerIds" outlined multiple use-chips :options="userOptions" emit-value
+              <q-select v-model="form.observerIds" outlined multiple use-chips :options="filteredOptions('userOptions')" use-input input-debounce="0" @filter="(val, update) => filterOptions(val, update, 'userOptions')" emit-value
                         map-options label="Наблюдатели" :readonly="!canEdit"/>
             </div>
             <div class="col-12">
@@ -357,8 +357,8 @@
         <q-separator/>
 
         <q-card-actions align="right">
-          <q-btn flat no-caps color="primary" label="Отмена" v-close-popup/>
-          <q-btn unelevated no-caps color="primary" label="Опубликовать" :loading="timelineSaving"
+          <q-btn flat color="primary" label="Отмена" v-close-popup/>
+          <q-btn unelevated color="primary" label="Опубликовать" :loading="timelineSaving"
                  @click="addTimelineEntry"/>
         </q-card-actions>
       </q-card>
@@ -374,10 +374,12 @@ import axios from 'axios'
 import {useStore} from 'stores/store'
 import {onIncidentUpdated} from 'src/util/ws'
 import {isStaff} from 'src/util/access'
+import {serviceOrganizationsLabel} from 'src/util/serviceOrganizations'
 
 export default {
   name: 'IncidentDetailPage',
   data: () => ({
+    optionFilters: {},
     store: useStore(),
     incident: null,
     form: {},
@@ -460,7 +462,7 @@ export default {
     },
     serviceDisplay() {
       const services = this.incident?.services || []
-      if (services.length) return services.map(service => this.serviceLabel(service)).join(', ')
+      if (services.length) return services.map(service => this.serviceLabel(service)).join('; ')
       return this.incident?.serviceName || 'Сервис не указан'
     },
     supportLineOptions() {
@@ -492,6 +494,19 @@ export default {
     if (this.incidentUpdatedUnsubscribe) this.incidentUpdatedUnsubscribe()
   },
   methods: {
+    // Поиск по выпадающим спискам: вводим часть названия — список сужается
+    filterOptions(value, update, name) {
+      update(() => {
+        this.optionFilters = {...this.optionFilters, [name]: String(value || '').toLowerCase().trim()}
+      })
+    },
+
+    filteredOptions(name) {
+      const options = this[name] || []
+      const needle = this.optionFilters[name]
+      return needle ? options.filter(option => String(option.label).toLowerCase().includes(needle)) : options
+    },
+
     async loadDictionaries() {
       const results = await Promise.allSettled([axios.get('/api/v1/users'), axios.get('/api/v1/organizations'), axios.get('/api/v1/support-lines'), axios.get('/api/v1/services?includeInactive=true')])
       this.users = results[0].status === 'fulfilled' ? results[0].value.data : []
@@ -671,7 +686,9 @@ export default {
     serviceLabel(service) {
       const code = String(service?.code || '').trim()
       const name = String(service?.name || '').trim()
-      return code && name ? `${code} · ${name}` : (name || code || `Сервис #${service?.id}`)
+      const base = code && name ? `${code} · ${name}` : (name || code || `Сервис #${service?.id}`)
+      const organizations = serviceOrganizationsLabel(service, this.services)
+      return organizations ? `${base} — ${organizations}` : base
     },
     userName(user) {
       return [user.lastname, user.firstname].filter(Boolean).join(' ') || user.username || `#${user.id}`

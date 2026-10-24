@@ -12,13 +12,11 @@
         <q-btn
           color="primary"
           unelevated
-          no-caps
           to="/"
           label="На главную"
         />
         <q-btn
           flat
-          no-caps
           color="grey-8"
           label="Назад"
           @click="$router.back()"
