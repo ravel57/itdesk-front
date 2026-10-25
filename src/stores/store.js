@@ -2,6 +2,7 @@ import {defineStore} from 'pinia'
 import axios from 'axios'
 import moment from 'moment'
 import {normalizeAnswerWaitingSettings} from 'src/util/answerWaiting'
+import {normalizeSlaZones} from 'src/util/slaZones'
 
 export const useStore = defineStore('store', {
   state: () => ({
@@ -126,7 +127,12 @@ export const useStore = defineStore('store', {
       sundayEnabled: false,
       supportLineAccessMode: 'HYBRID',
       answerWaitingWorkingTimeEnabled: false,
+      slaOrangeStartPercent: 50,
+      slaRedStartPercent: 25,
     },
+
+    // Границы оранжевой и красной зон SLA (общие). Доступны всем, кто видит заявки, в отличие от generalSettings
+    slaZones: normalizeSlaZones(),
 
     // Как считать «Требует ответа» (календарное/рабочее время). Доступно всем, кто видит чаты — в отличие от generalSettings
     answerWaitingSettings: normalizeAnswerWaitingSettings(),
@@ -414,6 +420,8 @@ export const useStore = defineStore('store', {
         .then(response => {
           this.statuses = response.data
         })
+
+      this.fetchSlaZones().catch(() => {})
 
       axios.get('/api/v1/priorities')
         .then(response => {
@@ -830,6 +838,8 @@ export const useStore = defineStore('store', {
             sundayEnabled: response.data?.sundayEnabled ?? false,
             supportLineAccessMode: response.data?.supportLineAccessMode ?? 'HYBRID',
             answerWaitingWorkingTimeEnabled: response.data?.answerWaitingWorkingTimeEnabled ?? false,
+            slaOrangeStartPercent: response.data?.slaOrangeStartPercent ?? 50,
+            slaRedStartPercent: response.data?.slaRedStartPercent ?? 25,
           }
 
           return this.generalSettings
@@ -849,7 +859,17 @@ export const useStore = defineStore('store', {
           }
           // Рабочий календарь или флаг «Требует ответа» могли измениться — список чатов подхватывает без перезагрузки
           this.fetchAnswerWaitingSettings().catch(() => {})
+          // Зоны SLA тоже могли измениться — цвета таймеров обновляются без перезагрузки
+          this.slaZones = normalizeSlaZones(this.generalSettings)
           return this.generalSettings
+        })
+    },
+
+    fetchSlaZones() {
+      return axios.get('/api/v1/settings/sla-zones')
+        .then(response => {
+          this.slaZones = normalizeSlaZones(response.data)
+          return this.slaZones
         })
     },
 

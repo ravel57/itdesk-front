@@ -115,6 +115,54 @@
         <q-card-section class="settings-block">
           <div class="settings-block__header">
             <div>
+              <div class="text-subtitle1">Зоны SLA</div>
+              <div class="text-caption text-grey-7">
+                Когда таймер SLA становится оранжевым и красным и когда срабатывает предупреждение. Границы задаются в
+                процентах времени SLA, которое уже прошло; настройка общая для всех SLA.
+              </div>
+            </div>
+            <q-btn
+              flat
+              dense
+              no-caps
+              icon="restart_alt"
+              label="По умолчанию"
+              :disable="slaZonesAreDefault"
+              @click="resetSlaZones"
+            />
+          </div>
+
+          <div class="sla-zones q-mt-lg">
+            <q-range
+              v-model="slaRange"
+              class="sla-zones__range"
+              :style="slaTrackStyle"
+              track-size="12px"
+              thumb-size="22px"
+              :min="1"
+              :max="99"
+              :step="1"
+              :min-range="1"
+              label
+              label-always
+              :left-label-value="`${slaOrangeFrom}%`"
+              :right-label-value="`${slaRedFrom}%`"
+              left-label-color="orange-8"
+              right-label-color="negative"
+              left-thumb-color="orange-8"
+              right-thumb-color="negative"
+              color="transparent"
+              track-color="transparent"
+              aria-label="Границы оранжевой и красной зон SLA"
+            />
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card flat bordered class="settings-card">
+        <q-card-section class="settings-block">
+          <div class="settings-block__header">
+            <div>
               <div class="text-subtitle1">Доступ к заявкам по линиям поддержки</div>
               <div class="text-caption text-grey-7">
                 Настройка закладывает фундамент для разграничения очередей, не меняя маршрутизацию заявок.
@@ -267,6 +315,43 @@ export default {
       return this.saveState === 'error' ? 'text-negative' : 'text-grey-7'
     },
 
+    // В интерфейсе зоны показаны по прошедшему времени (слева направо: зелёная → оранжевая → красная),
+    // а в настройках хранятся как оставшееся до срока — так их использует сервер
+    slaOrangeFrom() {
+      return 100 - Number(this.form.slaOrangeStartPercent)
+    },
+
+    slaRedFrom() {
+      return 100 - Number(this.form.slaRedStartPercent)
+    },
+
+    slaRange: {
+      get() {
+        return {min: this.slaOrangeFrom, max: this.slaRedFrom}
+      },
+      set(value) {
+        const orangeFrom = Math.round(Number(value?.min))
+        const redFrom = Math.round(Number(value?.max))
+        if (!Number.isFinite(orangeFrom) || !Number.isFinite(redFrom) || orangeFrom >= redFrom) return
+        this.form.slaOrangeStartPercent = 100 - orangeFrom
+        this.form.slaRedStartPercent = 100 - redFrom
+      }
+    },
+
+    // Линия ползунка окрашена по зонам: зелёная до левой ручки, оранжевая между ручками, красная после правой.
+    // Ползунок идёт от 1 до 99, поэтому положение значения на линии — (v - 1) / 98
+    slaTrackStyle() {
+      const position = value => ((value - 1) / 98 * 100).toFixed(2) + '%'
+      return {
+        '--sla-orange-at': position(this.slaOrangeFrom),
+        '--sla-red-at': position(this.slaRedFrom)
+      }
+    },
+
+    slaZonesAreDefault() {
+      return Number(this.form.slaOrangeStartPercent) === 50 && Number(this.form.slaRedStartPercent) === 25
+    },
+
     selectedAccessMode() {
       return SUPPORT_LINE_ACCESS_MODES.find(item => item.value === this.form.supportLineAccessMode) ||
         SUPPORT_LINE_ACCESS_MODES[2]
@@ -313,8 +398,15 @@ export default {
         saturdayEnabled: false,
         sundayEnabled: false,
         supportLineAccessMode: 'HYBRID',
-        answerWaitingWorkingTimeEnabled: false
+        answerWaitingWorkingTimeEnabled: false,
+        slaOrangeStartPercent: 50,
+        slaRedStartPercent: 25
       }
+    },
+
+    resetSlaZones() {
+      this.form.slaOrangeStartPercent = 50
+      this.form.slaRedStartPercent = 25
     },
 
     initTimezones() {
@@ -457,5 +549,32 @@ export default {
   .settings-block__header .q-toggle {
     align-self: flex-start;
   }
+}
+
+.sla-zones__range {
+  padding: 0 11px;
+}
+
+/* Цвета зон на самой линии ползунка; выделенный участок между ручками не перекрашиваем */
+.sla-zones__range :deep(.q-slider__track) {
+  opacity: 1;
+  border-radius: 6px;
+  background: linear-gradient(
+    to right,
+    #4caf50 0,
+    #4caf50 var(--sla-orange-at),
+    #fb8c00 var(--sla-orange-at),
+    #fb8c00 var(--sla-red-at),
+    #b71c1c var(--sla-red-at),
+    #b71c1c 100%
+  ) !important;
+}
+
+.sla-zones__range :deep(.q-slider__selection) {
+  background: transparent !important;
+}
+
+.sla-zones__range :deep(.q-slider__thumb) {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 </style>

@@ -66,7 +66,9 @@ export default boot(() => {
       saturdayEnabled: false,
       sundayEnabled: false,
       supportLineAccessMode: 'HYBRID',
-      answerWaitingWorkingTimeEnabled: false
+      answerWaitingWorkingTimeEnabled: false,
+      slaOrangeStartPercent: 50,
+      slaRedStartPercent: 25
     },
     supportLines: [
       {
@@ -527,6 +529,10 @@ export default boot(() => {
       db.generalSettings = {...db.generalSettings, ...JSON.parse(config.data || '{}')}
       return ok(clone(db.generalSettings))
     })
+    mock.onGet(withPrefix('\\/settings\\/sla-zones')).reply(() => ok({
+      orangeStartPercent: db.generalSettings.slaOrangeStartPercent,
+      redStartPercent: db.generalSettings.slaRedStartPercent
+    }))
     mock.onGet(withPrefix('\\/settings\\/answer-waiting')).reply(() => {
       const settings = db.generalSettings
       const dayFlags = [
@@ -700,6 +706,17 @@ export default boot(() => {
 
     mock.onGet(withPrefix('\\/triggers')).reply(() => ok(clone([...db.automationTriggers].sort((a, b) => a.orderNumber - b.orderNumber))))
     mock.onGet(withPrefix('\\/trigger-types/options')).reply(() => ok([]))
+    mock.onPost(withPrefix('\\/trigger')).reply(config => {
+      const body = JSON.parse(config.data)
+      const id = Math.max(0, ...db.automationTriggers.map(t => t.id)) + 1
+      const trigger = {
+        matchCount: 0, lastMatchedAt: null, failureCount: 0, lastFailedAt: null, lastError: null,
+        ...body, id, folderId: null, orderNumber: db.automationTriggers.length, displayOrder: db.automationTriggers.length
+      }
+      db.automationTriggers.push(trigger)
+      return ok(clone(trigger))
+    })
+    mock.onPost(withPrefix('\\/automation\\/validate')).reply(() => ok({valid: true, errors: []}))
 
     mock.onGet(withPrefix('\\/automation\\/operations')).reply(() => ok([
       {id: 'task.query', label: 'Заявки', group: 'Получить данные', description: 'Найти заявки по фильтру', result: 'Список заявок', fields: []},

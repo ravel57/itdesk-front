@@ -57,6 +57,8 @@
             @delete-folder="$emit('delete-folder', $event)"
             @toggle-trigger="(trigger, enabled) => $emit('toggle-trigger', trigger, enabled)"
             @edit-trigger="$emit('edit-trigger', $event)"
+            @clone-trigger="$emit('clone-trigger', $event)"
+            @export-trigger="$emit('export-trigger', $event)"
           />
         </template>
         <automation-rule-row
@@ -67,6 +69,8 @@
           :toggling="togglingIds.includes(element.id)"
           @toggle="$emit('toggle-trigger', triggerById[element.id], $event)"
           @edit="$emit('edit-trigger', triggerById[element.id])"
+          @clone="$emit('clone-trigger', triggerById[element.id])"
+          @export="$emit('export-trigger', triggerById[element.id])"
         />
       </div>
     </template>
@@ -92,7 +96,7 @@ export default {
     triggerTypeLabel: {type: Function, required: true}
   },
 
-  emits: ['drag-end', 'toggle-folder', 'rename-folder', 'delete-folder', 'toggle-trigger', 'edit-trigger'],
+  emits: ['drag-end', 'toggle-folder', 'rename-folder', 'delete-folder', 'toggle-trigger', 'edit-trigger', 'clone-trigger', 'export-trigger'],
 
   computed: {
     // У каждого уровня свой класс ручки, чтобы вложенные списки не перехватывали друг у друга перетаскивание.

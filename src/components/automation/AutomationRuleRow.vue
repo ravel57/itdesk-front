@@ -37,6 +37,20 @@
           icon="edit"
           @click="$emit('edit')"
         />
+        <q-btn color="grey-7" dense flat icon="more_vert" aria-label="Действия с автоматизацией">
+          <q-menu auto-close anchor="bottom right" self="top right">
+            <q-list dense style="min-width: 200px">
+              <q-item clickable @click="$emit('clone')">
+                <q-item-section avatar><q-icon name="content_copy" size="20px"/></q-item-section>
+                <q-item-section>Клонировать</q-item-section>
+              </q-item>
+              <q-item clickable @click="$emit('export')">
+                <q-item-section avatar><q-icon name="download" size="20px"/></q-item-section>
+                <q-item-section>Экспорт в JSON</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
       </div>
     </q-item-section>
   </q-item>
@@ -53,7 +67,7 @@ export default {
     handleClass: {type: String, default: ''}
   },
 
-  emits: ['toggle', 'edit'],
+  emits: ['toggle', 'edit', 'clone', 'export'],
 
   methods: {
     formatDateTime(value) {

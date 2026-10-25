@@ -826,6 +826,7 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 import moment from 'moment'
 import OrganizationVisitDialog from 'components/organization/OrganizationVisitDialog.vue'
+import { slaZone } from 'src/util/slaZones'
 import { useSlaInfo } from 'src/composables/useSlaInfo'
 
 export default {
@@ -1750,7 +1751,7 @@ export default {
         task,
         label: leftMs === null ? 'SLA задан' : overdue ? 'Просрочено' : this.formatDurationMs(leftMs),
         percent,
-        color: overdue ? 'negative' : percent !== null && percent <= 0.25 ? 'negative' : percent !== null && percent <= 0.5 ? 'orange' : 'positive',
+        color: overdue ? 'negative' : ({ red: 'negative', orange: 'orange', green: 'positive' }[slaZone(percent, this.store.slaZones)] || 'positive'),
         overdue,
         leftMs
       }

@@ -264,6 +264,7 @@ import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import moment from 'moment'
 import NoTasksPlaceholder from 'components/NoTasksPlaceholder.vue'
+import { isSlaAlertZone, slaZone } from 'src/util/slaZones'
 import PluginExtensionPoint from 'src/plugins/PluginExtensionPoint.vue'
 import NotificationBell from 'components/notifications/NotificationBell.vue'
 import { getClientDisplayName, getClientAvatarAbbreviation } from 'src/util/clientName'
@@ -971,13 +972,8 @@ export default {
     getSlaColor (tasks) {
       const p = this.getSlaPercent(tasks)
       if (p === null) return 'grey'
-      if (p > 0.5) {
-        return 'green'
-      } else if (p > 0.25) {
-        return 'orange'
-      } else {
-        return 'red'
-      }
+      // Границы зон — общая настройка (Настройки → Общие → Зоны SLA)
+      return slaZone(p, this.store.slaZones) || 'red'
     },
 
     getTimeLastMessage (client) {
@@ -1510,8 +1506,8 @@ export default {
         return false
       }
       const leftMs = this.getSlaLeftMsApprox(task)
-      // Показываем, только когда прошла половина времени SLA (или он уже просрочен)
-      return leftMs !== null && leftMs / totalMs <= 0.5
+      // Показываем, только когда SLA вошёл в оранжевую зону (или он уже просрочен)
+      return leftMs !== null && isSlaAlertZone(Math.max(0, leftMs / totalMs), this.store.slaZones)
     },
   },
 

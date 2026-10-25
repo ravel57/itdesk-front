@@ -208,6 +208,7 @@ import { useStore } from 'stores/store'
 import CircleCounter from 'components/CircleCounter.vue'
 import axios from 'axios'
 import { taskCardConfig } from 'src/util/taskCardConfig'
+import { slaZone } from 'src/util/slaZones'
 import { useSlaInfo } from 'src/composables/useSlaInfo'
 
 export default {
@@ -415,13 +416,8 @@ export default {
     },
 
     getSlaColor (task) {
-      if (this.getSlaPercent(task) > 0.5) {
-        return 'green'
-      } else if (this.getSlaPercent(task) > 0.25) {
-        return 'orange'
-      } else {
-        return 'red'
-      }
+      // Границы зон — общая настройка (Настройки → Общие → Зоны SLA)
+      return slaZone(this.getSlaPercent(task), this.store.slaZones) || 'red'
     },
 
     getSlaLeftMs (task) {
