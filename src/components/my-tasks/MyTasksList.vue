@@ -1,5 +1,5 @@
 <template>
-  <div style="padding: 16px">
+  <div class="app-inline app-padding-16">
     <div
       v-if="this.isInitialLoading"
       class="absolute-center text-grey-6"
@@ -45,10 +45,10 @@
                 <div
                   :id="`link_to_chat_${task.id}_${index}`"
                   :data-my-tasks-tour="index === 0 ? 'chat-link' : null"
-                  class="link-to-chat-container"
+                  class="link-to-chat-container app-shared-link-to-chat-container"
                 >
-                  <div class="link-container">
-                    <q-icon class="link" color="white" name="open_in_new"/>
+                  <div class="link-container app-shared-link-container">
+                    <q-icon class="link app-shared-link" color="white" name="open_in_new"/>
                     <q-tooltip>Открыть чат с клиентом по этой заявке</q-tooltip>
                   </div>
                 </div>
@@ -78,19 +78,19 @@
       v-else-if="this.showPlaceholder"
       class="absolute-center"
     >
-      <div style="display: flex;flex-direction: row;align-items: center">
-        <div style="width: 140px">
-          <div style="font-size: 20px">
+      <div class="app-inline app-row-center">
+        <div class="app-inline app-width-140">
+          <div class="app-inline app-font-size-20">
             Заявок нет
           </div>
-          <div style="font-size: 14px">
+          <div class="app-inline app-font-size-14">
             Возможно стоит создать их
           </div>
-          <div style="font-size: 14px">
-            <a style="color: var(--q-primary)" href="/chats">Проверьте чаты.</a>
+          <div class="app-inline app-font-size-14">
+            <a class="app-inline app-color-primary"  href="/chats">Проверьте чаты.</a>
           </div>
         </div>
-        <div style="display: flex;flex-direction: column;align-items: center">
+        <div class="app-inline app-column-center">
           <no-tasks-placeholder/>
         </div>
       </div>
@@ -134,37 +134,6 @@ export default {
 <style scoped>
 /* Угол «Перейти в чат»: треугольник в правом верхнем углу внешней рамки карточки.
    Карточка вложена в q-item с отступом 8px, поэтому угол выносится на эту величину. */
-.link-to-chat-container {
-  display: none;
-  position: absolute;
-  top: var(--chat-link-top, -8px);
-  right: var(--chat-link-right, -8px);
-  width: 36px;
-  height: 36px;
-  background-color: var(--q-primary);
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
-  z-index: 1;
-  transform-origin: top right;
-  transition: transform .2s ease, filter .2s ease;
-}
-
-.link-container {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 16px;
-  height: 16px;
-  display: flex;
-}
-
-.link {
-  font-size: 16px;
-}
-
-.link-to-chat-container:hover {
-  transform: scale(1.3);
-  filter: brightness(1.2);
-}
 
 .task-card:hover {
   .link-to-chat-container {
@@ -189,7 +158,7 @@ a:hover, a:active {
 }
 
 .my-tasks-onboarding-mode .my-tasks-demo-task-card {
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .my-tasks-onboarding-mode .link-to-chat-container {

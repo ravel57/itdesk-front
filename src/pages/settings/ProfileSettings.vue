@@ -1,6 +1,6 @@
 <template>
   <q-page class="profile-page q-pa-md">
-    <div class="profile-page__content column q-gutter-md">
+    <div class="profile-page__content column q-gutter-md app-max-width-760">
       <div class="settings-content-header q-mb-none">
         <div class="settings-content-heading">
           <div class="settings-content-title">Профиль</div>
@@ -10,7 +10,31 @@
         </div>
       </div>
 
-      <q-card flat bordered class="profile-card">
+      <q-card flat bordered class="profile-card app-rounded-12">
+        <q-card-section>
+          <div id="theme-heading" class="text-subtitle1 text-weight-medium">Оформление</div>
+        </q-card-section>
+
+        <q-separator/>
+
+        <q-card-section>
+          <q-btn-toggle
+            :model-value="themeMode"
+            :options="themeOptions"
+            @update:model-value="setThemeMode"
+            aria-labelledby="theme-heading"
+            toggle-color="primary"
+            color="white"
+            text-color="grey-8"
+            unelevated
+          />
+          <div v-if="themeMode === 'system'" class="text-caption text-grey-7 q-mt-sm">
+            Тема меняется автоматически вслед за настройками устройства.
+          </div>
+        </q-card-section>
+      </q-card>
+
+      <q-card flat bordered class="profile-card app-rounded-12">
         <q-card-section>
           <div class="text-subtitle1 text-weight-medium">
             Уведомления
@@ -79,13 +103,12 @@
                 label="Уведомлять, если новое сообщение в чате без ответа дольше"
               />
 
-              <q-input
+              <q-input class="app-inline app-width-130"
                 v-model.number="notifyChatUnansweredTooLongMinutes"
                 type="number"
                 dense
                 outlined
                 suffix="мин."
-                style="width: 130px"
                 :disable="!notifyChatUnansweredTooLong"
                 :min="1"
                 :step="1"
@@ -102,13 +125,12 @@
                 v-model="notifyDeadlineOverdueBeforeMinutesEnabled"
                 label="Уведомлять за"
               />
-              <q-input
+              <q-input class="app-inline app-width-130"
                 v-model.number="notifyDeadlineOverdueBeforeMinutes"
                 type="number"
                 dense
                 outlined
                 suffix="мин."
-                style="width: 130px"
                 :disable="!notifyDeadlineOverdueBeforeMinutesEnabled"
                 :min="1"
                 :step="1"
@@ -128,7 +150,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="profile-card">
+      <q-card flat bordered class="profile-card app-rounded-12">
         <q-card-section>
           <div class="text-subtitle1 text-weight-medium">
             Безопасность
@@ -205,6 +227,8 @@
 
 <script>
 import axios from 'axios'
+import {useTheme} from 'src/composables/useTheme'
+import {THEME_OPTIONS} from 'src/util/themePreference'
 import {useStore} from 'stores/store'
 import {useSystemNotifications} from 'src/composables/useSystemNotifications'
 import MfaProfileSection from 'components/mfa/MfaProfileSection.vue'
@@ -408,7 +432,7 @@ export default {
 
   setup() {
     const store = useStore()
-    return {store}
+    return {store, ...useTheme(), themeOptions: THEME_OPTIONS}
   },
 }
 </script>
@@ -419,18 +443,10 @@ export default {
   overflow: auto;
 }
 
-.profile-page__content {
-  max-width: 760px;
-}
-
-.profile-card {
-  border-radius: 12px;
-}
-
 .notification-group-label {
   font-size: 11px;
   font-weight: 700;
-  color: #a3a9b3;
+  color: var(--app-text-muted, #a3a9b3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

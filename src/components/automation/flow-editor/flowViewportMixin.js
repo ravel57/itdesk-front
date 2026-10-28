@@ -43,7 +43,8 @@ export default {
 
   methods: {
     onCanvasMouseDown(event) {
-      if (event.target.closest('.flow-node, .flow-edge-hit')) return
+      // Колёсико двигает холст и над узлами/связями; заодно подавляется браузерная автопрокрутка
+      if (event.button !== 1 && event.target.closest('.flow-node, .flow-edge-hit')) return
       this.panMoved = false
       this.startPan(event)
     },
@@ -70,6 +71,12 @@ export default {
     },
 
     startNodeDrag(event, node) {
+      if (event.button === 1) {
+        // заголовок узла гасит всплытие mousedown, поэтому панорамирование колёсиком запускаем здесь
+        this.panMoved = false
+        this.startPan(event)
+        return
+      }
       if (event.button !== 0) return
       const viewport = this.$refs.viewport
       this.dragState = {

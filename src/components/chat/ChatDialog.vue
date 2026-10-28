@@ -639,7 +639,7 @@ export default {
         height,
         'border-radius': '0',
         'min-height': '0',
-        'background-color': '#F0F0F0'
+        'background-color': 'var(--app-surface-muted, #F0F0F0)'
       }
     },
 

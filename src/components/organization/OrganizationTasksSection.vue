@@ -1,6 +1,6 @@
 <template>
   <q-card-section>
-    <div class="details-section-header">
+    <div class="details-section-header app-shared-details-section-header">
       <div>
         <div class="text-subtitle1 text-weight-medium">
           Заявки по выбранной организации
@@ -151,20 +151,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.details-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-@media (max-width: 700px) {
-  .details-section-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-</style>

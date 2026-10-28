@@ -140,7 +140,7 @@ export default {
 
 <style scoped>
 .list-group-item:hover {
-  background-color: #f3f3f5;
+  background-color: var(--app-surface-muted, #f3f3f5);
 }
 
 .task-card-configurator--compact .list-group-item {
@@ -183,7 +183,7 @@ export default {
 }
 
 .task-card-preview__label {
-  color: grey;
+  color: var(--app-text-muted, grey);
   padding-right: 8px;
   white-space: nowrap;
 }

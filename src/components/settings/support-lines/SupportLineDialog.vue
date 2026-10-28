@@ -1,7 +1,7 @@
 <template>
   <q-dialog v-model="dialogVisible" persistent>
-    <q-card class="support-line-dialog column no-wrap">
-      <q-toolbar class="support-line-dialog__toolbar">
+    <q-card class="support-line-dialog column no-wrap app-support-line-dialog">
+      <q-toolbar class="support-line-dialog__toolbar app-shared-service-dialog__toolbar">
         <q-toolbar-title>{{ isNew ? 'Новая линия' : 'Изменить линию' }}</q-toolbar-title>
         <q-btn flat round dense icon="close" @click="dialogVisible = false"/>
       </q-toolbar>
@@ -12,7 +12,7 @@
         align="left"
         active-color="primary"
         indicator-color="primary"
-        class="support-line-dialog__tabs"
+        class="support-line-dialog__tabs app-shared-service-dialog__tabs"
       >
         <q-tab name="general" label="Основное" no-caps/>
         <q-tab name="team" label="Команда" no-caps/>
@@ -22,8 +22,8 @@
 
       <q-separator/>
 
-      <q-tab-panels v-model="dialogTab" animated class="support-line-dialog__panels col">
-        <q-tab-panel name="general" class="support-line-dialog__panel">
+      <q-tab-panels v-model="dialogTab" animated class="support-line-dialog__panels col app-shared-service-dialog__panels">
+        <q-tab-panel name="general" class="support-line-dialog__panel app-shared-service-dialog__panel">
           <div class="support-line-dialog__content q-gutter-y-md">
             <q-input v-model="form.name" outlined label="Название *" autofocus/>
             <q-input v-model="form.description" outlined label="Описание" type="textarea" autogrow/>
@@ -51,7 +51,7 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="team" class="support-line-dialog__panel">
+        <q-tab-panel name="team" class="support-line-dialog__panel app-shared-service-dialog__panel">
           <div class="support-line-dialog__content q-gutter-y-md">
             <q-select
               v-model="form.responsibleUserId"
@@ -102,7 +102,7 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="distribution" class="support-line-dialog__panel">
+        <q-tab-panel name="distribution" class="support-line-dialog__panel app-shared-service-dialog__panel">
           <div class="support-line-dialog__content q-gutter-y-md">
             <q-select
               v-model="form.assignmentStrategy"
@@ -127,9 +127,9 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="ola" class="support-line-dialog__panel">
+        <q-tab-panel name="ola" class="support-line-dialog__panel app-shared-service-dialog__panel">
           <div class="support-line-dialog__content q-gutter-y-md">
-            <div class="row items-start justify-between ola-header">
+            <div class="row items-start justify-between ola-header app-ola-header">
               <div>
                 <div class="text-subtitle1">Внутренний срок линии</div>
                 <div class="text-caption text-grey-7">
@@ -185,7 +185,7 @@
 
       <q-separator/>
 
-      <q-card-actions align="right" class="support-line-dialog__actions">
+      <q-card-actions align="right" class="support-line-dialog__actions app-shared-service-dialog__actions">
         <q-btn
           v-if="!isNew"
           unelevated
@@ -218,71 +218,13 @@ export default {
 </script>
 
 <style scoped>
-.support-line-dialog {
-  width: 780px;
-  max-width: 96vw;
-  height: 560px;
-  max-height: 92vh;
-  overflow: hidden;
-}
-
-.support-line-dialog__toolbar {
-  min-height: 52px;
-  padding: 0 16px;
-}
-
-.support-line-dialog__tabs {
-  flex: 0 0 auto;
-  padding: 0 4px;
-}
-
-.support-line-dialog__panels {
-  min-height: 0;
-  overflow: hidden;
-  background: #ffffff;
-}
-
-.support-line-dialog__panel {
-  height: 100%;
-  min-height: 0;
-  padding: 0;
-  overflow-y: auto;
-}
-
 .support-line-dialog__content {
   padding: 24px;
 }
-
-.support-line-dialog__actions {
-  flex: 0 0 auto;
-  min-height: 58px;
-  padding: 10px 8px 10px 16px;
-}
-
-.ola-header {
-  gap: 16px;
-}
-
-.ola-header > div:first-child {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
 @media (max-width: 599px) {
-  .support-line-dialog {
-    width: 100vw;
-    max-width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-  }
 
   .support-line-dialog__content {
     padding: 16px;
-  }
-
-  .ola-header {
-    align-items: flex-start;
   }
 }
 </style>

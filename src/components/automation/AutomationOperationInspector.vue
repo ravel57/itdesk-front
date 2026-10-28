@@ -423,7 +423,7 @@ export default {
 :deep(.automation-field-header .q-item__label) {
   font-weight: 700;
   font-size: 13px;
-  color: #37404d;
+  color: var(--app-text, #37404d);
   text-transform: uppercase;
   letter-spacing: .03em;
 }

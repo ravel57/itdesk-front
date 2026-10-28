@@ -1,5 +1,5 @@
 <template>
-  <div data-tour="chat-task-toolbar" class="flex" style="margin-bottom: 8px;">
+  <div data-tour="chat-task-toolbar" class="flex app-inline app-margin-bottom-8">
     <div>
       <div class="flex">
         <span
@@ -62,31 +62,28 @@
         data-tour="chat-create-task"
         v-if="$can('TASK_EDIT')"
         id="create-task"
-        class="text-primary cursor-pointer"
+        class="text-primary cursor-pointer app-inline app-margin-right-8"
         icon="add_circle"
         color="primary"
         @click="$emit('createTask')"
         label="Создать заявку"
-        style="margin-right: 8px;"
       />
-      <q-btn
+      <q-btn class="app-inline app-margin-right-8"
         data-tour="chat-task-search-toggle"
         icon="search"
         flat
         :class="this.showSearch ? 'text-primary' : 'text-grey-7'"
-        style="margin-right: 8px;"
         @click="$emit('update:showSearch', !this.showSearch)"
       >
         <q-tooltip>
           Поиск
         </q-tooltip>
       </q-btn>
-      <q-btn
+      <q-btn class="app-inline app-margin-right-8"
         data-tour="chat-task-sort"
         icon="sort"
         flat
         :class="this.selectedSorting.label ? 'text-primary' : 'text-grey-7'"
-        style="margin-right: 8px;"
       >
         <q-tooltip>
           <div v-if="this.selectedSorting.label">
@@ -136,13 +133,12 @@
         :icon="this.ascendingSort ? 'arrow_upward' : 'arrow_downward'"
       />
       <div id="task-search">
-        <q-input
+        <q-input class="app-inline app-margin-top-8"
           v-if="this.showSearch || this.onboardingDemo"
           data-tour="chat-task-search"
           :model-value="this.search"
           @update:model-value="$emit('update:search', $event)"
           label="Поиск по заявкам"
-          style="margin-top: 8px"
           dense
           clearable
         >

@@ -32,7 +32,7 @@
       size="sm"
       icon="close"
       color="grey-7"
-      class="onboarding-close-btn"
+      class="onboarding-close-btn app-shared-onboarding-close-btn"
       aria-label="Закрыть обучение"
       @click="$emit('finish')"
     >
@@ -130,12 +130,12 @@ export default {
   z-index: 9002;
   padding: 16px;
   border-radius: 12px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--app-surface, #fff);
+  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
 }
 
 .chat-onboarding-step-counter {
-  color: #757575;
+  color: var(--app-text-muted, #757575);
   font-size: 12px;
   margin-bottom: 6px;
 }
@@ -146,7 +146,7 @@ export default {
 }
 
 .chat-onboarding-text {
-  color: #424242;
+  color: var(--app-text, #424242);
   line-height: 1.45;
 }
 
@@ -158,12 +158,6 @@ export default {
 }
 
 /* Крестик закрытия обучения в правом верхнем углу карточки */
-.onboarding-close-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 1;
-}
 
 .chat-onboarding-step-counter,
 .chat-onboarding-title {

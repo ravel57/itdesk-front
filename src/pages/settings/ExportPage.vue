@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <q-card flat bordered class="export-card">
+    <q-card flat bordered class="export-card app-rounded-12">
       <q-card-section>
         <div class="text-subtitle1 q-mb-md">Фильтры отчета</div>
 
@@ -451,9 +451,5 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-
-.export-card {
-  border-radius: 12px;
 }
 </style>

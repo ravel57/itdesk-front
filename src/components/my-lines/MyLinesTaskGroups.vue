@@ -4,12 +4,12 @@
     :key="group.line.id"
     class="line-task-section"
   >
-    <div class="line-task-section__header">
+    <div class="line-task-section__header app-line-task-section__header">
       <div class="line-task-section__identity">
         <div class="line-task-section__level">L{{ group.line.level || 1 }}</div>
         <div>
           <div class="line-task-section__title">{{ group.line.name }}</div>
-          <div class="line-task-section__caption">
+          <div class="line-task-section__caption app-shared-line-task-section__caption">
             {{ getLineRoleLabel(group.line) }} · показано {{ group.tasks.length }}
           </div>
         </div>
@@ -59,9 +59,9 @@
                 :href="getChatLink(task.client?.id)"
                 @click.stop.prevent="$emit('chat-link-click', task)"
               >
-                <div :id="`my_line_chat_${task.id}_${index}`" class="link-to-chat-container">
-                  <div class="link-container">
-                    <q-icon class="link" color="white" name="open_in_new"/>
+                <div :id="`my_line_chat_${task.id}_${index}`" class="link-to-chat-container app-shared-link-to-chat-container">
+                  <div class="link-container app-shared-link-container">
+                    <q-icon class="link app-shared-link" color="white" name="open_in_new"/>
                   </div>
                 </div>
               </a>
@@ -121,19 +121,6 @@ export default {
   margin-top: 22px;
 }
 
-.line-task-section__header {
-  min-height: 58px;
-  padding: 10px 12px;
-  border: 1px solid #e0e0e0;
-  border-left: 4px solid var(--q-primary);
-  border-radius: 8px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
 .line-task-section__identity {
   display: flex;
   align-items: center;
@@ -160,11 +147,6 @@ export default {
   font-weight: 700;
 }
 
-.line-task-section__caption {
-  color: #757575;
-  font-size: 12px;
-}
-
 .line-task-section__indicators {
   display: flex;
   flex-wrap: wrap;
@@ -187,7 +169,7 @@ export default {
   border: 1px solid var(--q-primary);
   border-radius: 5px;
   overflow: hidden;
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .line-task-card__inner {
@@ -205,47 +187,11 @@ export default {
 
 /* Угол «Перейти в чат»: треугольник в правом верхнем углу внешней рамки карточки.
    Карточка вложена в q-item с отступом 8px, поэтому угол выносится на эту величину. */
-.link-to-chat-container {
-  display: none;
-  position: absolute;
-  top: var(--chat-link-top, -8px);
-  right: var(--chat-link-right, -8px);
-  width: 36px;
-  height: 36px;
-  background-color: var(--q-primary);
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
-  z-index: 1;
-  transform-origin: top right;
-  transition: transform .2s ease, filter .2s ease;
-}
-
-.link-container {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 16px;
-  height: 16px;
-  display: flex;
-}
-
-.link {
-  font-size: 16px;
-}
-
-.link-to-chat-container:hover {
-  transform: scale(1.3);
-  filter: brightness(1.2);
-}
 
 .task-card:hover .link-to-chat-container {
   display: unset;
 }
-
 @media (max-width: 700px) {
-  .line-task-section__header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 
   .line-task-section__indicators {
     justify-content: flex-start;

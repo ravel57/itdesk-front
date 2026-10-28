@@ -1,5 +1,5 @@
 <template>
-  <q-card-section class="queue-pulse-list">
+  <q-card-section class="queue-pulse-list app-column-gap-14">
     <div
       v-for="item in items"
       :key="item.key"
@@ -14,7 +14,7 @@
           {{ item.value }}
         </q-chip>
       </div>
-      <div class="queue-pulse-caption">
+      <div class="queue-pulse-caption app-shared-time-metric-caption">
         {{ item.caption }}
       </div>
     </div>
@@ -36,15 +36,9 @@ export default {
 </script>
 
 <style scoped>
-.queue-pulse-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
 .queue-pulse-item {
   padding-bottom: 12px;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid var(--app-border, #eeeeee);
 }
 
 .queue-pulse-item:last-child {
@@ -56,11 +50,5 @@ export default {
   display: flex;
   align-items: center;
   font-weight: 500;
-}
-
-.queue-pulse-caption {
-  margin-top: 4px;
-  color: #757575;
-  font-size: 12px;
 }
 </style>

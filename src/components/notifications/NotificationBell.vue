@@ -60,7 +60,7 @@
       @show="reload"
     >
       <q-card class="notification-card">
-        <q-card-section class="notification-header row items-center no-wrap">
+        <q-card-section class="notification-header row items-center no-wrap app-shared-notification-header">
           <div class="col">
             <div class="text-subtitle1 text-weight-medium">Уведомления</div>
             <div class="text-caption text-grey-7">История уведомлений</div>
@@ -465,10 +465,6 @@ export default {
   max-width: calc(100vw - 24px);
 }
 
-.notification-header {
-  min-height: 68px;
-}
-
 .notification-list-scroll {
   height: min(480px, calc(100vh - 210px));
 }
@@ -485,7 +481,7 @@ export default {
 .notification-body {
   white-space: normal;
   line-height: 1.35;
-  color: #4d4d4d;
+  color: var(--app-text, #4d4d4d);
 }
 
 .unread-dot {
@@ -506,7 +502,6 @@ export default {
   text-align: center;
   padding: 24px;
 }
-
 @media (max-width: 600px) {
   .notification-card {
     width: calc(100vw - 16px);

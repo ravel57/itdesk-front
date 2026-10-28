@@ -17,12 +17,11 @@
         />
       </div>
     </div>
-    <div class="table-container">
+    <div class="table-container app-width-full">
       <q-list
         bordered
-        class="rounded-borders settings-row-list"
+        class="rounded-borders settings-row-list app-inline app-margin-top-8"
         separator
-        style="margin-top: 8px"
       >
         <q-item header class="text-bold">
           Название
@@ -38,15 +37,14 @@
         >
           <template #item="{ element }">
             <q-item
-              class="list-group-item"
+              class="list-group-item app-shared-list-group-item"
               :class="{ 'not-draggable': true }"
             >
               <q-item-section side class="settings-drag-handle cursor-grab">
                 <q-icon name="drag_indicator" color="grey-6"/>
               </q-item-section>
-              <q-item-section
+              <q-item-section class="app-inline app-justify-center"
                 top
-                style="justify-content: center"
               >
                 {{ element.name }}
               </q-item-section>
@@ -110,7 +108,7 @@
         <div class="text-h6" v-text="this.isNewPriority ? 'Новый приоритет' : 'Изменить приоритет'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <q-input
           v-model="this.dialogName"
           label="Название *"
@@ -282,13 +280,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.table-container {
-  width: 100%;
-}
-
-.list-group-item:hover {
-  background-color: #e3e3e3;
-}
-</style>

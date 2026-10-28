@@ -6,10 +6,10 @@
         :key="row.hour"
         class="hourly-load-row"
       >
-        <div class="hourly-load-label">
+        <div class="hourly-load-label app-chart-label">
           {{ row.label }}
         </div>
-        <div class="hourly-load-track">
+        <div class="hourly-load-track app-chart-track">
           <div
             class="hourly-load-fill"
             :style="{ width: row.percent + '%' }"
@@ -17,16 +17,16 @@
             <div
               v-for="segment in row.segments"
               :key="segment.key"
-              class="hourly-load-segment"
+              class="hourly-load-segment app-height-full"
               :class="segment.class"
               :style="{ width: segment.percent + '%' }"
             />
           </div>
         </div>
-        <div class="hourly-load-value">
+        <div class="hourly-load-value app-chart-value">
           {{ formatNumber(row.total) }}
         </div>
-        <div class="hourly-load-breakdown">
+        <div class="hourly-load-breakdown app-hourly-load-breakdown">
           <q-chip dense square color="blue-1" text-color="primary">
             Вх: {{ formatNumber(row.incomingMessages) }}
           </q-chip>
@@ -93,28 +93,11 @@ export default {
   align-items: center;
 }
 
-.hourly-load-label {
-  color: #616161;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.hourly-load-track {
-  height: 14px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #eeeeee;
-}
-
 .hourly-load-fill {
   display: flex;
   height: 100%;
   overflow: hidden;
   border-radius: 999px;
-}
-
-.hourly-load-segment {
-  height: 100%;
 }
 
 .hourly-load-segment-incoming {
@@ -136,25 +119,9 @@ export default {
 .hourly-load-segment-reopened {
   background: #f2c037;
 }
-
-.hourly-load-value {
-  text-align: right;
-  font-weight: 600;
-}
-
-.hourly-load-breakdown {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
 @media (max-width: 900px) {
   .hourly-load-row {
     grid-template-columns: 56px 1fr 52px;
-  }
-
-  .hourly-load-breakdown {
-    grid-column: 2 / 4;
   }
 }
 </style>

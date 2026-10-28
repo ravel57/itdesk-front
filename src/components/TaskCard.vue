@@ -14,11 +14,10 @@
           <div id="task-card-name" class="text-body2 task-card-name">{{ task.name }}</div>
         </div>
       </div>
-      <div class="task-card-status-container" style="display: flex;">
-        <circle-counter
+      <div class="task-card-status-container app-inline app-display-flex">
+        <circle-counter class="app-inline app-margin-right-8"
           v-if="isHaveInTaskPing(task)"
           :image="'/at.svg'"
-          style="margin-right: 8px;"
         />
         <div
           id="task-card-status"
@@ -143,7 +142,7 @@
           <th
             class="small-text text-grey"
             :class="fieldHighlightClass('sla')"
-            style="color:#9e9e9e"
+            style="color:var(--app-text-muted, #9e9e9e)"
           >
             SLA осталось:
             <q-tooltip>Регламентное время на решение заявки по договору с клиентом. После истечения заявка считается просроченной.</q-tooltip>
@@ -153,7 +152,7 @@
               style="display: flex; flex-direction: row; flex-wrap: wrap; align-items: center">
             {{ this.getSlaTime(task) }}
             <div
-              class="sla-pill"
+              class="sla-pill app-task-card-sla-pill"
               :class="{ 'sla-pill--expired': isSlaExpired(task) }"
             >
               <q-linear-progress
@@ -279,7 +278,7 @@ th {
   margin-right: 8px;
   margin-left: 3px;
   font-size: 14px; /* Увеличен размер текста для ID */
-  color: grey;
+  color: var(--app-text-muted, grey);
   flex-shrink: 0;
 }
 
@@ -309,13 +308,13 @@ th {
 
 .status-completed {
   background-color: rgba(16, 181, 92, 0.2) !important;
-  color: rgba(16, 181, 92, 1) !important;
+  color: var(--app-success-text, rgba(16, 181, 92, 1)) !important;
   border-color: rgba(16, 181, 92, 1) !important;
 }
 
 .status-frozen {
   background-color: rgba(50, 173, 230, 0.2) !important;
-  color: rgba(50, 173, 230, 1) !important;
+  color: var(--app-info-text, rgba(50, 173, 230, 1)) !important;
   border-color: rgba(50, 173, 230, 1) !important;
 }
 
@@ -325,11 +324,11 @@ th {
 
 .small-text {
   font-size: 14px; /* Восстановлен размер для small-text */
-  color: grey;
+  color: var(--app-text-muted, grey);
 }
 
 .text-grey {
-  color: grey;
+  color: var(--app-text-muted, grey);
 }
 
 .truncate {
@@ -358,7 +357,7 @@ th {
 }
 
 .highlighted {
-  color: black;
+  color: var(--app-text, black);
   font-weight: 600;
 }
 
@@ -370,27 +369,13 @@ th {
   padding-right: 8px;
 }
 
-.sla-pill {
-  width: 80px;
-  height: 14px;
-  display: inline-flex;
-  align-items: center;
-  box-sizing: border-box;
-
-  border: 3px solid transparent;
-  border-radius: 5px;
-
-  background: transparent;
-  flex: 0 0 auto;
-}
-
 .sla-pill--expired {
   border-color: red;
 }
 
 .sla-bar {
   width: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.12));
   border-radius: 999px;
   box-sizing: border-box;
   overflow: hidden;
@@ -406,7 +391,7 @@ th {
 .task-card-checklist-progress {
   width: 70px;
   flex: 0 0 70px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.12));
   border-radius: 999px;
   box-sizing: border-box;
   overflow: hidden;

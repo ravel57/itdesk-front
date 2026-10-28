@@ -18,7 +18,7 @@
             {{ card.value }}
           </div>
 
-          <div class="metric-caption">
+          <div class="metric-caption app-shared-time-metric-caption">
             {{ card.caption }}
           </div>
         </q-card-section>
@@ -153,7 +153,7 @@ export default {
 .metric-card {
   height: 100%;
   border-radius: 8px;
-  border-left: 4px solid #e0e0e0;
+  border-left: 4px solid var(--app-border, #e0e0e0);
 }
 
 .metric-card-info {
@@ -173,7 +173,7 @@ export default {
 }
 
 .metric-card-neutral {
-  border-left-color: #9e9e9e;
+  border-left-color: var(--app-border, #9e9e9e);
 }
 
 .metric-card-healthy {
@@ -181,13 +181,13 @@ export default {
 }
 
 .metric-title {
-  color: #616161;
+  color: var(--app-text-muted, #616161);
   font-size: 13px;
   line-height: 16px;
 }
 
 .metric-icon {
-  color: #757575;
+  color: var(--app-text-muted, #757575);
 }
 
 .metric-value {
@@ -195,11 +195,5 @@ export default {
   font-size: 28px;
   line-height: 32px;
   font-weight: 600;
-}
-
-.metric-caption {
-  margin-top: 4px;
-  color: #757575;
-  font-size: 12px;
 }
 </style>

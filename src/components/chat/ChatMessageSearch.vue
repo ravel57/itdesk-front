@@ -1,9 +1,9 @@
 <template>
-  <div style="position: relative">
+  <div class="app-inline app-position-relative">
     <q-card
       data-tour="chat-message-search"
       class="search-container no-shadow"
-      style="background-color: #F0F0F0"
+      style="background-color: var(--app-surface-muted, #F0F0F0)"
     >
       <div id="messageSearch" class="search">
         <q-input
@@ -35,22 +35,22 @@
       v-if="this.isShowSearchResults"
       class="search-results no-shadow rounded-borders scrollable-list-container"
       :style="(this.searchResults.length > 0) ? 'height: auto' : 'height: 0'"
-      style="border-radius: 0 0 4px 4px;border-bottom: 1px solid #0000001f;"
+      style="border-radius: 0 0 4px 4px;border-bottom: 1px solid var(--app-border, #0000001f);"
     >
       <q-item
         v-for="message in searchResults"
         dense
         :key="message.id"
-        style="background-color: white"
+        style="background-color: var(--app-surface, white)"
         clickable
       >
         <q-item-section
           @click="this.$emit('scrollToMessage', message.id)"
           class="justify-between"
-          style="width: 100%; background-color: white;display: flex;align-items: center;flex-direction: row"
+          style="width: 100%; background-color: var(--app-surface, white);display: flex;align-items: center;flex-direction: row"
         >
           <div style="display: flex;align-items: center;flex-direction: row;">
-            <svg v-if="this.getName(message) !== ''" style="margin-right: 8px" width="20" height="20"
+            <svg class="app-inline app-margin-right-8" v-if="this.getName(message) !== ''"  width="20" height="20"
                  viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 d="M0.432193 13.8757L0.431791 13.8559C0.437263 12.5425 0.362052 10.9444 0.51429 9.66617C1.06099 5.07597 4.92198 1.43399 9.45856 0.824872C10.0584 0.744332 10.6484 0.734517 11.2522 0.727173C12.3729 0.765053 13.548 0.731395 14.6729 0.731472C15.1618 0.731511 15.6521 0.720803 16.1402 0.754104C21.141 1.09531 25.3184 5.12436 25.7314 10.1578C25.8281 11.336 25.7552 12.6767 25.7802 13.8774C25.4588 13.8779 25.1373 13.8802 24.816 13.878C23.6035 13.8695 23.7398 14.187 23.6417 15.1379C23.4215 17.2716 21.7225 19.0301 19.5986 19.2937C16.8784 19.6314 14.6321 17.7307 14.2997 15.0622C14.1904 14.3026 13.7317 14.331 13.088 14.3284C12.8906 14.3276 12.6797 14.314 12.4843 14.3404L12.4599 14.344C11.8538 14.4297 11.902 15.1759 11.8179 15.6173C11.6462 16.5188 11.1154 17.4321 10.4586 18.0691C8.6007 19.8706 5.50491 19.7156 3.77619 17.8344C2.88113 16.8603 2.5745 15.8253 2.51764 14.5544C2.49943 14.1473 2.29021 13.9334 1.86357 13.8928C1.39407 13.848 0.903897 13.8781 0.432193 13.8757ZM10.4889 2.59808C10.0687 2.62214 9.65763 2.65184 9.24287 2.7282C5.65091 3.38958 2.67168 6.45736 2.30341 10.1203C2.24564 10.695 2.26972 11.2677 2.26031 11.8437C2.46677 11.8715 2.67354 11.8647 2.88131 11.8648C6.11031 11.8677 9.33938 11.8658 12.5684 11.8651C13.5999 11.8648 14.6353 11.8838 15.6664 11.8617L23.9181 11.8683C23.8932 11.2614 23.9378 10.6511 23.8734 10.0459C23.4533 6.10394 20.1418 2.9601 16.2125 2.62219C15.8112 2.58767 15.414 2.58956 15.0117 2.58928C13.5372 2.58826 11.9722 2.53594 10.5044 2.59741L10.4889 2.59808Z"
@@ -67,7 +67,7 @@
               {{ this.getAbbreviation(this.client) }}
             </div>
             <div
-              class="truncate"
+              class="truncate app-text-ellipsis"
               v-html="this.highlightSearchText(message.text)"
             />
           </div>
@@ -259,7 +259,7 @@ export default {
   position: absolute;
   width: 100%;
   z-index: 10;
-  background-color: white;
+  background-color: var(--app-surface, white);
   max-height: 400px;
   overflow-y: auto;
 }
@@ -268,25 +268,5 @@ export default {
   max-height: 300px;
   height: 70px;
   overflow-y: auto;
-}
-
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-:deep(.chat-search-highlight) {
-  padding: 1px 4px;
-  margin: 0 1px;
-  border: 1px solid rgba(147, 0, 245, 0.32);
-  border-radius: 5px;
-  background-color: rgba(174, 92, 255, 0.72);
-  box-shadow: 0 1px 2px rgba(93, 64, 0, 0.16);
-  color: #2f2a18;
-  font-weight: 600;
-  line-height: 1.35;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
 }
 </style>

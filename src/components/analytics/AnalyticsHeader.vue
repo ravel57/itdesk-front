@@ -24,7 +24,7 @@
         type="date"
         dense
         outlined
-        class="analytics-date-input"
+        class="analytics-date-input app-shared-analytics-date-input"
         @update:model-value="onDateChange('update:fromDate', $event)"
       />
 
@@ -34,7 +34,7 @@
         type="date"
         dense
         outlined
-        class="analytics-date-input"
+        class="analytics-date-input app-shared-analytics-date-input"
         @update:model-value="onDateChange('update:toDate', $event)"
       />
 
@@ -46,7 +46,7 @@
         outlined
         emit-value
         map-options
-        class="analytics-group-input"
+        class="analytics-group-input app-shared-analytics-date-input"
         @update:model-value="onGroupByChange"
       />
 
@@ -140,13 +140,5 @@ export default {
   gap: 8px;
   justify-content: flex-end;
   align-items: center;
-}
-
-.analytics-date-input {
-  width: 150px;
-}
-
-.analytics-group-input {
-  width: 150px;
 }
 </style>

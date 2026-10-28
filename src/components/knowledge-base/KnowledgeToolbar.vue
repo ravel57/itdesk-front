@@ -52,7 +52,7 @@
     align="left"
     active-color="primary"
     indicator-color="primary"
-    class="knowledge-tabs text-grey-8"
+    class="knowledge-tabs text-grey-8 app-shared-plugin-badge"
     @update:model-value="$emit('update:view', $event)"
   >
     <q-tab name="published" label="Статьи"/>
@@ -68,7 +68,7 @@
     v-if="view === 'drafts'"
     dense
     rounded
-    class="knowledge-drafts-hint bg-orange-1 text-grey-9"
+    class="knowledge-drafts-hint bg-orange-1 text-grey-9 app-shared-plugin-extension-point"
   >
     <template #avatar>
       <q-icon name="auto_awesome" color="orange-8"/>
@@ -106,15 +106,6 @@ export default {
 .knowledge-search {
   max-width: 520px;
 }
-
-.knowledge-tabs {
-  margin-top: 4px;
-}
-
-.knowledge-drafts-hint {
-  margin-top: 8px;
-}
-
 @media (max-width: 700px) {
   .knowledge-search {
     max-width: unset;

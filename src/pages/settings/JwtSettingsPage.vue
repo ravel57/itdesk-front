@@ -27,7 +27,7 @@
       Для интеграций выбирайте минимально необходимые scopes вместо полного доступа.
     </q-banner>
 
-    <q-card flat bordered class="jwt-card">
+    <q-card flat bordered class="jwt-card app-rounded-12">
       <q-card-section>
         <div class="text-subtitle1 text-weight-medium">Новый токен</div>
         <div class="text-caption text-grey-7 q-mt-xs">
@@ -102,7 +102,7 @@
       </q-card-section>
     </q-card>
 
-    <q-card v-if="token" flat bordered class="jwt-card q-mt-md">
+    <q-card v-if="token" flat bordered class="jwt-card q-mt-md app-rounded-12">
       <q-card-section class="row items-start justify-between q-col-gutter-md">
         <div class="col">
           <div class="text-subtitle1 text-weight-medium">JWT «{{ generatedName }}» создан</div>
@@ -149,7 +149,7 @@
       </q-card-section>
     </q-card>
 
-    <q-card flat bordered class="jwt-card q-mt-md">
+    <q-card flat bordered class="jwt-card q-mt-md app-rounded-12">
       <q-card-section class="row items-center justify-between q-col-gutter-md">
         <div class="col">
           <div class="text-subtitle1 text-weight-medium">Выпущенные токены</div>
@@ -247,7 +247,7 @@
       </q-table>
     </q-card>
 
-    <q-card flat bordered class="jwt-card q-mt-md">
+    <q-card flat bordered class="jwt-card q-mt-md app-rounded-12">
       <q-card-section class="row items-center justify-between q-col-gutter-md">
         <div class="col">
           <div class="text-subtitle1 text-weight-medium">Ключи подписи</div>
@@ -628,13 +628,9 @@ export default {
 }
 
 .jwt-warning {
-  color: #37314f;
+  color: var(--app-accent-text, #37314f);
   background: rgba(90, 53, 240, 0.07);
   border: 1px solid rgba(90, 53, 240, 0.16);
-}
-
-.jwt-card {
-  border-radius: 12px;
 }
 
 .jwt-form-grid {
@@ -655,29 +651,26 @@ code {
   overflow-wrap: anywhere;
   font-size: 12px;
   line-height: 1.5;
-  color: #29303d;
-  background: #f5f6fa;
-  border: 1px solid #e7eaf0;
+  color: var(--app-text, #29303d);
+  background: var(--app-surface, #f5f6fa);
+  border: 1px solid var(--app-border, #e7eaf0);
   border-radius: 8px;
 }
 
 .jwt-jti {
   font-size: 12px;
 }
-
 :deep(.jwt-token-input) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
-
 @media (max-width: 1050px) {
   .jwt-form-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
-
 @media (max-width: 650px) {
   .jwt-form-grid {
     grid-template-columns: 1fr;

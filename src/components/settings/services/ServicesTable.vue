@@ -15,14 +15,14 @@
     <template #body-cell-name="props">
       <q-td :props="props">
         <div class="text-weight-medium">{{ props.row.code }} · {{ props.row.name }}</div>
-        <div class="text-caption text-grey-7 ellipsis" style="max-width: 420px">{{ props.row.description }}</div>
+        <div class="text-caption text-grey-7 ellipsis app-inline app-max-width-420">{{ props.row.description }}</div>
       </q-td>
     </template>
     <template #body-cell-organizations="props">
       <q-td :props="props">
         <template v-if="serviceOrganizationNames(props.row).length">
           <q-chip v-for="name in serviceOrganizationNames(props.row).slice(0, 3)" :key="name" dense square
-                  class="service-organization-chip" :label="name"/>
+                  class="service-organization-chip app-shared-service-organization-chip" :label="name"/>
           <q-chip v-if="serviceOrganizationNames(props.row).length > 3" dense square outline
                   :label="`+${serviceOrganizationNames(props.row).length - 3}`">
             <q-tooltip>{{ serviceOrganizationNames(props.row).slice(3).join(', ') }}</q-tooltip>
@@ -96,9 +96,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.service-organization-chip {
-  max-width: 220px;
-}
-</style>

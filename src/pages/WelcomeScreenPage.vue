@@ -5,7 +5,7 @@
         <login-logo style="filter: brightness(0) invert(1)"/>
       </div>
 
-      <div class="welcome-rail__steps">
+      <div class="welcome-rail__steps app-flex-column">
         <div
           v-for="(step, index) in steps"
           :key="step.key"
@@ -185,7 +185,7 @@
         </div>
       </div>
 
-      <div class="welcome-step__spacer"/>
+      <div class="welcome-step__spacer app-flex-spacer"/>
 
       <div class="welcome-step__actions">
         <template v-if="inviteState === 'ready'">
@@ -449,7 +449,7 @@ export default {
 .welcome-page {
   display: flex;
   min-height: 100vh;
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .welcome-rail {
@@ -462,11 +462,6 @@ export default {
   justify-content: space-between;
   padding: 40px;
   box-sizing: border-box;
-}
-
-.welcome-rail__steps {
-  display: flex;
-  flex-direction: column;
 }
 
 .welcome-rail__step {
@@ -496,7 +491,7 @@ export default {
 
 .welcome-rail__step-circle--done,
 .welcome-rail__step-circle--active {
-  background: #fff;
+  background: var(--app-surface, #fff);
   color: var(--q-primary);
   border-color: #fff;
 }
@@ -541,7 +536,7 @@ export default {
 .welcome-content__step-label {
   font-size: 12px;
   font-weight: 700;
-  color: #a9a9b2;
+  color: var(--app-text-muted, #a9a9b2);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 8px;
@@ -555,7 +550,7 @@ export default {
 
 .welcome-step__description {
   font-size: 14px;
-  color: #6a6a70;
+  color: var(--app-text-muted, #6a6a70);
   margin-bottom: 24px;
 }
 
@@ -578,13 +573,13 @@ export default {
 }
 
 .welcome-permissions__col--can {
-  background: #f3fbf5;
-  border: 1px solid #d8f0dc;
+  background: var(--app-surface, #f3fbf5);
+  border: 1px solid var(--app-border, #d8f0dc);
 }
 
 .welcome-permissions__col--cannot {
-  background: #fafafb;
-  border: 1px solid #ececef;
+  background: var(--app-surface, #fafafb);
+  border: 1px solid var(--app-border, #ececef);
 }
 
 .welcome-permissions__heading {
@@ -594,11 +589,11 @@ export default {
 }
 
 .welcome-permissions__col--can .welcome-permissions__heading {
-  color: #1e8e3e;
+  color: var(--app-success-text, #1e8e3e);
 }
 
 .welcome-permissions__col--cannot .welcome-permissions__heading {
-  color: #8a8a90;
+  color: var(--app-text-muted, #8a8a90);
 }
 
 .welcome-permissions__item {
@@ -607,15 +602,15 @@ export default {
   gap: 8px;
   padding: 5px 0;
   font-size: 13px;
-  color: #4a4a4f;
+  color: var(--app-text, #4a4a4f);
 }
 
 .welcome-permissions__col--can .welcome-permissions__item {
-  color: #1e8e3e;
+  color: var(--app-success-text, #1e8e3e);
 }
 
 .welcome-permissions__col--cannot .welcome-permissions__item {
-  color: #8a8a90;
+  color: var(--app-text-muted, #8a8a90);
 }
 
 .welcome-permissions__item--muted {
@@ -624,7 +619,7 @@ export default {
 
 .welcome-glossary__item {
   padding: 10px 0;
-  border-bottom: 1px solid #f0f0f2;
+  border-bottom: 1px solid var(--app-border, #f0f0f2);
 }
 
 .welcome-glossary__term {
@@ -634,7 +629,7 @@ export default {
 
 .welcome-glossary__definition {
   font-size: 13px;
-  color: #6a6a70;
+  color: var(--app-text-muted, #6a6a70);
   margin-top: 2px;
 }
 
@@ -647,10 +642,6 @@ export default {
   gap: 12px;
 }
 
-.welcome-step__spacer {
-  flex: 1;
-}
-
 .welcome-step__actions {
   display: flex;
   align-items: center;
@@ -660,11 +651,10 @@ export default {
 
 .welcome-step__skip {
   font-size: 13px;
-  color: #8a8a90;
+  color: var(--app-text-muted, #8a8a90);
   font-weight: 600;
   cursor: pointer;
 }
-
 @media (max-width: 720px) {
   .welcome-page {
     flex-direction: column;

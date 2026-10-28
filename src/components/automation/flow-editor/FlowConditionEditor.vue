@@ -29,7 +29,7 @@
 
     <template v-for="(group, groupIndex) in conditionGroups(selectedNode)" :key="group.id">
       <div v-if="groupIndex > 0" class="flow-logic-divider">ИЛИ</div>
-      <div class="flow-condition-group q-mt-sm">
+      <div class="flow-condition-group q-mt-sm app-flow-condition-group">
         <div class="row items-center justify-between">
           <div class="text-caption text-grey-7">Все условия группы — И</div>
           <q-btn flat round dense size="sm" icon="delete_outline" color="negative"
@@ -37,7 +37,7 @@
         </div>
 
         <div v-for="(condition, conditionIndex) in group.conditions" :key="condition.id"
-             class="flow-condition-item">
+             class="flow-condition-item app-flow-condition-item">
           <q-select
             v-model="condition.field"
             outlined
@@ -282,30 +282,17 @@ export default {
 <style scoped>
 .flow-empty-card {
   padding: 13px;
-  border: 1px dashed #cfd3dc;
+  border: 1px dashed var(--app-border, #cfd3dc);
   border-radius: 7px;
-  background: #fafbfc;
-  color: #777e89;
+  background: var(--app-surface, #fafbfc);
+  color: var(--app-text-muted, #777e89);
   font-size: 12px;
-}
-
-.flow-condition-group {
-  padding: 10px;
-  border: 1px solid #e0e3e9;
-  border-radius: 8px;
-  background: #fafbfc;
-}
-
-.flow-condition-item {
-  display: grid;
-  gap: 8px;
-  margin-top: 8px;
 }
 
 .flow-logic-divider {
   margin: 12px 0 4px;
   text-align: center;
-  color: #fb8c00;
+  color: var(--app-warning-text, #fb8c00);
   font-size: 11px;
   font-weight: 800;
 }

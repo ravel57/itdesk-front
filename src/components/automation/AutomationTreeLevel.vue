@@ -122,7 +122,7 @@ export default {
 
 <style scoped>
 .automation-tree-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid var(--app-border, rgba(0, 0, 0, 0.12));
 }
 
 .automation-tree-item:last-child {
@@ -130,7 +130,7 @@ export default {
 }
 
 .automation-folder-header {
-  background-color: #f6f6f6;
+  background-color: var(--app-surface-muted, #f6f6f6);
 }
 
 .automation-folder-icon {
@@ -142,7 +142,7 @@ export default {
 .automation-level-nested {
   min-height: 12px;
   margin-left: 32px;
-  border-left: 2px solid #e0e0e0;
+  border-left: 2px solid var(--app-border, #e0e0e0);
 }
 
 .automation-level-nested:empty::after {
@@ -150,6 +150,6 @@ export default {
   display: block;
   padding: 10px 16px;
   font-size: 12px;
-  color: #9e9e9e;
+  color: var(--app-text-muted, #9e9e9e);
 }
 </style>

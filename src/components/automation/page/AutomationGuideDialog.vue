@@ -167,7 +167,7 @@ export default {
 
 .automation-guide-text {
   padding: 0 16px 16px;
-  color: #4a4a4f;
+  color: var(--app-text, #4a4a4f);
   font-size: 14px;
   line-height: 1.5;
 }

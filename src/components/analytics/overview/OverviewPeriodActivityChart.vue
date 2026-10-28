@@ -1,38 +1,38 @@
 <template>
   <q-card-section>
-    <div v-if="rows.length" class="period-activity-chart">
+    <div v-if="rows.length" class="period-activity-chart app-column-gap-14">
       <div
         v-for="row in rows"
         :key="row.period"
         class="period-activity-row"
       >
-        <div class="period-activity-label">
+        <div class="period-activity-label app-chart-label">
           {{ row.label }}
         </div>
 
-        <div class="period-activity-metrics">
+        <div class="period-activity-metrics app-column-gap-8">
           <div class="period-activity-metric">
-            <div class="period-activity-metric-title">
+            <div class="period-activity-metric-title app-shared-line-task-section__caption">
               Закрыто
             </div>
-            <div class="bar-chart-track">
+            <div class="bar-chart-track app-chart-track">
               <div class="bar-chart-fill"
                    :style="{ width: row.closedPercent + '%' }"/>
             </div>
-            <div class="bar-chart-value">
+            <div class="bar-chart-value app-chart-value">
               {{ formatNumber(row.closedCount) }}
             </div>
           </div>
 
           <div class="period-activity-metric">
-            <div class="period-activity-metric-title">
+            <div class="period-activity-metric-title app-shared-line-task-section__caption">
               Переоткрыто
             </div>
-            <div class="bar-chart-track">
+            <div class="bar-chart-track app-chart-track">
               <div class="bar-chart-fill bar-chart-fill-warning"
                    :style="{ width: row.reopenedPercent + '%' }"/>
             </div>
-            <div class="bar-chart-value">
+            <div class="bar-chart-value app-chart-value">
               {{ formatNumber(row.reopenedCount) }}
             </div>
           </div>
@@ -74,13 +74,6 @@ export default {
 </script>
 
 <style scoped>
-.bar-chart-track {
-  height: 14px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #eeeeee;
-}
-
 .bar-chart-fill {
   height: 100%;
   border-radius: 999px;
@@ -91,12 +84,6 @@ export default {
   background: #f2c037;
 }
 
-.period-activity-chart {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
 .period-activity-row {
   display: grid;
   grid-template-columns: 96px 1fr;
@@ -104,32 +91,10 @@ export default {
   align-items: start;
 }
 
-.period-activity-label {
-  color: #616161;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.period-activity-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .period-activity-metric {
   display: grid;
   grid-template-columns: 92px 1fr 56px;
   gap: 10px;
   align-items: center;
-}
-
-.period-activity-metric-title {
-  color: #757575;
-  font-size: 12px;
-}
-
-.bar-chart-value {
-  text-align: right;
-  font-weight: 600;
 }
 </style>

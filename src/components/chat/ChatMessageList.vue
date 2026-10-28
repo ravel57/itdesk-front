@@ -25,15 +25,14 @@
             :class="{ 'chat-dialog--wheel-scrolling': isWheelScrollingMessages }"
             @wheel.passive="markMessagesWheelScrolling"
           >
-            <q-chat-message
+            <q-chat-message class="app-inline app-text-pre-wrap"
               :id="`${this.isDialog ? 'modal_message' : 'message'}_${message.id}`"
               :avatar="message.avatar"
               :name="this.getName(message)"
               :sent="message.isSent"
-              text-color="black"
-              :class="message.deleted ? 'strikethrough' : ''"
-              style="white-space: pre-wrap;"
-              :bg-color="message.isComment ? 'deep-purple-2' : message.isSent ? '#e0e0e0' : 'white'"
+              text-color="app-message-text"
+              :class="message.deleted ? 'strikethrough app-strikethrough' : ''"
+              :bg-color="message.isComment ? 'app-message-comment' : message.isSent ? 'app-message-sent' : 'app-message-received'"
             >
               <template v-slot:stamp>
                 <span
@@ -53,18 +52,16 @@
                 class="flex cursor-pointer"
                 @click="this.$emit('scrollToMessage', message.replyMessageId)"
               >
-                <div
+                <div class="app-inline app-square-action"
                   v-if="!message.replyUuid && !message.replyFileType"
-                  style="height: 40px;width: 40px;display: flex;align-items: center;justify-content: center;"
                 >
                   <q-icon
                     size="25px"
                     name="reply"
                   />
                 </div>
-                <div
+                <div class="app-inline app-square-action"
                   v-else-if="message.replyFileType && message.replyFileType.startsWith('application/')"
-                  style="height: 40px; width: 40px; display: flex; align-items: center; justify-content: center;"
                 >
                   <q-icon
                     size="25px"
@@ -74,17 +71,15 @@
                 <div
                   v-else-if="message.replyUuid && message.replyFileType && message.replyFileType.startsWith('image/')"
                 >
-                  <img
+                  <img class="app-inline app-attachment-thumbnail"
                     :src="`/files/images/${message.replyUuid}`"
-                    style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
                     alt=""
                   >
                 </div>
                 <div
                   v-else-if="message.replyUuid && message.replyFileType && message.replyFileType.startsWith('video/')"
                 >
-                  <video
-                    style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;"
+                  <video class="app-inline app-attachment-thumbnail"
                   >
                     <source
                       :src="`/files/videos/${message.replyUuid}`"
@@ -112,9 +107,8 @@
                   @click="this.openPhoto(message)"
                   alt=""
                 >
-                <video
+                <video class="app-inline app-max-width-400"
                   v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
-                  style="max-width: 400px;"
                   :style="getMediaMessageSize(message)"
                   controls
                 >
@@ -144,9 +138,8 @@
                   {{ message.fileName }}
                 </a>
                 <div
-                  class="chat-message-text"
+                  class="chat-message-text app-inline app-max-width-400"
                   v-html="this.findLinks(message.text)"
-                  style="max-width: 400px;"
                 />
                 <operator-hint-feedback
                   v-if="canRateHints && message.operatorHintId"
@@ -855,28 +848,8 @@ export default {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-
 :deep(.q-message-text-content) {
   white-space: pre-wrap;
-}
-
-.strikethrough {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-:deep(.chat-search-highlight) {
-  padding: 1px 4px;
-  margin: 0 1px;
-  border: 1px solid rgba(147, 0, 245, 0.32);
-  border-radius: 5px;
-  background-color: rgba(174, 92, 255, 0.72);
-  box-shadow: 0 1px 2px rgba(93, 64, 0, 0.16);
-  color: #2f2a18;
-  font-weight: 600;
-  line-height: 1.35;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
 }
 
 .answer-required-actions {
@@ -915,25 +888,22 @@ export default {
 .linked-task-icon {
   margin-left: 8px;
   cursor: pointer;
-  color: #5c35f9;
+  color: var(--app-accent-text, #5c35f9);
 }
 
 .linked-task-icon:hover {
   opacity: 0.75;
 }
-
 :deep(.q-message-text.chat-message--highlighted),
 :deep(.q-message-text-content.chat-message--highlighted) {
   background-color: var(--q-primary) !important;
   color: white !important;
   transition: background-color 0.25s ease, color 0.25s ease;
 }
-
 :deep(.q-message-text.chat-message--highlighted *),
 :deep(.q-message-text-content.chat-message--highlighted *) {
   color: white !important;
 }
-
 :deep(.q-message-text.chat-message--highlighted a),
 :deep(.q-message-text-content.chat-message--highlighted a) {
   color: white !important;

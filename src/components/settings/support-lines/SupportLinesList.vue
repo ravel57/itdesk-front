@@ -1,5 +1,5 @@
 <template>
-  <q-list bordered separator class="rounded-borders support-lines-list settings-row-list">
+  <q-list bordered separator class="rounded-borders support-lines-list settings-row-list app-shared-routing-card">
     <draggable
       :list="store.supportLines"
       item-key="id"
@@ -7,8 +7,8 @@
       @end="saveOrder"
     >
       <template #item="{ element }">
-        <q-item class="support-line-item">
-          <q-item-section avatar class="drag-handle cursor-grab">
+        <q-item class="support-line-item app-shared-notification-header">
+          <q-item-section avatar class="drag-handle cursor-grab app-shared-flow-section-btn">
             <q-icon name="drag_indicator" color="grey-6"/>
           </q-item-section>
 
@@ -121,19 +121,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.cursor-grab {
-  cursor: grab;
-}
-
-.support-lines-list {
-  border-radius: 14px;
-  overflow: hidden;
-  background: #ffffff;
-}
-
-.support-line-item {
-  min-height: 68px;
-}
-</style>

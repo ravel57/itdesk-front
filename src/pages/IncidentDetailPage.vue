@@ -209,8 +209,7 @@
                 <template #body-cell-organization="props">
             <q-td :props="props">
               <div
-                class="organization-name-ellipsis"
-                style="max-width: 280px"
+                class="organization-name-ellipsis app-inline app-max-width-280"
                 :title="props.row.organization?.name || ''"
               >{{ props.row.organization?.name || '—' }}</div>
             </q-td>
@@ -293,7 +292,7 @@
               >
                 <span class="incident-client-chip__name">{{ client.displayName || `Клиент #${client.id}` }}</span><span
                 v-if="client.organization"
-                class="incident-client-chip__organization"
+                class="incident-client-chip__organization app-text-ellipsis-shrink"
               > · {{ client.organization.name }}</span></q-chip>
             </div>
           </q-card-section>
@@ -763,7 +762,7 @@ export default {
   justify-content: space-between;
   gap: 16px;
   padding: 7px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, .06);
+  border-bottom: 1px solid var(--app-border, rgba(0, 0, 0, .06));
 }
 
 .timeline-entry-dialog {
@@ -777,13 +776,6 @@ export default {
 
 .incident-client-chip__name {
   flex: 0 0 auto;
-}
-
-.incident-client-chip__organization {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 </style>

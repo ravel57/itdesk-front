@@ -62,8 +62,8 @@ export default {
 <style scoped>
 .flow-graph-search {
   padding: 8px 10px;
-  border-bottom: 1px solid #dfe2e8;
-  background: #fff;
+  border-bottom: 1px solid var(--app-border, #dfe2e8);
+  background: var(--app-surface, #fff);
 }
 
 .flow-graph-search-controls {
@@ -83,7 +83,7 @@ export default {
 }
 
 .flow-graph-search-count {
-  color: #676d78;
+  color: var(--app-text-muted, #676d78);
   font-size: 12px;
 }
 

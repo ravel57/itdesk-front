@@ -35,14 +35,14 @@
         v-if="this.testResult"
         rounded
         :class="this.testResult.valid === false
-          ? 'automation-test-result automation-test-error'
+          ? 'automation-test-result automation-test-error app-automation-test-error'
           : this.isWorkflowTestResult(this.testResult)
             ? (this.testResult.executed || this.testResult.scheduled
                 ? 'automation-test-result automation-test-match'
-                : 'automation-test-result automation-test-miss')
+                : 'automation-test-result automation-test-miss app-automation-test-miss')
             : this.testResult.matched
               ? 'automation-test-result automation-test-match'
-              : 'automation-test-result automation-test-miss'"
+              : 'automation-test-result automation-test-miss app-automation-test-miss'"
       >
         <div class="text-weight-medium">
           <template v-if="this.testResult.valid === false">Ошибка проверки</template>
@@ -128,9 +128,9 @@ export default {
 <style scoped>
 .automation-test-panel {
   margin-top: 18px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border, #e0e0e0);
   border-radius: 8px;
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .automation-test-content {
@@ -153,20 +153,8 @@ export default {
 }
 
 .automation-test-match {
-  border: 1px solid #a5d6a7;
-  background: #f1f8e9;
-  color: #2e7d32;
-}
-
-.automation-test-miss {
-  border: 1px solid #ffe082;
-  background: #fffde7;
-  color: #8d6e00;
-}
-
-.automation-test-error {
-  border: 1px solid #ef9a9a;
-  background: #ffebee;
-  color: #c62828;
+  border: 1px solid var(--app-success-border, #a5d6a7);
+  background: var(--app-surface-muted, #f1f8e9);
+  color: var(--app-success-text, #2e7d32);
 }
 </style>

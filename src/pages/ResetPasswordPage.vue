@@ -1,9 +1,9 @@
 <template>
   <q-layout>
-    <q-page-container class="reset-page">
+    <q-page-container class="reset-page app-auth-page">
       <q-page class="flex flex-center">
         <div class="reset-box">
-          <login-logo class="reset-logo"/>
+          <login-logo class="reset-logo app-auth-logo"/>
 
           <div v-if="state === 'checking'" class="reset-state">
             <q-spinner color="primary" size="32px"/>
@@ -12,7 +12,7 @@
 
           <template v-else-if="state === 'invalid'">
             <div class="reset-title">Ссылка недействительна</div>
-            <div class="reset-text">
+            <div class="reset-text app-text-center">
               {{ message || 'Ссылка устарела или уже использована. Если это приглашение — обратитесь к администратору за новым; если это сброс пароля — запросите новую ссылку на странице входа.' }}
             </div>
             <q-btn class="full-width q-mt-md" color="primary" label="На страницу входа" to="/login"/>
@@ -23,7 +23,7 @@
               <q-icon name="check" class="q-mr-xs"/>
               {{ isInvite ? 'Добро пожаловать!' : 'Пароль изменён' }}
             </div>
-            <div class="reset-text">
+            <div class="reset-text app-text-center">
               {{
                 isInvite
                   ? 'Пароль задан. Войдите, чтобы начать работу.'
@@ -35,7 +35,7 @@
 
           <q-form v-else class="reset-form" @submit.prevent="submit">
             <div class="reset-title">{{ isInvite ? 'Добро пожаловать в ULDESK' : 'Новый пароль' }}</div>
-            <div v-if="isInvite" class="reset-text q-mb-sm">Для вас создана учётная запись. Задайте пароль, чтобы войти.</div>
+            <div v-if="isInvite" class="reset-text q-mb-sm app-text-center">Для вас создана учётная запись. Задайте пароль, чтобы войти.</div>
             <q-input
               v-model="password"
               :type="showPassword ? 'text' : 'password'"
@@ -162,22 +162,12 @@ export default {
 </script>
 
 <style scoped>
-.reset-page {
-  background-color: var(--q-primary);
-  min-height: 100vh;
-}
-
 .reset-box {
-  background-color: white;
+  background-color: var(--app-surface, white);
   padding: 16px;
   width: 300px;
   max-width: calc(100vw - 32px);
   border-radius: 4px;
-}
-
-.reset-logo {
-  display: block;
-  margin: 0 auto;
 }
 
 .reset-title {
@@ -188,15 +178,11 @@ export default {
 }
 
 .reset-title--success {
-  color: rgb(52, 199, 89);
-}
-
-.reset-text {
-  text-align: center;
+  color: var(--app-success-text, rgb(52, 199, 89));
 }
 
 .reset-hint {
-  color: grey;
+  color: var(--app-text-muted, grey);
   font-size: 12px;
 }
 

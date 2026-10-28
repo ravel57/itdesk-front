@@ -32,7 +32,7 @@
       <q-separator/>
 
       <q-card-section class="plugin-security-section">
-        <div class="plugin-security-section-header">
+        <div class="plugin-security-section-header app-plugin-security-section-header">
           <div>
             <div class="text-subtitle1">Разрешения</div>
             <div class="text-caption text-grey-7">
@@ -140,7 +140,7 @@
             class="plugin-secret-card"
           >
             <q-card-section>
-              <div class="plugin-secret-heading">
+              <div class="plugin-secret-heading app-plugin-secret-heading">
                 <div>
                   <div class="text-subtitle2">{{ secret.title || secret.name }}</div>
                   <div class="text-caption plugin-code">{{ secret.name }}</div>
@@ -328,15 +328,6 @@ export default {
   overflow-y: auto;
 }
 
-.plugin-security-header,
-.plugin-security-section-header,
-.plugin-secret-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
 .plugin-security-section {
   padding-top: 18px;
   padding-bottom: 18px;
@@ -378,11 +369,6 @@ export default {
 }
 
 @media (max-width: 700px) {
-  .plugin-security-section-header,
-  .plugin-secret-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 
   .plugin-permission-actions,
   .plugin-secret-actions {

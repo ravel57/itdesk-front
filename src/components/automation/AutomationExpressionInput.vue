@@ -679,9 +679,9 @@ export default {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--q-dark, #1d1d1d);
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: var(--app-text, #1d1d1d);
+  background: var(--app-surface, #fff);
+  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.12));
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 

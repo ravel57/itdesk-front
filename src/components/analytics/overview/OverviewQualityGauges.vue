@@ -8,7 +8,7 @@
       >
         <div class="quality-gauge">
           <div class="row items-center justify-between q-mb-xs">
-            <div class="quality-gauge-title">
+            <div class="quality-gauge-title app-font-weight-500">
               {{ gauge.label }}
             </div>
             <div class="quality-gauge-value">
@@ -22,7 +22,7 @@
             :color="gauge.color"
             track-color="grey-3"
           />
-          <div class="quality-gauge-caption">
+          <div class="quality-gauge-caption app-shared-deadline-card-caption">
             {{ gauge.caption }}
           </div>
         </div>
@@ -48,22 +48,12 @@ export default {
 <style scoped>
 .quality-gauge {
   padding: 12px;
-  border: 1px solid #eeeeee;
+  border: 1px solid var(--app-border, #eeeeee);
   border-radius: 8px;
-  background: #fafafa;
-}
-
-.quality-gauge-title {
-  font-weight: 500;
+  background: var(--app-surface, #fafafa);
 }
 
 .quality-gauge-value {
   font-weight: 700;
-}
-
-.quality-gauge-caption {
-  margin-top: 6px;
-  color: #757575;
-  font-size: 12px;
 }
 </style>

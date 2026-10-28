@@ -1,7 +1,7 @@
 <template>
   <div class="row q-col-gutter-md">
     <div class="col-12 col-lg-5">
-      <q-card flat bordered class="routing-card">
+      <q-card flat bordered class="routing-card app-shared-routing-card">
         <q-card-section>
           <div class="text-subtitle1 text-weight-medium">Черновик маршрутизации</div>
           <div class="text-caption text-grey-7 q-mt-xs">
@@ -92,7 +92,7 @@
     </div>
 
     <div class="col-12 col-lg-7">
-      <q-card flat bordered class="routing-card">
+      <q-card flat bordered class="routing-card app-shared-routing-card">
         <q-card-section class="row items-center justify-between">
           <div>
             <div class="text-subtitle1 text-weight-medium">Черновики</div>
@@ -251,11 +251,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.routing-card {
-  border-radius: 14px;
-  overflow: hidden;
-  background: #ffffff;
-}
-</style>

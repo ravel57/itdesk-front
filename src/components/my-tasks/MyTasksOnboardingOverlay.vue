@@ -2,7 +2,7 @@
   <teleport to="body">
     <div
       v-if="this.active"
-      class="my-tasks-onboarding-layer"
+      class="my-tasks-onboarding-layer app-shared-my-tasks-onboarding-layer"
     >
       <div class="my-tasks-onboarding-backdrop"/>
       <div
@@ -20,7 +20,7 @@
           size="sm"
           icon="close"
           color="grey-7"
-          class="onboarding-close-btn"
+          class="onboarding-close-btn app-shared-onboarding-close-btn"
           aria-label="Закрыть обучение"
           @click="$emit('skip')"
         >
@@ -35,7 +35,7 @@
         <div class="my-tasks-onboarding-text">
           {{ this.step.text }}
         </div>
-        <div class="my-tasks-onboarding-actions" style="justify-content: flex-end">
+        <div class="my-tasks-onboarding-actions app-my-tasks-onboarding-actions" style="justify-content: flex-end">
           <div class="my-tasks-onboarding-nav">
             <q-btn
               flat
@@ -80,13 +80,6 @@ export default {
 </script>
 
 <style scoped>
-.my-tasks-onboarding-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  pointer-events: none;
-}
-
 .my-tasks-onboarding-backdrop {
   position: absolute;
   inset: 0;
@@ -107,8 +100,8 @@ export default {
 .my-tasks-onboarding-tooltip {
   position: fixed;
   z-index: 10002;
-  background: #fff;
-  color: #111;
+  background: var(--app-surface, #fff);
+  color: var(--app-text, #111);
   border-radius: 10px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.26);
   padding: 16px;
@@ -118,7 +111,7 @@ export default {
 
 .my-tasks-onboarding-progress {
   text-align: right;
-  color: #757575;
+  color: var(--app-text-muted, #757575);
   font-size: 13px;
   margin-bottom: 4px;
 }
@@ -135,25 +128,12 @@ export default {
   margin-bottom: 14px;
 }
 
-.my-tasks-onboarding-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
 .my-tasks-onboarding-nav {
   display: flex;
   gap: 8px;
 }
 
 /* Крестик закрытия обучения в правом верхнем углу карточки */
-.onboarding-close-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 1;
-}
 
 .my-tasks-onboarding-progress,
 .my-tasks-onboarding-title {

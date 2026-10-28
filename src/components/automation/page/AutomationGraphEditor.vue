@@ -350,19 +350,19 @@ export default {
   gap: 24px;
   padding: 28px;
   overflow-x: auto;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border, #e0e0e0);
   border-radius: 8px;
-  background: #fafafa;
+  background: var(--app-surface, #fafafa);
 }
 
 .automation-node {
   flex: 0 0 auto;
   min-height: 190px;
   padding: 22px;
-  border: 1px solid #d7d7d7;
+  border: 1px solid var(--app-border, #d7d7d7);
   border-top: 4px solid var(--q-primary);
   border-radius: 8px;
-  background: white;
+  background: var(--app-surface, white);
 }
 
 .automation-node-event {
@@ -388,12 +388,12 @@ export default {
 .automation-arrow {
   align-self: center;
   flex: 0 0 auto;
-  color: #9e9e9e;
+  color: var(--app-text-muted, #9e9e9e);
 }
 
 .automation-branch-connector {
   align-self: center;
-  color: #9e9e9e;
+  color: var(--app-text-muted, #9e9e9e);
   flex: 0 0 auto;
 }
 
@@ -421,17 +421,17 @@ export default {
 
 .automation-empty-state {
   padding: 18px;
-  border: 1px dashed #bdbdbd;
+  border: 1px dashed var(--app-border, #bdbdbd);
   border-radius: 6px;
-  color: #757575;
-  background: #fafafa;
+  color: var(--app-text-muted, #757575);
+  background: var(--app-surface, #fafafa);
 }
 
 .automation-condition-group {
   padding: 14px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border, #e0e0e0);
   border-radius: 7px;
-  background: #fffaf3;
+  background: var(--app-surface, #fffaf3);
 }
 
 .automation-group-header {
@@ -439,7 +439,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
-  color: #616161;
+  color: var(--app-text-muted, #616161);
   font-size: 13px;
   font-weight: 500;
 }
@@ -459,16 +459,16 @@ export default {
   gap: 10px;
   padding: 12px;
   margin-bottom: 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border, #e0e0e0);
   border-radius: 7px;
-  background: #f7fbf7;
+  background: var(--app-surface, #f7fbf7);
 }
 
 .automation-logic-divider {
   position: relative;
   margin: 14px 0;
   text-align: center;
-  color: #fb8c00;
+  color: var(--app-warning-text, #fb8c00);
   font-size: 12px;
   font-weight: 700;
 }
@@ -480,7 +480,7 @@ export default {
   top: 50%;
   width: calc(50% - 30px);
   height: 1px;
-  background: #ffe0b2;
+  background: var(--app-warning-surface, #ffe0b2);
 }
 
 .automation-logic-divider::before {

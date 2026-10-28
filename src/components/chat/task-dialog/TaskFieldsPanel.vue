@@ -1,6 +1,6 @@
 <template>
   <q-card
-    class="no-border-card"
+    class="no-border-card app-no-border-card"
   >
     <q-card-section
       class="no-padding"
@@ -69,24 +69,22 @@
           style="width: 100%;padding: 0;"
           :style="this.getBackgroundColor(this.status)"
         />
-        <q-btn
+        <q-btn class="app-inline app-task-field"
           v-if="!this.isNewTask && !this.dialogTaskComplete && $can('TASK_EDIT')"
           dense
           outline
           label="Закрыть заявку"
           color="white"
           text-color="primary"
-          style="font-size: 14px;height: 40px;width: 100%; margin-left: 8px"
           @click="this.$emit('close-task')"
         />
-        <q-btn
+        <q-btn class="app-inline app-task-field"
           v-if="this.dialogTaskComplete && $can('TASK_EDIT')"
           dense
           outline
           label="Вернуть в работу"
           color="white"
           text-color="primary"
-          style="font-size: 14px;height: 40px;width: 100%;margin-left: 8px;"
           @click="this.$emit('reopen-task')"
         />
         <div id="unfreeze-task-btn">
@@ -439,11 +437,6 @@ export default {
 </script>
 
 <style scoped>
-.no-border-card {
-  border: none;
-  box-shadow: none;
-}
-
 .task-type-checklist-hint {
   display: flex;
   justify-content: space-between;
@@ -454,7 +447,7 @@ export default {
   padding: 6px 8px;
   border-radius: 8px;
   background: rgba(98, 0, 238, 0.06);
-  color: #5f6368;
+  color: var(--app-text-muted, #5f6368);
   font-size: 13px;
 }
 </style>

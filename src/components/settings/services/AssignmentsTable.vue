@@ -4,8 +4,7 @@
     <template #body-cell-organization="props">
       <q-td :props="props">
         <div
-          class="organization-name-ellipsis"
-          style="max-width: 280px"
+          class="organization-name-ellipsis app-inline app-max-width-280"
           :title="props.row.organization?.name || ''"
         >{{ props.row.organization?.name || '—' }}
         </div>

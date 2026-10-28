@@ -3,7 +3,7 @@
     id="chat-section"
     data-tour="task-dialog-right-panel"
     class="flex-item task-right-panel"
-    style="border: 1px solid #0000001f;overflow: hidden;border-radius: 16px"
+    style="border: 1px solid var(--app-border, #0000001f);overflow: hidden;border-radius: 16px"
     :style="this.isMobile ? 'height: 541px' : ''"
   >
     <q-tabs
@@ -26,7 +26,7 @@
     <q-tab-panels
       :model-value="this.modelValue"
       animated
-      class="task-right-panels"
+      class="task-right-panels app-task-right-panels"
       @update:model-value="this.$emit('update:modelValue', $event)"
     >
       <q-tab-panel name="messages" class="q-pa-none task-messages-panel" data-tour="task-dialog-messages-panel">
@@ -153,24 +153,6 @@ export default {
 .task-right-tabs {
   flex: 0 0 auto;
   min-height: 40px;
-}
-
-.task-right-panels {
-  flex: 1 1 auto;
-  height: 100%;
-  max-height: none;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.task-right-panels :deep(.q-panel) {
-  height: 100%;
-  min-height: 0;
-}
-
-.task-right-panels :deep(.q-tab-panel) {
-  height: 100%;
-  min-height: 0;
 }
 
 .task-messages-panel {

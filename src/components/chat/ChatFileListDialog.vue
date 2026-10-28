@@ -28,9 +28,8 @@
             @click="toggleFileSortDirection"
           />
         </div>
-        <div style="margin-bottom: 8px;">
-          <div
-            style="margin-bottom: 16px"
+        <div class="app-inline app-margin-bottom-8">
+          <div class="app-inline app-margin-bottom-16"
             v-for="(file, index) in sortedFileList"
             :key="file.uuid || index"
           >
@@ -43,7 +42,7 @@
                 {{ getFileExt(file) }}
               </div>
               <div class="file-list-info">
-                <div class="truncate">{{ getFileTitle(file) }}</div>
+                <div class="truncate app-text-ellipsis">{{ getFileTitle(file) }}</div>
                 <div
                   v-if="getFileDateText(file)"
                   class="file-list-date"
@@ -213,12 +212,6 @@ export default {
 </script>
 
 <style scoped>
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .file-list-toolbar {
   display: flex;
   align-items: center;
@@ -231,7 +224,7 @@ export default {
   display: flex;
   align-items: center;
   padding: 6px;
-  border: solid 1px rgba(108, 108, 108, 0.2);
+  border: solid 1px var(--app-border, rgba(108, 108, 108, 0.2));
   border-radius: 4px;
   text-decoration: none;
   color: inherit;
@@ -256,6 +249,6 @@ export default {
 
 .file-list-date {
   font-size: 12px;
-  color: rgba(0, 0, 0, 0.54);
+  color: var(--app-text, rgba(0, 0, 0, 0.54));
 }
 </style>

@@ -115,7 +115,7 @@ export default {
 .flow-node--for_each, .flow-node--loop_end, .flow-node--loop_break { border-top-color: #00897b; }
 
 .flow-node--search-match {
-  outline: 3px solid #f4b740;
+  outline: 3px solid var(--app-warning-border, #f4b740);
   outline-offset: 3px;
 }
 
@@ -124,10 +124,10 @@ export default {
   box-sizing: border-box;
   position: absolute;
   z-index: 2;
-  border: 1px solid #cfd3dc;
-  border-top: var(--flow-node-border-top) solid #8c94a3;
+  border: 1px solid var(--app-border, #cfd3dc);
+  border-top: var(--flow-node-border-top) solid var(--app-border, #8c94a3);
   border-radius: 9px;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
   box-shadow: 0 5px 16px rgba(32, 37, 48, .09);
   transition: border-color .15s, box-shadow .15s;
 }
@@ -145,7 +145,7 @@ export default {
 }
 
 .flow-node--selected .flow-node-header {
-  background: #eee9ff;
+  background: var(--app-surface-muted, #eee9ff);
 }
 
 .flow-node--event {
@@ -224,8 +224,8 @@ export default {
 }
 
 .flow-node--note {
-  border-top-color: #757575;
-  background: #fffdf2;
+  border-top-color: var(--app-border, #757575);
+  background: var(--app-surface, #fffdf2);
 }
 
 .flow-node--end {
@@ -238,7 +238,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid #eceef2;
+  border-bottom: 1px solid var(--app-border, #eceef2);
   cursor: grab;
   user-select: none;
 }
@@ -252,7 +252,7 @@ export default {
   min-width: 0;
   font-size: 13px;
   font-weight: 700;
-  color: #282d36;
+  color: var(--app-text, #282d36);
 }
 
 .flow-node-body {
@@ -261,7 +261,7 @@ export default {
 
 .flow-node-kind {
   margin-bottom: 7px;
-  color: #8a909c;
+  color: var(--app-text-muted, #8a909c);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -269,7 +269,7 @@ export default {
 }
 
 .flow-node-summary {
-  color: #4a505c;
+  color: var(--app-text, #4a505c);
   font-size: 12px;
   line-height: 1.45;
   display: -webkit-box;
@@ -329,10 +329,10 @@ export default {
 }
 
 .flow-port-label--true {
-  color: #2e9b55;
+  color: var(--app-success-text, #2e9b55);
 }
 
 .flow-port-label--false {
-  color: #d34b4b;
+  color: var(--app-danger-text, #d34b4b);
 }
 </style>

@@ -27,7 +27,7 @@
         dense
         flat
         bordered
-        class="q-mt-sm task-history-changes-table"
+        class="q-mt-sm task-history-changes-table app-width-full"
       >
         <thead>
         <tr>
@@ -243,10 +243,6 @@ th {
 
 .task-history-description {
   white-space: pre-line;
-}
-
-.task-history-changes-table {
-  width: 100%;
 }
 
 .task-history-changes-table th,

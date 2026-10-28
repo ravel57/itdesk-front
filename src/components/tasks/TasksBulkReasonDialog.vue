@@ -4,7 +4,7 @@
     @update:model-value="this.$emit('update:modelValue', $event)"
     persistent
   >
-    <q-card style="width: 520px; max-width: 95vw;">
+    <q-card class="app-inline app-dialog-medium">
       <q-toolbar class="justify-between">
         <div class="text-h6">
           {{ this.title }}

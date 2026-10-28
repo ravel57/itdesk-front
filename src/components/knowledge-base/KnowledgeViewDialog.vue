@@ -53,7 +53,7 @@
             <q-icon name="edit_note" color="orange-8"/>
           </template>
           Черновик<template v-if="knowledge.sourceTaskId">, сформирован ИИ по закрытой заявке
-            <router-link :to="taskLink(knowledge)" class="knowledge-task-link">№{{ knowledge.sourceTaskId }}</router-link></template>.
+            <router-link :to="taskLink(knowledge)" class="knowledge-task-link app-shared-knowledge-task-link">№{{ knowledge.sourceTaskId }}</router-link></template>.
           Проверьте текст: его видят только редакторы базы знаний, пока статья не опубликована.
           <template v-if="canManage" #action>
             <q-btn
@@ -129,15 +129,6 @@ export default {
 </script>
 
 <style scoped>
-.knowledge-task-link {
-  color: var(--q-primary);
-  text-decoration: none;
-}
-
-.knowledge-task-link:hover {
-  text-decoration: underline;
-}
-
 .knowledge-view-card {
   width: 820px;
   max-width: 92vw;
@@ -158,12 +149,12 @@ export default {
   white-space: pre-wrap;
   line-height: 1.65;
   font-size: 15px;
-  color: #242424;
+  color: var(--app-text, #242424);
 }
 
 .knowledge-view-text + .knowledge-view-text {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #eeeeee;
+  border-top: 1px solid var(--app-border, #eeeeee);
 }
 </style>

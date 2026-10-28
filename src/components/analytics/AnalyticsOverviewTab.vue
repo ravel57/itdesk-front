@@ -1,7 +1,7 @@
 <template>
   <div class="row q-col-gutter-md">
     <div class="col-12 col-lg-8">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="row items-start justify-between q-gutter-sm">
             <div>
@@ -30,7 +30,7 @@
     </div>
 
     <div class="col-12 col-lg-4">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="text-h6">
             Пульс очереди
@@ -47,7 +47,7 @@
     </div>
 
     <div class="col-12 col-lg-5">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="text-h6">
             Закрыто / переоткрыто за период
@@ -64,7 +64,7 @@
     </div>
 
     <div class="col-12 col-lg-7">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="text-h6">
             Быстрый контроль качества
@@ -81,7 +81,7 @@
     </div>
 
     <div class="col-12">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="row items-start justify-between q-gutter-sm">
             <div>
@@ -224,10 +224,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.analytics-card {
-  height: 100%;
-  border-radius: 8px;
-}
-</style>

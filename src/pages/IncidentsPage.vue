@@ -172,7 +172,7 @@
             </div>
             <div class="incident-wizard__fields">
               <div class="incident-form__pair incident-wizard__dates">
-                <div class="incident-wizard__date">
+                <div class="incident-wizard__date app-column-gap-8">
                   <div class="incident-wizard__date-title">Фактическое начало</div>
                   <q-btn-toggle v-model="dateModes.actualStartedAt" unelevated dense
                                 toggle-color="primary" color="grey-3" text-color="grey-8" class="incident-wizard__toggle"
@@ -181,7 +181,7 @@
                            stack-label type="datetime-local" label="Когда сбой действительно начался"/>
                   <div v-else class="incident-wizard__date-note">{{ dateModeNote(dateModes.actualStartedAt, 'начался') }}</div>
                 </div>
-                <div class="incident-wizard__date">
+                <div class="incident-wizard__date app-column-gap-8">
                   <div class="incident-wizard__date-title">Обнаружен</div>
                   <q-btn-toggle v-model="dateModes.detectedAt" unelevated dense
                                 toggle-color="primary" color="grey-3" text-color="grey-8" class="incident-wizard__toggle"
@@ -666,8 +666,8 @@ export default {
   margin-bottom: 20px;
   padding: 12px 14px;
   border-radius: 8px;
-  background: #f4f1ff;
-  color: #4a4a4f;
+  background: var(--app-surface, #f4f1ff);
+  color: var(--app-text, #4a4a4f);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -682,16 +682,10 @@ export default {
   align-items: start;
 }
 
-.incident-wizard__date {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 .incident-wizard__date-title {
   font-size: 13px;
   font-weight: 600;
-  color: #4a4a4f;
+  color: var(--app-text, #4a4a4f);
 }
 
 .incident-wizard__toggle {
@@ -701,16 +695,16 @@ export default {
 .incident-wizard__date-note {
   min-height: 56px;
   padding: 10px 12px;
-  border: 1px dashed #d0d0d5;
+  border: 1px dashed var(--app-border, #d0d0d5);
   border-radius: 4px;
-  color: #8a8a90;
+  color: var(--app-text-muted, #8a8a90);
   font-size: 13px;
   line-height: 1.4;
 }
 
 .incident-wizard__summary-label {
   max-width: 220px;
-  color: #737b89;
+  color: var(--app-text-muted, #737b89);
 }
 
 .incident-wizard__actions {
@@ -721,7 +715,7 @@ export default {
 .incident-help {
   font-size: 14px;
   line-height: 1.5;
-  color: #4a4a4f;
+  color: var(--app-text, #4a4a4f);
 }
 
 .incident-help p {
@@ -743,9 +737,8 @@ export default {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8a8a90;
+  color: var(--app-text-muted, #8a8a90);
 }
-
 @media (max-width: 599px) {
   .incident-form__pair {
     grid-template-columns: 1fr;

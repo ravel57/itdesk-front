@@ -8,7 +8,7 @@
     :animation="150"
   >
     <template #item="{ element: section }">
-      <q-btn flat dense class="flow-section-btn" @click="$emit('focus-section', section)">
+      <q-btn flat dense class="flow-section-btn app-shared-flow-section-btn" @click="$emit('focus-section', section)">
         <q-icon name="drag_indicator" size="14px" class="flow-section-drag-handle"/>
         <span>{{ section }}</span>
       </q-btn>
@@ -41,11 +41,7 @@ export default {
 </script>
 
 <style scoped>
-.flow-section-navigation { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px; border-bottom: 1px solid #dfe2e8; background: #fff; max-height: 110px; overflow: auto; }
-
-.flow-section-btn {
-  cursor: grab;
-}
+.flow-section-navigation { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px; border-bottom: 1px solid var(--app-border, #dfe2e8); background: var(--app-surface, #fff); max-height: 110px; overflow: auto; }
 
 .flow-section-drag-handle {
   margin-right: 4px;

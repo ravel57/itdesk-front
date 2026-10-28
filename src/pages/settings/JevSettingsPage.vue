@@ -26,7 +26,7 @@
 
     <operator-hint-stats v-if="$can('AUTOMATION_MANAGE')" class="q-mb-md"/>
 
-    <q-card flat bordered class="settings-card">
+    <q-card flat bordered class="settings-card app-rounded-12">
       <q-card-section class="settings-block">
         <div class="text-subtitle1">Настройка автоматизаций</div>
         <div class="text-body2 text-grey-7 q-mt-sm">
@@ -73,9 +73,5 @@ export default {
 
 .jev-settings > .settings-content-header {
   margin-bottom: 20px;
-}
-
-.settings-card {
-  border-radius: 12px;
 }
 </style>

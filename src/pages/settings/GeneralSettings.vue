@@ -18,7 +18,7 @@
     </div>
 
     <div class="general-settings__sections column q-gutter-md">
-      <q-card flat bordered class="settings-card">
+      <q-card flat bordered class="settings-card app-rounded-12">
         <q-card-section class="settings-block">
           <div class="settings-block__header">
             <div>
@@ -42,7 +42,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="settings-card">
+      <q-card flat bordered class="settings-card app-rounded-12">
         <q-card-section class="settings-block">
           <div class="settings-block__header">
             <div>
@@ -111,7 +111,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="settings-card">
+      <q-card flat bordered class="settings-card app-rounded-12">
         <q-card-section class="settings-block">
           <div class="settings-block__header">
             <div>
@@ -159,7 +159,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="settings-card">
+      <q-card flat bordered class="settings-card app-rounded-12">
         <q-card-section class="settings-block">
           <div class="settings-block__header">
             <div>
@@ -512,10 +512,6 @@ export default {
   z-index: 0;
 }
 
-.settings-card {
-  border-radius: 12px;
-}
-
 .general-settings__status {
   display: flex;
   align-items: center;
@@ -538,7 +534,7 @@ export default {
 
 .access-mode-card {
   border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbff 100%);
+  background: linear-gradient(180deg, var(--app-surface, #ffffff) 0%, var(--app-surface, #fafbff) 100%);
 }
 @media (max-width: 700px) {
   .settings-block__header {

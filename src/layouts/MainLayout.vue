@@ -41,8 +41,7 @@
           aria-label="Menu"
           @click="toggleLeftDrawer"
         />
-        <q-item
-          style="padding: 0"
+        <q-item class="app-inline app-padding-none"
           @click="this.$router.push('/')"
           clickable
         >
@@ -61,11 +60,10 @@
     <div
       style="position: fixed; height: 100%; z-index: 6000;"
     >
-      <q-drawer
+      <q-drawer class="app-inline app-position-relative"
         v-model="leftDrawerOpen"
         show-if-above
         bordered
-        style="position: relative"
         :mini="miniState"
         :width="300"
         :breakpoint="500"
@@ -86,8 +84,7 @@
               <q-item-section
                 avatar
               >
-                <q-icon
-                  style="align-items: start;"
+                <q-icon class="app-inline app-items-start"
                   name="menu"/>
                 <div
                   style="width: 71%;
@@ -121,38 +118,36 @@
             to="/operators"
           >
             <q-item-section avatar>
-              <q-icon
-                style="align-items:start"
+              <q-icon class="app-inline app-items-start"
                 name="group"
               />
               <circle-counter
                 v-if="this.miniState"
                 :counter="this.operatorUsersOnline.length"
-                class="mini-counter"
+                class="mini-counter app-mini-counter"
               />
             </q-item-section>
             <q-item-section :style="this.miniState ? 'position: absolute;margin-left: 55px;' : ''">
               <q-item-label>Операторы онлайн:</q-item-label>
-              <q-item-label caption style="white-space: pre-wrap;">{{ this.formatUsersOnline(this.operatorUsersOnline) }}</q-item-label>
+              <q-item-label class="app-inline app-text-pre-wrap" caption>{{ this.formatUsersOnline(this.operatorUsersOnline) }}</q-item-label>
             </q-item-section>
           </q-item>
           <q-item
             v-if="canSeeOnlineUsers && this.observerUsersOnline.length > 0"
           >
             <q-item-section avatar>
-              <q-icon
-                style="align-items:start"
+              <q-icon class="app-inline app-items-start"
                 name="visibility"
               />
               <circle-counter
                 v-if="this.miniState"
                 :counter="this.observerUsersOnline.length"
-                class="mini-counter"
+                class="mini-counter app-mini-counter"
               />
             </q-item-section>
             <q-item-section :style="this.miniState ? 'position: absolute;margin-left: 55px;' : ''">
               <q-item-label>Менеджеры организаций онлайн:</q-item-label>
-              <q-item-label caption style="white-space: pre-wrap;">{{ this.formatUsersOnline(this.observerUsersOnline) }}</q-item-label>
+              <q-item-label class="app-inline app-text-pre-wrap" caption>{{ this.formatUsersOnline(this.observerUsersOnline) }}</q-item-label>
             </q-item-section>
           </q-item>
           </q-list>
@@ -173,7 +168,7 @@
                 </div>
               </q-item-section>
               <q-item-section>
-                <q-item-label style="white-space: pre-wrap;">{{ this.store.currentUser?.lastname + ' ' + this.store.currentUser?.firstname}}</q-item-label>
+                <q-item-label class="app-inline app-text-pre-wrap">{{ this.store.currentUser?.lastname + ' ' + this.store.currentUser?.firstname}}</q-item-label>
               </q-item-section>
             </q-item>
             <q-item
@@ -181,7 +176,7 @@
               @click="this.logout"
             >
               <q-item-section avatar>
-                <q-icon style="align-items: start" name="logout"/>
+                <q-icon class="app-inline app-items-start"  name="logout"/>
               </q-item-section>
               <q-item-section>
                 <q-item-label>Выход</q-item-label>
@@ -553,7 +548,7 @@ export default {
   flex: 0 0 auto;
   position: relative;
   z-index: 1;
-  background: white;
+  background: var(--app-surface, white);
 }
 
 .main-navigation__scroll {
@@ -577,7 +572,7 @@ export default {
 
 .main-navigation__footer {
   flex: 0 0 auto;
-  background: white;
+  background: var(--app-surface, white);
 }
 
 .global-alert {
@@ -591,15 +586,5 @@ export default {
   min-width: 100%;
   width: 100%;
   background-color: rgba(236, 8, 8, 1);
-}
-
-.mini-counter {
-  position: absolute !important;
-  height: 12px !important;
-  width: 12px !important;
-  font-size: 9px !important;
-  margin-left: 15px !important;
-  background-color: var(--q-primary) !important;
-  top: 8px !important;
 }
 </style>

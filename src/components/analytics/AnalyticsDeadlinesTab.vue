@@ -1,7 +1,7 @@
 <template>
   <div class="row q-col-gutter-md">
     <div class="col-12 col-md-6 col-lg-3">
-      <q-card flat bordered class="analytics-card deadline-card">
+      <q-card flat bordered class="analytics-card deadline-card app-shared-analytics-card">
         <q-card-section>
           <div class="deadline-card-label">
             Просроченные дедлайны
@@ -12,7 +12,7 @@
           >
             {{ formatNumber(overdueDeadlines) }}
           </div>
-          <div class="deadline-card-caption">
+          <div class="deadline-card-caption app-shared-deadline-card-caption">
             Заявки, у которых срок выполнения уже нарушен
           </div>
         </q-card-section>
@@ -20,7 +20,7 @@
     </div>
 
     <div class="col-12 col-md-6 col-lg-3">
-      <q-card flat bordered class="analytics-card deadline-card">
+      <q-card flat bordered class="analytics-card deadline-card app-shared-analytics-card">
         <q-card-section>
           <div class="deadline-card-label">
             Предупреждения по дедлайну
@@ -31,7 +31,7 @@
           >
             {{ formatNumber(deadlineWarnings) }}
           </div>
-          <div class="deadline-card-caption">
+          <div class="deadline-card-caption app-shared-deadline-card-caption">
             Заявки, которые скоро нарушат срок
           </div>
         </q-card-section>
@@ -39,7 +39,7 @@
     </div>
 
     <div class="col-12 col-md-6 col-lg-3">
-      <q-card flat bordered class="analytics-card deadline-card">
+      <q-card flat bordered class="analytics-card deadline-card app-shared-analytics-card">
         <q-card-section>
           <div class="deadline-card-label">
             Просроченные SLA
@@ -50,7 +50,7 @@
           >
             {{ formatNumber(overdueSla) }}
           </div>
-          <div class="deadline-card-caption">
+          <div class="deadline-card-caption app-shared-deadline-card-caption">
             Открытые заявки с нарушенной реакцией
           </div>
         </q-card-section>
@@ -58,7 +58,7 @@
     </div>
 
     <div v-if="canViewInternalAnalytics" class="col-12 col-md-6 col-lg-3">
-      <q-card flat bordered class="analytics-card deadline-card">
+      <q-card flat bordered class="analytics-card deadline-card app-shared-analytics-card">
         <q-card-section>
           <div class="deadline-card-label">
             Просроченные OLA
@@ -69,7 +69,7 @@
           >
             {{ formatNumber(overdueOla) }}
           </div>
-          <div class="deadline-card-caption">
+          <div class="deadline-card-caption app-shared-deadline-card-caption">
             Нарушены внутренние сроки текущих линий
           </div>
         </q-card-section>
@@ -77,7 +77,7 @@
     </div>
 
     <div v-if="canViewInternalAnalytics" class="col-12 col-md-6 col-lg-3">
-      <q-card flat bordered class="analytics-card deadline-card">
+      <q-card flat bordered class="analytics-card deadline-card app-shared-analytics-card">
         <q-card-section>
           <div class="deadline-card-label">
             Предупреждения OLA
@@ -88,7 +88,7 @@
           >
             {{ formatNumber(olaWarnings) }}
           </div>
-          <div class="deadline-card-caption">
+          <div class="deadline-card-caption app-shared-deadline-card-caption">
             OLA линий скоро будет нарушен
           </div>
         </q-card-section>
@@ -96,7 +96,7 @@
     </div>
 
     <div class="col-12 col-md-6 col-lg-3">
-      <q-card flat bordered class="analytics-card deadline-card">
+      <q-card flat bordered class="analytics-card deadline-card app-shared-analytics-card">
         <q-card-section>
           <div class="deadline-card-label">
             Сообщения без ответа
@@ -107,7 +107,7 @@
           >
             {{ formatNumber(unansweredMessages) }}
           </div>
-          <div class="deadline-card-caption">
+          <div class="deadline-card-caption app-shared-deadline-card-caption">
             Клиентские сообщения, ожидающие оператора
           </div>
         </q-card-section>
@@ -115,7 +115,7 @@
     </div>
 
     <div class="col-12 col-lg-6">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="text-h6">
             Риски по срокам
@@ -149,7 +149,7 @@
     </div>
 
     <div class="col-12 col-lg-6">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="text-h6">
             Средние времена
@@ -164,10 +164,10 @@
         <q-card-section>
           <div class="time-metric">
             <div>
-              <div class="time-metric-label">
+              <div class="time-metric-label app-font-weight-500">
                 Первый ответ
               </div>
-              <div class="time-metric-caption">
+              <div class="time-metric-caption app-shared-time-metric-caption">
                 Среднее время до первого ответа оператора
               </div>
             </div>
@@ -180,10 +180,10 @@
 
           <div class="time-metric">
             <div>
-              <div class="time-metric-label">
+              <div class="time-metric-label app-font-weight-500">
                 Закрытие заявки
               </div>
-              <div class="time-metric-caption">
+              <div class="time-metric-caption app-shared-time-metric-caption">
                 Среднее время от создания до закрытия
               </div>
             </div>
@@ -196,10 +196,10 @@
 
           <div class="time-metric">
             <div>
-              <div class="time-metric-label">
+              <div class="time-metric-label app-font-weight-500">
                 Нахождение на линии
               </div>
-              <div class="time-metric-caption">
+              <div class="time-metric-caption app-shared-time-metric-caption">
                 Среднее время заявки на одном этапе поддержки
               </div>
             </div>
@@ -290,13 +290,8 @@ export default {
 </script>
 
 <style scoped>
-.analytics-card {
-  height: 100%;
-  border-radius: 8px;
-}
-
 .deadline-card-label {
-  color: #616161;
+  color: var(--app-text-muted, #616161);
   font-size: 13px;
 }
 
@@ -307,27 +302,11 @@ export default {
   font-weight: 700;
 }
 
-.deadline-card-caption {
-  margin-top: 6px;
-  color: #757575;
-  font-size: 12px;
-}
-
 .time-metric {
   display: flex;
   gap: 12px;
   align-items: flex-start;
   justify-content: space-between;
-}
-
-.time-metric-label {
-  font-weight: 500;
-}
-
-.time-metric-caption {
-  margin-top: 4px;
-  color: #757575;
-  font-size: 12px;
 }
 
 .time-metric-value {

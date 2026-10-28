@@ -58,7 +58,7 @@
         <div v-if="rule.sources.length === 0" class="text-caption text-grey-7 q-mt-xs">
           За период подсказок не было
         </div>
-        <q-markup-table v-else flat dense class="q-mt-xs hint-stats-table">
+        <q-markup-table v-else flat dense class="q-mt-xs hint-stats-table app-background-transparent">
           <thead>
           <tr>
             <th class="text-left">Источник</th>
@@ -178,10 +178,6 @@ export default {
 }
 
 .operator-hint-stats--embedded {
-  background: transparent;
-}
-
-.hint-stats-table {
   background: transparent;
 }
 </style>

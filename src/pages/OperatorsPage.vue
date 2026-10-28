@@ -340,7 +340,7 @@ export default {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border, #e0e0e0);
   border-radius: 8px;
 }
 
@@ -386,7 +386,7 @@ export default {
   height: 10px;
   border-radius: 50%;
   border: 2px solid #fff;
-  background: #bdbdbd;
+  background: var(--app-surface-strong, #bdbdbd);
 }
 
 .operator-presence-dot--large {
@@ -401,7 +401,7 @@ export default {
 }
 
 .operator-card {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--app-border, #e0e0e0);
   border-radius: 12px;
   padding: 24px;
   max-width: 720px;
@@ -412,7 +412,7 @@ export default {
   align-items: center;
   gap: 20px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #f0f0f2;
+  border-bottom: 1px solid var(--app-border, #f0f0f2);
 }
 
 .operator-section {
@@ -425,7 +425,7 @@ export default {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8a8a90;
+  color: var(--app-text-muted, #8a8a90);
 }
 
 .operator-contact-row {
@@ -445,7 +445,7 @@ export default {
   align-items: center;
   justify-content: center;
   min-height: 320px;
-  border: 1px dashed #d0d0d5;
+  border: 1px dashed var(--app-border, #d0d0d5);
   border-radius: 12px;
 }
 

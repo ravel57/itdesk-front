@@ -1,7 +1,7 @@
 <template>
   <q-dialog :model-value="modelValue" persistent @update:model-value="$emit('update:modelValue', $event)">
-    <q-card class="service-dialog column no-wrap">
-      <q-toolbar class="service-dialog__toolbar">
+    <q-card class="service-dialog column no-wrap app-service-dialog">
+      <q-toolbar class="service-dialog__toolbar app-shared-service-dialog__toolbar">
         <q-toolbar-title>{{ serviceForm.id ? 'Изменить сервис' : 'Новый сервис' }}</q-toolbar-title>
         <q-btn flat round dense icon="close" @click="closeService"/>
       </q-toolbar>
@@ -12,7 +12,7 @@
         align="left"
         active-color="primary"
         indicator-color="primary"
-        class="service-dialog__tabs"
+        class="service-dialog__tabs app-shared-service-dialog__tabs"
       >
         <q-tab name="general" label="Основное" no-caps/>
         <q-tab name="routing" label="Маршрутизация" no-caps/>
@@ -24,8 +24,8 @@
 
       <q-separator/>
 
-      <q-tab-panels v-model="serviceTab" animated class="service-dialog__panels col">
-        <q-tab-panel name="general" class="service-dialog__panel">
+      <q-tab-panels v-model="serviceTab" animated class="service-dialog__panels col app-shared-service-dialog__panels">
+        <q-tab-panel name="general" class="service-dialog__panel app-shared-service-dialog__panel">
           <div class="service-dialog__content">
             <div class="row q-col-gutter-md">
               <div class="col-12 col-sm-4">
@@ -40,7 +40,7 @@
               <div class="text-caption text-grey-7">Организации (подключения на вкладке «Организации и договоры»)</div>
               <template v-if="serviceOrganizationNames(serviceForm).length">
                 <q-chip v-for="name in serviceOrganizationNames(serviceForm)" :key="name" dense square
-                        class="service-organization-chip" :label="name"/>
+                        class="service-organization-chip app-shared-service-organization-chip" :label="name"/>
               </template>
               <span v-else class="text-grey-7">Не подключён ни к одной организации — доступен всем</span>
             </div>
@@ -58,7 +58,7 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="routing" class="service-dialog__panel">
+        <q-tab-panel name="routing" class="service-dialog__panel app-shared-service-dialog__panel">
           <div class="service-dialog__content">
             <div class="row q-col-gutter-md">
               <div class="col-12 col-sm-6">
@@ -80,7 +80,7 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="sla" class="service-dialog__panel">
+        <q-tab-panel name="sla" class="service-dialog__panel app-shared-service-dialog__panel">
           <div class="service-dialog__content">
             <div>
               <div class="text-subtitle1">Нормативы сервиса</div>
@@ -102,9 +102,9 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="priority" class="service-dialog__panel">
+        <q-tab-panel name="priority" class="service-dialog__panel app-shared-service-dialog__panel">
           <div class="service-dialog__content">
-            <div class="service-dialog__section-header">
+            <div class="service-dialog__section-header app-shared-settings-block__header">
               <div>
                 <div class="text-subtitle1">Правила приоритета</div>
                 <div class="text-caption text-grey-7">
@@ -113,10 +113,10 @@
               </div>
               <q-btn flat color="primary" icon="add" label="Добавить правило" @click="addPriorityRule"/>
             </div>
-            <div v-if="!serviceForm.priorityRules.length" class="service-dialog__empty">
+            <div v-if="!serviceForm.priorityRules.length" class="service-dialog__empty app-empty-state">
               Правила не добавлены
             </div>
-            <q-markup-table v-else flat bordered class="service-dialog__table">
+            <q-markup-table v-else flat bordered class="service-dialog__table app-rounded-8">
               <thead>
               <tr>
                 <th class="text-left">Порядок</th>
@@ -156,9 +156,9 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="ola" class="service-dialog__panel">
+        <q-tab-panel name="ola" class="service-dialog__panel app-shared-service-dialog__panel">
           <div class="service-dialog__content">
-            <div class="service-dialog__section-header">
+            <div class="service-dialog__section-header app-shared-settings-block__header">
               <div>
                 <div class="text-subtitle1">OLA по линиям</div>
                 <div class="text-caption text-grey-7">
@@ -167,10 +167,10 @@
               </div>
               <q-btn flat color="primary" icon="add" label="Добавить этап" @click="addOlaStage"/>
             </div>
-            <div v-if="!serviceForm.olaStages.length" class="service-dialog__empty">
+            <div v-if="!serviceForm.olaStages.length" class="service-dialog__empty app-empty-state">
               Этапы OLA не добавлены
             </div>
-            <q-markup-table v-else flat bordered class="service-dialog__table">
+            <q-markup-table v-else flat bordered class="service-dialog__table app-rounded-8">
               <thead>
               <tr>
                 <th class="text-left">Порядок</th>
@@ -213,9 +213,9 @@
           </div>
         </q-tab-panel>
 
-        <q-tab-panel name="monitoring" class="service-dialog__panel">
+        <q-tab-panel name="monitoring" class="service-dialog__panel app-shared-service-dialog__panel">
           <div class="service-dialog__content">
-            <div class="service-dialog__section-header">
+            <div class="service-dialog__section-header app-shared-settings-block__header">
               <div>
                 <div class="text-subtitle1">Мониторинг Zabbix</div>
                 <div class="text-caption text-grey-7">
@@ -254,7 +254,7 @@
 
       <q-separator/>
 
-      <q-card-actions align="right" class="service-dialog__actions">
+      <q-card-actions align="right" class="service-dialog__actions app-shared-service-dialog__actions">
         <q-btn
           v-if="serviceForm.id"
           unelevated
@@ -300,10 +300,6 @@ export default {
 </script>
 
 <style scoped>
-.service-organization-chip {
-  max-width: 220px;
-}
-
 .service-dialog__organizations {
   display: flex;
   flex-wrap: wrap;
@@ -315,37 +311,6 @@ export default {
   flex: 0 0 100%;
 }
 
-.service-dialog {
-  width: 860px;
-  max-width: 96vw;
-  height: 600px;
-  max-height: 92vh;
-  overflow: hidden;
-}
-
-.service-dialog__toolbar {
-  min-height: 52px;
-  padding: 0 16px;
-}
-
-.service-dialog__tabs {
-  flex: 0 0 auto;
-  padding: 0 4px;
-}
-
-.service-dialog__panels {
-  min-height: 0;
-  overflow: hidden;
-  background: #ffffff;
-}
-
-.service-dialog__panel {
-  height: 100%;
-  min-height: 0;
-  padding: 0;
-  overflow-y: auto;
-}
-
 .service-dialog__content {
   display: flex;
   flex-direction: column;
@@ -353,28 +318,8 @@ export default {
   padding: 24px;
 }
 
-.service-dialog__section-header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.service-dialog__empty {
-  padding: 14px;
-  border: 1px dashed #c9c9c9;
-  border-radius: 8px;
-  color: #777;
-  background: #fafafa;
-}
-
-.service-dialog__table {
-  border-radius: 8px;
-}
-
 .service-dialog__table thead th {
-  color: #737b89;
+  color: var(--app-text-muted, #737b89);
   font-size: 12px;
   font-weight: 600;
 }
@@ -382,21 +327,7 @@ export default {
 .service-dialog__order {
   width: 90px;
 }
-
-.service-dialog__actions {
-  flex: 0 0 auto;
-  min-height: 58px;
-  padding: 10px 8px 10px 16px;
-}
-
 @media (max-width: 700px) {
-  .service-dialog {
-    width: 100vw;
-    max-width: 100vw;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-  }
 
   .service-dialog__content {
     padding: 16px;

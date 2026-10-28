@@ -37,6 +37,6 @@ export default {
 
 .chat-drop-overlay__hint {
   font-size: 12px;
-  color: #6a6a70;
+  color: var(--app-text-muted, #6a6a70);
 }
 </style>

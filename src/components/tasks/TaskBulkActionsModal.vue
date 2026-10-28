@@ -23,7 +23,7 @@
         v-model="this.tasksFreezeUntil"
         label="Заморозить до"
       />
-      <q-select
+      <q-select class="app-inline app-width-full"
         v-if="this.action === 'supportLine'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksSupportLineId"
@@ -32,9 +32,8 @@
         map-options
         label="Линия поддержки *"
         :rules="[val => val != null || 'Выберите линию поддержки']"
-        style="width: 100%;"
       />
-      <q-select
+      <q-select class="app-inline app-width-full"
         v-if="this.action === 'executor'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksExecutor"
@@ -45,41 +44,37 @@
         fill-input
         hide-selected
         input-debounce="0"
-        style="width: 100%;"
         @filter="this.filterExecutorOptions"
         @input-value="this.updateExecutorInputValue"
         @popup-show="this.clearExecutorFilter"
         @update:model-value="this.onExecutorSelected"
       />
-      <q-select
+      <q-select class="app-inline app-width-full"
         v-if="this.action === 'status'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksStatus"
         :options="this.store.statuses.map(s => s.name)"
         label="Статус *"
         :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
-        style="width: 100%;"
       />
-      <q-select
+      <q-select class="app-inline app-width-full"
         v-if="this.action === 'priority'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksPriority"
         :options="this.store.priorities.map(priority => priority.name)"
-        style="width: 100%;"
         label="Приоритет *"
         :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
       />
-      <q-select
+      <q-select class="app-inline app-width-full"
         v-if="this.action === 'type'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksType"
         :options="this.taskTypeOptions"
         option-label="type"
-        style="width: 100%;"
         label="Тип заявки *"
         :rules="[val => this.isValidTaskTypeSelection(val) || 'Выберите тип заявки']"
       />
-      <q-select
+      <q-select class="app-inline app-width-full"
         v-if="this.action === 'service'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksServiceId"
@@ -87,11 +82,10 @@
         emit-value
         map-options
         clearable
-        style="width: 100%;"
         label="Сервис *"
         :rules="[val => val != null || 'Выберите сервис']"
       />
-      <q-select
+      <q-select class="app-inline app-padding-top-16"
         v-if="this.action === 'tags'"
         data-tour="tasks-bulk-actions-field"
         v-model="this.tasksTags"
@@ -101,7 +95,6 @@
         use-chips
         use-input
         dense
-        style="padding-top: 16px"
       />
       <bulk-date-time-field
         v-if="this.action === 'deadline'"
@@ -239,7 +232,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-
-</style>

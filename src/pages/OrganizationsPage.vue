@@ -1,7 +1,7 @@
 <template>
   <q-page padding class="organizations-page">
     <div class="organizations-header">
-      <div class="organizations-title-block">
+      <div class="organizations-title-block app-min-width-220">
         <div class="text-h5 text-weight-medium">
           Организации
         </div>
@@ -222,10 +222,6 @@ export default {
   margin-bottom: 12px;
 }
 
-.organizations-title-block {
-  min-width: 220px;
-}
-
 .organizations-controls {
   display: flex;
   align-items: center;
@@ -250,7 +246,6 @@ export default {
   min-height: 0;
   overflow: visible;
 }
-
 @media (max-width: 1023px) {
   .organizations-page {
     height: auto;

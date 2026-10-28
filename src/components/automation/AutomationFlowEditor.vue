@@ -10,7 +10,6 @@
       :validation="validation"
       :pending-connection="pendingConnection"
       @toggle-palette="paletteVisible = !paletteVisible"
-      @apply-template="applyTemplate"
       @undo="undo"
       @redo="redo"
       @change-zoom="changeZoom"
@@ -248,10 +247,10 @@ export default {
 <style scoped>
 .flow-editor {
   min-height: 490px;
-  border: 1px solid #d9dce3;
+  border: 1px solid var(--app-border, #d9dce3);
   border-radius: 10px;
   overflow: hidden;
-  background: #f7f8fb;
+  background: var(--app-surface, #f7f8fb);
   outline: none;
 }
 
@@ -280,7 +279,7 @@ export default {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: #eef0f5;
+  background: var(--app-surface-muted, #eef0f5);
 }
 
 .flow-viewport {
@@ -289,7 +288,7 @@ export default {
   overscroll-behavior: contain;
   overflow: auto;
   position: relative;
-  background-color: #f7f8fb;
+  background-color: var(--app-surface, #f7f8fb);
   background-image: linear-gradient(#e4e7ed 1px, transparent 1px),
   linear-gradient(90deg, #e4e7ed 1px, transparent 1px),
   linear-gradient(#eef0f4 1px, transparent 1px),
@@ -319,9 +318,9 @@ export default {
   display: flex;
   align-items: center;
   gap: 18px;
-  border-top: 1px solid #dfe2e8;
-  background: #ffffff;
-  color: #7a808c;
+  border-top: 1px solid var(--app-border, #dfe2e8);
+  background: var(--app-surface, #ffffff);
+  color: var(--app-text-muted, #7a808c);
   font-size: 11px;
 }
 

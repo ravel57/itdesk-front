@@ -98,7 +98,7 @@ export default {
 
 .line-summary-card {
   cursor: pointer;
-  border-left: 4px solid #bdbdbd;
+  border-left: 4px solid var(--app-border, #bdbdbd);
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
@@ -151,13 +151,13 @@ export default {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #757575;
+  color: var(--app-text-muted, #757575);
   font-size: 12px;
 }
 
 .line-summary-caption {
   margin-top: 5px;
-  color: #757575;
+  color: var(--app-text-muted, #757575);
   font-size: 12px;
 }
 

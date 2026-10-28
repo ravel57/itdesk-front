@@ -25,7 +25,7 @@
       </div>
     </div>
 
-    <div class="table-container">
+    <div class="table-container app-width-full">
       <q-table
         class="settings-row-table"
         :rows="filteredStaffUsers"
@@ -655,10 +655,6 @@ export default {
 </script>
 
 <style scoped>
-.table-container {
-  width: 100%;
-}
-
 .settings-search {
   width: 320px;
   max-width: 100%;
@@ -673,7 +669,7 @@ export default {
 .permissions-scroll {
   overflow: auto;
   margin: 0 16px 16px;
-  border: 1px solid #e0e3e8;
+  border: 1px solid var(--app-border, #e0e3e8);
   border-radius: 12px;
 }
 
@@ -688,15 +684,15 @@ export default {
 .permissions-table th,
 .permissions-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid #edf0f4;
+  border-bottom: 1px solid var(--app-border, #edf0f4);
 }
 
 .permissions-table thead th {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #fafbfc;
-  color: #737b89;
+  background: var(--app-surface, #fafbfc);
+  color: var(--app-text-muted, #737b89);
   font-size: 12px;
   font-weight: 600;
   text-align: center;
@@ -709,18 +705,18 @@ export default {
   z-index: 1;
   min-width: 260px;
   text-align: left;
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .permissions-table thead .permissions-table__name {
   z-index: 3;
-  background: #fafbfc;
+  background: var(--app-surface, #fafbfc);
 }
 
 .permissions-table__group td {
   padding-top: 14px;
-  background: #f5f3ff;
-  color: #4b3fb5;
+  background: var(--app-surface, #f5f3ff);
+  color: var(--app-accent-text, #4b3fb5);
   font-weight: 600;
 }
 
@@ -731,7 +727,7 @@ export default {
 }
 
 .permissions-table__row:hover td {
-  background: #f0ecff;
+  background: var(--app-surface-muted, #f0ecff);
 }
 
 .permissions-table__cell {
@@ -740,6 +736,6 @@ export default {
 }
 
 .permissions-table__no {
-  color: #c6cbd3;
+  color: var(--app-text-subtle, #c6cbd3);
 }
 </style>

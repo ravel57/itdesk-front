@@ -1,6 +1,6 @@
 <template>
-  <q-card class="plugins-card">
-    <q-card-section class="plugins-table-header">
+  <q-card class="plugins-card app-margin-bottom-16">
+    <q-card-section class="plugins-table-header app-plugins-table-header">
       <div>
         <div class="text-subtitle1">Установленные плагины</div>
         <div class="text-caption text-grey-7">
@@ -54,7 +54,7 @@
         <q-td :props="props">
           <div
             v-if="props.row.extensionPoints && props.row.extensionPoints.length"
-            class="extension-points"
+            class="extension-points app-extension-points"
           >
             <q-badge
               v-for="point in props.row.extensionPoints"
@@ -156,23 +156,6 @@ export default {
 </script>
 
 <style scoped>
-.plugins-card {
-  margin-bottom: 16px;
-}
-
-.plugins-table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.extension-points {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
 .extension-point-badge {
   margin-right: 4px;
 }
@@ -182,12 +165,5 @@ export default {
   justify-content: flex-end;
   align-items: center;
   gap: 4px;
-}
-
-@media (max-width: 700px) {
-  .plugins-table-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
 </style>

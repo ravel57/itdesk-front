@@ -39,13 +39,13 @@
       item-key="id"
       handle=".task-checklist-drag-handle"
       ghost-class="ghost"
-      class="task-checklist-draggable-list"
+      class="task-checklist-draggable-list app-width-full"
     >
       <template #item="{ element: item }">
         <q-item class="task-checklist-item">
           <q-item-section
             side
-            class="task-checklist-drag-handle"
+            class="task-checklist-drag-handle app-drag-handle"
           >
             <q-icon
               name="drag_indicator"
@@ -114,19 +114,6 @@ export default {
 <style scoped>
 .task-checklist-item {
   padding: 4px 8px;
-}
-
-.task-checklist-draggable-list {
-  width: 100%;
-}
-
-.task-checklist-drag-handle {
-  cursor: grab;
-  user-select: none;
-}
-
-.task-checklist-drag-handle:active {
-  cursor: grabbing;
 }
 
 .ghost {

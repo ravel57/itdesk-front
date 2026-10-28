@@ -96,7 +96,7 @@ export default {
 }
 
 ::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
+  background-color: var(--app-surface-muted, #f1f1f1);
 }
 
 ::-webkit-scrollbar-thumb:hover {

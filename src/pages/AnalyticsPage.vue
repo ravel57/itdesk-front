@@ -1,5 +1,5 @@
 <template>
-  <q-page padding class="analytics-page">
+  <q-page padding class="analytics-page app-flex-column">
     <analytics-header
       v-model:from-date="fromDate"
       v-model:to-date="toDate"
@@ -33,7 +33,7 @@
       :can-view-internal-analytics="canViewInternalAnalytics"
     />
 
-    <q-card flat bordered class="analytics-tabs-card q-mb-md">
+    <q-card flat bordered class="analytics-tabs-card q-mb-md app-rounded-8">
       <q-tabs
         v-model="activeTab"
         dense
@@ -50,7 +50,7 @@
       </q-tabs>
     </q-card>
 
-    <q-tab-panels v-model="activeTab" animated keep-alive class="analytics-panels">
+    <q-tab-panels v-model="activeTab" animated keep-alive class="analytics-panels app-background-transparent">
       <q-tab-panel name="overview" class="q-pa-none">
         <analytics-overview-tab
           :summary="summary"
@@ -249,18 +249,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.analytics-page {
-  display: flex;
-  flex-direction: column;
-}
-
-.analytics-tabs-card {
-  border-radius: 8px;
-}
-
-.analytics-panels {
-  background: transparent;
-}
-</style>

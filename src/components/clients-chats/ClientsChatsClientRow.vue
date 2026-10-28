@@ -5,7 +5,7 @@
       class="client-row-item"
       :data-tour="isFirst ? 'client-row' : null"
     >
-      <q-item-section class="client-row-main">
+      <q-item-section class="client-row-main app-client-row-main">
         <router-link
           :to="route"
           class="text-primary client-row-link"
@@ -41,7 +41,7 @@
               class="client-name-row"
               :data-tour="isFirst ? 'client-name' : null"
             >
-              <span class="client-name-text">
+              <span class="client-name-text app-client-name-text">
                 {{ name }}
               </span>
               <span
@@ -55,7 +55,7 @@
               <div class="row items-center no-wrap">
                 <div
                   v-if="slaVisible"
-                  class="sla-pill q-ml-sm"
+                  class="sla-pill q-ml-sm app-clients-chats-client-row-sla-pill"
                   :class="{ 'sla-pill--expired': slaExpired }"
                   :data-tour="isFirst ? 'client-sla' : null"
                 >
@@ -66,7 +66,7 @@
                     reverse
                     rounded
                     class="sla-bar"
-                    style="width: 80px; border: solid 1px darkgray"
+                    style="width: 80px; border: solid 1px var(--app-border, darkgray)"
                     size="12px"
                     :animation-speed="0"
                   >
@@ -92,10 +92,10 @@
               />
             </q-item-label>
             <q-item-label
-              class="shorten-text"
+              class="shorten-text app-shorten-text"
               caption
               :data-tour="isFirst ? 'client-last-message' : null"
-              :class="!isObserver && client.lastMessage?.deleted ? 'strikethrough' : ''"
+              :class="!isObserver && client.lastMessage?.deleted ? 'strikethrough app-strikethrough' : ''"
             >
               {{ timeLastMessage }}: {{ lastMessage }}
             </q-item-label>
@@ -170,26 +170,6 @@ export default {
 </script>
 
 <style scoped>
-.shorten-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sla-pill {
-  width: 80px;
-  height: 14px;
-  display: inline-flex;
-  align-items: center;
-  box-sizing: border-box;
-
-  border: 3px solid transparent;
-  border-radius: 5px;
-
-  background: transparent;
-  flex: 0 0 auto;
-}
-
 .sla-pill--expired {
   border-color: red;
 }
@@ -250,11 +230,6 @@ export default {
   cursor: default;
 }
 
-.strikethrough {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
 .client-row-link {
   text-decoration: none;
   display: flex;
@@ -290,26 +265,14 @@ export default {
   gap: 6px;
 }
 
-.client-name-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .client-organization-inline {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex-shrink: 1;
-  color: #9aa0ab;
+  color: var(--app-text-muted, #9aa0ab);
   font-weight: 400;
-}
-
-.client-row-main {
-  min-width: 0;
-  overflow: hidden;
 }
 
 @media (max-width: 600px) {
@@ -344,18 +307,6 @@ export default {
     line-height: 1.15;
   }
 
-  .client-name-text {
-    flex: 1 1 auto;
-    max-width: 100%;
-    font-size: 14px;
-  }
-
-  .sla-pill {
-    width: 64px;
-    height: 12px;
-    margin-left: 0;
-  }
-
   .sla-bar {
     width: 64px !important;
   }
@@ -380,16 +331,6 @@ export default {
     font-size: 11px;
     line-height: 1.1;
     text-align: right;
-  }
-
-  .shorten-text {
-    max-width: 100%;
-    font-size: 12px;
-  }
-
-  .client-row-main {
-    min-width: 0;
-    overflow: hidden;
   }
 }
 </style>

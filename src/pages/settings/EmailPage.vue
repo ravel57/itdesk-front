@@ -68,7 +68,7 @@
         <div class="text-h6" v-text="this.isNewEmail ? 'Новая почта' : 'Изменить почту'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <!--        <q-btn-toggle-->
         <!--          v-model="this.emailType"-->
         <!--          spread-->

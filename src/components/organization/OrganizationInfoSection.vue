@@ -120,7 +120,7 @@
         </q-card-section>
       </q-card>
 
-      <q-card flat bordered class="info-block info-block--wide organization-folded-info">
+      <q-card flat bordered class="info-block info-block--wide organization-folded-info app-overflow-hidden">
         <q-list>
           <q-expansion-item
             icon="business"
@@ -511,10 +511,6 @@ export default {
   grid-column: 1 / -1;
 }
 
-.organization-folded-info {
-  overflow: hidden;
-}
-
 .organization-folded-section {
   padding-top: 0;
   padding-left: 56px;
@@ -541,7 +537,7 @@ export default {
   align-items: flex-start;
   gap: 12px;
   padding: 7px 0;
-  border-bottom: 1px solid #eef0f2;
+  border-bottom: 1px solid var(--app-border, #eef0f2);
 }
 
 .info-row:last-child {
@@ -549,14 +545,13 @@ export default {
 }
 
 .info-row span {
-  color: #6b7280;
+  color: var(--app-text-muted, #6b7280);
 }
 
 .info-row b {
   text-align: right;
   font-weight: 600;
 }
-
 @media (max-width: 1023px) {
   .organization-info-grid {
     grid-template-columns: 1fr;

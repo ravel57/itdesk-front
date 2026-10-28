@@ -262,7 +262,7 @@
               </q-card>
             </div>
 
-            <q-banner v-if="importCredentials.length" rounded class="bg-amber-1 text-brown-9 q-mt-lg credentials-warning">
+            <q-banner v-if="importCredentials.length" rounded class="bg-amber-1 text-brown-9 q-mt-lg credentials-warning app-text-left">
               <template #avatar><q-icon name="key" color="amber-9"/></template>
               <b>Сохраните пароли сейчас.</b> Они возвращаются только в ответе на этот импорт и не сохраняются на фронтенде после закрытия окна.
               <template #action>
@@ -282,7 +282,7 @@
               flat
               bordered
               dense
-              class="q-mt-md credentials-table"
+              class="q-mt-md credentials-table app-text-left"
               title="Созданные учетные записи"
               :rows="importCredentials"
               :columns="credentialColumns"
@@ -341,12 +341,12 @@ export default {
 
 <style scoped>
 .client-import-dialog {
-  background: #f7f9fc;
+  background: var(--app-surface, #f7f9fc);
 }
 
 .client-import-dialog__toolbar {
   min-height: 70px;
-  background: white;
+  background: var(--app-surface, white);
   padding-left: 20px;
   padding-right: 16px;
 }
@@ -362,9 +362,9 @@ export default {
 .import-result-card {
   width: min(920px, 100%);
   padding: 32px;
-  border: 1px dashed #b7c6d9;
+  border: 1px dashed var(--app-info-border, #b7c6d9);
   border-radius: 16px;
-  background: white;
+  background: var(--app-surface, white);
   text-align: center;
 }
 
@@ -376,7 +376,7 @@ export default {
 
 .bulk-actions {
   border-radius: 10px;
-  background: white;
+  background: var(--app-surface, white);
 }
 
 .import-preview-table {
@@ -387,7 +387,7 @@ export default {
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #f2f5f9;
+  background: var(--app-surface-muted, #f2f5f9);
   font-weight: 600;
 }
 
@@ -420,15 +420,6 @@ export default {
 .import-stat-card {
   min-width: 130px;
 }
-
-.credentials-warning {
-  text-align: left;
-}
-
-.credentials-table {
-  text-align: left;
-}
-
 @media (max-width: 900px) {
   .import-drop-card,
   .import-result-card {

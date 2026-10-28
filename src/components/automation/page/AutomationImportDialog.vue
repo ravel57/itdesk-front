@@ -44,7 +44,7 @@
           input-class="automation-import-text"
           @update:model-value="this.parseImportText"
         />
-        <q-banner v-if="this.importErrors.length" dense rounded class="automation-workflow-validation automation-workflow-validation-error">
+        <q-banner v-if="this.importErrors.length" dense rounded class="automation-workflow-validation automation-workflow-validation-error app-automation-import-dialog-automation-workflow-validation app-automation-workflow-validation-error">
           <div v-for="error in this.importErrors" :key="error">
             <q-icon name="error" class="q-mr-xs"/>{{ error }}
           </div>
@@ -196,18 +196,4 @@ export default {
 }
 
 /* Баннер ошибок — те же правила, что и у баннера проверки графа в редакторе (AutomatizationPage) */
-.automation-workflow-validation {
-  margin-top: 16px;
-  white-space: pre-wrap;
-}
-
-.automation-workflow-validation > div + div {
-  margin-top: 6px;
-}
-
-.automation-workflow-validation-error {
-  border: 1px solid #ef9a9a;
-  background: #ffebee;
-  color: #c62828;
-}
 </style>

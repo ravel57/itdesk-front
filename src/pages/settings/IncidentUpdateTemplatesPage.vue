@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md incident-templates-page">
+  <q-page class="q-pa-md incident-templates-page app-width-full">
     <div class="settings-content-header">
       <div class="settings-content-heading">
         <div class="settings-content-title">Шаблоны обновлений инцидентов</div>
@@ -226,10 +226,6 @@ export default {
 </script>
 
 <style scoped>
-.incident-templates-page {
-  width: 100%;
-}
-
 .incident-template-dialog {
   width: 640px;
   max-width: calc(100vw - 32px);

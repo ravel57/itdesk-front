@@ -1,8 +1,8 @@
 <template>
-  <div v-if="isVisible" class="plugin-renderer">
+  <div v-if="isVisible" class="plugin-renderer app-shared-plugin-renderer">
     <div
       v-if="schema.component === 'field'"
-      class="plugin-field"
+      class="plugin-field app-plugin-field"
       :class="{ 'plugin-field-inline': isInlineField }"
     >
       <div class="plugin-field-label">
@@ -35,7 +35,7 @@
     <div
       v-else-if="schema.component === 'section'"
       class="plugin-section"
-      :class="{ 'plugin-section-inline': schema.props?.layout === 'inline' }"
+      :class="{ 'plugin-section-inline app-plugin-section-inline': schema.props?.layout === 'inline' }"
     >
       <div
         v-if="schema.props && schema.props.title"
@@ -54,7 +54,7 @@
 
     <q-btn
       v-else-if="schema.component === 'button'"
-      class="plugin-button"
+      class="plugin-button app-shared-plugin-renderer"
       :dense="schema.props.dense !== false"
       :flat="schema.props.flat === true"
       :round="schema.props.round === true"
@@ -72,7 +72,7 @@
 
     <q-badge
       v-else-if="schema.component === 'badge'"
-      class="plugin-badge"
+      class="plugin-badge app-shared-plugin-badge"
       :color="schema.props.color || 'primary'"
     >
       {{ resolvedLabel }}
@@ -503,17 +503,6 @@ export default {
 </script>
 
 <style scoped>
-.plugin-renderer {
-  margin-top: 6px;
-}
-
-.plugin-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 6px;
-}
-
 .plugin-field-label {
   display: flex;
   align-items: center;
@@ -545,14 +534,6 @@ export default {
   margin-bottom: 4px;
 }
 
-.plugin-button {
-  margin-top: 6px;
-}
-
-.plugin-badge {
-  margin-top: 4px;
-}
-
 .plugin-text {
   margin-top: 4px;
 }
@@ -565,13 +546,6 @@ export default {
 .plugin-divider {
   margin-top: 8px;
   margin-bottom: 8px;
-}
-
-.plugin-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 6px;
 }
 
 .plugin-field-inline {
@@ -623,33 +597,5 @@ export default {
   display: block;
   width: 100%;
   white-space: pre-line;
-}
-
-.plugin-section-inline {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 0;
-}
-
-.plugin-section-inline :deep(.plugin-renderer) {
-  margin-top: 0;
-}
-
-.plugin-section-inline .plugin-text,
-.plugin-section-inline .plugin-remote-text {
-  margin-top: 0;
-}
-
-.plugin-section-inline .plugin-remote-text-column {
-  display: block;
-  width: 100%;
-  white-space: pre-line;
-}
-
-.plugin-section-inline .plugin-remote-text-inline {
-  display: inline;
-  width: auto;
-  white-space: nowrap;
 }
 </style>

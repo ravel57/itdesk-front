@@ -1,6 +1,6 @@
 <template>
-  <q-card style="width: 640px;max-width: 640px;">
-    <q-card-section style="display: flex; flex-direction: row;justify-content: space-between;padding-bottom: 5px">
+  <q-card class="app-inline app-instruction-card">
+    <q-card-section class="app-inline app-instruction-header">
       <div style="font-size: 24px">Как добавить бота в Телеграм?</div>
       <q-btn
         flat
@@ -10,23 +10,23 @@
         v-close-popup
       />
     </q-card-section>
-    <q-card-section class="q-pt-none" style="font-size: 16px;padding-bottom: 0">
+    <q-card-section class="q-pt-none app-inline app-instruction-section">
       <ol style="padding-left: 20px;margin-top: 5px;margin-bottom: 10px">
         <li>Чтобы активировать сервис настройки чат-ботов, перейдите по ссылке <a href="https://t.me/BotFather">https://t.me/BotFather</a>
           и нажмите «Запустить».
         </li>
-        <li>Выбирите команду <a style="color: rgba(92, 53, 249, 1)">/newbot</a> для создания нового бота.</li>
+        <li>Выбирите команду <a class="app-inline app-color-brand">/newbot</a> для создания нового бота.</li>
         <li>Введите имя.</li>
-        <li>Введите username. Он должен быть на латинице и заканчиваться на ”bot”. Например, Tetris<a style="color: rgba(92, 53, 249, 1)">Bot</a> или tetris_<a style="color: rgba(92, 53, 249, 1)">bot</a>.
+        <li>Введите username. Он должен быть на латинице и заканчиваться на ”bot”. Например, Tetris<a class="app-inline app-color-brand">Bot</a> или tetris_<a class="app-inline app-color-brand">bot</a>.
         </li>
       </ol>
       <div
-        style="border-left: solid;padding-left: 8px;border-left-color: rgba(232, 232, 232, 1);color: rgba(108, 108, 108, 1);margin-bottom: 10px">
+        style="border-left: solid;padding-left: 8px;border-left-color: var(--app-border, rgba(232, 232, 232, 1));color: var(--app-text-muted, rgba(108, 108, 108, 1));margin-bottom: 10px">
         Обратите внимание: имя Телеграм-бота должно быть уникальным. Если вы введёте наименование, которое уже есть в
         системе мессенджера, BotFather попросит вас выбрать другое имя.
       </div>
       <div
-        style="border-left: solid;padding-left: 8px;border-left-color: rgba(232, 232, 232, 1);color: rgba(108, 108, 108, 1)">
+        style="border-left: solid;padding-left: 8px;border-left-color: var(--app-border, rgba(232, 232, 232, 1));color: var(--app-text-muted, rgba(108, 108, 108, 1))">
         В username можно добавить эмодзи, чтобы выделить бота в поиске Телеграм.
       </div>
       <ol style="padding-left: 20px;margin-top: 10px;margin-bottom: 10px">
@@ -37,7 +37,7 @@
       </ol>
     </q-card-section>
 
-    <q-card-section class="q-pt-none" style="font-size: 16px; padding-bottom: 0">
+    <q-card-section class="q-pt-none app-inline app-instruction-section">
       Пример токена:
     </q-card-section>
 
@@ -85,7 +85,3 @@ export default {
   name: 'telegram-instruction'
 }
 </script>
-
-<style scoped>
-
-</style>

@@ -5,7 +5,7 @@
     backdrop-filter="blur(4px)"
   >
     <q-card class="dialog-width organization-dialog">
-      <q-toolbar class="justify-between organization-dialog-toolbar">
+      <q-toolbar class="justify-between organization-dialog-toolbar app-shared-organization-visit-dialog-body">
         <div class="text-h6">
           {{ isNewOrganization ? 'Новая организация' : 'Настройки организации' }}
         </div>
@@ -57,7 +57,7 @@
               </div>
             </div>
 
-            <q-banner rounded class="bg-grey-2 text-grey-9 organization-info-banner">
+            <q-banner rounded class="bg-grey-2 text-grey-9 organization-info-banner app-shared-organization-visit-dialog-toolbar">
               <template #avatar>
                 <q-icon name="groups" color="primary"/>
               </template>
@@ -111,7 +111,7 @@
               </div>
             </div>
 
-            <q-banner rounded class="bg-grey-2 text-grey-9 organization-info-banner">
+            <q-banner rounded class="bg-grey-2 text-grey-9 organization-info-banner app-shared-organization-visit-dialog-toolbar">
               <template #avatar>
                 <q-icon name="directions_car" color="primary"/>
               </template>
@@ -196,10 +196,6 @@ export default {
   max-height: 92vh;
 }
 
-.organization-dialog-toolbar {
-  padding: 20px 24px;
-}
-
 .organization-dialog-tabs {
   padding: 0 24px;
 }
@@ -217,9 +213,5 @@ export default {
   min-height: 460px;
   max-height: 68vh;
   overflow-y: auto;
-}
-
-.organization-info-banner {
-  padding: 18px 20px;
 }
 </style>

@@ -278,7 +278,7 @@ export default {
 
 <style scoped>
 .client-portal-layout {
-  background: #f5f6fa;
+  background: var(--app-surface, #f5f6fa);
 }
 
 .client-portal-header {

@@ -1,6 +1,6 @@
 <template>
-  <aside class="flow-palette">
-    <div class="flow-side-title">Узлы</div>
+  <aside class="flow-palette app-flow-palette">
+    <div class="flow-side-title app-shared-flow-side-title">Узлы</div>
     <div class="flow-side-caption">Выберите, что должен сделать шаг, и соедините его со следующим.</div>
     <q-input v-model="searchModel" dense outlined clearable placeholder="Найти блок" aria-label="Найти блок" class="q-mb-sm"/>
     <div v-if="operationCatalogError" class="text-negative text-caption q-mb-sm">{{ operationCatalogError }} <q-btn flat dense label="Повторить" @click="$emit('reload-catalog')"/></div>
@@ -17,7 +17,7 @@
         @click="$emit('toggle-group', group)"
       >
         <q-icon :name="group.icon" :color="group.color" size="17px"/>
-        <span class="flow-palette-group-title-label">{{ group.label }}</span>
+        <span class="flow-palette-group-title-label app-flow-palette-group-title-label">{{ group.label }}</span>
         <q-icon :name="isPaletteGroupExpanded(group) ? 'expand_less' : 'expand_more'" size="18px"/>
       </button>
 
@@ -27,6 +27,7 @@
             v-for="item in group.items"
             :key="item.key"
             outline
+            no-caps
             align="left"
             class="flow-palette-btn full-width"
             :icon="item.icon"
@@ -41,7 +42,7 @@
 
     <q-separator class="q-my-md"/>
 
-    <div class="flow-side-title">Как соединять</div>
+    <div class="flow-side-title app-shared-flow-side-title">Как соединять</div>
     <div class="flow-help-step"><span>1</span> Нажмите цветной выход справа.</div>
     <div class="flow-help-step"><span>2</span> Нажмите вход слева у следующего узла.</div>
     <div class="flow-help-step"><span>3</span> Для условия соедините отдельно «ДА» и «НЕТ».</div>
@@ -80,27 +81,10 @@ export default {
 </script>
 
 <style scoped>
-.flow-palette {
-  min-width: 0;
-  padding: 16px;
-  overflow-y: auto;
-  background: #ffffff;
-}
-
-.flow-palette {
-  border-right: 1px solid #dfe2e8;
-}
-
-.flow-side-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #252a34;
-}
-
 .flow-side-caption {
   margin-top: 4px;
   margin-bottom: 14px;
-  color: #7a808c;
+  color: var(--app-text-muted, #7a808c);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -122,7 +106,7 @@ export default {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #646b78;
+  color: var(--app-text-muted, #646b78);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -135,11 +119,6 @@ export default {
   background: rgba(90, 98, 112, 0.08);
 }
 
-.flow-palette-group-title-label {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
 .flow-palette-group-items {
   padding-top: 4px;
 }
@@ -148,7 +127,8 @@ export default {
   margin-bottom: 7px;
   min-height: 40px;
   padding: 8px 10px;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .flow-palette-btn:last-child {
@@ -178,7 +158,7 @@ export default {
   display: flex;
   gap: 8px;
   margin-top: 10px;
-  color: #676d78;
+  color: var(--app-text-muted, #676d78);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -190,15 +170,8 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #ede8ff;
+  background: var(--app-surface-muted, #ede8ff);
   color: var(--q-primary);
   font-weight: 700;
-}
-
-@media (max-width: 900px) {
-  .flow-palette {
-    border: none;
-    border-bottom: 1px solid #dfe2e8;
-  }
 }
 </style>

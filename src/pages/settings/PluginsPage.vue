@@ -1,6 +1,6 @@
 <template>
-  <q-page class="plugins-page">
-    <div class="plugins-header settings-content-header">
+  <q-page class="plugins-page app-page-padding">
+    <div class="plugins-header settings-content-header app-plugins-header">
       <div class="settings-content-heading">
         <div class="settings-content-title">Плагины</div>
         <div class="settings-content-description">
@@ -70,24 +70,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.plugins-page {
-  padding: 16px;
-}
-
-.plugins-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-@media (max-width: 700px) {
-  .plugins-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-</style>

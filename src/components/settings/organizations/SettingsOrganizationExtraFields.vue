@@ -336,7 +336,7 @@ export default {
 }
 
 .organization-extra-list :deep(.q-expansion-item__content) {
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .sla-value-cell {

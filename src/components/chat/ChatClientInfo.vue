@@ -1,8 +1,8 @@
 <template>
-  <div class="client-info-header-row">
+  <div class="client-info-header-row app-client-info-header-row">
     <div data-tour="chat-client-name" class="client-name-edit-row">
       <div
-        class="text-h6 client-info-name"
+        class="text-h6 client-info-name app-client-info-name"
         v-text="this.getClientName"
       />
       <q-btn
@@ -22,7 +22,7 @@
     </div>
 
     <PluginExtensionPoint
-      class="client-header-plugin"
+      class="client-header-plugin app-client-header-plugin"
       point="CLIENT_CARD_HEADER_RIGHT"
       entity-type="CLIENT"
       :entity="client"
@@ -36,7 +36,7 @@
     <!--      class="element q-position-absolute q-right-0"-->
     <!--      @mouseover="this.showTooltipNotifications = true"-->
     <!--      @mouseup="this.showTooltipNotifications = false"-->
-    <!--    >-->
+    <!-- >-->
     <!--      <q-tooltip v-if="this.showTooltipNotifications">Получать уведомления от этого клиента</q-tooltip>-->
     <!--    </q-toggle>-->
     <!--<q-btn-->
@@ -68,7 +68,7 @@
   >
     <q-icon
       name="business"
-      style="margin-right: 8px;color: black !important"
+      style="margin-right: 8px;color: var(--app-text, black) !important"
     />
     <div
       class="text-subtitle2 organization-name-ellipsis"
@@ -87,24 +87,27 @@
     class="text-subtitle2"
     style="align-items: center; display: flex;margin-top: 4px"
   >
-    <img
+    <span
       v-if="client.messageFrom === 'TELEGRAM'"
-      src="/telegram.png"
-      alt="tg"
-      style="width: 16px;margin-right: 8px"
-    >
-    <img
+      class="app-brand-icon app-channel-icon"
+      style="--brand-icon: url('/telegram.png')"
+      role="img"
+      aria-label="Telegram"
+    />
+    <span
       v-else-if="client.messageFrom === 'WHATSAPP'"
-      src="/whatsapp.png"
-      alt="wa"
-      style="width: 16px;margin-right: 8px"
-    >
-    <img
+      class="app-brand-icon app-channel-icon"
+      style="--brand-icon: url('/whatsapp.png')"
+      role="img"
+      aria-label="WhatsApp"
+    />
+    <span
       v-else-if="client.messageFrom === 'EMAIL'"
-      src="/email.png"
-      alt="email"
-      style="width: 16px;margin-right: 8px"
-    >
+      class="app-brand-icon app-channel-icon"
+      style="--brand-icon: url('/email.png')"
+      role="img"
+      aria-label="Электронная почта"
+    />
     <q-icon
       v-else-if="client.messageFrom === 'PORTAL'"
       name="language"
@@ -131,7 +134,7 @@
         <div class="text-h6" v-text="'Изменить клиента'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <q-input
           v-model="this.dialogLastName"
           label="Фамилия"
@@ -187,7 +190,7 @@
         <div class="text-h6">Удалить клиента {{ this.getClientName }}?</div>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding: 16px">
+      <q-card-section class="app-inline app-padding-16">
         Вы уверены что хотите удалить клиента {{ this.getClientName }}?
       </q-card-section>
       <q-card-actions align="right">
@@ -362,14 +365,6 @@ export default {
   word-wrap: anywhere;
 }
 
-.client-info-header-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-  gap: 8px;
-}
-
 .client-name-edit-row {
   display: inline-flex;
   align-items: center;
@@ -378,72 +373,8 @@ export default {
   flex: 0 1 auto;
 }
 
-.client-info-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .edit-client-btn {
   flex: 0 0 auto;
   margin-left: 2px;
-}
-
-.client-header-plugin {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: flex-start;
-  flex: 1 1 auto;
-  min-width: 0;
-  margin-left: auto;
-  gap: 2px;
-}
-
-.client-header-plugin :deep(.plugin-extension-point) {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: flex-start;
-  width: 100%;
-  margin-top: 0;
-  gap: 2px;
-}
-
-.client-header-plugin :deep(.plugin-renderer) {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: flex-start;
-  width: 100%;
-  margin-top: 0;
-  gap: 2px;
-}
-
-.client-header-plugin :deep(.plugin-button) {
-  display: flex;
-  justify-content: flex-end;
-  width: max-content;
-  max-width: 100%;
-  margin-top: 0;
-  padding: 0 4px;
-  min-height: 20px;
-  line-height: 20px;
-}
-
-.client-info-header-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-  gap: 8px;
-}
-
-.client-info-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 </style>

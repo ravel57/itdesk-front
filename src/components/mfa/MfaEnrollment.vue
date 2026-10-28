@@ -146,7 +146,7 @@ export default {
 .mfa-enrollment__secret {
   font-family: monospace;
   font-size: 13px;
-  color: #333;
+  color: var(--app-text, #333);
   word-break: break-all;
   margin-top: 2px;
 }
@@ -158,7 +158,7 @@ export default {
   margin: 12px 0;
   padding: 12px;
   border-radius: 6px;
-  background: #f5f6fa;
+  background: var(--app-surface, #f5f6fa);
   font-family: monospace;
   font-size: 15px;
 }

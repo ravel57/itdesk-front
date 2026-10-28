@@ -5,7 +5,7 @@
     bordered
     class="organizations-list-card"
   >
-    <q-card-section class="organizations-list-title">
+    <q-card-section class="organizations-list-title app-organizations-list-title">
       <div>
         <div class="text-subtitle1 text-weight-medium">
           {{ isShowTableMode ? 'Таблица организаций' : 'Карточки организаций' }}
@@ -31,14 +31,14 @@
       >
         <q-card-section>
           <div class="row items-start justify-between no-wrap q-gutter-sm">
-            <div class="organization-card-main">
+            <div class="organization-card-main app-min-width-zero">
               <div
                 class="text-subtitle1 text-weight-medium organization-name-ellipsis"
                 :title="row.name"
               >
                 {{ row.name }}
               </div>
-              <div class="text-caption text-grey-7 shorten-text">
+              <div class="text-caption text-grey-7 shorten-text app-text-ellipsis">
                 {{ row.contractLabel }}
               </div>
             </div>
@@ -228,13 +228,6 @@ export default {
   overflow: visible;
 }
 
-.organizations-list-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .organizations-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -261,10 +254,6 @@ export default {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
-.organization-card-main {
-  min-width: 0;
-}
-
 .organization-card-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -273,7 +262,7 @@ export default {
 
 .organization-stat {
   padding: 8px;
-  background: #f6f7f9;
+  background: var(--app-surface, #f6f7f9);
   border-radius: 8px;
 }
 
@@ -283,7 +272,7 @@ export default {
 }
 
 .organization-stat-label {
-  color: #6b7280;
+  color: var(--app-text-muted, #6b7280);
   font-size: 12px;
 }
 
@@ -298,12 +287,6 @@ export default {
   min-height: 0;
 }
 
-.shorten-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .empty-organizations-state {
   height: 100%;
   min-height: 360px;
@@ -311,7 +294,6 @@ export default {
   align-items: center;
   justify-content: center;
 }
-
 @media (max-width: 1023px) {
   .organizations-list-card {
     height: auto;
@@ -321,13 +303,6 @@ export default {
     grid-template-columns: 1fr;
     max-height: none;
     overflow: visible;
-  }
-}
-
-@media (max-width: 700px) {
-  .organizations-list-title {
-    align-items: flex-start;
-    flex-direction: column;
   }
 }
 </style>

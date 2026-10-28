@@ -16,25 +16,23 @@
         />
       </q-toolbar>
       <q-card-section>
-        <div style="margin-bottom: 8px;">
-          <div
-            style="margin-bottom: 16px"
+        <div class="app-inline app-margin-bottom-8">
+          <div class="app-inline app-margin-bottom-16"
             v-for="(file, index) in this.files"
             :key="index"
           >
             <div
-              style="display: flex; align-items: center; padding: 4px; border: solid 1px rgba(108, 108, 108, 0.2); border-radius: 4px">
+              style="display: flex; align-items: center; padding: 4px; border: solid 1px var(--app-border, rgba(108, 108, 108, 0.2)); border-radius: 4px">
               <div
                 style="padding: 2px 8px 2px 8px; border-radius: 4px; background-color: rgba(255, 149, 0, 1); color: white; font-size: 12px; margin-right: 8px">
                 {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
               </div>
-              <div class="truncate">{{ file.name.split('.')[0] }}</div>
+              <div class="truncate app-text-ellipsis">{{ file.name.split('.')[0] }}</div>
               <q-space/>
-              <q-btn
+              <q-btn class="app-inline app-color-gray"
                 flat
                 round
                 dense
-                style="color: gray"
                 icon="delete"
                 @click="this.removeFile(index)"
               />
@@ -42,7 +40,7 @@
           </div>
         </div>
         <div style="font-size: 14px; margin-bottom: 16px">Добавлено {{ this.files.length }} файлов</div>
-        <q-file
+        <q-file class="app-inline app-width-full"
           :model-value="this.files"
           @update:model-value="this.$emit('update:files', $event)"
           label="Выберите файл"
@@ -55,7 +53,6 @@
           :error="Boolean(fileUploadError)"
           :error-message="fileUploadError"
           multiple
-          style="width: 100%"
           @rejected="onFilesRejected"
         >
           <template v-slot:prepend>
@@ -124,11 +121,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-</style>

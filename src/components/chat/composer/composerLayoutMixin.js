@@ -11,9 +11,9 @@ export default {
   computed: {
     composerStyle () {
       return {
-        borderBottom: '1px solid #0000001f',
-        borderTop: this.replyMessageId ? 'none' : '1px solid #0000001f',
-        backgroundColor: this.isComment ? '#d1c4e9' : '#ffffff'
+        borderBottom: '1px solid var(--app-border, #0000001f)',
+        borderTop: this.replyMessageId ? 'none' : '1px solid var(--app-border, #0000001f)',
+        backgroundColor: this.isComment ? 'var(--app-accent-surface, #d1c4e9)' : 'var(--app-surface, #ffffff)'
       }
     },
 
@@ -31,8 +31,8 @@ export default {
         height: `${this.textareaHeight}px`,
         maxHeight: `${maxHeight}px`,
         transition: 'height 0.2s ease, background-color 0.2s ease',
-        backgroundColor: this.isComment ? '#d1c4e9' : '#ffffff',
-        color: '#242424'
+        backgroundColor: this.isComment ? 'var(--app-accent-surface, #d1c4e9)' : 'var(--app-surface, #ffffff)',
+        color: 'var(--app-text, #242424)'
       }
     }
   },

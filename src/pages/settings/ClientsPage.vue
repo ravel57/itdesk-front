@@ -41,7 +41,7 @@
       </template>
     </q-input>
 
-    <div class="table-container">
+    <div class="table-container app-width-full">
       <q-table
         class="settings-row-table"
         :rows="filteredClientUsers"
@@ -203,15 +203,10 @@ export default {
 </script>
 
 <style scoped>
-.table-container {
-  width: 100%;
-}
-
 .settings-search {
   width: 420px;
   max-width: 100%;
 }
-
 @media (max-width: 900px) {
   .settings-content-actions {
     width: 100%;

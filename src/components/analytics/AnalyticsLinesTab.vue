@@ -1,7 +1,7 @@
 <template>
   <div class="row q-col-gutter-md q-mb-md">
     <div class="col-12 col-sm-6 col-lg-3" v-for="card in lineMetricCards" :key="card.key">
-      <q-card flat bordered class="analytics-card line-summary-card">
+      <q-card flat bordered class="analytics-card line-summary-card app-shared-analytics-card app-height-full">
         <q-card-section>
           <div class="row items-center justify-between no-wrap">
             <div class="text-grey-7 text-caption">{{ card.label }}</div>
@@ -16,7 +16,7 @@
 
   <div class="row q-col-gutter-md">
     <div class="col-12">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="text-h6">Нагрузка и OLA по линиям</div>
           <div class="text-grey-7 text-caption">
@@ -68,7 +68,7 @@
     </div>
 
     <div class="col-12 q-mt-md">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="text-h6">Переходы между линиями</div>
           <div class="text-grey-7 text-caption">
@@ -195,15 +195,6 @@ export default {
 </script>
 
 <style scoped>
-.analytics-card {
-  height: 100%;
-  border-radius: 8px;
-}
-
-.line-summary-card {
-  height: 100%;
-}
-
 .line-load-cell {
   display: grid;
   grid-template-columns: minmax(28px, auto) minmax(80px, 1fr);

@@ -1,11 +1,11 @@
 <template>
-  <div class="error-page flex flex-center">
-    <div class="error-page__content text-center">
+  <div class="error-page flex flex-center app-shared-error-page">
+    <div class="error-page__content text-center app-shared-error-page__content">
       <login-logo class="q-mb-xl"/>
       <q-icon name="lock" size="40px" color="orange-8" class="q-mb-sm"/>
-      <div class="error-page__code text-orange-8" v-text="'403'"/>
+      <div class="error-page__code text-orange-8 app-shared-error-page__code" v-text="'403'"/>
       <div class="text-h5 text-weight-bold q-mt-md" v-text="'Недостаточно прав'"/>
-      <div class="text-body1 text-grey-7 q-mt-sm" style="max-width: 420px">
+      <div class="text-body1 text-grey-7 q-mt-sm app-inline app-max-width-420">
         Ваша роль не даёт доступа к этому разделу. Если он нужен для работы — обратитесь к администратору системы.
       </div>
       <div class="row q-gutter-sm justify-center q-mt-lg">
@@ -36,21 +36,3 @@ export default defineComponent({
   components: { LoginLogo }
 })
 </script>
-
-<style scoped>
-.error-page {
-  min-height: 100vh;
-  background: #fff;
-  padding: 24px;
-}
-
-.error-page__content {
-  max-width: 480px;
-}
-
-.error-page__code {
-  font-size: 96px;
-  font-weight: 800;
-  line-height: 1;
-}
-</style>

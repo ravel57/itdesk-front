@@ -1,6 +1,6 @@
 <template>
-  <div class="my-lines-toolbar">
-    <div class="my-lines-heading">
+  <div class="my-lines-toolbar app-my-lines-toolbar">
+    <div class="my-lines-heading app-min-width-220">
       <div class="text-h5 text-weight-medium">Мои линии</div>
       <div class="text-caption text-grey-7">
         Заявки линий, где вы ответственный, участник или наблюдатель
@@ -51,17 +51,6 @@ export default {
 </script>
 
 <style scoped>
-.my-lines-toolbar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.my-lines-heading {
-  min-width: 220px;
-}
-
 .my-lines-search {
   display: flex;
   align-items: center;
@@ -72,12 +61,7 @@ export default {
 .my-lines-search .q-input {
   flex: 1;
 }
-
 @media (max-width: 700px) {
-  .my-lines-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
 
   .my-lines-search {
     width: 100%;

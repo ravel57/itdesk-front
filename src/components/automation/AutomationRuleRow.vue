@@ -1,5 +1,5 @@
 <template>
-  <q-item class="list-group-item automation-rule-row">
+  <q-item class="list-group-item automation-rule-row app-shared-list-group-item">
     <q-item-section side :class="['settings-drag-handle cursor-grab', handleClass]">
       <q-icon name="drag_indicator" color="grey-6"/>
     </q-item-section>
@@ -79,9 +79,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.list-group-item:hover {
-  background-color: #e3e3e3;
-}
-</style>

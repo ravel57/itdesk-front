@@ -41,7 +41,7 @@ export default {
   overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: #f5f7fa;
+  background: var(--app-surface, #f5f7fa);
   padding: 8px;
   border-radius: 4px;
   font-size: 12px;

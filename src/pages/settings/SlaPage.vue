@@ -1,5 +1,5 @@
 <template>
-  <div class="sla-page">
+  <div class="sla-page app-page-padding">
     <div class="settings-content-header">
       <div class="settings-content-heading">
         <div class="settings-content-title">SLA и OLA</div>
@@ -42,19 +42,13 @@ export default {
 </script>
 
 <style scoped>
-.sla-page {
-  padding: 16px;
-}
-
 :deep(.q-field--outlined .q-field__control) {
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
 }
-
 :deep(.q-field--focused .q-field__control) {
   box-shadow: 0 0 0 2px rgba(91, 108, 255, 0.16);
 }
-
 :deep(.q-field__native),
 :deep(.q-field__input) {
   font-weight: 600;

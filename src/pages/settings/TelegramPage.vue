@@ -24,7 +24,7 @@
         />
       </div>
     </div>
-    <div class="table-container">
+    <div class="table-container app-width-full">
       <q-table
         class="settings-row-table"
         :rows="telegramBots"
@@ -76,7 +76,7 @@
         <div class="text-h6" v-text="this.isNewTelegramBot ? 'Новый Telegram Bot' : 'Изменить Telegram Bot'"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <q-input
           v-model="this.dialogName"
           label="Название *"
@@ -241,9 +241,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.table-container {
-  width: 100%;
-}
-</style>

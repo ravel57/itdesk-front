@@ -1,7 +1,7 @@
 <template>
   <div class="row q-col-gutter-md">
     <div class="col-12">
-      <q-card flat bordered class="analytics-card">
+      <q-card flat bordered class="analytics-card app-shared-analytics-card">
         <q-card-section>
           <div class="row items-start justify-between q-gutter-sm">
             <div>
@@ -281,11 +281,6 @@ export default {
 </script>
 
 <style scoped>
-.analytics-card {
-  height: 100%;
-  border-radius: 8px;
-}
-
 .breakdown-select {
   width: 220px;
 }
@@ -308,7 +303,6 @@ export default {
   text-align: right;
   font-weight: 600;
 }
-
 @media (max-width: 900px) {
   .breakdown-progress-cell {
     min-width: 150px;

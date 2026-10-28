@@ -19,13 +19,13 @@
           size="sm"
           icon="close"
           color="grey-7"
-          class="onboarding-close-btn"
+          class="onboarding-close-btn app-shared-onboarding-close-btn"
           aria-label="Закрыть обучение"
           @click="this.finishTaskDialogOnboarding"
         >
           <q-tooltip>Закрыть обучение</q-tooltip>
         </q-btn>
-        <q-card-section class="q-pb-xs" style="padding-right: 40px">
+        <q-card-section class="q-pb-xs app-inline app-padding-right-40">
           <div class="task-dialog-onboarding-progress text-caption text-grey-7">
             {{ this.taskDialogOnboardingStepIndex + 1 }} / {{ this.visibleTaskDialogOnboardingSteps.length }}
           </div>
@@ -348,10 +348,4 @@ export default {
 }
 
 /* Крестик закрытия обучения в правом верхнем углу карточки */
-.onboarding-close-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 1;
-}
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <q-card flat bordered class="analytics-filter-card q-mb-md">
+  <q-card flat bordered class="analytics-filter-card q-mb-md app-rounded-8">
     <q-card-section>
       <div class="row items-center justify-between q-gutter-sm q-mb-md">
         <div>
@@ -185,9 +185,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.analytics-filter-card {
-  border-radius: 8px;
-}
-</style>

@@ -696,7 +696,7 @@ export default {
   min-height: calc(100vh - 64px);
   height: calc(100vh - 64px);
   overflow: hidden;
-  background: #f0f0f0;
+  background: var(--app-surface-muted, #f0f0f0);
 }
 
 .client-portal-chat-shell {
@@ -706,9 +706,9 @@ export default {
   height: 100%;
   margin: 0 auto;
   overflow: hidden;
-  background: white;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--app-surface, white);
+  border-right: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
+  border-left: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
 }
 
 .client-portal-drop-overlay {
@@ -730,15 +730,15 @@ export default {
 }
 
 .client-portal-drop-overlay span {
-  color: #6a6a70;
+  color: var(--app-text-muted, #6a6a70);
   font-size: 12px;
 }
 
 .client-portal-incidents {
   max-height: 180px;
   overflow-y: auto;
-  background: #f7f7f9;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--app-surface, #f7f7f9);
+  border-bottom: 1px solid var(--app-border, rgba(0, 0, 0, 0.08));
 }
 
 .client-portal-incident-card + .client-portal-incident-card {

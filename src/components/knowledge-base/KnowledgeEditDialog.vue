@@ -9,14 +9,14 @@
         <div class="text-h6" v-text="this.isNewKnowledge ? 'Новая статья' : 'Изменить статью'" />
         <q-btn flat round dense icon="close" v-close-popup />
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <q-input
           v-model="this.dialogTitle"
           label="Название *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           ref="dialogName"
         />
-        <div style="display: flex; width: 100%">
+        <div class="app-inline app-flex-full-width">
           <div style="width: 100%; margin-right: 8px">
             <div v-for="(textField, index) in this.dialogTexts" :key="index">
               <div style="display: flex; flex-direction: row; flex-wrap: nowrap; margin-bottom: 8px">
@@ -45,7 +45,7 @@
             />
           </div>
         </div>
-        <q-select
+        <q-select class="app-inline app-padding-top-16"
           v-model="this.dialogTags"
           :options="this.dialogTagOptions"
           multiple
@@ -54,7 +54,6 @@
           use-input
           input-debounce="0"
           dense
-          style="padding-top: 16px"
           @filter="filterDialogTags"
           @popup-show="dialogTagOptions = getAllDialogTagOptions()"
         >
@@ -233,7 +232,6 @@ export default {
 .dialog-width {
   min-width: 640px;
 }
-
 @media (max-width: 700px) {
   .dialog-width {
     min-width: unset;

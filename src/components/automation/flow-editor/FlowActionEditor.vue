@@ -26,7 +26,7 @@
 
   <template v-else>
     <div v-for="(action, actionIndex) in nodeActions(selectedNode)" :key="action.id"
-         class="flow-action-item q-mt-sm">
+         class="flow-action-item q-mt-sm app-flow-action-item">
       <q-select
         v-model="action.type"
         outlined
@@ -236,22 +236,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.flow-action-item {
-  padding: 10px;
-  border: 1px solid #e0e3e9;
-  border-radius: 8px;
-  background: #fafbfc;
-}
-
-.flow-action-item {
-  display: grid;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.flow-action-item {
-  background: #f7fbf8;
-}
-</style>

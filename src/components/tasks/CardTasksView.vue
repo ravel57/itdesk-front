@@ -27,7 +27,7 @@
         >
         <span class="checkmark"></span>
       </label>
-      <span class="list-header-title" :title="taskList.title">{{ taskList.title }}</span>
+      <span class="list-header-title app-text-ellipsis-shrink" :title="taskList.title">{{ taskList.title }}</span>
     </div>
     <div
       class="list-cards"
@@ -83,7 +83,7 @@
                   :class="{ 'link-to-chat-container--visible': this.isOnboardingDemo || task.__onboardingDemo }"
                   :data-tour="index === 0 && taskIndex === 0 ? 'tasks-chat-link' : null"
                 >
-                  <div class="link-container">
+                  <div class="link-container app-shared-link-container">
                     <q-icon class="link" color="white" name="open_in_new"/>
                     <q-tooltip>Открыть чат с клиентом по этой заявке</q-tooltip>
                   </div>
@@ -244,13 +244,6 @@ export default {
   font-weight: bold;
 }
 
-.list-header-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .list-cards {
   width: 440px;
   padding: 10px;
@@ -296,8 +289,8 @@ export default {
   display: inline-block;
   width: 20px;
   height: 20px;
-  background-color: white;
-  border: 1px solid #d0cbcb;
+  background-color: var(--app-surface, white);
+  border: 1px solid var(--app-border, #d0cbcb);
   border-radius: 30%;
   position: relative;
   transition: background-color 0.2s, border-color 0.2s;
@@ -341,15 +334,6 @@ export default {
   z-index: 1;
   transform-origin: top right;
   transition: transform .2s ease, filter .2s ease;
-}
-
-.link-container {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 16px;
-  height: 16px;
-  display: flex;
 }
 
 .link {

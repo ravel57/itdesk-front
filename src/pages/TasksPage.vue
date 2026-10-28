@@ -24,14 +24,13 @@
             :scope="this.tasksScope"
           />
         </div>
-        <div style="display: flex; width: 100%;">
-          <q-input
+        <div class="app-inline app-flex-full-width">
+          <q-input class="app-inline app-task-search"
             outlined
             dense
             data-tour="tasks-page-search"
             v-model="this.searchRequest"
             label="Поиск"
-            style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
             :style="this.isMobile ? 'padding-right: 0;' : ''"
             clearable
           />
@@ -218,8 +217,8 @@
       >
         <div v-if="this.filterChain.length > 0 || this.searchRequest.length > 0">
           <div style="display: flex;flex-direction: column;align-items: center;text-align: center">
-            <div style="font-size: 20px">Заявок нет</div>
-            <div style="margin-bottom: 8px">
+            <div class="app-inline app-font-size-20">Заявок нет</div>
+            <div class="app-inline app-margin-bottom-8">
               <q-btn
                 icon="close"
                 color="primary"
@@ -242,19 +241,19 @@
             <no-tasks-placeholder/>
           </div>
         </div>
-        <div v-else style="display: flex;flex-direction: row;align-items: center">
-          <div style="width: 140px">
-            <div style="font-size: 20px">
+        <div class="app-inline app-row-center" v-else>
+          <div class="app-inline app-width-140">
+            <div class="app-inline app-font-size-20">
               Заявок нет
             </div>
-            <div style="font-size: 14px">
+            <div class="app-inline app-font-size-14">
               Возможно стоит создать их
             </div>
-            <div style="font-size: 14px">
-              <a style="color: var(--q-primary)" href="/chats">Проверьте чаты.</a>
+            <div class="app-inline app-font-size-14">
+              <a class="app-inline app-color-primary"  href="/chats">Проверьте чаты.</a>
             </div>
           </div>
-          <div style="display: flex;flex-direction: column;align-items: center">
+          <div class="app-inline app-column-center">
             <no-tasks-placeholder/>
             <q-btn
               v-if="!this.isShowCompletedTasks"

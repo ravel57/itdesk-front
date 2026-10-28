@@ -21,23 +21,42 @@
         :d="edge.path"
         @click.stop="$emit('select-edge', edge.id)"
       />
-      <path
-        class="flow-edge-line"
-        :class="[
-          `flow-edge-line--${edge.handle}`,
-          { 'flow-edge-line--selected': selectedEdgeId === edge.id, 'flow-edge-line--search-match': graphSearchEdgeIds.has(edge.id) }
-        ]"
-        :d="edge.path"
-        :marker-end="`url(#flow-arrow-${edge.marker})`"
-      />
-      <text
-        v-if="edge.label"
-        class="flow-edge-label"
-        :x="edge.labelX"
-        :y="edge.labelY"
-      >{{ edge.label }}
-      </text>
+      <template v-if="selectedEdgeId !== edge.id">
+        <path
+          class="flow-edge-line"
+          :class="[
+            `flow-edge-line--${edge.handle}`,
+            { 'flow-edge-line--search-match': graphSearchEdgeIds.has(edge.id) }
+          ]"
+          :d="edge.path"
+          :marker-end="`url(#flow-arrow-${edge.marker})`"
+        />
+        <text
+          v-if="edge.label"
+          class="flow-edge-label"
+          :x="edge.labelX"
+          :y="edge.labelY"
+        >{{ edge.label }}
+        </text>
+      </template>
     </g>
+  </svg>
+
+  <!-- Выбранная связь рисуется отдельным слоем поверх узлов и остальных связей; клики проходят сквозь него -->
+  <svg v-if="selectedEdge" class="flow-edges flow-edges--selected" :width="width" :height="height">
+    <path
+      class="flow-edge-line flow-edge-line--selected"
+      :class="`flow-edge-line--${selectedEdge.handle}`"
+      :d="selectedEdge.path"
+      :marker-end="`url(#flow-arrow-${selectedEdge.marker})`"
+    />
+    <text
+      v-if="selectedEdge.label"
+      class="flow-edge-label"
+      :x="selectedEdge.labelX"
+      :y="selectedEdge.labelY"
+    >{{ selectedEdge.label }}
+    </text>
   </svg>
 </template>
 
@@ -54,7 +73,13 @@ export default {
     graphSearchEdgeIds: {type: Set, default: () => new Set()}
   },
 
-  emits: ['select-edge']
+  emits: ['select-edge'],
+
+  computed: {
+    selectedEdge() {
+      return this.edges.find(edge => edge.id === this.selectedEdgeId) || null
+    }
+  }
 }
 </script>
 
@@ -64,6 +89,11 @@ export default {
   inset: 0;
   overflow: visible;
   z-index: 1;
+}
+
+.flow-edges--selected {
+  z-index: 5;
+  pointer-events: none;
 }
 
 .flow-edge-hit {
@@ -76,17 +106,17 @@ export default {
 
 .flow-edge-line {
   fill: none;
-  stroke: #8c94a3;
+  stroke: var(--app-text-muted, #8c94a3);
   stroke-width: 2.2;
   pointer-events: none;
 }
 
 .flow-edge-line--true {
-  stroke: #2e9b55;
+  stroke: var(--app-success-text, #2e9b55);
 }
 
 .flow-edge-line--false {
-  stroke: #d34b4b;
+  stroke: var(--app-danger-text, #d34b4b);
 }
 
 .flow-edge-line--selected {
@@ -95,12 +125,12 @@ export default {
 }
 
 .flow-edge-line--search-match {
-  stroke: #c58a12;
+  stroke: var(--app-warning-text, #c58a12);
   stroke-width: 4;
 }
 
 .flow-edge-label {
-  fill: #616776;
+  fill: var(--app-text-muted, #616776);
   font-size: 11px;
   font-weight: 700;
   text-anchor: middle;

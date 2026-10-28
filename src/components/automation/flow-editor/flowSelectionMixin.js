@@ -1,13 +1,11 @@
-import { nextTick } from 'vue'
-import { createEdge, createNode, deepClone, nextFlowId, normalizeWorkflow } from 'src/util/automationFlow'
+import { createEdge, createNode, deepClone, nextFlowId } from 'src/util/automationFlow'
 import { operationConfig } from 'src/util/automationNodeCatalog'
 import { defaultNodeConfig } from 'src/util/automationEditor/nodeDefaults'
-import { buildFlowTemplate } from 'src/util/automationEditor/flowTemplates'
 
-// Выделение узлов/связей, создание/дублирование/удаление узлов, соединение портов, шаблоны графов
+// Выделение узлов/связей, создание/дублирование/удаление узлов, соединение портов
 // и горячие клавиши редактора.
-// Требует: data localFlow, operationCatalog; computed nodeMap; props triggerTypes/supportLines/priorities/tags;
-// методы commit, resetHistory, undo, redo (history), fitView (viewport), openGraphSearch (search).
+// Требует: data localFlow, operationCatalog; computed nodeMap; props triggerTypes/supportLines;
+// методы commit, undo, redo (history), fitView (viewport), openGraphSearch (search).
 export default {
   data() {
     return {
@@ -135,23 +133,6 @@ export default {
       this.pendingConnection = null
       this.selectedNodeId = target
       this.commit()
-    },
-
-    applyTemplate(type) {
-      const flow = buildFlowTemplate(type, {
-        priorities: this.priorities,
-        supportLines: this.supportLines,
-        tags: this.tags,
-        operationCatalog: this.operationCatalog
-      })
-      if (!flow) return
-      this.localFlow = normalizeWorkflow(flow)
-      this.selectedNodeId = this.localFlow.entryNodeId
-      this.selectedEdgeId = null
-      this.pendingConnection = null
-      this.resetHistory()
-      this.commit(false)
-      nextTick(() => this.fitView())
     },
 
     onEditorKeydown(event) {

@@ -1,10 +1,10 @@
 <template>
-  <div class="error-page flex flex-center">
-    <div class="error-page__content text-center">
+  <div class="error-page flex flex-center app-shared-error-page">
+    <div class="error-page__content text-center app-shared-error-page__content">
       <login-logo class="q-mb-xl"/>
-      <div class="error-page__code text-primary" v-text="'404'"/>
+      <div class="error-page__code text-primary app-shared-error-page__code" v-text="'404'"/>
       <div class="text-h5 text-weight-bold q-mt-md" v-text="'Ничего не нашлось'"/>
-      <div class="text-body1 text-grey-7 q-mt-sm" style="max-width: 420px">
+      <div class="text-body1 text-grey-7 q-mt-sm app-inline app-max-width-420">
         Такой страницы нет — возможно, её удалили, или ссылка устарела. Проверьте адрес или вернитесь к своим заявкам.
       </div>
       <div class="row q-gutter-sm justify-center q-mt-lg">
@@ -35,21 +35,3 @@ export default defineComponent({
   components: { LoginLogo }
 })
 </script>
-
-<style scoped>
-.error-page {
-  min-height: 100vh;
-  background: #fff;
-  padding: 24px;
-}
-
-.error-page__content {
-  max-width: 480px;
-}
-
-.error-page__code {
-  font-size: 96px;
-  font-weight: 800;
-  line-height: 1;
-}
-</style>

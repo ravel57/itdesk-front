@@ -2,7 +2,7 @@
   <q-card
     data-tour="chat-helper-column"
     class="my-card no-shadow"
-    style="border-radius: 0;border-left: 1px solid #0000001f;"
+    style="border-radius: 0;border-left: 1px solid var(--app-border, #0000001f);"
   >
     <div
       class="chat-helper-root"
@@ -19,10 +19,9 @@
         <q-btn
           icon="close"
           @click="this.hideHelper"
-          style="color: gray"
           flat
           dense
-          class="q-ml-auto flex justify-end"
+          class="q-ml-auto flex justify-end app-inline app-color-gray"
         />
       </div>
       <q-card-section class="helper-sections">
@@ -56,10 +55,9 @@
               <q-item
                 v-for="(item, index) in this.filteredTemplates"
                 :key="index"
-                class="hidden-text q-layout-padding"
+                class="hidden-text q-layout-padding app-inline app-padding-16"
                 dense
                 clickable
-                style="padding: 16px"
                 @click="onTemplateClick(item)"
               >
                 <q-item-section>
@@ -91,8 +89,7 @@
             class="spoiler"
           >
             <div
-              class="row q-col-gutter-md items-start"
-              style="padding: 0 16px;"
+              class="row q-col-gutter-md items-start app-inline app-padding-horizontal-16"
             >
               <div
                 class="col-12 col-md-6"
@@ -132,7 +129,7 @@
                 data-tour="chat-helper-ai"
                 flat
                 bordered
-                class="kb-ai-card"
+                class="kb-ai-card app-rounded-12"
               >
                 <q-card-section class="q-pb-sm">
                   <q-input
@@ -171,7 +168,7 @@
                 <q-card-section class="q-pt-sm">
                   <div
                     v-if="this.aiResponse.length > 0"
-                    class="markdown kb-ai-response ai-md"
+                    class="markdown kb-ai-response ai-md app-ai-md"
                     v-html="this.aiResponseHtml"
                   />
                 </q-card-section>
@@ -236,7 +233,7 @@
         <h6 style="width: 100%;overflow: hidden;text-overflow: ellipsis;white-space: nowrap" v-text="this.modalTitle"/>
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <p
           v-for="(text, index) in this.modalText"
           :key="index"
@@ -537,39 +534,11 @@ h1, h2, h3, h4, h5, h6, p {
   margin: 0;
 }
 
-.kb-ai-card {
-  border-radius: 12px;
-}
-
 .kb-ai-response {
   font-size: 14px;
   white-space: normal;
   max-height: 260px;
   overflow: auto;
-}
-
-.ai-md :deep(p) {
-  margin: 0;
-  padding: 0;
-}
-
-.ai-md :deep(p + p) {
-  margin-top: 4px;
-}
-
-.ai-md :deep(ul),
-.ai-md :deep(ol) {
-  margin: 4px 0;
-  padding-left: 18px;
-}
-
-.ai-md :deep(li) {
-  margin: 0;
-  padding: 0;
-}
-
-.ai-md :deep(li + li) {
-  margin-top: 4px;
 }
 
 .chat-helper-root {
@@ -621,7 +590,7 @@ h1, h2, h3, h4, h5, h6, p {
   right: 16px;
   top: 3px;
   height: 2px;
-  background: #0000001f;
+  background: var(--app-neutral-tint, #0000001f);
   border-radius: 2px;
 }
 

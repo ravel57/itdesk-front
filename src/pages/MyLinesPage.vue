@@ -19,7 +19,7 @@
         @select="selectLine"
       />
 
-      <div class="my-lines-status-row q-mt-md">
+      <div class="my-lines-status-row q-mt-md app-my-lines-status-row">
         <div class="text-body2 text-grey-7">
           <template v-if="selectedLine">
             Показаны заявки линии <strong>{{ selectedLine.name }}</strong>
@@ -161,13 +161,6 @@ export default {
 .my-lines-page {
   position: relative;
   padding-bottom: 0;
-}
-
-.my-lines-status-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .my-lines-loading,

@@ -1,6 +1,5 @@
 <template>
-  <div
-    style="display: flex"
+  <div class="app-inline app-display-flex"
     :style="this.isMobile ? 'height: calc(100vh - 90px)' : ''"
   >
     <div class="col no-shadow rounded-borders" style="position: relative; width: 50%;">
@@ -93,7 +92,3 @@ export default {
 
 }
 </script>
-
-<style scoped>
-
-</style>

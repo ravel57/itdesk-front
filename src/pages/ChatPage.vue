@@ -355,7 +355,7 @@ export default {
   bottom: 0;
   left: 3px;
   width: 2px;
-  background: #0000001f;
+  background: var(--app-neutral-tint, #0000001f);
 }
 
 .chat-page-column-resizer:hover::before {

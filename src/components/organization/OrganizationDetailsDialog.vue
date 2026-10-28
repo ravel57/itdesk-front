@@ -11,7 +11,7 @@
       class="organization-dialog-card"
     >
       <q-toolbar class="justify-between organization-dialog-toolbar">
-        <div class="organization-dialog-title-block">
+        <div class="organization-dialog-title-block app-flex-title">
           <div
             class="text-h6 text-weight-medium organization-name-ellipsis"
             :title="name"
@@ -173,12 +173,6 @@ export default {
   gap: 12px;
 }
 
-.organization-dialog-title-block {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-}
-
 .organization-dialog-card {
   width: 1180px;
   max-width: 96vw;
@@ -197,7 +191,6 @@ export default {
 .organization-details-card {
   border-radius: 12px;
 }
-
 @media (max-width: 700px) {
   .organization-dialog-card {
     width: 100vw;

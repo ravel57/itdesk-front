@@ -5,8 +5,8 @@
     @update:model-value="updateModelValue"
   >
     <q-card class="organization-visit-dialog-card">
-      <q-toolbar class="organization-visit-dialog-toolbar justify-between">
-        <div class="organization-visit-dialog-title">
+      <q-toolbar class="organization-visit-dialog-toolbar justify-between app-shared-organization-visit-dialog-toolbar">
+        <div class="organization-visit-dialog-title app-flex-title">
           <div class="text-h6">
             Добавить выезд
           </div>
@@ -36,7 +36,7 @@
 
       <q-separator/>
 
-      <q-card-section class="organization-visit-dialog-body q-gutter-md">
+      <q-card-section class="organization-visit-dialog-body q-gutter-md app-shared-organization-visit-dialog-body">
         <q-banner
           v-if="!organization?.id"
           rounded
@@ -529,20 +529,6 @@ export default {
   border-radius: 14px;
 }
 
-.organization-visit-dialog-toolbar {
-  padding: 18px 20px;
-}
-
-.organization-visit-dialog-title {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.organization-visit-dialog-body {
-  padding: 20px 24px;
-}
-
 .organization-visit-dialog-actions {
   padding: 16px 20px;
   gap: 10px;
@@ -550,17 +536,16 @@ export default {
 
 .organization-visit-package {
   padding: 14px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.12));
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--app-surface, #fafafa);
 }
 
 .visit-stat-cell {
   padding: 10px 12px;
   border-radius: 10px;
-  background: white;
+  background: var(--app-surface, white);
 }
-
 @media (max-width: 599px) {
   .organization-visit-dialog-card {
     min-width: calc(100vw - 24px);

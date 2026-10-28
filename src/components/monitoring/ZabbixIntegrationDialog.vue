@@ -362,16 +362,16 @@ export default {
 
 .zabbix-dialog__note {
   padding: 12px 14px;
-  border: 1px dashed #c9c9c9;
+  border: 1px dashed var(--app-border, #c9c9c9);
   border-radius: 8px;
-  color: #666;
+  color: var(--app-text-muted, #666);
 }
 
 .zabbix-dialog__token {
   padding: 6px 8px;
   overflow-wrap: anywhere;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--app-neutral-tint, rgba(0, 0, 0, 0.05));
   font-size: 13px;
 }
 

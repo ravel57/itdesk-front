@@ -15,9 +15,8 @@
           othersWatchingCount > 0
           "
         >
-          <div
+          <div class="app-inline app-margin-right-8"
             v-if="watchUsers.length > 0"
-            style="margin-right: 8px"
           >
             <q-icon name="visibility"/>
             {{ watchUsers.join(', ') }}
@@ -30,8 +29,7 @@
       </div>
       <div
         v-if="attachedFiles.length > 2"
-        class="attach-file-card"
-        style="cursor: pointer;"
+        class="attach-file-card app-inline app-cursor-pointer"
         @click="$emit('showFiles')"
       >
         Еще {{ attachedFiles.length - 2 }} файла...
@@ -47,12 +45,11 @@
           <div class="attach-file-format">
             {{ file.name.split('.')[file.name.split('.').length - 1].toUpperCase() }}
           </div>
-          <div class="truncate">{{ file.name.split('.')[0] }}</div>
+          <div class="truncate app-text-ellipsis">{{ file.name.split('.')[0] }}</div>
           <q-space/>
-          <q-btn
+          <q-btn class="app-inline app-color-gray"
             flat
             round
-            style="color: gray"
             dense
             icon="delete"
             @click="$emit('removeFile', index)"
@@ -148,10 +145,10 @@ export default {
   display: flex;
   align-items: center;
   padding: 4px;
-  border: solid 1px rgba(108, 108, 108, 0.2);
+  border: solid 1px var(--app-border, rgba(108, 108, 108, 0.2));
   border-radius: 4px;
-  background-color: white;
-  color: rgba(36, 36, 36, 1);
+  background-color: var(--app-surface, white);
+  color: var(--app-text, rgba(36, 36, 36, 1));
   margin-bottom: 4px;
   height: 44px;
   /* Родитель .action-clouds — pointer-events: none (чтобы не мешать кликам по чату
@@ -172,8 +169,8 @@ export default {
   display: flex;
   flex-wrap: nowrap;
   opacity: 0.5;
-  background-color: rgba(255, 255, 255, 1);
-  color: rgba(92, 53, 249, 1) !important;
+  background-color: var(--app-surface, rgba(255, 255, 255, 1));
+  color: var(--app-info-text, rgba(92, 53, 249, 1)) !important;
   border-radius: 4px;
   margin-top: 5px;
   text-align: center;
@@ -193,12 +190,6 @@ export default {
   flex-direction: column;
   flex-wrap: nowrap;
   bottom: 0;
-}
-
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .typing-users-cloud-row {

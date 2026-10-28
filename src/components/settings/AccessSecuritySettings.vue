@@ -1,7 +1,7 @@
 <template>
-  <q-card flat bordered class="settings-card">
+  <q-card flat bordered class="settings-card app-rounded-12">
     <q-card-section class="settings-block">
-      <div class="settings-block__header">
+      <div class="settings-block__header app-shared-settings-block__header">
         <div>
           <div class="text-subtitle1">Разделы менеджера организации</div>
           <div class="text-caption text-grey-7">
@@ -23,9 +23,9 @@
     </q-card-section>
   </q-card>
 
-  <q-card flat bordered class="settings-card">
+  <q-card flat bordered class="settings-card app-rounded-12">
     <q-card-section class="settings-block">
-      <div class="settings-block__header">
+      <div class="settings-block__header app-shared-settings-block__header">
         <div>
           <div class="text-subtitle1">Безопасность</div>
           <div class="text-caption text-grey-7">
@@ -116,17 +116,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.settings-card {
-  border-radius: 12px;
-}
-
-.settings-block__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-</style>

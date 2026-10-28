@@ -1,5 +1,5 @@
 <template>
-  <q-card flat bordered class="analytics-card">
+  <q-card flat bordered class="analytics-card app-shared-analytics-card">
     <q-card-section>
       <div class="text-h6">
         Нагрузка по операторам
@@ -244,11 +244,6 @@ export default {
 </script>
 
 <style scoped>
-.analytics-card {
-  height: 100%;
-  border-radius: 8px;
-}
-
 .operator-load-cell {
   display: grid;
   grid-template-columns: 52px minmax(110px, 1fr);

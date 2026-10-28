@@ -1,9 +1,9 @@
 <template>
   <q-layout>
-    <q-page-container class="mfa-page">
+    <q-page-container class="mfa-page app-auth-page">
       <q-page class="flex flex-center">
         <div class="mfa-box">
-          <login-logo class="mfa-logo"/>
+          <login-logo class="mfa-logo app-auth-logo"/>
 
           <div v-if="state === 'loading'" class="text-center q-pa-lg">
             <q-spinner color="primary" size="32px"/>
@@ -125,22 +125,12 @@ export default {
 </script>
 
 <style scoped>
-.mfa-page {
-  background-color: var(--q-primary);
-  min-height: 100vh;
-}
-
 .mfa-box {
-  background-color: white;
+  background-color: var(--app-surface, white);
   padding: 16px;
   width: 340px;
   max-width: calc(100vw - 32px);
   border-radius: 4px;
-}
-
-.mfa-logo {
-  display: block;
-  margin: 0 auto;
 }
 
 .mfa-title {

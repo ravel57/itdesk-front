@@ -14,7 +14,7 @@
       />
       <circle-counter
         v-if="counter"
-        :class="this.miniState ? 'mini-counter' : 'display-none'"
+        :class="this.miniState ? 'mini-counter app-mini-counter' : 'display-none'"
         :counter="counter"
       />
     </q-item-section>
@@ -113,16 +113,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.mini-counter {
-  position: absolute !important;
-  height: 12px !important;
-  width: 12px !important;
-  font-size: 9px !important;
-  margin-left: 15px !important;
-  background-color: var(--q-primary) !important;
-  top: 8px !important;
-}
-
 .display-none {
   display: none !important;
 }

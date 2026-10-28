@@ -150,15 +150,15 @@ export default {
   min-width: 860px;
   border-collapse: separate;
   border-spacing: 0;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
 }
 
 .sla-table th,
 .sla-table td {
   position: relative;
   padding: 12px;
-  border-right: 1px solid #edf0f7;
-  border-bottom: 1px solid #edf0f7;
+  border-right: 1px solid var(--app-border, #edf0f7);
+  border-bottom: 1px solid var(--app-border, #edf0f7);
   transition: background-color 0.12s ease, box-shadow 0.12s ease;
 }
 
@@ -172,8 +172,8 @@ export default {
   top: 0;
   z-index: 4;
   height: 54px;
-  background: #f8faff;
-  color: #4b5563;
+  background: var(--app-surface, #f8faff);
+  color: var(--app-text, #4b5563);
   font-size: 13px;
   font-weight: 700;
   text-align: center;
@@ -194,7 +194,7 @@ export default {
   z-index: 3;
   min-width: 230px;
   max-width: 280px;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
   text-align: left;
   vertical-align: middle;
   box-shadow: 8px 0 16px rgba(24, 39, 75, 0.04);
@@ -202,7 +202,7 @@ export default {
 
 .sla-organization-name {
   font-weight: 700;
-  color: #253044;
+  color: var(--app-info-text, #253044);
   line-height: 1.2;
   max-width: 100%;
 }
@@ -214,7 +214,7 @@ export default {
 
 .sla-data-cell {
   min-width: 245px;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
   vertical-align: middle;
 }
 
@@ -232,37 +232,37 @@ export default {
 
 .sla-priority-head.is-column-header-active,
 .sla-data-cell.is-column-active {
-  background: #f2f6ff;
+  background: var(--app-surface, #f2f6ff);
 }
 
 .sla-table tr.is-row-active .sla-data-cell,
 .sla-organization-cell.is-row-header-active {
-  background: #f6f8ff;
+  background: var(--app-surface, #f6f8ff);
 }
 
 .sla-data-cell.is-cell-active {
-  background: #edf3ff;
+  background: var(--app-surface-muted, #edf3ff);
   box-shadow: inset 0 0 0 2px #5b6cff;
 }
 
 .sla-priority-head.is-column-header-active {
-  color: #3f51e8;
+  color: var(--app-info-text, #3f51e8);
   box-shadow: inset 0 -2px 0 #5b6cff;
 }
 
 .sla-organization-cell.is-row-header-active {
-  color: #3f51e8;
+  color: var(--app-info-text, #3f51e8);
   box-shadow: inset 3px 0 0 #5b6cff, 8px 0 16px rgba(24, 39, 75, 0.04);
 }
 
 .sla-table tbody tr:hover .sla-data-cell {
-  background: #f8faff;
+  background: var(--app-surface, #f8faff);
 }
 
 .sla-empty-cell {
   padding: 32px !important;
-  color: #7b8794;
+  color: var(--app-text-muted, #7b8794);
   text-align: center;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
 }
 </style>

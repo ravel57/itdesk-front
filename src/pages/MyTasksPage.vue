@@ -2,12 +2,11 @@
   <q-page padding style="padding-bottom: 0;" class="my-tasks-page"
           :class="{ 'my-tasks-onboarding-mode': this.myTasksOnboardingActive }">
     <div style="display: flex; width: 100%; align-items: center; gap: 8px;" data-my-tasks-tour="search">
-      <q-input
+      <q-input class="app-inline app-task-search"
         outlined
         dense
         v-model="this.searchRequest"
         label="Поиск"
-        style="width: 100%; align-content: center; min-width: 300px; padding-right: 8px"
         clearable
       />
       <q-btn

@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pa-md license-page">
+  <div class="q-pa-md license-page app-max-width-760">
     <div class="settings-content-header">
       <div class="settings-content-heading">
         <div class="settings-content-title">Лицензия</div>
@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <q-card flat bordered class="license-card">
+    <q-card flat bordered class="license-card app-rounded-12">
       <q-card-section>
         <div class="license-summary-grid">
           <div class="license-summary-item">
@@ -216,14 +216,6 @@ export default {
 </script>
 
 <style scoped>
-.license-page {
-  max-width: 760px;
-}
-
-.license-card {
-  border-radius: 12px;
-}
-
 .license-summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr));
@@ -232,13 +224,13 @@ export default {
 
 .license-summary-item {
   padding: 14px;
-  border: 1px solid #e7e7e7;
+  border: 1px solid var(--app-border, #e7e7e7);
   border-radius: 12px;
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .license-summary-item__label {
-  color: #777;
+  color: var(--app-text-muted, #777);
   font-size: 12px;
   line-height: 1.2;
 }
@@ -280,12 +272,12 @@ export default {
   justify-content: space-between;
   gap: 16px;
   padding: 10px 12px;
-  border: 1px solid #eeeeee;
+  border: 1px solid var(--app-border, #eeeeee);
   border-radius: 10px;
 }
 
 .license-role-row--free {
-  background: #fafafa;
+  background: var(--app-surface, #fafafa);
 }
 
 .license-role-row__title {
@@ -305,13 +297,11 @@ export default {
   line-height: 1.2;
   font-weight: 400;
 }
-
 @media (max-width: 700px) {
   .license-summary-grid {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
 }
-
 @media (max-width: 420px) {
   .license-summary-grid {
     grid-template-columns: 1fr;

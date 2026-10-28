@@ -1,5 +1,5 @@
 <template>
-  <div class="automation-value-editor">
+  <div class="automation-value-editor app-min-width-zero">
     <div class="column q-gutter-xs">
       <q-select dense outlined :label="label || 'Значение'" :model-value="kind" :options="script ? kinds.filter(option => option.value === 'expression') : kinds" :readonly="script"
                 emit-value map-options @update:model-value="changeKind"/>
@@ -170,11 +170,7 @@ export default {
 
 <style scoped>
 .automation-value-child {
-  border-left: 2px solid #d8dfec;
+  border-left: 2px solid var(--app-border, #d8dfec);
   padding-left: 8px;
-}
-
-.automation-value-editor {
-  min-width: 0;
 }
 </style>

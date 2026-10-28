@@ -127,7 +127,7 @@ export default {
 
 <style scoped>
 .rule-child {
-  border-left: 2px solid #d8dfec;
+  border-left: 2px solid var(--app-border, #d8dfec);
   margin-top: 10px;
   padding-left: 8px;
 }

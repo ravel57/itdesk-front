@@ -71,7 +71,7 @@ export default {
 }
 
 .summary-label {
-  color: #6b7280;
+  color: var(--app-text-muted, #6b7280);
   font-size: 13px;
 }
 

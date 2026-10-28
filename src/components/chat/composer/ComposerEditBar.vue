@@ -10,11 +10,11 @@
           name="edit"
         />
       </div>
-      <div class="edit-message-bar__text">
+      <div class="edit-message-bar__text app-flex-title">
         <div>
           Редактирование сообщения
         </div>
-        <div class="truncate">
+        <div class="truncate app-text-ellipsis">
           {{ text }}
         </div>
       </div>
@@ -67,7 +67,7 @@ export default {
   flex-shrink: 0;
   overflow: hidden;
   border-radius: 0;
-  border-top: 1px solid #0000001f;
+  border-top: 1px solid var(--app-border, #0000001f);
 }
 
 .edit-message-bar__content {
@@ -89,22 +89,10 @@ export default {
   margin-right: 10px;
 }
 
-.edit-message-bar__text {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-}
-
 .edit-message-cancel-btn {
   flex: 0 0 42px;
   width: 42px;
   height: 42px;
   margin-right: 4px;
-}
-
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 </style>

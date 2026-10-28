@@ -13,7 +13,7 @@
         />
         <q-btn flat round dense icon="close" v-close-popup/>
       </q-toolbar>
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <q-input
           label="Название *"
           :model-value="this.name"
@@ -36,11 +36,10 @@
         <div v-else class="text-caption text-grey-7 q-mb-md">
           Доступ: персональный
         </div>
-        <div style="margin-bottom: 8px">
+        <div class="app-inline app-margin-bottom-8">
           Условие между фильтрами: {{ this.filterJoinOperator === 'AND' ? 'И' : 'ИЛИ' }}
         </div>
-        <div
-          style="white-space: pre-wrap"
+        <div class="app-inline app-text-pre-wrap"
           v-for="(filter, index) in this.filterChain"
           :key="index"
         >

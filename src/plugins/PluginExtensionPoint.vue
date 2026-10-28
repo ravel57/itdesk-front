@@ -1,5 +1,5 @@
 <template>
-  <div v-if="resolvedExtensions.length" class="plugin-extension-point">
+  <div v-if="resolvedExtensions.length" class="plugin-extension-point app-shared-plugin-extension-point">
     <PluginRenderer
       v-for="extension in resolvedExtensions"
       :key="extension.pluginKey + ':' + extension.key"
@@ -58,9 +58,3 @@ export default {
   }
 }
 </script>
-
-<style>
-.plugin-extension-point {
-  margin-top: 8px;
-}
-</style>

@@ -93,7 +93,7 @@
         <q-btn flat round dense icon="close" @click="closeDialog" />
       </q-toolbar>
 
-      <q-card-section style="padding-top: 0">
+      <q-card-section class="app-inline app-padding-top-0">
         <q-input
           ref="reasonName"
           v-model="dialogName"
@@ -279,7 +279,7 @@ export default {
 }
 
 .visit-reason-row:hover {
-  background-color: #f5f5f5;
+  background-color: var(--app-surface-muted, #f5f5f5);
 }
 
 .visit-reason-drag-handle {

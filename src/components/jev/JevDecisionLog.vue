@@ -524,7 +524,7 @@ export default {
   overflow-y: auto;
   padding: 8px 10px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--app-neutral-tint, rgba(0, 0, 0, 0.04));
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

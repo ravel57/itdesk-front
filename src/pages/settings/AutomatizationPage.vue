@@ -47,7 +47,7 @@
     <q-banner
       v-if="this.isAutomationIntroVisible"
       rounded
-      class="bg-blue-1 text-primary automation-intro-banner"
+      class="bg-blue-1 text-primary automation-intro-banner app-shared-plugin-extension-point"
     >
       <template v-slot:avatar>
         <q-icon name="bolt" color="primary"/>
@@ -76,8 +76,7 @@
 
     <q-list
       bordered
-      class="rounded-borders settings-row-list automation-tree"
-      style="margin-top: 8px"
+      class="rounded-borders settings-row-list automation-tree app-inline app-margin-top-8"
     >
       <automation-tree-level
         :nodes="this.tree"
@@ -184,8 +183,8 @@
           <q-banner
             v-if="this.workflowValidation.errors.length || this.workflowValidation.warnings.length"
             rounded
-            class="automation-workflow-validation"
-            :class="this.workflowValidation.errors.length ? 'automation-workflow-validation-error' : 'automation-workflow-validation-warning'"
+            class="automation-workflow-validation app-automatization-page-automation-workflow-validation"
+            :class="this.workflowValidation.errors.length ? 'automation-workflow-validation-error app-automation-workflow-validation-error' : 'automation-workflow-validation-warning app-automation-workflow-validation-warning'"
           >
             <div v-for="error in this.workflowValidation.errors" :key="`error-${error}`">
               <q-icon name="error" class="q-mr-xs"/>
@@ -479,32 +478,11 @@ export default {
   margin-top: 4px;
 }
 
-.automation-workflow-validation {
-  margin-top: 16px;
-  white-space: pre-wrap;
-}
-
-.automation-workflow-validation > div + div {
-  margin-top: 6px;
-}
-
-.automation-workflow-validation-error {
-  border: 1px solid #ef9a9a;
-  background: #ffebee;
-  color: #c62828;
-}
-
-.automation-workflow-validation-warning {
-  border: 1px solid #ffe082;
-  background: #fffde7;
-  color: #8d6e00;
-}
-
 .automation-preview {
   margin-top: 18px;
-  border: 1px solid #e0e0e0;
-  background: #f5f5f5;
-  color: #616161;
+  border: 1px solid var(--app-border, #e0e0e0);
+  background: var(--app-surface-muted, #f5f5f5);
+  color: var(--app-text-muted, #616161);
   word-break: break-word;
 }
 
@@ -515,11 +493,6 @@ export default {
 .automation-dialog-actions {
   padding: 12px 20px 16px;
 }
-
-.automation-intro-banner {
-  margin-top: 8px;
-}
-
 @media (max-width: 900px) {
   .automation-editor-section {
     padding-right: 16px;

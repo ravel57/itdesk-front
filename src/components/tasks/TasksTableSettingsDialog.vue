@@ -22,17 +22,15 @@
       <q-card-section class="row items-center">
         <q-list
           bordered
-          class="rounded-borders settings-row-list"
-          style="width: 100%"
+          class="rounded-borders settings-row-list app-inline app-width-full"
           separator
         >
           <draggable
             :list="this.columns"
             item-key="id"
-            class="list-group"
+            class="list-group app-inline app-width-full"
             ghost-class="ghost"
             handle=".settings-drag-handle"
-            style="width: 100%"
             @start="dragging = true"
             @end="dragging = false; this.onTableColumnsEdited()"
           >

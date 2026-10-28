@@ -5,8 +5,7 @@
     class="input-container"
     expand
   >
-    <div
-      style="width: 100%;"
+    <div class="app-inline app-width-full"
     >
       <composer-reply-bar
         v-if="this.canSendMessages && this.replyMessageId !== null"
@@ -64,12 +63,11 @@
         />
         <q-btn
           data-tour="chat-attach-file"
-          style="margin-bottom: 6px"
           id="choose-file-btn"
           type="file"
           @click="showListPinedFiles = true"
           icon="sym_o_attach_file_add"
-          class="no-padding"
+          class="no-padding app-inline app-margin-bottom-6"
           flat
         />
         <input
@@ -129,10 +127,9 @@
         <div
           v-if="this.comments"
         >
-          <q-btn
+          <q-btn class="app-inline app-margin-bottom-6"
             data-tour="chat-comment-mode"
             id="comment-mode-btn"
-            style="margin-bottom: 6px"
             @click="this.switchToComment"
             dense
             flat
@@ -149,9 +146,8 @@
         <div
           v-if="this.showHelperAction && !this.isMobile"
         >
-          <q-btn
+          <q-btn class="app-inline app-margin-bottom-6"
             data-tour="chat-helper-toggle"
-            style="margin-bottom: 6px"
             @click="this.showHelper"
             dense
             flat
@@ -459,7 +455,7 @@ textarea:focus {
   flex-wrap: nowrap;
   align-items: end;
   border-radius: 0;
-  background-color: #ffffff;
+  background-color: var(--app-surface, #ffffff);
   transition: background-color 0.2s ease;
 }
 
@@ -468,7 +464,7 @@ textarea:focus {
 }
 
 .input-item--comment {
-  background-color: #d1c4e9;
+  background-color: var(--app-accent-surface, #d1c4e9);
 }
 
 .message-upload-progress {
@@ -487,7 +483,7 @@ textarea:focus {
   z-index: 1;
   right: 5px;
   opacity: 0.92;
-  background-color: white;
+  background-color: var(--app-surface, white);
   border-radius: 4px;
   margin-bottom: 5px;
 }

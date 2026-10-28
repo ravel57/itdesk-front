@@ -48,7 +48,7 @@
       <div v-if="this.login && this.loginMessage" class="login-message" role="alert">
         {{ this.loginMessage }}
       </div>
-      <form v-if="this.login" method="post" action="/perform_login" class="login-form">
+      <form v-if="this.login" method="post" action="/perform_login" class="login-form app-flex-column">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <input v-if="redirectTarget" type="hidden" name="redirect" :value="redirectTarget">
         <q-input
@@ -112,7 +112,7 @@
         <div class="email-restore-instruction">
           Мы отправим запрос на восстановление пароля пользователю Admin
         </div>
-        <div class="contact-instruction">Или напишите нам на почту:</div>
+        <div class="contact-instruction app-text-center">Или напишите нам на почту:</div>
         <div class="support-email">support@uldesk.com</div>
         <q-btn @click="this.requestSend = true" class="submit-btn-wider" color="primary">Отправить запрос</q-btn>
       </div>
@@ -299,7 +299,7 @@ export default {
 }
 
 .login-box {
-  background-color: white;
+  background-color: var(--app-surface, white);
   padding: 8px;
   width: 240px;
   min-width: 240px;
@@ -356,11 +356,6 @@ export default {
   margin-left: 2px;
 }
 
-.login-form {
-  display: flex;
-  flex-direction: column;
-}
-
 .input-field {
   margin-top: 12px;
   margin-bottom: 4px;
@@ -402,19 +397,15 @@ export default {
   padding: 8px;
 }
 
-.contact-instruction {
-  text-align: center;
-}
-
 .support-email {
   text-align: center;
   padding-bottom: 8px;
-  color: gray;
+  color: var(--app-text-muted, gray);
   font-weight: 520;
 }
 
 .request-sent-box {
-  background-color: white;
+  background-color: var(--app-surface, white);
   padding: 8px;
   width: 240px;
   height: auto;
@@ -428,13 +419,13 @@ export default {
   flex-direction: row;
   align-items: center;
   margin-top: 16px;
-  color: rgb(52, 199, 89);
+  color: var(--app-success-text, rgb(52, 199, 89));
   justify-content: center;
   font-weight: 520;
 }
 
 .check-icon {
-  color: rgba(52, 199, 89, 1);
+  color: var(--app-success-text, rgba(52, 199, 89, 1));
 }
 
 .request-sent-instruction {

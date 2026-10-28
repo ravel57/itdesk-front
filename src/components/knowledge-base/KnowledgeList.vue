@@ -38,7 +38,7 @@
           >
             <q-item-section
               top
-              class="knowledge-title-section"
+              class="knowledge-title-section app-shared-knowledge-title-section"
             >
               <div class="text-weight-medium">
                 {{ element.title }}
@@ -48,7 +48,7 @@
                 Статья #{{ element.id }}
                 <template v-if="element.sourceTaskId">
                   · из заявки
-                  <router-link :to="taskLink(element)" class="knowledge-task-link" @click.stop>№{{ element.sourceTaskId }}</router-link>
+                  <router-link :to="taskLink(element)" class="knowledge-task-link app-shared-knowledge-task-link" @click.stop>№{{ element.sourceTaskId }}</router-link>
                 </template>
               </div>
             </q-item-section>
@@ -64,7 +64,7 @@
 
             <q-item-section
               top
-              class="knowledge-tags-section"
+              class="knowledge-tags-section app-shared-knowledge-title-section"
             >
               <div v-if="getKnowledgeTags(element).length" class="row q-gutter-xs">
                 <q-chip
@@ -155,23 +155,14 @@ export default {
 </script>
 
 <style scoped>
-.knowledge-task-link {
-  color: var(--q-primary);
-  text-decoration: none;
-}
-
-.knowledge-task-link:hover {
-  text-decoration: underline;
-}
-
 .knowledge-list {
   margin-top: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--app-surface, #fff);
 }
 
 .knowledge-list-header {
-  background: #fafafa;
+  background: var(--app-surface, #fafafa);
 }
 
 .knowledge-item {
@@ -181,15 +172,11 @@ export default {
 }
 
 .knowledge-item:hover {
-  background: #f8fbff;
+  background: var(--app-surface, #f8fbff);
 }
 
 .knowledge-item--search {
   cursor: pointer;
-}
-
-.knowledge-title-section {
-  min-width: 180px;
 }
 
 .knowledge-preview-section {
@@ -198,15 +185,11 @@ export default {
 }
 
 .knowledge-preview {
-  color: #333;
+  color: var(--app-text, #333);
   display: -webkit-box;
   overflow: hidden;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
-}
-
-.knowledge-tags-section {
-  min-width: 180px;
 }
 
 .knowledge-tag {
@@ -216,7 +199,6 @@ export default {
 .ghost {
   opacity: 0.5;
 }
-
 @media (max-width: 700px) {
   .knowledge-list-header {
     display: none;

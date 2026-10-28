@@ -1,5 +1,5 @@
 <template>
-  <q-card class="plugins-card">
+  <q-card class="plugins-card app-margin-bottom-16">
     <q-card-section>
       <div class="text-subtitle1">Загрузить плагин</div>
       <div class="text-caption text-grey-7">
@@ -10,7 +10,7 @@
     <q-separator/>
 
     <q-card-section>
-      <div class="upload-row">
+      <div class="upload-row app-upload-row">
         <q-file
           v-model="pluginFile"
           outlined
@@ -18,7 +18,7 @@
           clearable
           accept=".zip"
           label="Выберите ZIP-плагин *"
-          class="plugin-file"
+          class="plugin-file app-flex-spacer"
         >
           <template #prepend>
             <q-icon name="extension"/>
@@ -86,26 +86,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.plugins-card {
-  margin-bottom: 16px;
-}
-
-.upload-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.plugin-file {
-  flex: 1;
-}
-
-@media (max-width: 700px) {
-  .upload-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-}
-</style>

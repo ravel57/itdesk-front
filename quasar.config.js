@@ -17,6 +17,7 @@ module.exports = configure(function (ctx) {
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-webpack/boot-files
     boot: [
+      'theme',
       'axios',
       'notify',
       'access',
@@ -121,7 +122,7 @@ module.exports = configure(function (ctx) {
         xl: 1920
       },
       config: {
-        dark: false
+        dark: 'auto'
       },
 
       // iconSet: 'material-icons', // Quasar icon set

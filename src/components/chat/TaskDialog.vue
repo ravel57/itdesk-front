@@ -28,8 +28,7 @@
         @close="this.isObserverReadOnly ? this.closeDialog() : this.openSubmitModal()"
       />
       <q-card-section
-        class="task-dialog-body"
-        style="padding: 0 16px"
+        class="task-dialog-body app-inline app-padding-horizontal-16"
       >
         <incident-task-banner
           v-if="!this.isNewTask && this.task?.id"
@@ -498,7 +497,7 @@ export default {
 .task-dialog-actions {
   flex: 0 0 auto;
   margin: 8px 7px 8px 0;
-  background: white;
+  background: var(--app-surface, white);
   z-index: 2;
 }
 

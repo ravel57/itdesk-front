@@ -2,7 +2,7 @@
   <div class="table-container">
     <q-list
       bordered
-      class="rounded-borders bg-white settings-row-list organization-list"
+      class="rounded-borders bg-white settings-row-list organization-list app-overflow-hidden"
       separator
     >
       <draggable
@@ -17,14 +17,14 @@
       >
         <template #item="{ element }">
           <q-item
-            class="organization-row"
+            class="organization-row app-shared-notification-header"
             :class="{ 'not-draggable': Boolean(search) }"
           >
             <q-item-section side class="settings-drag-handle cursor-grab">
               <q-icon name="drag_indicator" color="grey-6"/>
             </q-item-section>
 
-            <q-item-section class="organization-name-section">
+            <q-item-section class="organization-name-section app-organization-name-section">
               <q-item-label class="row items-center q-gutter-sm no-wrap">
                 <span class="text-weight-medium organization-name-ellipsis" :title="element.name">
                   {{ element.name }}
@@ -107,30 +107,13 @@ export default {
 </script>
 
 <style scoped>
-.organization-list {
-  overflow: hidden;
-}
-
-.organization-row {
-  min-height: 68px;
-}
-
 .organization-meta-line,
 .organization-secondary-line {
-  color: #737b89;
+  color: var(--app-text-muted, #737b89);
   line-height: 1.45;
 }
 
 .organization-secondary-line {
   margin-top: 2px;
-}
-
-.organization-name-section {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.organization-name-section .row {
-  min-width: 0;
 }
 </style>

@@ -76,13 +76,12 @@
         >
           <template v-if="this.isDateRangeFilter(filter)">
             <div class="task-date-range-filter">
-              <q-input
+              <q-input class="app-inline app-table-cell-180"
                 v-model="filter.selectedOptions.from"
                 clearable
                 outlined
                 :label="`${filter.label} от`"
                 mask="##.##.####"
-                style="width: 180px; height: 100%; min-height: 56px;"
               >
                 <template v-slot:append>
                   <q-icon
@@ -107,13 +106,12 @@
                 </template>
               </q-input>
 
-              <q-input
+              <q-input class="app-inline app-table-cell-180"
                 v-model="filter.selectedOptions.to"
                 clearable
                 outlined
                 :label="`${filter.label} до`"
                 mask="##.##.####"
-                style="width: 180px; height: 100%; min-height: 56px;"
               >
                 <template v-slot:append>
                   <q-icon
@@ -140,7 +138,7 @@
             </div>
           </template>
 
-          <q-select
+          <q-select class="app-inline app-table-cell-250"
             v-else-if="filter.slug !== 'deadline'"
             outlined
             :label="filter.label"
@@ -151,7 +149,6 @@
             stack-label
             v-model="filter.selectedOptions"
             input-debounce="0"
-            style="width: 250px; height: 100%; min-height: 56px;"
             behavior="menu"
             :class="{ 'organization-select': filter.slug === 'organization' }"
             :popup-content-class="filter.slug === 'organization' ? 'organization-select-popup' : ''"
@@ -167,13 +164,12 @@
             </template>
           </q-select>
 
-          <q-input
+          <q-input class="app-inline app-table-cell-250"
             v-else
             v-model="filter.selectedOptions"
             clearable
             outlined
             :label="filter.isBeforeDeadline ? 'До дедлайна' : 'После дедлайна'"
-            style="width: 250px; height: 100%; min-height: 56px;"
             mask="##.##.#### ##:##"
           >
             <template v-slot:prepend>
@@ -251,7 +247,7 @@
           </q-list>
         </q-menu>
       </q-btn>
-      <q-btn
+      <q-btn class="app-inline app-height-40"
         v-if="this.filterChain.length > 0"
         ref="saveFilterButton"
         icon="save"
@@ -259,7 +255,6 @@
         @click="this.$emit('saveFilter')"
         :disable="!this.canSaveCurrentFilter"
         flat
-        style="height: 40px"
       >
         <q-tooltip>
           {{ !this.canSaveCurrentFilter
@@ -267,26 +262,24 @@
             : (this.selectedSavedFilter ? 'Пересохранить шаблон' : 'Сохранить шаблон') }}
         </q-tooltip>
       </q-btn>
-      <q-btn
+      <q-btn class="app-inline app-height-40"
         v-if="this.isShowDelFilterPreset && this.canDeleteSelectedSavedFilter"
         ref="deleteSavedFilterButton"
         icon="delete"
         color="grey"
         @click="this.$emit('requestDeleteSavedFilter')"
         flat
-        style="height: 40px"
       >
         <q-tooltip>
           Удалить шаблон
         </q-tooltip>
       </q-btn>
-      <q-btn
+      <q-btn class="app-inline app-height-40"
         v-if="this.filterChain.length > 0"
         icon="close"
         color="grey"
         @click="this.$emit('resetFilters')"
         flat
-        style="height: 40px"
       >
         <q-tooltip>
           Сбросить фильтр

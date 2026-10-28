@@ -43,8 +43,8 @@
               position: 'sticky',
               top: '0',
               zIndex: '1',
-              backgroundColor: 'white',
-              color: 'var(--q-dark)'
+              backgroundColor: 'var(--app-surface, white)',
+              color: 'var(--app-text, var(--q-dark))'
             }"
           >
             <q-checkbox v-model="props.selected" @click.stop />
@@ -57,8 +57,8 @@
               position: 'sticky',
               top: '0',
               zIndex: '1',
-              backgroundColor: 'white',
-              color: 'var(--q-dark)'
+              backgroundColor: 'var(--app-surface, white)',
+              color: 'var(--app-text, var(--q-dark))'
             }"
           >
             {{ col.label }}
@@ -68,8 +68,7 @@
 
       <!-- кастомный боди -->
       <template v-slot:body="props">
-        <q-tr
-          style="cursor: pointer"
+        <q-tr class="app-inline app-cursor-pointer"
           :props="props"
           @click="this.$emit('onTaskClicked', props.row)"
         >
@@ -142,7 +141,7 @@
   <teleport to="body">
     <div
       v-if="this.tasksOnboardingActive"
-      class="tasks-onboarding-layer"
+      class="tasks-onboarding-layer app-shared-my-tasks-onboarding-layer"
     >
       <div
         class="tasks-onboarding-spotlight"
@@ -159,13 +158,13 @@
           size="sm"
           icon="close"
           color="grey-7"
-          class="onboarding-close-btn"
+          class="onboarding-close-btn app-shared-onboarding-close-btn"
           aria-label="Закрыть обучение"
           @click="finishTasksOnboarding"
         >
           <q-tooltip>Закрыть обучение</q-tooltip>
         </q-btn>
-        <q-card-section class="q-pb-xs" style="padding-right: 40px">
+        <q-card-section class="q-pb-xs app-inline app-padding-right-40">
           <div class="tasks-onboarding-progress">
             {{ this.tasksOnboardingStepIndex + 1 }} / {{ this.activeTasksOnboardingSteps.length }}
           </div>
@@ -844,13 +843,6 @@ export default {
   z-index: 9999;
 }
 
-.tasks-onboarding-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  pointer-events: none;
-}
-
 .tasks-onboarding-spotlight {
   position: fixed;
   border: 2px solid var(--q-primary);
@@ -873,7 +865,7 @@ export default {
   /* в потоке над заголовком: справа в углу теперь крестик закрытия */
   margin-bottom: 4px;
   text-align: right;
-  color: #777;
+  color: var(--app-text-muted, #777);
   font-size: 12px;
 }
 
@@ -887,7 +879,7 @@ export default {
 .task-table-checklist-progress {
   width: 72px;
   flex: 0 0 72px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--app-border, rgba(0, 0, 0, 0.12));
   border-radius: 999px;
   box-sizing: border-box;
   overflow: hidden;
@@ -906,10 +898,4 @@ export default {
 }
 
 /* Крестик закрытия обучения в правом верхнем углу карточки */
-.onboarding-close-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 1;
-}
 </style>

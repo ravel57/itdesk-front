@@ -8,7 +8,7 @@
         label="Глобальный поиск"
         clearable
         debounce="400"
-        class="search-input"
+        class="search-input app-width-full"
         @update:model-value="sendSearchRequest"
       >
         <template #prepend>
@@ -388,10 +388,6 @@ export default {
 .search-page {
   max-width: 960px;
   margin: 0 auto;
-}
-
-.search-input {
-  width: 100%;
 }
 
 .search-results {

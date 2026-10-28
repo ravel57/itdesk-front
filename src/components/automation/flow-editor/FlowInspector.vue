@@ -4,8 +4,8 @@
     :class="{ 'flow-inspector-slot--popped': poppedOut }"
     @click.self="$emit('update:poppedOut', false)"
   >
-    <aside class="flow-inspector" :class="{ 'flow-inspector--popped': poppedOut }">
-      <div class="flow-side-title row items-center justify-between no-wrap">
+    <aside class="flow-inspector app-flow-inspector" :class="{ 'flow-inspector--popped': poppedOut }">
+      <div class="flow-side-title row items-center justify-between no-wrap app-shared-flow-side-title">
         <span>Настройка узла</span>
         <q-btn
           flat
@@ -339,23 +339,6 @@ export default {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
 
-.flow-inspector {
-  min-width: 0;
-  padding: 16px;
-  overflow-y: auto;
-  background: #ffffff;
-}
-
-.flow-inspector {
-  border-left: 1px solid #dfe2e8;
-}
-
-.flow-side-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #252a34;
-}
-
 .flow-inspector-empty {
   min-height: 240px;
   display: flex;
@@ -363,19 +346,12 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #999faa;
+  color: var(--app-text-muted, #999faa);
 }
 
 .flow-validation-list {
   padding: 10px;
   border-radius: 7px;
-  background: #fafafa;
-}
-
-@media (max-width: 900px) {
-  .flow-inspector {
-    border: none;
-    border-bottom: 1px solid #dfe2e8;
-  }
+  background: var(--app-surface, #fafafa);
 }
 </style>

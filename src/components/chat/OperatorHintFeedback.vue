@@ -1,5 +1,5 @@
 <template>
-  <div class="operator-hint-feedback row items-center no-wrap q-gutter-xs">
+  <div class="operator-hint-feedback row items-center no-wrap q-gutter-xs app-shared-plugin-badge">
     <span class="text-caption text-grey-8">Подсказка помогла?</span>
     <q-btn
       flat
@@ -62,9 +62,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.operator-hint-feedback {
-  margin-top: 4px;
-}
-</style>

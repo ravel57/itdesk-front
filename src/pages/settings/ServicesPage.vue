@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md services-page">
+  <q-page class="q-pa-md services-page app-width-full">
     <div class="settings-content-header">
       <div class="settings-content-heading">
         <div class="settings-content-title">Сервисы и мониторинг</div>
@@ -156,9 +156,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.services-page {
-  width: 100%;
-}
-</style>

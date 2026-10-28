@@ -1,20 +1,18 @@
 <template>
   <q-card
     class="no-shadow"
-    style="width: 100%;height: 50px;display: flex;flex-direction: row;border-radius: 0;border-top: 1px solid #0000001f"
+    style="width: 100%;height: 50px;display: flex;flex-direction: row;border-radius: 0;border-top: 1px solid var(--app-border, #0000001f)"
   >
     <div ref="replyContainer" style="display: flex;width: 100%;max-height: 50px;align-items: center">
       <div
         style="height: 50px;width: 50px;display: flex;justify-content: center;align-items: center;margin-left: 5px;margin-right: 10px">
-        <img
+        <img class="app-inline app-attachment-thumbnail"
           v-if="message.fileUuid && message.fileType.startsWith('image/')"
           :src="`/files/images/${message.fileUuid}`"
           alt="reply-img"
-          style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
         >
-        <video
+        <video class="app-inline app-attachment-thumbnail"
           v-else-if="message.fileUuid && message.fileType.startsWith('video/')"
-          style="width: 40px;height: 40px;border-radius: 4px;object-fit: cover;"
         >
           <source
             :src="`/files/videos/${message.fileUuid}`"
@@ -28,11 +26,11 @@
           name="reply"
         />
       </div>
-      <div style="width: 100%">
+      <div class="app-inline app-width-full">
         <div class="">
           В ответ на {{ sender }}
         </div>
-        <div class="truncate">
+        <div class="truncate app-text-ellipsis">
           {{ previewText }}
         </div>
       </div>
@@ -70,11 +68,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-</style>

@@ -27,7 +27,7 @@ export default {
 .sla-card {
   border-radius: 18px;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
   box-shadow: 0 14px 32px rgba(24, 39, 75, 0.08);
 }
 
@@ -37,19 +37,19 @@ export default {
   align-items: flex-start;
   gap: 16px;
   padding: 18px 20px;
-  border-bottom: 1px solid #edf0f7;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+  border-bottom: 1px solid var(--app-border, #edf0f7);
+  background: linear-gradient(180deg, var(--app-surface, #ffffff) 0%, var(--app-surface, #fbfcff) 100%);
 }
 
 .sla-title {
   font-size: 18px;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--app-text, #1f2937);
 }
 
 .sla-subtitle {
   margin-top: 4px;
   font-size: 13px;
-  color: #7b8794;
+  color: var(--app-text-muted, #7b8794);
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md task-type-settings-page">
+  <q-page class="q-pa-md task-type-settings-page app-width-full">
     <div class="settings-content-header">
       <div class="settings-content-heading">
         <div class="settings-content-title">Типы заявок и чек-листы</div>
@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <div class="table-container">
+    <div class="table-container app-width-full">
       <q-list
         bordered
         class="rounded-borders settings-list settings-row-list"
@@ -59,9 +59,8 @@
               <q-item-section side class="settings-drag-handle cursor-grab">
                 <q-icon name="drag_indicator" color="grey-6"/>
               </q-item-section>
-              <q-item-section
+              <q-item-section class="app-inline app-justify-center"
                 top
-                style="justify-content: center"
               >
                 <div>
                   {{ element.type }}
@@ -183,7 +182,7 @@
 
           <div
             v-if="normalizeChecklist(editingTaskType.checklistTemplate).length === 0"
-            class="empty-checklist"
+            class="empty-checklist app-empty-state"
           >
             Чек-лист пока пустой
           </div>
@@ -199,13 +198,13 @@
               item-key="id"
               handle=".checklist-drag-handle"
               ghost-class="ghost"
-              class="checklist-draggable-list"
+              class="checklist-draggable-list app-width-full"
             >
               <template #item="{ element: item }">
                 <q-item class="checklist-item">
                   <q-item-section
                     side
-                    class="checklist-drag-handle"
+                    class="checklist-drag-handle app-drag-handle"
                   >
                     <q-icon
                       name="drag_indicator"
@@ -526,10 +525,6 @@ export default {
 </script>
 
 <style scoped>
-.task-type-settings-page {
-  width: 100%;
-}
-
 .settings-toolbar {
   display: flex;
   align-items: center;
@@ -556,14 +551,6 @@ export default {
   margin-bottom: 12px;
 }
 
-.empty-checklist {
-  padding: 14px;
-  border: 1px dashed #c9c9c9;
-  border-radius: 8px;
-  color: #777;
-  background: #fafafa;
-}
-
 .checklist-list {
   max-height: 360px;
   overflow-y: auto;
@@ -578,14 +565,10 @@ export default {
   max-width: calc(100vw - 32px);
 }
 
-.table-container {
-  width: 100%;
-}
-
 .settings-list {
   width: 100%;
   margin-top: 8px;
-  background: white;
+  background: var(--app-surface, white);
 }
 
 .task-type-list-header {
@@ -595,7 +578,7 @@ export default {
 }
 
 .list-group-item:hover {
-  background-color: #e3e3e3;
+  background-color: var(--app-surface-hover, #e3e3e3);
 }
 
 .list-group-item {
@@ -604,25 +587,12 @@ export default {
 
 .task-type-row-caption {
   margin-top: 2px;
-  color: #777;
+  color: var(--app-text-muted, #777);
   font-size: 12px;
   line-height: 16px;
 }
 
 .not-draggable {
   user-select: none;
-}
-
-.checklist-draggable-list {
-  width: 100%;
-}
-
-.checklist-drag-handle {
-  cursor: grab;
-  user-select: none;
-}
-
-.checklist-drag-handle:active {
-  cursor: grabbing;
 }
 </style>

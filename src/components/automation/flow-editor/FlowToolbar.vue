@@ -14,40 +14,6 @@
 
       <q-separator vertical/>
 
-      <q-btn-dropdown outline dense icon="auto_awesome" label="Шаблоны">
-        <q-list style="min-width: 300px">
-          <q-item clickable v-close-popup @click="$emit('apply-template', 'priority')">
-            <q-item-section avatar>
-              <q-icon name="priority_high" color="deep-orange"/>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Маршрутизация по приоритету</q-item-label>
-              <q-item-label caption>Критичные заявки направляются в отдельную ветку</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup @click="$emit('apply-template', 'sla')">
-            <q-item-section avatar>
-              <q-icon name="timer" color="negative"/>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Эскалация по SLA</q-item-label>
-              <q-item-label caption>Действие, задержка, проверка и эскалация</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-close-popup @click="$emit('apply-template', 'reopen')">
-            <q-item-section avatar>
-              <q-icon name="replay" color="primary"/>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label>Возврат заявки в работу</q-item-label>
-              <q-item-label caption>Очистка исполнителя и повторная маршрутизация</q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-      </q-btn-dropdown>
-
-      <q-separator vertical/>
-
       <q-btn flat round dense icon="undo" :disable="!canUndo" @click="$emit('undo')">
         <q-tooltip>Отменить</q-tooltip>
       </q-btn>
@@ -107,7 +73,7 @@
 </template>
 
 <script>
-// Верхняя панель редактора графа: шаблоны, undo/redo, масштаб, поиск, удаление и статус валидации.
+// Верхняя панель редактора графа: undo/redo, масштаб, поиск, удаление и статус валидации.
 export default {
   name: 'FlowToolbar',
 
@@ -123,7 +89,7 @@ export default {
   },
 
   emits: [
-    'toggle-palette', 'apply-template', 'undo', 'redo', 'change-zoom', 'fit-view',
+    'toggle-palette', 'undo', 'redo', 'change-zoom', 'fit-view',
     'open-graph-search', 'delete-selection', 'cancel-connection'
   ]
 }
@@ -137,14 +103,14 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #dfe2e8;
-  background: #ffffff;
+  border-bottom: 1px solid var(--app-border, #dfe2e8);
+  background: var(--app-surface, #ffffff);
 }
 
 .flow-zoom-label {
   min-width: 44px;
   text-align: center;
-  color: #626875;
+  color: var(--app-text-muted, #626875);
   font-size: 12px;
 }
 </style>

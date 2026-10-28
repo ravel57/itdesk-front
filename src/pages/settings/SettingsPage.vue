@@ -2,12 +2,12 @@
   <q-page class="settings-page" :style-fn="pageStyleFn">
     <!-- Один общий router-view: при смене ширины окна страница раздела не пересоздаётся и не теряет состояние. -->
     <div :class="isMobile ? 'settings-mobile-layout' : 'settings-desktop-layout row'">
-      <div v-if="isMobile && mobileMenuOpen" class="settings-mobile-menu">
+      <div v-if="isMobile && mobileMenuOpen" class="settings-mobile-menu app-settings-mobile-menu">
         <div class="settings-mobile-title">
           Настройки
         </div>
 
-        <q-list class="settings-menu-list settings-mobile-list">
+        <q-list class="settings-menu-list settings-mobile-list app-flex-column">
           <template v-for="group in groupedVisibleMenuItems" :key="group.key">
             <q-item-label header class="settings-menu-group-label">
               {{ group.label }}
@@ -26,7 +26,7 @@
                 <div class="settings-menu-icon-box">
                   <span
                     v-if="item.brandImage"
-                    class="settings-menu-brand-icon"
+                    class="settings-menu-brand-icon app-brand-icon"
                     :style="{ '--brand-icon': `url(${item.brandImage})` }"
                   />
                   <q-icon v-else :name="item.icon" size="24px"/>
@@ -51,7 +51,7 @@
         </div>
 
         <div class="settings-desktop-menu-scroll">
-          <q-list class="settings-menu-list settings-desktop-list">
+          <q-list class="settings-menu-list settings-desktop-list app-flex-column">
             <template v-for="group in groupedVisibleMenuItems" :key="group.key">
               <q-item-label header class="settings-menu-group-label">
                 {{ group.label }}
@@ -71,7 +71,7 @@
                   <div class="settings-menu-icon-box">
                     <span
                     v-if="item.brandImage"
-                    class="settings-menu-brand-icon"
+                    class="settings-menu-brand-icon app-brand-icon"
                     :style="{ '--brand-icon': `url(${item.brandImage})` }"
                   />
                   <q-icon v-else :name="item.icon" size="24px"/>
@@ -92,7 +92,7 @@
       </div>
       <div
         v-show="!isMobile || !mobileMenuOpen"
-        :class="isMobile ? 'settings-mobile-content' : 'settings-desktop-content col'"
+        :class="isMobile ? 'settings-mobile-content app-settings-mobile-content' : 'settings-desktop-content col'"
       >
         <div v-if="isMobile" class="settings-mobile-header">
           <q-btn
@@ -476,14 +476,14 @@ export default {
 
 <style scoped>
 .settings-page {
-  background: #f5f6fa;
+  background: var(--app-surface, #f5f6fa);
 }
 
 .settings-desktop-layout {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
 }
 
 .settings-desktop-menu {
@@ -495,7 +495,7 @@ export default {
   min-height: 0;
   padding: 16px 0 0;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
 }
 
 .settings-desktop-menu-scroll {
@@ -510,7 +510,7 @@ export default {
 
 .settings-desktop-title,
 .settings-mobile-title {
-  color: #252b36;
+  color: var(--app-text, #252b36);
   font-size: 22px;
   font-weight: 700;
   line-height: 1.2;
@@ -524,8 +524,8 @@ export default {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-left: 1px solid #e7eaf0;
-  background: #ffffff;
+  border-left: 1px solid var(--app-border, #e7eaf0);
+  background: var(--app-surface, #ffffff);
 }
 
 .settings-desktop-content-scroll {
@@ -538,22 +538,17 @@ export default {
   scrollbar-gutter: stable;
 }
 
-.settings-menu-list {
-  display: flex;
-  flex-direction: column;
-}
-
 /* Пункты — как в левом меню приложения: без скруглений и подложек, чёрные текст и иконки */
 .settings-menu-item {
   min-height: 48px;
   padding: 8px 16px;
   border-radius: 0;
-  color: #000000;
+  color: var(--app-text, #000000);
   transition: background-color 0.16s ease, color 0.16s ease;
 }
 
 .settings-menu-item:hover {
-  background: #e8e8e8;
+  background: var(--app-surface-hover, #e8e8e8);
 }
 
 .settings-menu-icon-section {
@@ -578,7 +573,7 @@ export default {
 .settings-menu-group-label {
   font-size: 11px;
   font-weight: 700;
-  color: #a3a9b3;
+  color: var(--app-text-muted, #a3a9b3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 14px 16px 6px;
@@ -594,13 +589,13 @@ export default {
 }
 
 .settings-menu-chevron {
-  color: #a3a9b3;
+  color: var(--app-text-muted, #a3a9b3);
   font-size: 20px;
   transition: color 0.16s ease, transform 0.16s ease;
 }
 
 .settings-menu-item--active {
-  color: #5a35f0;
+  color: var(--app-accent-text, #5a35f0);
 }
 
 /* При наведении активный пункт подсвечивается фиолетовым, как активный пункт левого меню */
@@ -609,20 +604,16 @@ export default {
 }
 
 .settings-menu-brand-icon {
-  display: block;
   width: 24px;
   height: 24px;
-  background-color: currentColor;
-  -webkit-mask: var(--brand-icon) center / contain no-repeat;
-  mask: var(--brand-icon) center / contain no-repeat;
 }
 
 .settings-menu-item--active .settings-menu-icon-box {
-  color: #5a35f0;
+  color: var(--app-accent-text, #5a35f0);
 }
 
 .settings-menu-item--active .settings-menu-chevron {
-  color: #5a35f0;
+  color: var(--app-accent-text, #5a35f0);
   transform: translateX(1px);
 }
 
@@ -630,21 +621,12 @@ export default {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
-  background: #f5f6fa;
-}
-
-.settings-mobile-menu {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  background: #ffffff;
+  background: var(--app-surface, #f5f6fa);
 }
 
 .settings-mobile-title {
   padding: 22px 20px 16px;
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid var(--app-border, #edf0f5);
 }
 
 .settings-mobile-list {
@@ -657,15 +639,6 @@ export default {
   -webkit-overflow-scrolling: touch;
 }
 
-.settings-mobile-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  overflow: hidden;
-  background: #ffffff;
-}
-
 .settings-mobile-header {
   position: sticky;
   top: 0;
@@ -675,19 +648,19 @@ export default {
   gap: 10px;
   min-height: 56px;
   padding: 8px 12px;
-  background: #ffffff;
-  border-bottom: 1px solid #e6e9ef;
+  background: var(--app-surface, #ffffff);
+  border-bottom: 1px solid var(--app-border, #e6e9ef);
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
 }
 
 .settings-mobile-back {
-  color: #5a35f0;
+  color: var(--app-accent-text, #5a35f0);
 }
 
 .settings-mobile-header-title {
   min-width: 0;
   overflow: hidden;
-  color: #252b36;
+  color: var(--app-text, #252b36);
   font-size: 18px;
   font-weight: 700;
   line-height: 1.2;
@@ -703,9 +676,8 @@ export default {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  background: #ffffff;
+  background: var(--app-surface, #ffffff);
 }
-
 @media (min-width: 1024px) {
   .settings-page {
     min-height: 0 !important;
@@ -718,7 +690,6 @@ export default {
     height: 100%;
   }
 }
-
 @media (max-width: 1023px) {
   .settings-menu-item {
     min-height: 56px;
