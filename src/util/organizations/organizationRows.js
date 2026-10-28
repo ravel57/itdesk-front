@@ -3,7 +3,7 @@ import { getClientName, getTaskTitle } from 'src/util/organizationHelpers'
 // Строки списка организаций: поиск, сортировка, дата последней активности (чистые функции).
 
 export function filterOrganizationRows (rows, searchRequest) {
-  const query = searchRequest.trim().toLowerCase()
+  const query = String(searchRequest ?? '').trim().toLowerCase()
   if (!query) {
     return rows
   }

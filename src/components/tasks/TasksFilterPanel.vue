@@ -174,7 +174,6 @@
             outlined
             :label="filter.isBeforeDeadline ? 'До дедлайна' : 'После дедлайна'"
             style="width: 250px; height: 100%; min-height: 56px;"
-            @input="formatDateTime"
             mask="##.##.#### ##:##"
           >
             <template v-slot:prepend>
@@ -415,27 +414,6 @@ export default {
       const month = String(today.getMonth() + 1).padStart(2, '0')
       const day = String(today.getDate()).padStart(2, '0')
       return date >= `${year}/${month}/${day}`
-    },
-
-    formatDateTime() {
-      const rawValue = this.dialogTaskDeadline.replace(/\D/g, '')
-      let formattedValue = ''
-      if (rawValue.length <= 2) {
-        formattedValue = rawValue
-      } else if (rawValue.length <= 4) {
-        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2)}`
-      } else if (rawValue.length <= 6) {
-        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4)}`
-      } else if (rawValue.length <= 8) {
-        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)}`
-      } else if (rawValue.length <= 10) {
-        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8)}`
-      } else if (rawValue.length <= 12) {
-        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10)}`
-      } else {
-        formattedValue = `${rawValue.slice(0, 2)}.${rawValue.slice(2, 4)}.${rawValue.slice(4, 8)} ${rawValue.slice(8, 10)}:${rawValue.slice(10, 12)}`
-      }
-      this.dialogTaskDeadline = formattedValue
     }
   }
 }

@@ -1,6 +1,5 @@
 import {
   formatSlaTime,
-  getSlaDeadlineMs,
   getSlaLeftSeconds,
   getSlaPercent,
   getSlaWorkdaySeconds,
@@ -94,25 +93,8 @@ export default {
       return getSlaPercent(task, this.getSlaInfo(task), this.nowTs)
     },
 
-    getSlaDeadlineMs(task) {
-      return getSlaDeadlineMs(task, this.getSlaInfo(task))
-    },
-
-    isSlaExpired(task) {
-      const secondsLeft = this.getSlaLeftSeconds(task)
-      return secondsLeft !== null && secondsLeft <= 0
-    },
-
     isSlaVisibleInTable(task) {
       return isSlaVisibleInTable(task, this.getSlaInfo(task))
-    },
-
-    getSlaTableValue(task) {
-      if (!this.isSlaVisibleInTable(task)) {
-        return ''
-      }
-      const slaTime = this.getSlaTime(task)
-      return slaTime ? `Осталось: ${slaTime}` : ''
-    },
+    }
   }
 }

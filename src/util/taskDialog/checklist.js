@@ -18,6 +18,12 @@ export function normalizeChecklist (checklist) {
     .filter(item => item.text.length > 0)
 }
 
+// Сигнатура чек-листа для сравнения: текст, признак выполнения и порядок, без технических id
+// (id пунктов без id генерируются при каждой нормализации, поэтому в сравнении не участвуют).
+export function getChecklistSignature (checklist) {
+  return JSON.stringify(normalizeChecklist(checklist).map(item => [item.text, item.completed]))
+}
+
 // Копия шаблона для заявки: новые id и сброшенные отметки выполнения
 export function copyChecklist (checklist) {
   return normalizeChecklist(checklist).map(item => ({

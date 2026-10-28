@@ -126,8 +126,8 @@ export default {
 
     onGroupByChange(value) {
       this.$emit('update:groupBy', value)
-      // значение уходит вторым аргументом: страница передаёт его в scheduleAnalyticsLoad как раньше
-      this.$emit('group-by-change', value)
+      // без аргументов: страница вызывает scheduleAnalyticsLoad, значение группировки не должно попасть в delay
+      this.$emit('group-by-change')
     }
   }
 }

@@ -84,7 +84,6 @@
 <script>
 import { useStore } from 'stores/store'
 import axios from 'axios'
-import { useRoute } from 'vue-router'
 import { getMessageId } from 'src/util/chatMessageText'
 import ChatMessageSearch from 'components/chat/ChatMessageSearch.vue'
 import ChatMessageList from 'components/chat/ChatMessageList.vue'
@@ -191,13 +190,10 @@ export default {
   },
 
   data: () => ({
-    text: '',
     search: '',
     requestPending: false,
     scrollToBottomKey: false,
     routeMessageIdToScroll: null,
-
-    chatWindowWidth: 500,
 
     isShowFileList: false,
     fileList: [],
@@ -406,10 +402,6 @@ export default {
       this.deleteMessageCandidate = null
     },
 
-    deleteMessage (message) {
-      this.$emit('deleteMessage', message)
-    },
-
     goToMessage (messageId, options = {}) {
       this.stopStickToBottom()
       const id = this.isDialog ? `modal_message_${messageId}` : `message_${messageId}`
@@ -525,11 +517,6 @@ export default {
       return Array.isArray(files)
         ? files.filter(file => file && file.uuid)
         : []
-    },
-
-    isLastMessage (message) {
-      const visibleMessages = this.messages.filter(m => !m.deleted)
-      return visibleMessages.length > 0 && visibleMessages[visibleMessages.length - 1].id === message.id
     },
 
     getMessageId (message) {
@@ -755,11 +742,9 @@ export default {
 
   setup () {
     const store = useStore()
-    const router = useRoute()
 
     return {
-      store,
-      router
+      store
     }
   },
 

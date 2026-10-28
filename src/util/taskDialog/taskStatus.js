@@ -1,6 +1,14 @@
 // Чистые функции по статусам заявки: распознавание закрытого/замороженного/открытого,
 // необходимость причины смены статуса, выбор статуса «по умолчанию» и для возврата в работу.
 
+// Модель статуса (id, name, orderNumber, defaultSelection) не содержит признака замороженного/закрытого,
+// поэтому такие статусы распознаются по имени. Имена системных статусов — только здесь.
+export const FROZEN_STATUS_NAME = 'Заморожена'
+export const CLOSED_STATUS_NAME = 'Закрыта'
+
+const CLOSED_STATUS_NAMES = [CLOSED_STATUS_NAME, 'закрыто', 'закрыт'].map(name => name.toLowerCase())
+const FROZEN_STATUS_NAMES = [FROZEN_STATUS_NAME, 'заморожено', 'заморожен'].map(name => name.toLowerCase())
+
 export function getStatusName (status) {
   if (!status) {
     return ''
@@ -9,11 +17,11 @@ export function getStatusName (status) {
 }
 
 export function isClosedStatusName (statusName) {
-  return ['закрыта', 'закрыто', 'закрыт'].includes(String(statusName || '').trim().toLowerCase())
+  return CLOSED_STATUS_NAMES.includes(String(statusName || '').trim().toLowerCase())
 }
 
 export function isFrozenStatusName (statusName) {
-  return ['заморожена', 'заморожено', 'заморожен'].includes(String(statusName || '').trim().toLowerCase())
+  return FROZEN_STATUS_NAMES.includes(String(statusName || '').trim().toLowerCase())
 }
 
 export function isOpenStatusName (statusName) {
@@ -51,16 +59,12 @@ export function getStatusChangeReasonTitle (oldStatusName, newStatusName) {
   return 'Причина изменения статуса'
 }
 
-export function getDefaultOpenStatus (statuses) {
-  return statuses.find(status => isOpenStatusName(status.name) && status.defaultSelection === true) ||
-    statuses.find(status => isOpenStatusName(status.name))
-}
-
 export function getReopenStatus (task, statuses) {
   if (task?.previousStatus && isOpenStatusName(task.previousStatus.name)) {
     return task.previousStatus
   }
-  return getDefaultOpenStatus(statuses)
+  return statuses.find(status => isOpenStatusName(status.name) && status.defaultSelection === true) ||
+    statuses.find(status => isOpenStatusName(status.name))
 }
 
 // Заявка уже заморожена со сроком (есть frozenFrom и frozenUntil)

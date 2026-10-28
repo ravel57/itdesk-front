@@ -180,7 +180,7 @@ export default {
         case 'MANAGER':
           return 'manage_accounts'
         case 'SENIOR_OPERATOR':
-          return 'military_tech'
+          return 'sym_o_identity_platform'
         case 'OPERATOR':
           return 'support_agent'
         case 'OBSERVER':

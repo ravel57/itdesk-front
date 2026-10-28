@@ -25,7 +25,6 @@
             :class="{ 'chat-dialog--wheel-scrolling': isWheelScrollingMessages }"
             @wheel.passive="markMessagesWheelScrolling"
           >
-            <!--<q-chat-message v-if="this.isDateChanged(message)" :label="this.getDate(message)"/>-->
             <q-chat-message
               :id="`${this.isDialog ? 'modal_message' : 'message'}_${message.id}`"
               :avatar="message.avatar"
@@ -794,7 +793,6 @@ export default {
     const store = useStore()
     const chatDialog = ref(null)
     const containerWidth = ref('')
-    const containerHeight = ref('')
 
     const getMediaMessageSize = (message) => {
       let fileHeight, fileWidth
@@ -833,11 +831,7 @@ export default {
     onMounted(() => {
       useResizeObserver(chatDialog, (entries) => {
         const entry = entries[0]
-        const {
-          width,
-          height
-        } = entry.contentRect
-        containerHeight.value = height
+        const { width } = entry.contentRect
         containerWidth.value = width
       })
     })

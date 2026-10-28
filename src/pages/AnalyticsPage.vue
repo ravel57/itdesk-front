@@ -9,7 +9,7 @@
       :loading="loading"
       @select-period="selectPeriod"
       @manual-period-change="onManualPeriodChange"
-      @group-by-change="scheduleAnalyticsLoad"
+      @group-by-change="scheduleAnalyticsLoad()"
       @refresh="loadAnalytics()"
     />
 

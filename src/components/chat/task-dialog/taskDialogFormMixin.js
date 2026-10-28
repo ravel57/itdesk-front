@@ -20,7 +20,7 @@ export default {
     dialogTaskStatus: '',
     dialogTaskDeadline: '',
     dialogTaskComplete: false,
-    linkedMessageId: '',
+    linkedMessageId: null,
     taskCreatedAt: '',
 
     taskId: null, // for update

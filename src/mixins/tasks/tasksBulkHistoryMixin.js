@@ -175,13 +175,8 @@ export default {
       }
 
       // Пока модалка массовых действий открыта, запросы ещё могут выполняться.
-      // Не закрываем undo/redo-снимок после первого @updateTask.
-      if (!force && this.isModalForBulkActions) {
-        return
-      }
-
-      // Пока открыта модалка массовых действий, пачка ещё может выполняться.
-      // Историю закрываем только после @close, иначе undo получает неполный список.
+      // Не закрываем undo/redo-снимок после первого @updateTask: историю закрываем только после @close,
+      // иначе undo получает неполный список.
       if (!force && this.isModalForBulkActions) {
         return
       }
@@ -202,6 +197,7 @@ export default {
         return
       }
 
+      // Повторная проверка нужна: метод вызывается из таймера, модалку могли открыть заново после планирования
       if (!force && this.isModalForBulkActions) {
         return
       }
@@ -213,10 +209,6 @@ export default {
           this.scheduleFinishBulkActionHistory(500)
           return
         }
-      }
-
-      if (!force && this.isModalForBulkActions) {
-        return
       }
 
       const beforeById = new Map(history.beforeTasks.map(task => [task.id, task]))

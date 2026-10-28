@@ -1,10 +1,8 @@
-import moment from 'moment/moment'
 import {
   createEmptyDateRange,
   createFilterTypes,
   getFilterSelectedOptionsText,
   hydrateFilterChainOptions,
-  isTaskDateInRange,
   isValidFilterJoinOperator,
   pickFilterOptions
 } from 'src/util/tasks/taskFilters'
@@ -18,24 +16,16 @@ import {
   isActiveFilterPayloadEmpty,
   stripFilterQueryParams
 } from 'src/util/tasks/taskQuery'
-import {
-  getServiceName,
-  getSupportLineLevelLabel,
-  getSupportLineName,
-  getTaskTypeName
-} from 'src/util/tasks/taskFields'
 
 // Цепочка фильтров страницы заявок: добавление/удаление фильтров, синхронизация с URL (?filterChain=...)
 // и с localStorage (активный фильтр). Чистая логика — в src/util/tasks/taskFilters.js и taskQuery.js.
 // Требует на странице: this.store/$route/$router, справочники (tasksDirectoriesMixin),
-// savedFilters / selectedSavedFilter (tasksSavedFiltersMixin), reloadTasksPageDebounced (tasksPageLoaderMixin),
-// getExecutorName (tasksViewMixin).
+// savedFilters / selectedSavedFilter (tasksSavedFiltersMixin), reloadTasksPageDebounced (tasksPageLoaderMixin).
 export default {
   data: () => ({
     filterTypes: createFilterTypes(),
     filterChain: [],
     addNewFilterSelectorText: '',
-    selectedOptions: [],
     isRestoringActiveFilter: false,
     isFilterSelected: false,
     isFilterOpen: true,
@@ -46,9 +36,6 @@ export default {
     filterChain: {
       handler(newVal) {
         try {
-          if (this.isFilterSelected) {
-            this.filterContainerHeight = document.getElementById('filter-container').scrollHeight
-          }
           this.updateUrlWithFilterChain(newVal)
           this.saveActiveFilterToLocalStorage()
           const queryParams = new URLSearchParams(window.location.search)
@@ -245,77 +232,6 @@ export default {
 
     getFilterSelectedOptionsText(filter) {
       return getFilterSelectedOptionsText(filter)
-    },
-
-    isTaskMatchesFilter(task, filter) {
-      const slug = this.filterTypes.find(ft => ft.label === filter.label)?.slug
-
-      switch (slug) {
-        case 'executor': {
-          return filter.selectedOptions.includes(this.getExecutorName(task))
-        }
-
-        case 'supportLine': {
-          return filter.selectedOptions.includes(getSupportLineName(task))
-        }
-
-        case 'supportLineLevel': {
-          return filter.selectedOptions.includes(getSupportLineLevelLabel(task))
-        }
-
-        case 'tag': {
-          const taskTags = task.tags.map(tag => tag.name)
-          return filter.selectedOptions.some(selectedTag => taskTags.includes(selectedTag))
-        }
-
-        case 'priority': {
-          return filter.selectedOptions.includes(task.priority.name)
-        }
-
-        case 'organization': {
-          return task.client.organization != null &&
-            filter.selectedOptions.includes(task.client.organization.name)
-        }
-
-        case 'status': {
-          return filter.selectedOptions.includes(task.status.name)
-        }
-
-        case 'client': {
-          return filter.selectedOptions.includes(task.client ? `${task.client.lastname} ${task.client.firstname}` : 'Без клиента')
-        }
-
-        case 'type': {
-          return filter.selectedOptions.includes(getTaskTypeName(task))
-        }
-
-        case 'service': {
-          return filter.selectedOptions.includes(getServiceName(task))
-        }
-
-        case 'deadline': {
-          if (!filter.selectedOptions) {
-            return true
-          }
-
-          if (filter.isBeforeDeadline) {
-            return new Date(moment(filter.selectedOptions, 'DD.MM.YYYY HH:mm').format()) >= new Date(task.deadline)
-          }
-
-          return new Date(moment(filter.selectedOptions, 'DD.MM.YYYY HH:mm').format()) <= new Date(task.deadline)
-        }
-
-        case 'createdAt': {
-          return isTaskDateInRange(task.createdAt, filter.selectedOptions)
-        }
-
-        case 'lastActivity': {
-          return isTaskDateInRange(task.lastActivity || task.updatedAt, filter.selectedOptions)
-        }
-
-        default:
-          return true
-      }
     }
   }
 }

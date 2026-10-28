@@ -189,14 +189,6 @@ export default {
       }
     },
 
-    getSearchTitle (message) {
-      if (this.getName(message) !== '') {
-        return `${this.getName(message)} : ${message.text}`
-      } else {
-        return `${getClientDisplayName(this.client)} : ${message.text}`
-      }
-    },
-
     onSearch () {
       if (this.modelValue) {
         if (this.portalMode) {

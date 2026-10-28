@@ -1,5 +1,3 @@
-import moment from 'moment/moment'
-
 // Чистые функции фильтров страницы заявок: каталог типов фильтров, нормализация
 // для сервера / сохранения, диапазоны дат, гидрация цепочки фильтров.
 
@@ -83,33 +81,6 @@ export function getFilterSelectedOptionsText (filter) {
   return filter.selectedOptions || ''
 }
 
-export function parseFilterDateStart (value) {
-  const date = moment(String(value || ''), 'DD.MM.YYYY', true)
-  return date.isValid() ? date.startOf('day').toDate() : null
-}
-
-export function parseFilterDateEnd (value) {
-  const date = moment(String(value || ''), 'DD.MM.YYYY', true)
-  return date.isValid() ? date.endOf('day').toDate() : null
-}
-
-export function isTaskDateInRange (taskDateValue, selectedOptions) {
-  if (!taskDateValue) {
-    return false
-  }
-  const range = normalizeDateRangeSelectedOptions(selectedOptions)
-  const taskDate = new Date(taskDateValue)
-  if (Number.isNaN(taskDate.getTime())) {
-    return false
-  }
-  const from = parseFilterDateStart(range.from)
-  const to = parseFilterDateEnd(range.to)
-  if (from && taskDate < from) {
-    return false
-  }
-  return !(to && taskDate > to);
-}
-
 // Формат для POST /api/v1/filter и localStorage
 export function normalizeFilterForSave (filter) {
   const normalizedFilter = {
@@ -134,18 +105,6 @@ export function normalizeFiltersForServer (filters, filterTypes) {
     selectedOptions: cloneFilterSelectedOptions(filter.selectedOptions),
     isBeforeDeadline: Boolean(filter.isBeforeDeadline)
   }))
-}
-
-// Отличается ли текущая цепочка от сохранённого фильтра
-export function isFilterChainChangedFromSaved (savedFilter, filterJoinOperator, filterChain) {
-  const savedJoinOperator = savedFilter.filterJoinOperator || 'AND'
-  const currentJoinOperator = filterJoinOperator || 'AND'
-  if (savedJoinOperator !== currentJoinOperator) {
-    return true
-  }
-  const savedFilters = normalizeFiltersForSave(savedFilter.selectedOptions || [])
-  const currentFilters = normalizeFiltersForSave(filterChain || [])
-  return JSON.stringify(savedFilters) !== JSON.stringify(currentFilters)
 }
 
 // Варианты значений для фильтра по slug.

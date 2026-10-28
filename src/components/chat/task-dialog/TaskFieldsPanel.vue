@@ -63,7 +63,7 @@
           outlined
           v-model="this.statusModel"
           :readonly="this.isObserverReadOnly"
-          :options="this.isNewTask ? this.store.statuses.filter(s => s.name !== 'Закрыта' && s.name !== 'Заморожена').map(s => s.name) : this.store.statuses.map(s => s.name)"
+          :options="this.getStatusOptions()"
           label="Статус *"
           :rules="[val => (val && val.length > 0) || 'Обязательное поле']"
           style="width: 100%;padding: 0;"
@@ -256,6 +256,7 @@
 import { useStore } from 'stores/store'
 import TaskOlaBanner from './TaskOlaBanner.vue'
 import { dateOption } from './dateOption'
+import { CLOSED_STATUS_NAME, FROZEN_STATUS_NAME } from 'src/util/taskDialog/taskStatus'
 
 // v-model для поля: читает проп, при записи эмитит update:<проп>
 const fieldModel = prop => ({
@@ -347,6 +348,13 @@ export default {
   methods: {
     dateOption,
 
+    // Для новой заявки закрытый и замороженный статусы недоступны
+    getStatusOptions () {
+      return this.store.statuses
+        .filter(s => !this.isNewTask || (s.name !== CLOSED_STATUS_NAME && s.name !== FROZEN_STATUS_NAME))
+        .map(s => s.name)
+    },
+
     focusName () {
       this.$refs.taskName?.focus?.()
     },
@@ -390,10 +398,10 @@ export default {
         return ''
       }
       switch (status.name) {
-        case 'Закрыта': {
+        case CLOSED_STATUS_NAME: {
           return 'background-color: rgba(16, 181, 92, 0.2);'
         }
-        case 'Заморожена': {
+        case FROZEN_STATUS_NAME: {
           return 'background-color: #32ade633;'
         }
         default: {

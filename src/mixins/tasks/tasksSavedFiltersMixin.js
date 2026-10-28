@@ -1,6 +1,5 @@
 import axios from 'axios'
 import {
-  isFilterChainChangedFromSaved,
   isValidFilterJoinOperator,
   normalizeFiltersForSave,
   normalizeSavedFilterScope
@@ -14,7 +13,6 @@ export default {
   data: () => ({
     savedFilters: [],
     selectedSavedFilter: '',
-    isApplyingSavedFilter: false,
     dialogNewFilterName: '',
     dialogFilterScope: 'PERSONAL',
     dialogSaveFilterVisible: false,
@@ -161,7 +159,6 @@ export default {
     onSavedFilterSelected() {
       const filterElement = this.selectedSavedFilterObject
       if (filterElement !== null) {
-        this.isApplyingSavedFilter = true
         this.filterJoinOperator = isValidFilterJoinOperator(filterElement.filterJoinOperator)
           ? filterElement.filterJoinOperator
           : 'AND'
@@ -169,9 +166,6 @@ export default {
         this.isFilterSelected = true
         this.updateUrlWithFilterChain(this.filterChain)
         this.saveActiveFilterToLocalStorage()
-        this.$nextTick(() => {
-          this.isApplyingSavedFilter = false
-        })
       } else {
         this.selectedSavedFilter = ''
         this.filterChain = []
@@ -218,17 +212,6 @@ export default {
             message: e.message,
             type: 'negative'
           }))
-    },
-
-    isCurrentSavedFilterChanged() {
-      if (!this.selectedSavedFilter) {
-        return false
-      }
-      const savedFilter = this.selectedSavedFilterObject
-      if (!savedFilter) {
-        return false
-      }
-      return isFilterChainChangedFromSaved(savedFilter, this.filterJoinOperator, this.filterChain)
     }
   }
 }

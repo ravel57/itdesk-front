@@ -14,16 +14,6 @@ export function getExecutorGroupName (task, unassignedExecutorLabel) {
   return `${task.executor.firstname} ${task.executor.lastname}`
 }
 
-export function getExecutorName (task, currentUser, currentExecutorLabel, unassignedExecutorLabel) {
-  if (!task?.executor) {
-    return unassignedExecutorLabel
-  }
-  if (isCurrentUserExecutor(task, currentUser)) {
-    return currentExecutorLabel
-  }
-  return `${task.executor.firstname} ${task.executor.lastname}`
-}
-
 export function getTaskTypeName (task) {
   if (!task?.type) {
     return 'Не указан'

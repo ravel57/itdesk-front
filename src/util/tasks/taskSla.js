@@ -1,5 +1,3 @@
-import moment from 'moment/moment'
-
 // Чистые функции SLA/OLA для страницы заявок: расчёт остатка, процента, форматирование.
 // Состояние (slaInfo по заявке, текущее время nowTs) передаётся аргументами — доступа к компоненту нет.
 
@@ -151,76 +149,6 @@ export function getSlaPercent (task, slaInfo, nowTs) {
     return 0
   }
   return Math.max(0, Math.min(1, leftSeconds / totalSeconds))
-}
-
-export function getSlaDuration (task) {
-  const duration = getTaskSla(task)?.duration
-  if (!duration) {
-    return moment.duration(0)
-  }
-
-  if (typeof duration.asMilliseconds === 'function') {
-    const ms = duration.asMilliseconds()
-    return Number.isFinite(ms) && ms > 0 ? duration : moment.duration(0)
-  }
-
-  if (typeof duration === 'number') {
-    return moment.duration(duration, 'seconds')
-  }
-
-  if (typeof duration === 'string') {
-    const parsed = Number(duration)
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return moment.duration(parsed, 'seconds')
-    }
-
-    const match = duration.match(ISO_DURATION_RE)
-    if (match) {
-      return moment.duration({
-        days: Number(match[1] || 0),
-        hours: Number(match[2] || 0),
-        minutes: Number(match[3] || 0),
-        seconds: Number(match[4] || 0)
-      })
-    }
-  }
-
-  if (typeof duration === 'object') {
-    if (Number.isFinite(duration.seconds) && duration.seconds > 0) {
-      return moment.duration(duration.seconds, 'seconds')
-    }
-    if (Number.isFinite(duration._milliseconds) && duration._milliseconds > 0) {
-      return moment.duration(duration._milliseconds, 'milliseconds')
-    }
-    if (Number.isFinite(duration.milliseconds) && duration.milliseconds > 0) {
-      return moment.duration(duration.milliseconds, 'milliseconds')
-    }
-  }
-
-  return moment.duration(0)
-}
-
-export function getSlaDeadlineMoment (task, slaInfo) {
-  const sourceSla = getTaskSla(task)
-  if (sourceSla?.startDate && sourceSla?.duration) {
-    return moment(sourceSla.startDate).add(getSlaDuration({
-      ...task,
-      sla: sourceSla,
-      originalSla: sourceSla
-    }))
-  }
-  if (slaInfo?.deadline) {
-    return moment(slaInfo.deadline)
-  }
-  return moment.invalid()
-}
-
-export function getSlaDeadlineMs (task, slaInfo) {
-  const deadline = getSlaDeadlineMoment(task, slaInfo)
-  if (!deadline.isValid()) {
-    return Number.MAX_SAFE_INTEGER
-  }
-  return deadline.valueOf()
 }
 
 export function isSlaVisibleInTable (task, slaInfo) {

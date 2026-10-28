@@ -9,6 +9,9 @@ export default {
     tasksUserScrolled: false,
     tasksInfiniteObserver: null,
     lastTasksScrollTarget: null,
+    // Расстояние до конца области прокрутки (px), при котором прокрутка пользователя подгружает следующую страницу.
+    // Как myTasksLoadScrollThreshold / loadScrollThreshold на MyTasksPage / MyLinesPage.
+    tasksLoadScrollThreshold: 700,
   }),
 
   methods: {

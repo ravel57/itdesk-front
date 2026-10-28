@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { buildFreezePayload, resolveTagsByName } from 'src/util/taskDialog/taskPayload'
-import { isFrozenStatusName, isFrozenWithTimer, getStatusName } from 'src/util/taskDialog/taskStatus'
+import { FROZEN_STATUS_NAME, isFrozenStatusName, isFrozenWithTimer, getStatusName } from 'src/util/taskDialog/taskStatus'
 import { validateFreezeForm } from 'src/util/taskDialog/taskValidation'
 
 // Заморозка и разморозка заявки: диалог TaskFreezeDialog, PATCH заморозки,
@@ -58,7 +58,7 @@ export default {
         })
         return
       }
-      const freezeStatus = this.store.statuses.find(status => status.name === 'Заморожена')
+      const freezeStatus = this.store.statuses.find(status => status.name === FROZEN_STATUS_NAME)
       const currentStatus = this.store.statuses.find(status => status.name === this.dialogTaskStatus)
       const oldTaskStatus = this.task.status || currentStatus
       const previousStatus = this.task.previousStatus || oldTaskStatus

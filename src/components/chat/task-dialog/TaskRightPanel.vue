@@ -38,7 +38,7 @@
           :isSending="this.isSending"
           :upload-progress="this.uploadProgress"
           :current-user="this.currentUser"
-          :linkedMessageId="this.linkedMessageId"
+          :linked-message-id="this.chatLinkedMessageId"
           :client-id="this.client.id"
           :client="this.client"
           :is-show-helper="false"
@@ -107,7 +107,7 @@ export default {
     isSending: { type: Boolean, default: false },
     uploadProgress: { type: Number, default: null },
     currentUser: { type: Object, default: null },
-    linkedMessageId: { type: [Number, String], default: '' },
+    linkedMessageId: { type: [Number, String], default: null },
     clientFiles: { type: Array, default: () => [] },
     // Чек-лист (массив меняется на месте внутри TaskChecklistPanel)
     checklist: { type: Array, default: () => [] },
@@ -115,6 +115,17 @@ export default {
     // История
     history: { type: Array, default: () => [] },
     historyLoading: { type: Boolean, default: false }
+  },
+
+  computed: {
+    // ChatDialog ждёт Number или null: пустое значение ('' / undefined) приводится к null
+    chatLinkedMessageId () {
+      if (this.linkedMessageId === null || this.linkedMessageId === undefined || this.linkedMessageId === '') {
+        return null
+      }
+      const id = Number(this.linkedMessageId)
+      return Number.isFinite(id) ? id : null
+    }
   },
 
   emits: [

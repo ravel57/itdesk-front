@@ -74,12 +74,6 @@ export default {
         .map(taskType => taskType?.type || taskType?.name || '')
         .filter(type => type)
         .sort((a, b) => a.localeCompare(b, 'ru'))
-    },
-
-    taskTypeOptions() {
-      return (this.store.taskTypes || [])
-        .filter(type => type && type.id != null)
-        .sort((a, b) => String(a.type || '').localeCompare(String(b.type || ''), 'ru'))
     }
   }
 }

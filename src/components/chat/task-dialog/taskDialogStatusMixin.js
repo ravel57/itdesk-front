@@ -1,4 +1,4 @@
-import { getDefaultOpenStatus, getReopenStatus, getStatusChangeReasonTitle, isClosedStatusName, needStatusChangeReason } from 'src/util/taskDialog/taskStatus'
+import { getReopenStatus, getStatusChangeReasonTitle, isClosedStatusName, needStatusChangeReason } from 'src/util/taskDialog/taskStatus'
 import { isExecutorRequirementSatisfied } from 'src/util/taskDialog/taskValidation'
 
 // Смена статуса заявки: запрос причины (внутренний диалог TaskStatusReasonDialog или
@@ -16,10 +16,6 @@ export default {
   }),
 
   methods: {
-    getDefaultOpenStatus () {
-      return getDefaultOpenStatus(this.store.statuses)
-    },
-
     getReopenStatus (task) {
       return getReopenStatus(task, this.store.statuses)
     },

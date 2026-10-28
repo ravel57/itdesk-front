@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getStatusName, isClosedStatusName, isFrozenStatusName, isFrozenWithTimer } from 'src/util/taskDialog/taskStatus'
+import { CLOSED_STATUS_NAME, getStatusName, isClosedStatusName, isFrozenStatusName, isFrozenWithTimer } from 'src/util/taskDialog/taskStatus'
 import { buildTaskPayload, copyTaskForUpdate, mergeUpdatedTaskRuntimeFields, resolveTagsByName } from 'src/util/taskDialog/taskPayload'
 import { hasRequiredTaskFields } from 'src/util/taskDialog/taskValidation'
 
@@ -116,11 +116,6 @@ export default {
           .finally(() => {
             this.taskOnCreateProcess = false
           })
-          .catch(e =>
-            this.$q.notify({
-              message: e.message,
-              type: 'negative'
-            }))
       } else {
         axios.patch(`/api/v1/client/${this.client.id}/task`, task)
           .then(newTask => {
@@ -144,7 +139,7 @@ export default {
       }
       const closedStatus = this.store.statuses.find(status => isClosedStatusName(status.name))
       const oldStatusName = getStatusName(sourceTask.status)
-      const newStatusName = getStatusName(closedStatus) || 'Закрыта'
+      const newStatusName = getStatusName(closedStatus) || CLOSED_STATUS_NAME
       if (!this.validateExecutorRequiredForClosingTask(sourceTask.executor, newStatusName, true)) {
         return
       }

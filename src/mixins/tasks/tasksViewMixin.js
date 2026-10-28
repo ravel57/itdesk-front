@@ -19,7 +19,6 @@ import {
   getChecklistTableValue,
   getChecklistTotalCount,
   getExecutorGroupName,
-  getExecutorName,
   getServiceName,
   getSupportLineLevelLabel,
   getSupportLineName,
@@ -229,10 +228,6 @@ export default {
 
     getExecutorGroupName(task) {
       return getExecutorGroupName(task, this.unassignedExecutorLabel)
-    },
-
-    getExecutorName(task) {
-      return getExecutorName(task, this.store.currentUser, this.currentExecutorLabel, this.unassignedExecutorLabel)
     }
   }
 }

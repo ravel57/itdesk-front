@@ -398,7 +398,6 @@ export default {
 
     currentExecutorLabel: 'Вы',
     unassignedExecutorLabel: 'Без исполнителя',
-    selectedTaskType: null,
 
     taskUpdatedUnsubscribe: null,
   }),
@@ -587,10 +586,6 @@ export default {
 
     isMobile() {
       return this.$q.screen.width < 1023
-    },
-
-    urlFilterChain() {
-      return new URLSearchParams(window.location.search).get('filterChain')
     },
 
     isObserverUser() {
