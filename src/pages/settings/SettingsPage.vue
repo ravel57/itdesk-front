@@ -167,7 +167,7 @@ export default {
         group: 'access'
       },
       {
-        title: 'Клиенты',
+        title: 'Клиенты портала',
         link: '/settings/clients',
         slug: 'clients',
         icon: 'contacts',
